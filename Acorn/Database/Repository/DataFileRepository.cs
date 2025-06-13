@@ -16,17 +16,40 @@ public class DataFileRepository : IDataFileRepository
 
     public DataFileRepository()
     {
-        Ecf.Deserialize(new EoReader(File.ReadAllBytes(_ecfFile)));
-        Eif.Deserialize(new EoReader(File.ReadAllBytes(_eifFile)));
-        Enf.Deserialize(new EoReader(File.ReadAllBytes(_enfFile)));
-        Esf.Deserialize(new EoReader(File.ReadAllBytes(_esfFile)));
-        Maps = Directory.GetFiles("Data/Maps/").ToList().Where(f => Regex.IsMatch(f, @"\d+\.emf")).Select(mapFile =>
+        if (File.Exists(_ecfFile))
         {
-            var emf = new Emf();
-            emf.Deserialize(new EoReader(File.ReadAllBytes(mapFile)));
-            var id = int.Parse(new FileInfo(mapFile).Name.Split('.')[0]);
-            return new MapWithId(id, emf);
-        }).ToList();
+            Ecf.Deserialize(new EoReader(File.ReadAllBytes(_ecfFile)));
+        }
+
+        if (File.Exists(_eifFile))
+        {
+            Eif.Deserialize(new EoReader(File.ReadAllBytes(_eifFile)));
+        }
+
+        if (File.Exists(_enfFile))
+        {
+            Enf.Deserialize(new EoReader(File.ReadAllBytes(_enfFile)));
+        }
+
+        if (File.Exists(_esfFile))
+        {
+            Esf.Deserialize(new EoReader(File.ReadAllBytes(_esfFile)));
+        }
+
+        if (Directory.Exists("Data/Maps/"))
+        {
+            Maps = Directory.GetFiles("Data/Maps/").ToList().Where(f => Regex.IsMatch(f, @"\d+\.emf")).Select(mapFile =>
+            {
+                var emf = new Emf();
+                emf.Deserialize(new EoReader(File.ReadAllBytes(mapFile)));
+                var id = int.Parse(new FileInfo(mapFile).Name.Split('.')[0]);
+                return new MapWithId(id, emf);
+            }).ToList();
+        }
+        else
+        {
+            Maps = Array.Empty<MapWithId>();
+        }
     }
 
     public Ecf Ecf { get; } = new();
