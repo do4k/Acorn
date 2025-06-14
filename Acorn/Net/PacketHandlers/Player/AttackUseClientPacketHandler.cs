@@ -39,22 +39,9 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
 
         if (playerConnection.Character is not null)
         {
-            var attackingX = playerConnection.Character.Direction switch
-            {
-                Direction.Right => playerConnection.Character.X + 1,
-                Direction.Left => playerConnection.Character.X - 1,
-                _ => playerConnection.Character.X,
-            };
-            
-            var attackingY = playerConnection.Character.Direction switch
-            {
-                Direction.Up => playerConnection.Character.Y - 1,
-                Direction.Down => playerConnection.Character.Y + 1,
-                _ => playerConnection.Character.Y,
-            };
-            
+            var nextCoords = playerConnection.Character.NextCoords();
             var target = map.Npcs.FirstOrDefault(x => 
-                x.X == attackingX && x.Y == attackingY && 
+                x.X == nextCoords.X && x.Y == nextCoords.Y && 
                 x.Data.Type is NpcType.Aggressive or NpcType.Passive);
             
             if (target is null)
