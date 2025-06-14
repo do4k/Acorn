@@ -1,6 +1,7 @@
 ﻿using Acorn.World;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol;
+using Moffat.EndlessOnline.SDK.Protocol.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
@@ -43,12 +44,29 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
         playerConnection.Character.Direction = packet.WalkAction.Direction;
 
         var map = _world.MapFor(playerConnection);
-        var otherPlayers = map.Players
-            .Where(x => x.Character?.Map == map.Id).Where(x => x != playerConnection).ToList();
-
-        var otherPlayerTasks = otherPlayers.Select(async otherPlayer =>
+        if (map is null)
         {
-            await otherPlayer.Send(new WalkPlayerServerPacket
+            _logger.LogError("Tried to handle walk player packet, but the map for the player connection was not found. MapId: {MapId}, PlayerId: {PlayerId}",
+                playerConnection.Character.Map, playerConnection.SessionId);
+            return;
+        }
+
+
+        var hasWarp = TryGetWarpTile(map, playerConnection.Character, out var warpTile);
+
+        if (hasWarp && warpTile is not null)
+        {
+            await _world.Warp(
+                playerConnection, 
+                warpTile.Warp.DestinationMap, 
+                warpTile.Warp.DestinationCoords.X,
+                warpTile.Warp.DestinationCoords.Y, 
+                WarpEffect.None, 
+                playerConnection.Character.Map == warpTile.Warp.DestinationMap);
+        }
+        else
+        {
+            await map.BroadcastPacket(new WalkPlayerServerPacket
             {
                 Direction = playerConnection.Character.Direction,
                 PlayerId = playerConnection.SessionId,
@@ -57,10 +75,30 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
                     X = playerConnection.Character.X,
                     Y = playerConnection.Character.Y
                 }
-            });
-        });
+            }, except: playerConnection);
+        }
+    }
 
-        await Task.WhenAll(otherPlayerTasks);
+    private bool TryGetWarpTile(MapState map, Database.Models.Character character, out MapWarpRowTile? tile)
+    {
+        var possibleY = map.Data.WarpRows.Where(wr => wr.Y == character.Y);
+        var mapWarpRows = possibleY as MapWarpRow[] ?? possibleY.ToArray();
+        if (mapWarpRows.Any() is false)
+        {
+            tile = null;
+            return false;
+        }
+        var possibleX = mapWarpRows.SelectMany(wr => wr.Tiles.Where(tile => tile.X == character.X));
+        var mapWarpRowTiles = possibleX as MapWarpRowTile[] ?? possibleX.ToArray();
+        if (mapWarpRowTiles.Any() is false)
+        {
+            tile = null;
+            return false;
+        }
+        
+        var warpTile = mapWarpRowTiles.FirstOrDefault();
+        tile = warpTile;
+        return warpTile is not null;
     }
 
     public Task HandleAsync(PlayerConnection playerConnection, object packet)
