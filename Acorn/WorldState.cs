@@ -3,6 +3,7 @@ using Acorn.Database.Repository;
 using Acorn.Extensions;
 using Acorn.Net;
 using Acorn.Net.PacketHandlers.Player.Warp;
+using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
@@ -16,9 +17,11 @@ public class WorldState
     public ConcurrentBag<GlobalMessage> GlobalMessages = [];
     public ConcurrentBag<MapState> Maps = [];
     public ConcurrentBag<PlayerConnection> Players = [];
+    private readonly ILogger<WorldState> _logger;
 
-    public WorldState(IDataFileRepository dataRepository)
+    public WorldState(IDataFileRepository dataRepository, ILogger<WorldState> logger)
     {
+        _logger = logger;
         foreach (var map in dataRepository.Maps)
         {
             Maps.Add(new MapState(map));
@@ -57,7 +60,12 @@ public class WorldState
         if (!localWarp)
         {
             var currentMap = MapFor(player);
-            var newMap = Maps.Single(x => x.Id == mapId);
+            var newMap = Maps.SingleOrDefault(x => x.Id == mapId);
+            if (newMap is null)
+            {
+                _logger.LogWarning("Player {CharacterName} ({SessionId}) attempted to warp to non-existent map {MapId}", player.Character?.Name, player.SessionId, mapId);
+                return;
+            }
             await currentMap.Leave(player, warpEffect);
             await newMap.Enter(player, warpEffect);
         }

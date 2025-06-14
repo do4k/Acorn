@@ -1,4 +1,5 @@
-﻿using Moffat.EndlessOnline.SDK.Protocol;
+﻿using Acorn.Extensions;
+using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using OneOf;

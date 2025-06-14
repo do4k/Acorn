@@ -55,10 +55,7 @@ public class SetCommandHandler : ITalkHandler
 
         if (!int.TryParse(args[2], out var value))
         {
-            await playerConnection.Send(new TalkServerServerPacket
-            {
-                Message = $"Value must be an integer. {Usage}"
-            });
+            await playerConnection.ServerMessage($"Value must be an integer. {Usage}");
             return;
         }
 
@@ -97,10 +94,7 @@ public class SetCommandHandler : ITalkHandler
         };
 
         adjustment();
-        await playerConnection.Send(new TalkServerServerPacket
-        {
-            Message = $"Player {args[0]} had {args[1]} updated to {value}."
-        });
+        await playerConnection.ServerMessage($"Player {args[0]} had {args[1]} updated to {value}.");
 
         await _world.Refresh(playerConnection);
     }

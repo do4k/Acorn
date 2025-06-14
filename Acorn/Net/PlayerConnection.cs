@@ -172,4 +172,12 @@ public class PlayerConnection : IDisposable
         var fullBytes = encodedLength[..2].Concat(bytes);
         await TcpClient.GetStream().WriteAsync(fullBytes.AsReadOnly());
     }
+
+    public Task ServerMessage(string message)
+    {
+        return Send(new TalkServerServerPacket
+        {
+            Message = message
+        });
+    }
 }
