@@ -63,6 +63,7 @@ await Host.CreateDefaultBuilder(args)
                 }
                 return new SqliteConnection(connectionString);
             })
+            .AddSingleton<FormulaService>()
             .AddSingleton<IStatsReporter, StatsReporter>()
             .AddSingleton<ISessionGenerator, SessionGenerator>()
             .AddTransient<IDbInitialiser, DbInitialiser>()

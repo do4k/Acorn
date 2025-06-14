@@ -218,6 +218,7 @@ public class NpcState
     public int X { get; set; }
     public int Y { get; set; }
     public int Id { get; set; }
+    public int Hp { get; set; }
 
     public NpcMapInfo AsNpcMapInfo(int index)
     {

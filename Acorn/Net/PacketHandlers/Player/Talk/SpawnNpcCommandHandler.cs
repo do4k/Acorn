@@ -66,6 +66,7 @@ public class SpawnNpcCommandHandler : ITalkHandler
             Direction = playerConnection.Character.Direction,
             X = playerConnection.Character.X,
             Y = playerConnection.Character.Y,
+            Hp = enf.Hp,
             Id = npcId + 1
         };
 
