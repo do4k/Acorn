@@ -1,0 +1,244 @@
+// QUest Engine 0.01 example script by VUlt-r
+// script shows how to initialize and begin the quest 111
+
+Main
+{
+	questname 	"Pjedro's Son"
+	version		2
+}
+
+state Begin
+{
+	desc		"Talk to Pjedro"
+	action		AddNpcText( 1 , "Hi, i never seen you before, let me introduce myself. I am pjedro, i used to be a famous farmer known from Aeven to Anundo.." );
+	action		AddNpcText( 1 , "Now my days are sad, and empty. Do you want to hear more of my story?" );
+	action		AddNpcInput( 1 , 1 , "Yes please tell me");
+	action		AddNpcInput( 1 , 2 , "No time, sorry!");
+
+	rule 		InputNpc( 1 ) goto Learn1
+}
+
+state Learn1
+{
+	desc		"Talk to Pjedro's Wife"
+	action		ShowHint("Quest reward: 10000 EXP")
+	action		AddNpcText( 1 , "My son, i lost my son.. i should had listened to my wife." );
+	action		AddNpcText( 3 , "Yes my son is missing, but how.. how do you know about my son?");
+
+	action		AddNpcInput( 3 , 1 , "Pjedro told me");
+	action		AddNpcInput( 3 , 2 , "I forgot, sorry!");
+
+	rule 		InputNpc( 1 ) goto Learn2
+}
+
+
+state Learn2
+{
+	desc		"Talk to Merriad"
+	action		AddNpcText( 3 , "Me and pjedro, we worked very hard all our lives.. Harvesting crops, producing vegetables.. We worked way too hard." );
+	action		AddNpcText( 3 , "We sended our little son to deliver some vegtables to his aunt, because we were too busy harvesting the crops..");
+
+	rule 		TalkedToNpc(3) goto Learn3
+}
+
+state Learn3
+{
+	desc		"Talk to Pjedro"
+	action		AddNpcText( 3 , "He was all lone, and never returned home.. I wish we would had never send him out *boohoo*" );
+	action		AddNpcText( 1 , "Yes merriad is very upset since the accident.. We wish that we delivered those vegtables ourselves." );
+	action		AddNpcText( 1 , "His aunt lives in Anundo, please find our little boy.." );
+	action		AddNpcInput( 1 , 1 , "Yes, i will");
+	action		AddNpcInput( 1 , 2 , "No, sorry");
+
+	rule 		InputNpc( 1 ) goto GoAnundo
+	rule 		InputNpc( 2 ) goto GoReset
+}
+
+state GoReset
+{
+	Reset()
+}
+
+state GoAnundo
+{
+	desc		"Travel to Anundo"
+	action		AddNpcText( 1 , "His aunt lives in Anundo, please find our little boy.." );
+	rule		EnterMap( 161 ) goto TalkAunt
+}
+
+state TalkAunt
+{
+	desc		"Talk to aunt Nena"
+
+	action		AddNpcText( 9 , "I am so worried about Pjedro's son.. He never made it here, something terrible must have happened. ");
+	action		AddNpcText( 9 , "I never been outside the village for years, I hope nothing bad happened.");
+
+	action		AddNpcInput( 9 , 1 , "No worries, i will find him");
+	action		AddNpcInput( 9 , 2 , "Oh, the carnivos ate him");
+
+	rule 		InputNpc( 1 ) goto FindWitness
+	rule 		InputNpc( 2 ) goto FindWitness2
+}
+
+state FindWitness
+{
+	desc		"Find out what happened.."
+	action		AddNpcText( 9 , "Thank you so much for helping us, something must have happened to him on the road to here, good luck to you!");
+	rule		EnterMap( 41 ) goto TalkGuard
+}
+
+state FindWitness2
+{
+	desc		"Find out what happened.."
+	action		AddNpcText( 9 , "Are you serious? please stop joking! *panic in nenas eyes*");
+	rule		EnterMap( 41 ) goto TalkGuard
+}
+
+state TalkGuard
+{
+	desc		"Talk to swamp guard"
+
+	action		AddNpcText( 10 , "You looking for a little kid carrying some vegtables. Yes i recall seeing a little kid walking here..");
+	action		AddNpcText( 10 , "But im affraid i cannot tell you more, we are not allowed to talk to civilians, Imperial rules you know..");
+
+	rule 		TalkedToNpc(10) goto GetPermission
+}
+
+state GetPermission
+{
+	desc		"Travel to the castle"
+	action		AddNpcText( 10 , "Sorry I am not allowed to talk to civilians without the permission of my captain");
+	rule		EnterMap( 46 ) goto TalkCaptain
+}
+
+state TalkCaptain
+{
+	desc		"Talk to imperial captain"
+
+	action		AddNpcText( 11 , "So you are looking for a little kid that got lost on the way to his aunt? You are truely noble..");
+	action		AddNpcText( 11 , "Yes, ofcourse you have my permission.. I cannot believe he did not tell you right away, good guards are hard to find these days *sighs*");
+
+	rule		TalkedToNpc(11) goto TalkGuard2
+}
+
+state TalkGuard2
+{
+	desc		"Talk to swamp guard"
+	action		GiveExp(250)
+
+	action		AddNpcText( 11 , "I have ordered the swamp guard to tell you all he knows, please hurry time is on the escense!");
+
+	action		AddNpcText( 10 , "Ah you are back to talk about the little boy that dissapeared. ");
+	action		AddNpcText( 10 , "It were the ghosts.. The ghosts have lured him into their haunted house.. Everyone thinks i am crazy, do you?");
+	action		AddNpcText( 10 , "I tried to rescue him but im too scared to enter that house.. *panics in his eyes*");
+
+	rule 		TalkedToNpc(10) goto GoHH
+}
+
+state GoHH
+{
+	desc		"Enter the haunted house"
+	action		AddNpcText( 10 , "Please find him, the little boy must be somewhere hidden inside the haunted house!");
+	rule		EnterMap( 152 ) goto GoHH2
+}
+
+state GoHH2
+{
+	desc		"Enter 2nd floor (HH)"
+	action		AddNpcText( 10 , "Please find him, the little boy must be somewhere hidden inside the haunted house!");
+	rule		EnterMap( 235 ) goto GoHH3
+}
+
+state GoHH3
+{
+	desc		"Enter 3th floor (HH)"
+	action		AddNpcText( 10 , "Please find him, the little boy must be somewhere hidden inside the haunted house!");
+	rule		EnterMap( 236 ) goto GoHH4
+}
+
+state GoHH4
+{
+	desc		"Enter 4th floor (HH)"
+	action		AddNpcText( 10 , "Please find him, the little boy must be somewhere hidden inside the haunted house!");
+	rule		EnterMap( 237 ) goto GoHH5
+}
+
+state GoHH5
+{
+	desc		"Stand before the book"
+	action		AddNpcText( 10 , "Please find him, the little boy must be somewhere hidden inside the haunted house!");
+	rule		EnterCoord( 237, 12 , 7) goto GotScroll
+}
+
+state GotScroll
+{
+	desc		"Talk to Ayla"
+
+	action		ShowHint("You found a scroll of truth inside the book, only a witch can understand this!!");
+	action		GiveItem(419)
+	action		PlaySound(18);
+
+	action		AddNpcText( 2 , "Shall i ask my tutor is she wants to decrypt your scroll of truth?" );
+	action		AddNpcInput( 2 , 1 , "Yes, here you are");
+	action		AddNpcInput( 2 , 2 , "No, i will try myself");
+
+	rule 		InputNpc( 1 ) goto GotScroll2
+	rule		LostItems(419) goto GoReset
+}
+
+state GotScroll2
+{
+	desc		"Talk to Ayla"
+	action		RemoveItem(419)
+
+	action		AddNpcText( 2 , "The scroll of truth is a scroll that can find all thats lost, but only a witch can read it. Once i read these words you probably teleport to some unknown place" );
+	action		AddNpcText( 2 , "Do you want me to say the words written on this scroll?" );
+	action		AddNpcInput( 2 , 1 , "Yes, please do");
+	action		AddNpcInput( 2 , 2 , "No, im scared");
+
+	rule 		InputNpc( 1 ) goto GotScroll3
+}
+
+state GotScroll3
+{
+	desc		"Find the Bird Fortress"
+	action		SetMap(170,5,5)
+	rule		EnterMap( 175 ) goto TalkToSon
+}
+
+state TalkToSon
+{
+	desc		"Talk to Pjedro's son"
+
+	action		AddNpcText( 12 , "I was bringing some vegtables to my aunt, but on the way i saw strange lights.. I followed them inside a strange looking house..");
+	action		AddNpcText( 12 , "I didnt had any control over my body i just kept following them, luckilly a patrol of birds saved me and brought me here.");
+	action		AddNpcText( 12 , "wanna miss my daddy, please take me home..");
+
+	action		AddNpcInput( 12 , 1 , "Come, ill take you home.");
+	action		AddNpcInput( 12 , 2 , "No, captain birdman will eat you.");
+
+	rule 		InputNpc( 1 ) goto FinalTalk
+}
+
+state FinalTalk
+{
+	desc		"Talk to Pjedro"
+	action		SetMap(240,10,7)
+
+	action		AddNpcText( 1 , "Im going to bring him to bed he is so tired.. Thank you so much for bringing our boy back!!" );
+	action		AddNpcText( 3 , "Thank you so much for bringing him back!");
+	action		AddNpcChat( 1 , "Thank you!" );
+	action		AddNpcChat( 3 , "Thank you!" );
+
+	rule 		TalkedToNpc(1) goto GetReward
+}
+
+state GetReward
+{
+
+	action		GiveExp(10000)
+	action		ShowHint("You gained 10000 EXP!")
+	action		PlaySound(18)
+
+	End()
+}

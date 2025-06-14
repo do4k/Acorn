@@ -73,6 +73,11 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
                 HpPercentage = (int)Math.Max((double)target.Hp / target.Data.Hp * 100, 0),
                 KillStealProtection = NpcKillStealProtectionState.Unprotected,
             });
+
+            if (target.Hp == 0)
+            {
+                playerConnection.Character.Exp += target.Data.Experience;
+            }
         }
 
         await map.BroadcastPacket(new AttackPlayerServerPacket
