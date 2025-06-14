@@ -1,8 +1,9 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Acorn.World;
+using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using OneOf.Types;
+
 namespace Acorn.Net.PacketHandlers.Player.Talk;
 
 internal class TalkReportClientPacketHandler(WorldState world, IEnumerable<ITalkHandler> talkHandlers, ILogger<TalkReportClientPacketHandler> logger)
