@@ -2,8 +2,6 @@
 using Moffat.EndlessOnline.SDK.Data;
 using Moffat.EndlessOnline.SDK.Protocol.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
-using OneOf;
-using OneOf.Types;
 
 namespace Acorn.Database.Repository;
 
@@ -61,57 +59,33 @@ public class DataFileRepository : IDataFileRepository
 
 public static class EcfExtension
 {
-    public static OneOf<Success<EcfRecord>, Error<string>> GetClass(this Ecf ecf, int id)
+    public static EcfRecord? GetClass(this Ecf ecf, int id)
     {
-        if (id > ecf.Classes.Count)
-        {
-            return new Error<string>($"{id} is greater than the class count ({ecf.Classes.Count})");
-        }
-
-        var @class = ecf.Classes[id];
-        return new Success<EcfRecord>(@class);
+        return id > ecf.Classes.Count ? null : ecf.Classes[id];
     }
 }
 
 public static class EnfExtension
 {
-    public static OneOf<Success<EnfRecord>, Error<string>> GetNpc(this Enf enf, int id)
+    public static EnfRecord? GetNpc(this Enf enf, int id)
     {
-        if (id > enf.Npcs.Count)
-        {
-            return new Error<string>($"{id} is greater than the npc count ({enf.Npcs.Count})");
-        }
-
-        var npc = enf.Npcs[id];
-        return new Success<EnfRecord>(npc);
+        return id > enf.Npcs.Count ? null : enf.Npcs[id];
     }
 }
 
 public static class EifExtension
 {
-    public static OneOf<Success<EifRecord>, Error<string>> GetItem(this Eif eif, int id)
+    public static EifRecord? GetItem(this Eif eif, int id)
     {
-        if (id > eif.Items.Count)
-        {
-            return new Error<string>($"{id} is greater than the item count ({eif.Items.Count})");
-        }
-
-        var item = eif.Items[id];
-        return new Success<EifRecord>(item);
+        return id > eif.Items.Count ? null : eif.Items[id];
     }
 }
 
 public static class EsfExtension
 {
-    public static OneOf<Success<EsfRecord>, Error<string>> GetSkill(this Esf esf, int id)
+    public static EsfRecord? GetSkill(this Esf esf, int id)
     {
-        if (id > esf.Skills.Count)
-        {
-            return new Error<string>($"{id} is greater than the skill count ({esf.Skills.Count})");
-        }
-
-        var skill = esf.Skills[id];
-        return new Success<EsfRecord>(skill);
+        return id > esf.Skills.Count ? null : esf.Skills[id];
     }
 }
 

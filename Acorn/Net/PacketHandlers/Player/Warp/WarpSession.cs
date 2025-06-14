@@ -24,18 +24,20 @@ public class WarpSession
             return;
         }
 
-        var map = worldState.Maps.Single(x => x.Id == MapId);
-
-        await player.Send(new WarpRequestServerPacket
+        var found = worldState.Maps.TryGetValue(MapId, out var map);
+        if (found && map is not null)
         {
-            WarpType = WarpType.MapSwitch,
-            MapId = MapId,
-            SessionId = player.SessionId,
-            WarpTypeData = new WarpRequestServerPacket.WarpTypeDataMapSwitch
+            await player.Send(new WarpRequestServerPacket
             {
-                MapFileSize = map.Data.ByteSize,
-                MapRid = map.Data.Rid
-            }
-        });
+                WarpType = WarpType.MapSwitch,
+                MapId = MapId,
+                SessionId = player.SessionId,
+                WarpTypeData = new WarpRequestServerPacket.WarpTypeDataMapSwitch
+                {
+                    MapFileSize = map.Data.ByteSize,
+                    MapRid = map.Data.Rid
+                }
+            });
+        }
     }
 }

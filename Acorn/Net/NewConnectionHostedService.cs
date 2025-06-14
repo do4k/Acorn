@@ -4,6 +4,7 @@ using System.Net.Sockets;
 using Acorn.Database.Models;
 using Acorn.Database.Repository;
 using Acorn.Infrastructure;
+using Acorn.Options;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -36,30 +37,31 @@ public class NewConnectionHostedService(
         _logger.LogInformation("Waiting for connections on {Endpoint}...", _listener.LocalEndpoint);
         while (cancellationToken.IsCancellationRequested is false)
         {
-            var client = await _listener.AcceptTcpClientAsync();
-            if (client == null)
-            {
-                _logger.LogWarning("Accepted client was null, skipping...");
-                continue;
-            }
-
-            _world.Players.Add(new PlayerConnection(_services, client, _playerConnectionLogger,
-                async playerConnection =>
+            var client = await _listener.AcceptTcpClientAsync(cancellationToken);
+            var sessionId = sessionGenerator.Generate();
+            var added = _world.Players.TryAdd(sessionId, new PlayerConnection(_services, client, _playerConnectionLogger, sessionId,
+                async (playerConnection) =>
                 {
                     if (playerConnection.Character is not null)
                     {
-                        var map = _world.Maps.First(x => x.Id == playerConnection.Character.Map);
-                        await map.Leave(playerConnection);
-                        await _characterRepository.UpdateAsync(playerConnection.Character);
+                        var map = _world.MapFor(playerConnection);
+                        if (map is not null)
+                        {
+                            await map.Leave(playerConnection);
+                            await _characterRepository.UpdateAsync(playerConnection.Character);
+                        }
                     }
 
-                    _world.Players = new ConcurrentBag<PlayerConnection>(
-                        _world.Players.Where(x => x != playerConnection)
-                    );
+                    var removed = _world.Players.TryRemove(sessionId, out var removedConnection);
+                    if (removed is false)
+                    {
+                        _logger.LogWarning("Failed to remove player connection with session ID {SessionId}", playerConnection.SessionId);
+                        return;
+                    }
 
                     _logger.LogInformation("Player disconnected");
                     UpdateConnectedCount();
-                }, sessionGenerator));
+                }));
 
             _logger.LogInformation("Connection accepted. {PlayersConnected} players connected", _world.Players.Count);
             UpdateConnectedCount();
@@ -76,10 +78,11 @@ public class NewConnectionHostedService(
     {
         Console.Title = $"Acorn Server ({_world.Players.Count} Connected)";
     }
-    
-    public void Dispose()
+
+    public override void Dispose()
     {
         _listener.Stop();
         _listener.Dispose();
+        base.Dispose();
     }
 }

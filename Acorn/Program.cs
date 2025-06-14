@@ -1,16 +1,15 @@
 ﻿using System.Data;
-using System.Net.Http.Headers;
 using System.Reflection;
 using Acorn;
 using Acorn.Database;
-using Acorn.Database.Models;
 using Acorn.Database.Repository;
 using Acorn.Extensions;
 using Acorn.Infrastructure;
 using Acorn.Net;
 using Acorn.Net.PacketHandlers;
 using Acorn.Net.PacketHandlers.Player.Talk;
-using Acorn.Services;
+using Acorn.Options;
+using Acorn.World;
 using Acorn.SLN;
 using Microsoft.Data.SqlClient;
 using Microsoft.Data.Sqlite;
@@ -57,7 +56,7 @@ await Host.CreateDefaultBuilder(args)
             {
                 var dbOptions = sp.GetRequiredService<IOptions<DatabaseOptions>>().Value;
                 var connectionString = dbOptions.ConnectionString;
-                
+
                 if (dbOptions.Engine?.ToLower() != "sqlite")
                 {
                     return new SqlConnection(connectionString);
@@ -90,7 +89,9 @@ await Host.CreateDefaultBuilder(args)
     .ConfigureLogging(builder =>
     {
         builder.SetMinimumLevel(LogLevel.Debug);
+#pragma warning disable CS0618 // Type or member is obsolete
         builder.AddConsole(options => { options.TimestampFormat = "[HH:mm:ss] "; });
+#pragma warning restore CS0618 // Type or member is obsolete
     })
     .Build()
     .RunAsync();

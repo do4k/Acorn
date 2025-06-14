@@ -2,8 +2,6 @@
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using OneOf;
-using OneOf.Types;
 
 namespace Acorn.Net.PacketHandlers.Player;
 
@@ -18,14 +16,14 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
         _world = world;
     }
 
-    public async Task<OneOf<Success, Error>> HandleAsync(PlayerConnection playerConnection,
+    public async Task HandleAsync(PlayerConnection playerConnection,
         WalkPlayerClientPacket packet)
     {
         if (playerConnection.Character is null)
         {
             _logger.LogError(
                 "Tried to handler player walk, but the character associated with this connection has not been initialised");
-            return new Error();
+            return;
         }
 
         playerConnection.Character.X = packet.WalkAction.Direction switch
@@ -44,7 +42,6 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
         playerConnection.Character.Direction = packet.WalkAction.Direction;
 
         var map = _world.MapFor(playerConnection);
-
         var otherPlayers = map.Players
             .Where(x => x.Character?.Map == map.Id).Where(x => x != playerConnection).ToList();
 
@@ -63,11 +60,9 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
         });
 
         await Task.WhenAll(otherPlayerTasks);
-
-        return new Success();
     }
 
-    public Task<OneOf<Success, Error>> HandleAsync(PlayerConnection playerConnection, object packet)
+    public Task HandleAsync(PlayerConnection playerConnection, object packet)
     {
         return HandleAsync(playerConnection, (WalkPlayerClientPacket)packet);
     }

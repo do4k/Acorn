@@ -9,14 +9,13 @@ using Moffat.EndlessOnline.SDK.Protocol.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
-
 namespace Acorn;
 
 public class WorldState
 {
-    public ConcurrentBag<GlobalMessage> GlobalMessages = [];
-    public ConcurrentBag<MapState> Maps = [];
-    public ConcurrentBag<PlayerConnection> Players = [];
+    public ConcurrentDictionary<Guid, GlobalMessage> GlobalMessages = [];
+    public ConcurrentDictionary<int, MapState> Maps = [];
+    public ConcurrentDictionary<int, PlayerConnection> Players = [];
     private readonly ILogger<WorldState> _logger;
 
     public WorldState(IDataFileRepository dataRepository, ILogger<WorldState> logger)
@@ -24,13 +23,25 @@ public class WorldState
         _logger = logger;
         foreach (var map in dataRepository.Maps)
         {
-            Maps.Add(new MapState(map));
+            var added = Maps.TryAdd(map.Id, new MapState(map));
+            if (added is false)
+            {
+                _logger.LogWarning("Failed to add map {MapId} to world state", map.Id);
+            }
         }
     }
 
-    public MapState MapFor(PlayerConnection player)
+    public MapState? MapFor(PlayerConnection player)
     {
-        return Maps.Single(x => x.HasPlayer(player));
+        var exists = Maps.TryGetValue(player.Character?.Map ?? -1, out var map);
+        if (exists is true && map is not null)
+        {
+            return map;
+        }
+
+        _logger.LogWarning("Player {CharacterName} ({SessionId}) attempted to access non-existent map {MapId}",
+            player.Character?.Name, player.SessionId, player.Character?.Map);
+        return null;
     }
 
     public Task Refresh(PlayerConnection player)
@@ -59,14 +70,19 @@ public class WorldState
 
         if (!localWarp)
         {
-            var currentMap = MapFor(player);
-            var newMap = Maps.SingleOrDefault(x => x.Id == mapId);
-            if (newMap is null)
+            var map = MapFor(player);
+            if (map is not null)
             {
+                await map.Leave(player, warpEffect);
+            }
+
+            var found = Maps.TryGetValue(mapId, out var newMap);
+            if (found is false || newMap is null)
+            {
+                player.Disconnect();
                 _logger.LogWarning("Player {CharacterName} ({SessionId}) attempted to warp to non-existent map {MapId}", player.Character?.Name, player.SessionId, mapId);
                 return;
             }
-            await currentMap.Leave(player, warpEffect);
             await newMap.Enter(player, warpEffect);
         }
     }

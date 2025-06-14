@@ -3,8 +3,6 @@ using Acorn.Database.Models;
 using Dapper;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using OneOf;
-using OneOf.Types;
 
 namespace Acorn.Database.Repository;
 
@@ -37,7 +35,7 @@ public class AccountRepository : BaseDbRepository, IDbRepository<Account>, IDisp
         }
     }
 
-    public async Task<OneOf<Success, Error>> CreateAsync(Account entity)
+    public async Task CreateAsync(Account entity)
     {
         using var t = _conn.BeginTransaction(IsolationLevel.ReadCommitted);
         try
@@ -51,13 +49,10 @@ public class AccountRepository : BaseDbRepository, IDbRepository<Account>, IDisp
             _logger.LogError("Error saving account information for {PlayerName}. Exception {Exception}",
                 entity.Username, e.Message);
             t.Rollback();
-            return new Error();
         }
-
-        return new Success();
     }
 
-    public async Task<OneOf<Success, Error>> DeleteAsync(Account entity)
+    public async Task DeleteAsync(Account entity)
     {
         using var t = _conn.BeginTransaction();
         try
@@ -68,35 +63,33 @@ public class AccountRepository : BaseDbRepository, IDbRepository<Account>, IDisp
         {
             _logger.LogError("Error deleting account {PlayerName}. Exception {Exception}", entity.Username, e.Message);
             t.Rollback();
-            return new Error();
         }
-
-        return new Success();
     }
 
-    public async Task<OneOf<Success<Account>, NotFound, Error>> GetByKey(string username)
+    public async Task<Account?> GetByKeyAsync(string username)
     {
         try
         {
             var acc = await _conn.QuerySingleOrDefaultAsync<Account>(SQLStatements.GetByKey, new { username });
             if (acc is null)
             {
-                return new NotFound();
+                _logger.LogWarning("Account {Username} not found", username);
+                return null;
             }
 
             acc.Characters = (await _conn.QueryAsync<Character>(SQLStatements.GetCharacters, new { username }))
                 .ToList();
-            return new Success<Account>(acc);
+            return acc;
         }
         catch (Exception e)
         {
-            _logger.LogError("Error fetching account {PlayerName}. Exception {Exception}", username, e.Message);
+            _logger.LogError(e, "Error fetching account {Username}", username);
         }
 
-        return new Error();
+        return null;
     }
 
-    public async Task<OneOf<Success<IEnumerable<Account>>, Error>> GetAll()
+    public async Task<IEnumerable<Account>> GetAllAsync()
     {
         try
         {
@@ -109,18 +102,17 @@ public class AccountRepository : BaseDbRepository, IDbRepository<Account>, IDisp
                 return a;
             });
 
-            var results = await Task.WhenAll(withCharacters);
-            return new Success<IEnumerable<Account>>(results);
+            return await Task.WhenAll(withCharacters);
         }
         catch (Exception e)
         {
-            _logger.LogError("Error fetching all accounts. Exception {Exception}", e.Message);
+            _logger.LogError(e, "Error fetching all accounts");
         }
 
-        return new Error();
+        return [];
     }
 
-    public async Task<OneOf<Success, Error>> UpdateAsync(Account entity)
+    public async Task UpdateAsync(Account entity)
     {
         using var t = _conn.BeginTransaction(IsolationLevel.ReadCommitted);
         try
@@ -133,10 +125,7 @@ public class AccountRepository : BaseDbRepository, IDbRepository<Account>, IDisp
             _logger.LogError("Error saving account information for {PlayerName}. Exception {Exception}",
                 entity.Username, e.Message);
             t.Rollback();
-            return new Error();
         }
-
-        return new Success();
     }
 
     public void Dispose()

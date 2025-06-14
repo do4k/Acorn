@@ -1,7 +1,5 @@
 ﻿using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using OneOf;
-using OneOf.Types;
 
 namespace Acorn.Net.PacketHandlers.Player;
 
@@ -14,17 +12,23 @@ internal class FacePlayerClientPacketHandler : IPacketHandler<FacePlayerClientPa
         _world = world;
     }
 
-    public async Task<OneOf<Success, Error>> HandleAsync(PlayerConnection playerConnection,
+    public async Task HandleAsync(PlayerConnection playerConnection,
         FacePlayerClientPacket packet)
     {
         if (playerConnection.Character is null)
         {
-            return new Error();
+            return;
         }
 
         playerConnection.Character.Direction = packet.Direction;
 
-        var broadcast = _world.MapFor(playerConnection).Players.ToList().Select(player =>
+        var map = _world.MapFor(playerConnection);
+        if (map is null)
+        {
+            return;
+        }
+
+        var broadcast = map.Players.ToList().Select(player =>
             player.Send(new FacePlayerServerPacket
             {
                 Direction = packet.Direction,
@@ -32,10 +36,10 @@ internal class FacePlayerClientPacketHandler : IPacketHandler<FacePlayerClientPa
             }));
 
         await Task.WhenAll(broadcast);
-        return new Success();
+
     }
 
-    public Task<OneOf<Success, Error>> HandleAsync(PlayerConnection playerConnection, object packet)
+    public Task HandleAsync(PlayerConnection playerConnection, object packet)
     {
         return HandleAsync(playerConnection, (FacePlayerClientPacket)packet);
     }

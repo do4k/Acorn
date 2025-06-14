@@ -23,9 +23,8 @@ public class StatsReporter : IStatsReporter
 
     public async Task Report()
     {
-        (await _accountRepository.GetAll()).Switch(
-            accounts => { _logger.LogInformation("Loaded {Accounts} account(s)", accounts.Value.ToList().Count); },
-            err => { });
+        var accounts = (await _accountRepository.GetAllAsync()).ToList();
+        _logger.LogInformation("Loaded {Accounts} account(s)", accounts.Count);
 
         _logger.LogInformation("Loaded {Items} items", _dataRepository.Eif.Items.Count());
         _logger.LogInformation("Loaded {Npcs} npcs", _dataRepository.Enf.Npcs.Count());

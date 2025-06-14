@@ -3,8 +3,6 @@ using Acorn.Database.Models;
 using Dapper;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using OneOf;
-using OneOf.Types;
 
 namespace Acorn.Database.Repository;
 
@@ -33,7 +31,7 @@ public class CharacterRepository : BaseDbRepository, IDbRepository<Character>, I
         }
     }
 
-    public async Task<OneOf<Success, Error>> CreateAsync(Character entity)
+    public async Task CreateAsync(Character entity)
     {
         using var t = _conn.BeginTransaction(IsolationLevel.ReadCommitted);
         try
@@ -46,18 +44,15 @@ public class CharacterRepository : BaseDbRepository, IDbRepository<Character>, I
             _logger.LogError("Error saving character information for {CharacterName}. Exception {Exception}",
                 entity.Name, e.Message);
             t.Rollback();
-            return new Error();
         }
-
-        return new Success();
     }
 
-    public Task<OneOf<Success, Error>> DeleteAsync(Character entity)
+    public Task DeleteAsync(Character entity)
     {
         throw new NotImplementedException();
     }
 
-    public async Task<OneOf<Success<Character>, NotFound, Error>> GetByKey(string name)
+    public async Task<Character?> GetByKeyAsync(string name)
     {
         try
         {
@@ -65,7 +60,7 @@ public class CharacterRepository : BaseDbRepository, IDbRepository<Character>, I
                 SQLStatements.GetByKey,
                 (character, item) =>
                 {
-                    if (item != null && character.Inventory.Items.All(x => x.Id != item.Id))
+                    if (character.Inventory.Items.All(x => x.Id != item.Id))
                     {
                         character.Inventory.Items.Add(item);
                     }
@@ -74,22 +69,17 @@ public class CharacterRepository : BaseDbRepository, IDbRepository<Character>, I
                 },
                 new { name });
 
-            if (character is null || !character.Any())
-            {
-                return new NotFound();
-            }
-
-            return new Success<Character>(character.Single());
+            return character.Single();
         }
         catch (Exception e)
         {
             _logger.LogError("Error fetching character {Character}. Exception {Exception}", name, e.Message);
         }
 
-        return new Error();
+        return null;
     }
 
-    public async Task<OneOf<Success, Error>> UpdateAsync(Character entity)
+    public async Task UpdateAsync(Character entity)
     {
         using var t = _conn.BeginTransaction(IsolationLevel.ReadCommitted);
         try
@@ -105,13 +95,10 @@ public class CharacterRepository : BaseDbRepository, IDbRepository<Character>, I
             _logger.LogError("Error saving character information for {CharacterName}. Exception {Exception}",
                 entity.Name, e.Message);
             t.Rollback();
-            return new Error();
         }
-
-        return new Success();
     }
 
-    public Task<OneOf<Success<IEnumerable<Character>>, Error>> GetAll()
+    public Task<IEnumerable<Character>> GetAllAsync()
     {
         throw new NotImplementedException();
     }

@@ -2,8 +2,6 @@
 using Moffat.EndlessOnline.SDK.Data;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using OneOf;
-using OneOf.Types;
 
 namespace Acorn.Net.PacketHandlers.Player;
 
@@ -18,7 +16,7 @@ public class WelcomeAgreeClientPacketHandler : IPacketHandler<WelcomeAgreeClient
         _dataRepository = dataRepository;
     }
 
-    public async Task<OneOf<Success, Error>> HandleAsync(PlayerConnection playerConnection,
+    public async Task HandleAsync(PlayerConnection playerConnection,
         WelcomeAgreeClientPacket packet)
     {
         var eoWriter = new EoWriter();
@@ -35,7 +33,8 @@ public class WelcomeAgreeClientPacketHandler : IPacketHandler<WelcomeAgreeClient
                               $"Could not find map {playerConnection.Character?.Map} for character {playerConnection.Character?.Name}");
 
                 map.Serialize(eoWriter);
-            },
+            }
+            ,
             _ => throw new InvalidOperationException($"Unknown file type {packet.FileType}")
         };
         serialise();
@@ -97,11 +96,9 @@ public class WelcomeAgreeClientPacketHandler : IPacketHandler<WelcomeAgreeClient
                 _ => throw new NotImplementedException($"{packet.FileType} is not supported")
             }
         });
-
-        return new Success();
     }
 
-    public Task<OneOf<Success, Error>> HandleAsync(PlayerConnection playerConnection, object packet)
+    public Task HandleAsync(PlayerConnection playerConnection, object packet)
     {
         return HandleAsync(playerConnection, (WelcomeAgreeClientPacket)packet);
     }

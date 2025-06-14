@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using Acorn.Options;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -14,16 +15,16 @@ public class ServerLinkNetworkPingHostedService : IHostedService
     private readonly ServerOptions _serverOptions;
 
     public ServerLinkNetworkPingHostedService(
-        ILogger<ServerLinkNetworkPingHostedService> logger, 
-        IOptions<SLNOptions> slnOptions, 
-        IOptions<ServerOptions> serverOptions, 
+        ILogger<ServerLinkNetworkPingHostedService> logger,
+        IOptions<SLNOptions> slnOptions,
+        IOptions<ServerOptions> serverOptions,
         IServerLinkNetworkClient client
-    ) 
-    { 
-        _logger = logger; 
-        _client = client; 
-        _slnOptions = slnOptions.Value; 
-        _serverOptions = serverOptions.Value; 
+    )
+    {
+        _logger = logger;
+        _client = client;
+        _slnOptions = slnOptions.Value;
+        _serverOptions = serverOptions.Value;
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)

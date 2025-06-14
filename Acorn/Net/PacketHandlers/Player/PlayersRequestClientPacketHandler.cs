@@ -1,8 +1,6 @@
 ﻿using Acorn.Extensions;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using OneOf;
-using OneOf.Types;
 using static Moffat.EndlessOnline.SDK.Protocol.Net.Server.InitInitServerPacket;
 
 namespace Acorn.Net.PacketHandlers.Player;
@@ -16,7 +14,7 @@ public class PlayersRequestClientPacketHandler : IPacketHandler<PlayersRequestCl
         _world = world;
     }
 
-    public async Task<OneOf<Success, Error>> HandleAsync(PlayerConnection playerConnection,
+    public async Task HandleAsync(PlayerConnection playerConnection,
         PlayersRequestClientPacket packet)
     {
         await playerConnection.Send(new InitInitServerPacket
@@ -27,17 +25,15 @@ public class PlayersRequestClientPacketHandler : IPacketHandler<PlayersRequestCl
                 PlayersList = new PlayersList
                 {
                     Players = _world.Players
-                        .Where(x => x.Character is not null)
-                        .Select(x => x.Character!.AsOnlinePlayer())
+                        .Where(x => x.Value.Character is not null)
+                        .Select(x => x.Value.Character!.AsOnlinePlayer())
                         .ToList()
                 }
             }
         });
-
-        return new Success();
     }
 
-    public Task<OneOf<Success, Error>> HandleAsync(PlayerConnection playerConnection, object packet)
+    public Task HandleAsync(PlayerConnection playerConnection, object packet)
     {
         return HandleAsync(playerConnection, (PlayersRequestClientPacket)packet);
     }

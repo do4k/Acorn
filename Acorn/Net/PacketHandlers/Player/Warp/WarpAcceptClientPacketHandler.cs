@@ -1,8 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using OneOf;
-using OneOf.Types;
 
 namespace Acorn.Net.PacketHandlers.Player.Warp;
 
@@ -17,23 +15,29 @@ public class WarpAcceptClientPacketHandler : IPacketHandler<WarpAcceptClientPack
         _logger = logger;
     }
 
-    public async Task<OneOf<Success, Error>> HandleAsync(PlayerConnection playerConnection,
+    public async Task HandleAsync(PlayerConnection playerConnection,
         WarpAcceptClientPacket packet)
     {
         if (playerConnection.WarpSession is null)
         {
-            return new Error();
+            _logger.LogError("Player connection has no WarpSession initialised.");
+            return;
         }
 
         if (playerConnection.Character is null)
         {
             _logger.LogError("Player connection has no Character initialised.");
-            return new Error();
+            return;
         }
 
         //todo: cancel any trades and whatnot if in progress
-
         var currentMap = _world.MapFor(playerConnection);
+        if (currentMap is null)
+        {
+            _logger.LogError("Player connection is not in a valid map.");
+            return;
+        }
+
         await currentMap.Leave(playerConnection, playerConnection.WarpSession.WarpEffect);
 
         playerConnection.Character.Map = playerConnection.WarpSession.MapId;
@@ -49,13 +53,16 @@ public class WarpAcceptClientPacketHandler : IPacketHandler<WarpAcceptClientPack
                 WarpType = WarpType.Local
             });
 
-            await currentMap
-                .Enter(playerConnection, playerConnection.WarpSession.WarpEffect);
-
-            return new Success();
+            await currentMap.Enter(playerConnection, playerConnection.WarpSession.WarpEffect);
+            return;
         }
 
-        var newMap = _world.Maps.Single(x => x.Id == playerConnection.Character.Map);
+        var newMap = _world.MapFor(playerConnection);
+        if (newMap is null)
+        {
+            _logger.LogError("Player connection is not in a valid map after warp.");
+            return;
+        }
 
         await newMap.Enter(playerConnection, playerConnection.WarpSession.WarpEffect);
 
@@ -71,10 +78,9 @@ public class WarpAcceptClientPacketHandler : IPacketHandler<WarpAcceptClientPack
         });
 
         playerConnection.WarpSession = null;
-        return new Success();
     }
 
-    public Task<OneOf<Success, Error>> HandleAsync(PlayerConnection playerConnection, object packet)
+    public Task HandleAsync(PlayerConnection playerConnection, object packet)
     {
         return HandleAsync(playerConnection, (WarpAcceptClientPacket)packet);
     }

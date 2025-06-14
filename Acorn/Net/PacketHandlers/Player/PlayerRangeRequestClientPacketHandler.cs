@@ -1,8 +1,6 @@
 ﻿using Acorn.Extensions;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using OneOf;
-using OneOf.Types;
 
 namespace Acorn.Net.PacketHandlers.Player;
 
@@ -15,10 +13,15 @@ public class PlayerRangeRequestClientPacketHandler : IPacketHandler<PlayerRangeR
         _world = world;
     }
 
-    public async Task<OneOf<Success, Error>> HandleAsync(PlayerConnection playerConnection,
+    public async Task HandleAsync(PlayerConnection playerConnection,
         PlayerRangeRequestClientPacket packet)
     {
         var map = _world.MapFor(playerConnection);
+        if (map is null)
+        {
+            return;
+        }
+
         await playerConnection.Send(new PlayersListServerPacket
         {
             PlayersList = new PlayersList
@@ -26,11 +29,9 @@ public class PlayerRangeRequestClientPacketHandler : IPacketHandler<PlayerRangeR
                 Players = map.Players.Select(x => x.Character?.AsOnlinePlayer()).ToList()
             }
         });
-
-        return new Success();
     }
 
-    public Task<OneOf<Success, Error>> HandleAsync(PlayerConnection playerConnection, object packet)
+    public Task HandleAsync(PlayerConnection playerConnection, object packet)
     {
         return HandleAsync(playerConnection, (PlayerRangeRequestClientPacket)packet);
     }

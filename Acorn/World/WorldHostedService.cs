@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 
-namespace Acorn.Services;
+namespace Acorn.World;
 
 internal class WorldHostedService : IHostedService
 {

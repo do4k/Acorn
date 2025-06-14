@@ -30,8 +30,6 @@ state Learn1
 
 	rule 		InputNpc( 1 ) goto Learn2
 }
-
-
 state Learn2
 {
 	desc		"Talk to Merriad"

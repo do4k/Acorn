@@ -3,8 +3,6 @@ using Acorn.Net.Models;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using OneOf;
-using OneOf.Types;
 
 namespace Acorn.Net.PacketHandlers.Player;
 
@@ -24,11 +22,15 @@ internal class WelcomeMsgClientPacketHandler : IPacketHandler<WelcomeMsgClientPa
         _world = worldState;
     }
 
-    public async Task<OneOf<Success, Error>> HandleAsync(PlayerConnection playerConnection,
+    public async Task HandleAsync(PlayerConnection playerConnection,
         WelcomeMsgClientPacket packet)
     {
         playerConnection.ClientState = ClientState.InGame;
-        var map = _world.Maps.First(x => x.Id == playerConnection.Character?.Map);
+        var map = _world.MapFor(playerConnection);
+        if (map is null)
+        {
+            return;
+        }
 
         await map.Enter(playerConnection);
 
@@ -37,7 +39,7 @@ internal class WelcomeMsgClientPacketHandler : IPacketHandler<WelcomeMsgClientPa
             WelcomeCode = WelcomeCode.EnterGame,
             WelcomeCodeData = new WelcomeReplyServerPacket.WelcomeCodeDataEnterGame
             {
-                Items = playerConnection.Character?.Items().AsT0.Value.ToList(),
+                Items = playerConnection.Character?.Items().ToList(),
                 News = new List<string> { " " }
                     .Concat(_newsTxt.Concat(Enumerable.Range(0, 8 - _newsTxt.Length).Select(_ => ""))).ToList(),
                 Weight = new Weight
@@ -48,10 +50,9 @@ internal class WelcomeMsgClientPacketHandler : IPacketHandler<WelcomeMsgClientPa
                 Nearby = map.AsNearbyInfo()
             }
         });
-        return new Success();
     }
 
-    public Task<OneOf<Success, Error>> HandleAsync(PlayerConnection playerConnection, object packet)
+    public Task HandleAsync(PlayerConnection playerConnection, object packet)
     {
         return HandleAsync(playerConnection, (WelcomeMsgClientPacket)packet);
     }

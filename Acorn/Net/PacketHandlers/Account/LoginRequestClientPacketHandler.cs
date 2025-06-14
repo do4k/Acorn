@@ -5,8 +5,6 @@ using Acorn.Infrastructure.Security;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using OneOf;
-using OneOf.Types;
 
 namespace Acorn.Net.PacketHandlers.Account;
 
@@ -20,62 +18,57 @@ public class LoginRequestClientPacketHandler(
     private readonly IDbRepository<Database.Models.Account> _repository = repository;
     private readonly WorldState _world = world;
 
-    public async Task<OneOf<Success, Error>> HandleAsync(PlayerConnection playerConnection,
+    public async Task HandleAsync(PlayerConnection playerConnection,
         LoginRequestClientPacket packet)
     {
-        var responsePacket = (await _repository.GetByKey(packet.Username))
-            .Match(account =>
-                {
-                    if (_world.Players.Any(x => string.Equals(x.Account?.Username, account.Value.Username,
-                            StringComparison.InvariantCultureIgnoreCase)))
-                    {
-                        return new LoginReplyServerPacket
-                        {
-                            ReplyCode = LoginReply.LoggedIn,
-                            ReplyCodeData = new LoginReplyServerPacket.ReplyCodeDataLoggedIn()
-                        };
-                    }
+        var account = await _repository.GetByKeyAsync(packet.Username);
+        if (account is null)
+        {
+            await playerConnection.Send(new LoginReplyServerPacket
+            {
+                ReplyCode = LoginReply.WrongUser,
+                ReplyCodeData = new LoginReplyServerPacket.ReplyCodeDataWrongUser()
+            });
+            return;
+        }
 
-                    var salt = Encoding.UTF8.GetBytes(account.Value.Salt);
-                    var valid = Hash.VerifyPassword(packet.Username, packet.Password, salt, account.Value.Password);
+        var loggedIn = _world.Players.Any(x => (x.Value.Account?.Username ?? string.Empty).Equals(account.Username, StringComparison.InvariantCultureIgnoreCase));
+        if (loggedIn)
+        {
+            await playerConnection.Send(new LoginReplyServerPacket
+            {
+                ReplyCode = LoginReply.LoggedIn,
+                ReplyCodeData = new LoginReplyServerPacket.ReplyCodeDataLoggedIn()
+            });
+            return;
+        }
 
-                    if (!valid)
-                    {
-                        return new LoginReplyServerPacket
-                        {
-                            ReplyCode = LoginReply.WrongUserPassword,
-                            ReplyCodeData = new LoginReplyServerPacket.ReplyCodeDataWrongUserPassword()
-                        };
-                    }
+        var salt = Encoding.UTF8.GetBytes(account.Salt);
+        var valid = Hash.VerifyPassword(packet.Username, packet.Password, salt, account.Password);
 
-                    playerConnection.Account = account.Value;
-                    return new LoginReplyServerPacket
-                    {
-                        ReplyCode = LoginReply.Ok,
-                        ReplyCodeData = new LoginReplyServerPacket.ReplyCodeDataOk
-                        {
-                            Characters = playerConnection.Account.Characters
-                                .Select((x, id) => x.AsCharacterListEntry(id)).ToList()
-                        }
-                    };
-                },
-                notFound => new LoginReplyServerPacket
-                {
-                    ReplyCode = LoginReply.WrongUser,
-                    ReplyCodeData = new LoginReplyServerPacket.ReplyCodeDataWrongUser()
-                },
-                error => new LoginReplyServerPacket
-                {
-                    ReplyCode = LoginReply.Busy,
-                    ReplyCodeData = new LoginReplyServerPacket.ReplyCodeDataBusy()
-                }
-            );
+        if (valid is false)
+        {
+            await playerConnection.Send(new LoginReplyServerPacket
+            {
+                ReplyCode = LoginReply.WrongUserPassword,
+                ReplyCodeData = new LoginReplyServerPacket.ReplyCodeDataWrongUserPassword()
+            });
+            return;
+        }
 
-        await playerConnection.Send(responsePacket);
-        return new Success();
+        playerConnection.Account = account;
+        await playerConnection.Send(new LoginReplyServerPacket
+        {
+            ReplyCode = LoginReply.Ok,
+            ReplyCodeData = new LoginReplyServerPacket.ReplyCodeDataOk
+            {
+                Characters = playerConnection.Account.Characters
+                    .Select((x, id) => x.AsCharacterListEntry(id)).ToList()
+            }
+        });
     }
 
-    public Task<OneOf<Success, Error>> HandleAsync(PlayerConnection playerConnection, object packet)
+    public Task HandleAsync(PlayerConnection playerConnection, object packet)
     {
         return HandleAsync(playerConnection, (LoginRequestClientPacket)packet);
     }

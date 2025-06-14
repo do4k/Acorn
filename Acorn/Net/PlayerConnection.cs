@@ -21,23 +21,25 @@ public class PlayerConnection : IDisposable
     private readonly IServiceProvider _serviceProvider;
     private readonly PingSequenceStart _upcomingSequence;
     private readonly ILogger<PlayerConnection> _logger;
+    private readonly CancellationTokenSource _tokenSource = new();
+    private readonly CancellationToken _cancellationToken;
 
     public PlayerConnection(
         IServiceProvider services,
         TcpClient tcpClient,
         ILogger<PlayerConnection> logger,
-        Action<PlayerConnection> onDispose,
-        ISessionGenerator sessionGenerator
+        int sessionId,
+        Action<PlayerConnection> onDispose
     )
     {
         TcpClient = tcpClient;
         _logger = logger;
+        _cancellationToken = _tokenSource.Token;
         _upcomingSequence = PingSequenceStart.Generate(Rnd);
         _logger.LogInformation("New client connected from {Location}", TcpClient.Client.RemoteEndPoint);
         _onDispose = onDispose;
         _serviceProvider = services;
-
-        SessionId = sessionGenerator.Generate();
+        SessionId = sessionId;
         StartSequence = InitSequenceStart.Generate(Rnd);
         Task.Run(Listen);
     }
@@ -67,7 +69,7 @@ public class PlayerConnection : IDisposable
 
     public async Task Listen()
     {
-        while (true)
+        while (_cancellationToken.IsCancellationRequested is false)
         {
             try
             {
@@ -79,7 +81,7 @@ public class PlayerConnection : IDisposable
                 var decodedLength = NumberEncoder.DecodeNumber([len1, len2]);
                 _logger.LogDebug("Len1 {Len1}, Len2 {Len2}, Decoded length {DecodedLength}", len1, len2, decodedLength);
                 var bytes = new byte[decodedLength];
-                await stream.ReadAsync(bytes.AsMemory(0, decodedLength));
+                await stream.ReadExactlyAsync(bytes.AsMemory(0, decodedLength), _cancellationToken);
 
                 var decodedBytes = ClientEncryptionMulti switch
                 {
@@ -108,13 +110,7 @@ public class PlayerConnection : IDisposable
                     break;
                 }
 
-                var error = false;
-
-                (await handler.HandleAsync(this, packet)).Switch(success => { }, fail => error = true);
-                if (error)
-                {
-                    break;
-                }
+                await handler.HandleAsync(this, packet);
             }
             catch (Exception e)
             {
@@ -122,7 +118,7 @@ public class PlayerConnection : IDisposable
                 break;
             }
         }
-
+        Disconnect();
         Dispose();
     }
 
@@ -159,8 +155,6 @@ public class PlayerConnection : IDisposable
         writer.AddByte((int)packet.Action);
         writer.AddByte((int)packet.Family);
         packet.Serialize(writer);
-
-
         var bytes = packet switch
         {
             InitInitServerPacket _ => writer.ToByteArray(),
@@ -179,5 +173,10 @@ public class PlayerConnection : IDisposable
         {
             Message = message
         });
+    }
+
+    public void Disconnect()
+    {
+        _tokenSource.Cancel();
     }
 }

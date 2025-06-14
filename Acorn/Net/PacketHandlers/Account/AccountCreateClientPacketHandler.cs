@@ -3,8 +3,6 @@ using Acorn.Extensions;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using OneOf;
-using OneOf.Types;
 
 namespace Acorn.Net.PacketHandlers.Account;
 
@@ -17,13 +15,11 @@ internal class AccountCreateClientPacketHandler(
     private readonly IDbRepository<Database.Models.Account> _accountRepository = accountRepository;
     private readonly ILogger<AccountCreateClientPacketHandler> _logger = logger;
 
-    public async Task<OneOf<Success, Error>> HandleAsync(PlayerConnection playerConnection,
+    public async Task HandleAsync(PlayerConnection playerConnection,
         AccountCreateClientPacket packet)
     {
-        var exists = (await _accountRepository.GetByKey(packet.Username))
-            .Match(_ => true, _ => false, _ => false);
-
-        if (exists)
+        var account = await _accountRepository.GetByKeyAsync(packet.Username);
+        if (account is not null)
         {
             _logger.LogDebug("Account with username {Username} already exists...", packet.Username);
             await playerConnection.Send(
@@ -32,27 +28,20 @@ internal class AccountCreateClientPacketHandler(
                     ReplyCode = AccountReply.Exists,
                     ReplyCodeData = new AccountReplyServerPacket.ReplyCodeDataExists()
                 });
-
-            return new Success();
         }
 
-        var account = packet.AsNewAccount(nowDelegate());
-        var result = await _accountRepository.CreateAsync(account);
+        var newAccount = packet.AsNewAccount(nowDelegate());
+        await _accountRepository.CreateAsync(newAccount);
 
-        result.Switch(async success =>
-            {
-                _logger.LogInformation("New account '{Username}'", packet.Username);
-                await playerConnection.Send(new AccountReplyServerPacket
-                {
-                    ReplyCode = AccountReply.Created,
-                    ReplyCodeData = new AccountReplyServerPacket.ReplyCodeDataCreated()
-                });
-            },
-            error => { });
-        return result;
+        _logger.LogInformation("New account '{Username}'", packet.Username);
+        await playerConnection.Send(new AccountReplyServerPacket
+        {
+            ReplyCode = AccountReply.Created,
+            ReplyCodeData = new AccountReplyServerPacket.ReplyCodeDataCreated()
+        });
     }
 
-    public Task<OneOf<Success, Error>> HandleAsync(PlayerConnection playerConnection, object packet)
+    public Task HandleAsync(PlayerConnection playerConnection, object packet)
     {
         return HandleAsync(playerConnection, (AccountCreateClientPacket)packet);
     }

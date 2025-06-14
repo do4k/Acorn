@@ -4,8 +4,6 @@ using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
-using OneOf;
-using OneOf.Types;
 
 namespace Acorn.Database.Models;
 
@@ -62,41 +60,37 @@ public class Character
 
     public void CalculateStats(Ecf classes)
     {
-        classes.GetClass(Class).Switch(
-            success =>
-            {
-                var @class = success.Value;
+        var @class = classes.GetClass(Class);
+        if (@class is not null)
+        {
+            MaxHp = 100;
+            MaxTp = 100;
+            MaxSp = 100;
+            MinDamage = 100;
+            MaxDamage = 150;
+            MaxWeight = 100;
 
-                MaxHp = 100;
-                MaxTp = 100;
-                MaxSp = 100;
-                MinDamage = 100;
-                MaxDamage = 150;
-                MaxWeight = 100;
-
-                Hp = Hp > MaxHp ? MaxHp : Hp;
-                Str = @class.Str + Str;
-                Wis = @class.Wis + Wis;
-                Agi = @class.Agi + Agi;
-                Con = @class.Con + Con;
-                Cha = @class.Cha + Cha;
-            },
-            error => { throw new Exception("Could not calculate stats for character " + Name + ". Error: " + error); }
-        );
+            Hp = Hp > MaxHp ? MaxHp : Hp;
+            Str = @class.Str + Str;
+            Wis = @class.Wis + Wis;
+            Agi = @class.Agi + Agi;
+            Con = @class.Con + Con;
+            Cha = @class.Cha + Cha;
+        }
     }
 
-    public OneOf<Success<IEnumerable<Item>>, Error<string>> Items()
+    public IEnumerable<Item> Items()
     {
-        return new Success<IEnumerable<Item>>(Inventory.Items.Select(x => new Item
+        return Inventory.Items.Select(x => new Item
         {
             Amount = x.Amount,
             Id = x.Id
-        }));
+        });
     }
 
-    public OneOf<Success<EquipmentPaperdoll>, Error<string>> Equipment()
+    public EquipmentPaperdoll Equipment()
     {
-        return new Success<EquipmentPaperdoll>(new EquipmentPaperdoll
+        return new EquipmentPaperdoll
         {
             Hat = Paperdoll.Hat,
             Necklace = Paperdoll.Necklace,
@@ -110,7 +104,7 @@ public class Character
             Ring = [Paperdoll.Ring1, Paperdoll.Ring2],
             Bracer = [Paperdoll.Bracer1, Paperdoll.Bracer2],
             Armlet = [Paperdoll.Armlet1, Paperdoll.Armlet2]
-        });
+        };
     }
 
     public int Recover(int amount)

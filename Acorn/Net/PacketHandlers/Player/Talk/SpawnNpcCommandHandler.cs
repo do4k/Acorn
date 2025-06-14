@@ -25,34 +25,30 @@ public class SpawnNpcCommandHandler : ITalkHandler
                || command.Equals("snpc", StringComparison.InvariantCultureIgnoreCase);
     }
 
-    public Task HandleAsync(PlayerConnection playerConnection, string command, params string[] args)
+    public async Task HandleAsync(PlayerConnection playerConnection, string command, params string[] args)
     {
         if (args.Length < 1)
         {
-            return playerConnection.Send(new TalkServerServerPacket
+            await playerConnection.Send(new TalkServerServerPacket
             {
                 Message = "Usage: $spawnnpc <npc_id|npc_name>"
             });
+            return;
         }
 
-        if (!int.TryParse(args[0], out var npcId))
+        if (int.TryParse(args[0], out var npcId) is false)
         {
-            return SpawnByName(playerConnection, args[0]);
+            await SpawnByName(playerConnection, args[0]);
+            return;
         }
 
-        _dataFiles.Enf.GetNpc(npcId).Switch(
-            async npc => { await SpawnNpc(playerConnection, npc.Value); },
-            async error =>
-            {
-                await playerConnection.Send(new TalkServerServerPacket
-                {
-                    Message = error.Value
-                });
-            }
-        );
+        var npc = _dataFiles.Enf.GetNpc(npcId);
+        if (npc is null)
+        {
+            return;
+        }
 
-
-        return Task.CompletedTask;
+        await SpawnNpc(playerConnection, npc);
     }
 
     private async Task SpawnNpc(PlayerConnection playerConnection, EnfRecord enf)
@@ -73,17 +69,17 @@ public class SpawnNpcCommandHandler : ITalkHandler
             Id = npcId + 1
         };
 
-        var playerMap = _world.MapFor(playerConnection);
-
-        playerMap.Npcs.Add(npc);
-        await playerConnection.Send(new TalkServerServerPacket
+        var map = _world.MapFor(playerConnection);
+        if (map is null)
         {
-            Message = $"Spawned NPC {enf.Name} ({npcId})."
-        });
+            return;
+        }
 
-        await playerMap.BroadcastPacket(new NpcAgreeServerPacket
+        map.Npcs.Add(npc);
+        await playerConnection.ServerMessage($"Spawned NPC {enf.Name} ({npcId}).");
+        await map.BroadcastPacket(new NpcAgreeServerPacket
         {
-            Npcs = playerMap.AsNpcMapInfo()
+            Npcs = map.AsNpcMapInfo()
         });
     }
 
@@ -92,14 +88,6 @@ public class SpawnNpcCommandHandler : ITalkHandler
         var npc = _dataFiles.Enf.Npcs.FirstOrDefault(x =>
             x.Name.Contains(name, StringComparison.CurrentCultureIgnoreCase));
 
-        if (npc == null)
-        {
-            return playerConnection.Send(new TalkServerServerPacket
-            {
-                Message = $"NPC {name} not found."
-            });
-        }
-
-        return SpawnNpc(playerConnection, npc);
+        return npc == null ? playerConnection.ServerMessage($"NPC {name} not found.") : SpawnNpc(playerConnection, npc);
     }
 }

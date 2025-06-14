@@ -36,16 +36,12 @@ public class SetCommandHandler : ITalkHandler
         }
 
         var target = _world.Players.FirstOrDefault(x =>
-            string.Equals(x.Character?.Name, args[0], StringComparison.CurrentCultureIgnoreCase));
+            string.Equals(x.Value.Character?.Name, args[0], StringComparison.CurrentCultureIgnoreCase)).Value;
         if (target is null)
         {
-            await playerConnection.Send(new TalkServerServerPacket
-            {
-                Message = $"Player {args[0]} not found."
-            });
+            await playerConnection.ServerMessage($"Player {args[0]} not found.");
             return;
         }
-
 
         if (target.Character is null)
         {
@@ -87,10 +83,7 @@ public class SetCommandHandler : ITalkHandler
             "bankmax" => () => target.Character.BankMax = value,
             "goldbank" => () => target.Character.GoldBank = value,
             "usage" => () => target.Character.Usage = value,
-            _ => async () => await playerConnection.Send(new TalkServerServerPacket
-            {
-                Message = $"Attribute {args[2]} is not supported."
-            })
+            _ => async () => await playerConnection.ServerMessage($"Attribute {args[2]} is not supported.")
         };
 
         adjustment();

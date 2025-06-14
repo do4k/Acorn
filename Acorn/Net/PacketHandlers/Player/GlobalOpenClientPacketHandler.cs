@@ -1,7 +1,5 @@
 ﻿using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using OneOf;
-using OneOf.Types;
 
 namespace Acorn.Net.PacketHandlers.Player;
 
@@ -14,13 +12,13 @@ public class GlobalOpenClientPacketHandler : IPacketHandler<GlobalOpenClientPack
         _world = world;
     }
 
-    public Task<OneOf<Success, Error>> HandleAsync(PlayerConnection playerConnection, GlobalOpenClientPacket packet)
+    public Task HandleAsync(PlayerConnection playerConnection, GlobalOpenClientPacket packet)
     {
         playerConnection.IsListeningToGlobal = true;
         new[] { GlobalMessage.Welcome() }
-            .Concat(_world.GlobalMessages.OrderByDescending(x => x.CreatedAt).Take(10))
-            .ToList()
-            .ForEach(async x =>
+            .Concat(_world.GlobalMessages.Values.OrderByDescending(x => x.CreatedAt).Take(10))
+            .ToAsyncEnumerable()
+            .ForEachAsync(async x =>
             {
                 await playerConnection.Send(new TalkMsgServerPacket
                 {
@@ -29,10 +27,10 @@ public class GlobalOpenClientPacketHandler : IPacketHandler<GlobalOpenClientPack
                 });
             });
 
-        return Task.FromResult(OneOf<Success, Error>.FromT0(new Success()));
+        return Task.CompletedTask;
     }
 
-    public Task<OneOf<Success, Error>> HandleAsync(PlayerConnection playerConnection, object packet)
+    public Task HandleAsync(PlayerConnection playerConnection, object packet)
     {
         return HandleAsync(playerConnection, (GlobalOpenClientPacket)packet);
     }

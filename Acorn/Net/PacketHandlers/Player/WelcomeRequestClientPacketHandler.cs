@@ -5,8 +5,6 @@ using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using OneOf;
-using OneOf.Types;
 
 namespace Acorn.Net.PacketHandlers.Player;
 
@@ -27,14 +25,14 @@ internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequest
         _logger = logger;
     }
 
-    public async Task<OneOf<Success, Error>> HandleAsync(PlayerConnection playerConnection,
+    public async Task HandleAsync(PlayerConnection playerConnection,
         WelcomeRequestClientPacket packet)
     {
         var character = playerConnection.Account?.Characters[packet.CharacterId];
         if (character is null)
         {
             _logger.LogError("Could not find character");
-            return new Error();
+            return;
         }
 
         //playerConnection.SessionId = _sessionGenerator.Generate();
@@ -42,17 +40,10 @@ internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequest
         if (map is null)
         {
             _logger.LogError("Could not find map {MapId} for character {Name}", character.Map, character.Name);
-            return new Error();
+            return;
         }
 
         var equipmentResult = character.Equipment();
-        if (equipmentResult.IsT1)
-        {
-            _logger.LogError("Could not get equipment for character {Name}. Error: {Error}", character.Name,
-                equipmentResult.AsT1.Value);
-            return new Error();
-        }
-
         playerConnection.Character = character;
         character.CalculateStats(_dataRepository.Ecf);
 
@@ -70,7 +61,7 @@ internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequest
                 EifRid = _dataRepository.Eif.Rid,
                 EnfLength = _dataRepository.Enf.ByteSize,
                 EnfRid = _dataRepository.Enf.Rid,
-                Equipment = equipmentResult.AsT0.Value.AsEquipmentWelcome(),
+                Equipment = equipmentResult.AsEquipmentWelcome(),
                 EsfLength = _dataRepository.Esf.ByteSize,
                 EsfRid = _dataRepository.Esf.Rid,
                 Experience = character.Exp,
@@ -130,11 +121,9 @@ internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequest
                 }
             }
         });
-
-        return new Success();
     }
 
-    public Task<OneOf<Success, Error>> HandleAsync(PlayerConnection playerConnection, object packet)
+    public Task HandleAsync(PlayerConnection playerConnection, object packet)
     {
         return HandleAsync(playerConnection, (WelcomeRequestClientPacket)packet);
     }

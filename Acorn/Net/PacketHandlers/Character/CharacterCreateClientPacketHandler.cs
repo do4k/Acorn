@@ -1,12 +1,11 @@
 ﻿using Acorn.Database.Repository;
 using Acorn.Extensions;
+using Acorn.Options;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using OneOf;
-using OneOf.Types;
 
 namespace Acorn.Net.PacketHandlers.Character;
 
@@ -17,12 +16,12 @@ internal class CharacterCreateClientPacketHandler(
     : IPacketHandler<CharacterCreateClientPacket>
 {
     private readonly ServerOptions _serverOptions = gameOptions.Value;
-    
-    public async Task<OneOf<Success, Error>> HandleAsync(PlayerConnection playerConnection,
+
+    public async Task HandleAsync(PlayerConnection playerConnection,
         CharacterCreateClientPacket packet)
     {
-        var characterQuery = await repository.GetByKey(packet.Name);
-        var exists = characterQuery.Match(success => true, notFound => false, err => false);
+        var characterQuery = await repository.GetByKeyAsync(packet.Name);
+        var exists = characterQuery is not null;
 
         if (exists)
         {
@@ -32,8 +31,6 @@ internal class CharacterCreateClientPacketHandler(
                     ReplyCode = CharacterReply.Exists,
                     ReplyCodeData = new CharacterReplyServerPacket.ReplyCodeDataExists()
                 });
-
-            return new Success();
         }
 
         var character = new Database.Models.Character
@@ -68,11 +65,9 @@ internal class CharacterCreateClientPacketHandler(
                 Characters = playerConnection.Account.Characters.Select((c, id) => c.AsCharacterListEntry(id)).ToList()
             }
         });
-
-        return new Success();
     }
 
-    public Task<OneOf<Success, Error>> HandleAsync(PlayerConnection playerConnection, object packet)
+    public Task HandleAsync(PlayerConnection playerConnection, object packet)
     {
         return HandleAsync(playerConnection, (CharacterCreateClientPacket)packet);
     }

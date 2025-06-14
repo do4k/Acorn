@@ -1,7 +1,5 @@
 ﻿using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using OneOf;
-using OneOf.Types;
 
 namespace Acorn.Net.PacketHandlers.Npc;
 
@@ -14,20 +12,22 @@ public class NpcRangeRequestClientPacketHandler : IPacketHandler<NpcRangeRequest
         _world = world;
     }
 
-    public async Task<OneOf<Success, Error>> HandleAsync(PlayerConnection playerConnection,
+    public async Task HandleAsync(PlayerConnection playerConnection,
         NpcRangeRequestClientPacket packet)
     {
         var map = _world.MapFor(playerConnection);
+        if (map is null)
+        {
+            return;
+        }
 
         await playerConnection.Send(new NpcAgreeServerPacket
         {
             Npcs = map.AsNpcMapInfo()
         });
-
-        return new Success();
     }
 
-    public Task<OneOf<Success, Error>> HandleAsync(PlayerConnection playerConnection, object packet)
+    public Task HandleAsync(PlayerConnection playerConnection, object packet)
     {
         return HandleAsync(playerConnection, (NpcRangeRequestClientPacket)packet);
     }

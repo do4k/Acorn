@@ -1,4 +1,4 @@
-﻿namespace Acorn;
+﻿namespace Acorn.Options;
 
 public class ServerOptions
 {
@@ -7,11 +7,4 @@ public class ServerOptions
     public required string Site { get; set; }
     public required string Hostname { get; set; }
     public required int Port { get; set; }
-}
-
-public class NewCharacterOptions
-{
-    public int X { get; set; }
-    public int Y { get; set; }
-    public int Map { get; set; }
 }

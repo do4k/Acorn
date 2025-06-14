@@ -1,7 +1,5 @@
 ﻿using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using OneOf;
-using OneOf.Types;
 
 namespace Acorn.Net.PacketHandlers.Player;
 
@@ -14,17 +12,21 @@ public class RefreshRequestClientPacketHandler : IPacketHandler<RefreshRequestCl
         _world = world;
     }
 
-    public async Task<OneOf<Success, Error>> HandleAsync(PlayerConnection playerConnection,
+    public async Task HandleAsync(PlayerConnection playerConnection,
         RefreshRequestClientPacket packet)
     {
         await playerConnection.Send(new RefreshReplyServerPacket
         {
-            Nearby = _world.MapFor(playerConnection).AsNearbyInfo()
+            Nearby = _world.MapFor(playerConnection) switch
+            {
+                { } map => map.AsNearbyInfo(),
+                _ => new NearbyInfo()
+            }
         });
-        return new Success();
+
     }
 
-    public Task<OneOf<Success, Error>> HandleAsync(PlayerConnection playerConnection, object packet)
+    public Task HandleAsync(PlayerConnection playerConnection, object packet)
     {
         return HandleAsync(playerConnection, (RefreshRequestClientPacket)packet);
     }

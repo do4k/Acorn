@@ -3,8 +3,6 @@ using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Data;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using OneOf;
-using OneOf.Types;
 
 namespace Acorn.Net.PacketHandlers.Player;
 
@@ -13,7 +11,7 @@ internal class InitInitClientPacketHandler(ILogger<InitInitClientPacketHandler> 
 {
     private readonly ILogger<InitInitClientPacketHandler> _logger = logger;
 
-    public async Task<OneOf<Success, Error>> HandleAsync(PlayerConnection playerConnection, InitInitClientPacket packet)
+    public async Task HandleAsync(PlayerConnection playerConnection, InitInitClientPacket packet)
     {
         playerConnection.PacketSequencer =
             playerConnection.PacketSequencer.WithSequenceStart(playerConnection.StartSequence);
@@ -37,11 +35,9 @@ internal class InitInitClientPacketHandler(ILogger<InitInitClientPacketHandler> 
         });
 
         playerConnection.ClientState = ClientState.Initialized;
-
-        return new Success();
     }
 
-    public Task<OneOf<Success, Error>> HandleAsync(PlayerConnection playerConnection, object packet)
+    public Task HandleAsync(PlayerConnection playerConnection, object packet)
     {
         return HandleAsync(playerConnection, (InitInitClientPacket)packet);
     }
