@@ -12,15 +12,12 @@ internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequest
 {
     private readonly IDataFileRepository _dataRepository;
     private readonly ILogger<WelcomeRequestClientPacketHandler> _logger;
-    private readonly ISessionGenerator _sessionGenerator;
 
     public WelcomeRequestClientPacketHandler(
-        ISessionGenerator sessionGenerator,
         IDataFileRepository dataRepository,
         ILogger<WelcomeRequestClientPacketHandler> logger
     )
     {
-        _sessionGenerator = sessionGenerator;
         _dataRepository = dataRepository;
         _logger = logger;
     }

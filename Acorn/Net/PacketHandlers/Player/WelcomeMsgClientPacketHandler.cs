@@ -12,16 +12,13 @@ internal class WelcomeMsgClientPacketHandler : IPacketHandler<WelcomeMsgClientPa
 {
     private readonly string[] _newsTxt;
     private readonly WorldState _world;
-    private readonly ILogger<WelcomeMsgClientPacketHandler> _logger;
 
     public WelcomeMsgClientPacketHandler(
-        WorldState worldState,
-        ILogger<WelcomeMsgClientPacketHandler> logger
+        WorldState worldState
     )
     {
         _newsTxt = File.ReadAllLines("Data/news.txt");
         _world = worldState;
-        _logger = logger;
     }
 
     public async Task HandleAsync(
@@ -29,7 +26,7 @@ internal class WelcomeMsgClientPacketHandler : IPacketHandler<WelcomeMsgClientPa
         WelcomeMsgClientPacket packet)
     {
         playerState.ClientState = ClientState.InGame;
-        var map = GetMapForPlayerAsync(playerState);
+        var map = _world.MapForId(playerState.Character?.Map ?? -1);
         if (map is null)
         {
             return;
@@ -58,18 +55,5 @@ internal class WelcomeMsgClientPacketHandler : IPacketHandler<WelcomeMsgClientPa
     public Task HandleAsync(PlayerState playerState, object packet)
     {
         return HandleAsync(playerState, (WelcomeMsgClientPacket)packet);
-    }
-
-    private MapState? GetMapForPlayerAsync(PlayerState player)
-    {
-        var exists = _world.Maps.TryGetValue(player.Character?.Map ?? -1, out var map);
-        if (exists is true && map is not null)
-        {
-            return map;
-        }
-
-        _logger.LogWarning("Player {CharacterName} ({SessionId}) attempted to access non-existent map {MapId}",
-            player.Character?.Name, player.SessionId, player.Character?.Map);
-        return null;
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using Acorn.Database.Repository;
+using Acorn.Extensions;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
@@ -87,6 +88,15 @@ public class Character
             Id = x.Id
         });
     }
+    
+    public Coords AsCoords()
+    {
+        return new Coords
+        {
+            X = X,
+            Y = Y
+        };
+    }
 
     public EquipmentPaperdoll Equipment()
     {
@@ -118,26 +128,7 @@ public class Character
         return Hp;
     }
 
-    public Coords NextCoords()
-    {
-        var nextX = Direction switch
-        {
-            Direction.Right => X + 1,
-            Direction.Left => X - 1,
-            _ => X
-        };
-        var nextY = Direction switch
-        {
-            Direction.Up => Y - 1,
-            Direction.Down => Y + 1,
-            _ => Y
-        };
-        return new Coords
-        {
-            X = nextX,
-            Y = nextY
-        };
-    }
+    public Coords NextCoords() => AsCoords().NextCoords(Direction);
 }
 
 public record Bank(ConcurrentBag<ItemWithAmount> Items);

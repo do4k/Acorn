@@ -22,19 +22,13 @@ internal class WarpCommandHandler : ITalkHandler
     {
         if (args.Length < 3)
         {
-            await playerState.Send(new TalkServerServerPacket
-            {
-                Message = "Usage: $warp <map> <x> <y>"
-            });
+            await playerState.ServerMessage("Usage: $warp <map> <x> <y>");
         }
 
         if (!int.TryParse(args[0], out var mapId) || !int.TryParse(args[1], out var x) ||
             !int.TryParse(args[2], out var y))
         {
-            await playerState.Send(new TalkServerServerPacket
-            {
-                Message = "Invalid coordinates."
-            });
+            await playerState.ServerMessage("Invalid coordinates.");
             return;
         }
 

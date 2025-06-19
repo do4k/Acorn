@@ -11,14 +11,12 @@ namespace Acorn.Net.PacketHandlers.Player;
 internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPacket>
 {
     private readonly UtcNowDelegate _now;
-    private readonly WorldState _world;
     private DateTime _timeSinceLastAttack;
     private readonly ILogger<AttackUseClientPacketHandler> _logger;
     private readonly FormulaService _formulaService;
 
-    public AttackUseClientPacketHandler(WorldState world, UtcNowDelegate now, ILogger<AttackUseClientPacketHandler> logger, FormulaService formulaService)
+    public AttackUseClientPacketHandler(UtcNowDelegate now, ILogger<AttackUseClientPacketHandler> logger, FormulaService formulaService)
     {
-        _world = world;
         _now = now;
         _logger = logger;
         _formulaService = formulaService;

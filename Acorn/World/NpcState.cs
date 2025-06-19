@@ -1,3 +1,4 @@
+using Acorn.Extensions;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
@@ -18,6 +19,20 @@ public class NpcState
     public int Y { get; set; }
     public int Id { get; set; }
     public int Hp { get; set; }
+    
+    public Coords AsCoords()
+    {
+        return new Coords
+        {
+            X = X,
+            Y = Y
+        };
+    }
+    
+    public Coords NextCoords()
+    {
+        return AsCoords().NextCoords(Direction);
+    }
 
     public NpcMapInfo AsNpcMapInfo(int index)
     {

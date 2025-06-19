@@ -13,10 +13,13 @@ namespace Acorn.World;
 
 public class MapState
 {
+    private readonly ILogger<WorldState> _logger;
+
     public MapState(MapWithId data, IDataFileRepository dataRepository, ILogger<WorldState> logger)
     {
         Id = data.Id;
         Data = data.Map;
+        _logger = logger;
         var mapNpcs = data.Map.Npcs.SelectMany(mapNpc => Enumerable.Range(0, mapNpc.Amount).Select(_ => mapNpc));
         foreach (var npc in mapNpcs)
         {
@@ -115,12 +118,55 @@ public class MapState
         await Task.WhenAll(playerRemoveTask, avatarRemoveTask);
     }
 
-    public void Tick()
+    public async Task Tick()
     {
+        List<Task> tasks = new();
+        var random = new Random();
+
+        var newPositions = Npcs.Select(npc =>
+        {
+            npc.Direction = (Direction)random.Next(0, 3);
+            var nextCoords = npc.NextCoords();
+            npc.X = nextCoords.X;
+            npc.Y = nextCoords.Y;
+            return npc;
+        });
+        
+        tasks.Add(BroadcastPacket(new NpcPlayerServerPacket
+        {
+            Positions = newPositions.Select((x, id) => new NpcUpdatePosition
+            {
+                NpcIndex = id,
+                Coords = new Coords
+                {
+                    X = x.X,
+                    Y = x.Y
+                },
+                Direction = x.Direction
+            }).ToList()
+        }));
+        
         foreach (var player in Players)
         {
-            var before = player.Character?.Hp;
-            var after = player.Character?.Recover(15);
+            if (player.Character is null)
+            {
+                _logger.LogWarning("Player {PlayerId} has no character associated with them, skipping tick.", player.SessionId);
+                continue;
+            }
+            
+            var hp = player.Character.SitState switch
+            {
+                SitState.Stand => player.Character.Recover(5),
+                _ => player.Character.Recover(10)
+            };
+
+            tasks.Add(player.Send(new RecoverPlayerServerPacket
+            {
+                Hp = hp,
+                Tp = player.Character.Tp,
+            }));
         }
+
+        await Task.WhenAll(tasks);
     }
 }

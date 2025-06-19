@@ -5,12 +5,10 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 namespace Acorn.Net.PacketHandlers.Player;
 
 public class ConnectionAcceptClientPacketHandler(
-    ILogger<ConnectionAcceptClientPacketHandler> logger,
-    ISessionGenerator sessionGenerator
+    ILogger<ConnectionAcceptClientPacketHandler> logger
 ) : IPacketHandler<ConnectionAcceptClientPacket>
 {
     private readonly ILogger<ConnectionAcceptClientPacketHandler> _logger = logger;
-    private readonly ISessionGenerator _sessionGenerator = sessionGenerator;
 
     public Task HandleAsync(PlayerState playerState,
         ConnectionAcceptClientPacket packet)
@@ -23,7 +21,6 @@ public class ConnectionAcceptClientPacketHandler(
             return Task.CompletedTask;
         }
 
-        //playerConnection.SessionId = _sessionGenerator.Generate();
         _logger.LogDebug("Got expected connection accept packet from {Location} for player id {PlayerId}",
             playerState.TcpClient.Client.RemoteEndPoint, playerState.SessionId);
         return Task.CompletedTask;
