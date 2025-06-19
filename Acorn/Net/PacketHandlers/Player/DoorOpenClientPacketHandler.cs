@@ -12,21 +12,20 @@ public class DoorOpenClientPacketHandler : IPacketHandler<DoorOpenClientPacket>
     {
         _world = world;
     }
-    
-    public async Task HandleAsync(PlayerConnection playerConnection, DoorOpenClientPacket packet)
+
+    public async Task HandleAsync(PlayerState playerState, DoorOpenClientPacket packet)
     {
-        var map = _world.MapFor(playerConnection);
-        if (map is null)
+        if (playerState.CurrentMap is null)
         {
             return;
         }
 
-        await map.BroadcastPacket(new DoorOpenServerPacket()
+        await playerState.CurrentMap.BroadcastPacket(new DoorOpenServerPacket
         {
-            Coords = playerConnection.Character?.NextCoords()
+            Coords = playerState.Character?.NextCoords()
         });
     }
 
-    public Task HandleAsync(PlayerConnection playerConnection, object packet)
-        => HandleAsync(playerConnection, (DoorOpenClientPacket)packet);
+    public Task HandleAsync(PlayerState playerState, object packet)
+        => HandleAsync(playerState, (DoorOpenClientPacket)packet);
 }

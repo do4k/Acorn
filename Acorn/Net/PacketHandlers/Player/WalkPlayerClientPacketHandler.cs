@@ -18,65 +18,66 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
         _world = world;
     }
 
-    public async Task HandleAsync(PlayerConnection playerConnection,
+    public async Task HandleAsync(PlayerState playerState,
         WalkPlayerClientPacket packet)
     {
-        if (playerConnection.Character is null)
+        if (playerState.Character is null)
         {
             _logger.LogError(
                 "Tried to handler player walk, but the character associated with this connection has not been initialised");
             return;
         }
 
-        playerConnection.Character.X = packet.WalkAction.Direction switch
+        playerState.Character.X = packet.WalkAction.Direction switch
         {
-            Direction.Left => playerConnection.Character.X - 1,
-            Direction.Right => playerConnection.Character.X + 1,
-            _ => playerConnection.Character.X
-        };
-        playerConnection.Character.Y = packet.WalkAction.Direction switch
-        {
-            Direction.Up => playerConnection.Character.Y - 1,
-            Direction.Down => playerConnection.Character.Y + 1,
-            _ => playerConnection.Character.Y
+            Direction.Left => playerState.Character.X - 1,
+            Direction.Right => playerState.Character.X + 1,
+            _ => playerState.Character.X
         };
 
-        playerConnection.Character.Direction = packet.WalkAction.Direction;
+        playerState.Character.Y = packet.WalkAction.Direction switch
+        {
+            Direction.Up => playerState.Character.Y - 1,
+            Direction.Down => playerState.Character.Y + 1,
+            _ => playerState.Character.Y
+        };
 
-        var map = _world.MapFor(playerConnection);
-        if (map is null)
+        playerState.Character.Direction = packet.WalkAction.Direction;
+
+        if (playerState.CurrentMap is null)
         {
             _logger.LogError("Tried to handle walk player packet, but the map for the player connection was not found. MapId: {MapId}, PlayerId: {PlayerId}",
-                playerConnection.Character.Map, playerConnection.SessionId);
+                playerState.Character.Map, playerState.SessionId);
             return;
         }
 
-
-        var hasWarp = TryGetWarpTile(map, playerConnection.Character, out var warpTile);
-
-        if (hasWarp && warpTile is not null)
+        await playerState.CurrentMap.BroadcastPacket(new WalkPlayerServerPacket
         {
-            await _world.Warp(
-                playerConnection, 
-                warpTile.Warp.DestinationMap, 
-                warpTile.Warp.DestinationCoords.X,
-                warpTile.Warp.DestinationCoords.Y, 
-                WarpEffect.None, 
-                playerConnection.Character.Map == warpTile.Warp.DestinationMap);
-        }
-        else
-        {
-            await map.BroadcastPacket(new WalkPlayerServerPacket
+            Direction = playerState.Character.Direction,
+            PlayerId = playerState.SessionId,
+            Coords = new Coords
             {
-                Direction = playerConnection.Character.Direction,
-                PlayerId = playerConnection.SessionId,
-                Coords = new Coords
-                {
-                    X = playerConnection.Character.X,
-                    Y = playerConnection.Character.Y
-                }
-            }, except: playerConnection);
+                X = playerState.Character.X,
+                Y = playerState.Character.Y
+            }
+        }, except: playerState);
+
+        var hasWarp = TryGetWarpTile(playerState.CurrentMap, playerState.Character, out var warpTile);
+        if (hasWarp is false || warpTile is null)
+        {
+            return;
         }
+
+        var targetMap = _world.MapForId(warpTile.Warp.DestinationMap);
+        if (targetMap is null)
+        {
+            return;
+        }
+
+        await playerState.Warp(
+            targetMap,
+            warpTile.Warp.DestinationCoords.X,
+            warpTile.Warp.DestinationCoords.Y);
     }
 
     private bool TryGetWarpTile(MapState map, Database.Models.Character character, out MapWarpRowTile? tile)
@@ -95,14 +96,14 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
             tile = null;
             return false;
         }
-        
+
         var warpTile = mapWarpRowTiles.FirstOrDefault();
         tile = warpTile;
         return warpTile is not null;
     }
 
-    public Task HandleAsync(PlayerConnection playerConnection, object packet)
+    public Task HandleAsync(PlayerState playerState, object packet)
     {
-        return HandleAsync(playerConnection, (WalkPlayerClientPacket)packet);
+        return HandleAsync(playerState, (WalkPlayerClientPacket)packet);
     }
 }

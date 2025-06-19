@@ -16,73 +16,63 @@ public class WarpAcceptClientPacketHandler : IPacketHandler<WarpAcceptClientPack
         _logger = logger;
     }
 
-    public async Task HandleAsync(PlayerConnection playerConnection,
+    public async Task HandleAsync(PlayerState playerState,
         WarpAcceptClientPacket packet)
     {
-        if (playerConnection.WarpSession is null)
+        if (playerState.WarpSession is null)
         {
             _logger.LogError("Player connection has no WarpSession initialised.");
             return;
         }
 
-        if (playerConnection.Character is null)
+        if (playerState.Character is null)
         {
             _logger.LogError("Player connection has no Character initialised.");
             return;
         }
 
         //todo: cancel any trades and whatnot if in progress
-        var currentMap = _world.MapFor(playerConnection);
-        if (currentMap is null)
+        if (playerState.CurrentMap is null)
         {
             _logger.LogError("Player connection is not in a valid map.");
             return;
         }
 
-        await currentMap.Leave(playerConnection, playerConnection.WarpSession.WarpEffect);
+        await playerState.CurrentMap.NotifyLeave(playerState, playerState.WarpSession.WarpEffect);
 
-        playerConnection.Character.Map = playerConnection.WarpSession.MapId;
-        playerConnection.Character.X = playerConnection.WarpSession.X;
-        playerConnection.Character.Y = playerConnection.WarpSession.Y;
-        playerConnection.Character.SitState = SitState.Stand;
+        playerState.Character.Map = playerState.WarpSession.MapId;
+        playerState.Character.X = playerState.WarpSession.X;
+        playerState.Character.Y = playerState.WarpSession.Y;
+        playerState.Character.SitState = SitState.Stand;
 
-        if (playerConnection.WarpSession.Local)
+        await playerState.CurrentMap.NotifyEnter(playerState, playerState.WarpSession.WarpEffect);
+
+        if (playerState.WarpSession.IsLocal)
         {
-            await playerConnection.Send(new WarpAgreeServerPacket
+            await playerState.Send(new WarpAgreeServerPacket
             {
-                Nearby = currentMap.AsNearbyInfo(),
+                Nearby = playerState.CurrentMap.AsNearbyInfo(),
                 WarpType = WarpType.Local
             });
-
-            await currentMap.Enter(playerConnection, playerConnection.WarpSession.WarpEffect);
             return;
         }
 
-        var newMap = _world.MapFor(playerConnection);
-        if (newMap is null)
+        await playerState.Send(new WarpAgreeServerPacket
         {
-            _logger.LogError("Player connection is not in a valid map after warp.");
-            return;
-        }
-
-        await newMap.Enter(playerConnection, playerConnection.WarpSession.WarpEffect);
-
-        await playerConnection.Send(new WarpAgreeServerPacket
-        {
-            Nearby = newMap.AsNearbyInfo(),
+            Nearby = playerState.CurrentMap.AsNearbyInfo(),
             WarpType = WarpType.MapSwitch,
             WarpTypeData = new WarpAgreeServerPacket.WarpTypeDataMapSwitch
             {
-                MapId = playerConnection.Character.Map,
-                WarpEffect = playerConnection.WarpSession.WarpEffect
+                MapId = playerState.Character.Map,
+                WarpEffect = playerState.WarpSession.WarpEffect
             }
         });
 
-        playerConnection.WarpSession = null;
+        playerState.WarpSession = null;
     }
 
-    public Task HandleAsync(PlayerConnection playerConnection, object packet)
+    public Task HandleAsync(PlayerState playerState, object packet)
     {
-        return HandleAsync(playerConnection, (WarpAcceptClientPacket)packet);
+        return HandleAsync(playerState, (WarpAcceptClientPacket)packet);
     }
 }

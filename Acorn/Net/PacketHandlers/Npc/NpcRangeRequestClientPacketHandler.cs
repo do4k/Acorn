@@ -1,4 +1,4 @@
-﻿using Acorn.World;
+﻿using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
@@ -6,30 +6,30 @@ namespace Acorn.Net.PacketHandlers.Npc;
 
 public class NpcRangeRequestClientPacketHandler : IPacketHandler<NpcRangeRequestClientPacket>
 {
-    private readonly WorldState _world;
+    private readonly ILogger<NpcRangeRequestClientPacketHandler> _logger;
 
-    public NpcRangeRequestClientPacketHandler(WorldState world)
+    public NpcRangeRequestClientPacketHandler(ILogger<NpcRangeRequestClientPacketHandler> logger)
     {
-        _world = world;
+        _logger = logger;
     }
 
-    public async Task HandleAsync(PlayerConnection playerConnection,
+    public async Task HandleAsync(PlayerState playerState,
         NpcRangeRequestClientPacket packet)
     {
-        var map = _world.MapFor(playerConnection);
-        if (map is null)
+        if (playerState.CurrentMap is null)
         {
+            _logger.LogWarning("Player {PlayerId} requested NPC range but is not in a map.", playerState.SessionId);
             return;
         }
 
-        await playerConnection.Send(new NpcAgreeServerPacket
+        await playerState.Send(new NpcAgreeServerPacket
         {
-            Npcs = map.AsNpcMapInfo()
+            Npcs = playerState.CurrentMap.AsNpcMapInfo()
         });
     }
 
-    public Task HandleAsync(PlayerConnection playerConnection, object packet)
+    public Task HandleAsync(PlayerState playerState, object packet)
     {
-        return HandleAsync(playerConnection, (NpcRangeRequestClientPacket)packet);
+        return HandleAsync(playerState, (NpcRangeRequestClientPacket)packet);
     }
 }

@@ -22,17 +22,11 @@ public class SetCommandHandler : ITalkHandler
         return string.Equals("set", command, StringComparison.InvariantCultureIgnoreCase);
     }
 
-    public async Task HandleAsync(PlayerConnection playerConnection, string command, params string[] args)
+    public async Task HandleAsync(PlayerState playerState, string command, params string[] args)
     {
-        var author = playerConnection.Character;
-        var map = _world.MapFor(playerConnection);
-
         if (args.Length < 3)
         {
-            await playerConnection.Send(new TalkServerServerPacket
-            {
-                Message = Usage
-            });
+            await playerState.ServerMessage(Usage);
             return;
         }
 
@@ -40,7 +34,7 @@ public class SetCommandHandler : ITalkHandler
             string.Equals(x.Value.Character?.Name, args[0], StringComparison.CurrentCultureIgnoreCase)).Value;
         if (target is null)
         {
-            await playerConnection.ServerMessage($"Player {args[0]} not found.");
+            await playerState.ServerMessage($"Player {args[0]} not found.");
             return;
         }
 
@@ -52,7 +46,7 @@ public class SetCommandHandler : ITalkHandler
 
         if (!int.TryParse(args[2], out var value))
         {
-            await playerConnection.ServerMessage($"Value must be an integer. {Usage}");
+            await playerState.ServerMessage($"Value must be an integer. {Usage}");
             return;
         }
 
@@ -84,12 +78,11 @@ public class SetCommandHandler : ITalkHandler
             "bankmax" => () => target.Character.BankMax = value,
             "goldbank" => () => target.Character.GoldBank = value,
             "usage" => () => target.Character.Usage = value,
-            _ => async () => await playerConnection.ServerMessage($"Attribute {args[2]} is not supported.")
+            _ => async () => await playerState.ServerMessage($"Attribute {args[2]} is not supported.")
         };
 
         adjustment();
-        await playerConnection.ServerMessage($"Player {args[0]} had {args[1]} updated to {value}.");
-
-        await _world.Refresh(playerConnection);
+        await playerState.ServerMessage($"Player {args[0]} had {args[1]} updated to {value}.");
+        await playerState.Refresh();
     }
 }

@@ -7,33 +7,25 @@ namespace Acorn.Net.PacketHandlers.Player;
 
 public class PlayerRangeRequestClientPacketHandler : IPacketHandler<PlayerRangeRequestClientPacket>
 {
-    private readonly WorldState _world;
-
-    public PlayerRangeRequestClientPacketHandler(WorldState world)
-    {
-        _world = world;
-    }
-
-    public async Task HandleAsync(PlayerConnection playerConnection,
+    public async Task HandleAsync(PlayerState playerState,
         PlayerRangeRequestClientPacket packet)
     {
-        var map = _world.MapFor(playerConnection);
-        if (map is null)
+        if (playerState.CurrentMap is null)
         {
             return;
         }
 
-        await playerConnection.Send(new PlayersListServerPacket
+        await playerState.Send(new PlayersListServerPacket
         {
             PlayersList = new PlayersList
             {
-                Players = map.Players.Select(x => x.Character?.AsOnlinePlayer()).ToList()
+                Players = playerState.CurrentMap.Players.Select(x => x.Character?.AsOnlinePlayer()).ToList()
             }
         });
     }
 
-    public Task HandleAsync(PlayerConnection playerConnection, object packet)
+    public Task HandleAsync(PlayerState playerState, object packet)
     {
-        return HandleAsync(playerConnection, (PlayerRangeRequestClientPacket)packet);
+        return HandleAsync(playerState, (PlayerRangeRequestClientPacket)packet);
     }
 }

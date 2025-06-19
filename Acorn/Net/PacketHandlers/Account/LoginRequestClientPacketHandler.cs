@@ -19,13 +19,13 @@ public class LoginRequestClientPacketHandler(
     private readonly IDbRepository<Database.Models.Account> _repository = repository;
     private readonly WorldState _world = world;
 
-    public async Task HandleAsync(PlayerConnection playerConnection,
+    public async Task HandleAsync(PlayerState playerState,
         LoginRequestClientPacket packet)
     {
         var account = await _repository.GetByKeyAsync(packet.Username);
         if (account is null)
         {
-            await playerConnection.Send(new LoginReplyServerPacket
+            await playerState.Send(new LoginReplyServerPacket
             {
                 ReplyCode = LoginReply.WrongUser,
                 ReplyCodeData = new LoginReplyServerPacket.ReplyCodeDataWrongUser()
@@ -33,10 +33,9 @@ public class LoginRequestClientPacketHandler(
             return;
         }
 
-        var loggedIn = _world.Players.Any(x => (x.Value.Account?.Username ?? string.Empty).Equals(account.Username, StringComparison.InvariantCultureIgnoreCase));
-        if (loggedIn)
+        if (_world.LoggedIn(account.Username))
         {
-            await playerConnection.Send(new LoginReplyServerPacket
+            await playerState.Send(new LoginReplyServerPacket
             {
                 ReplyCode = LoginReply.LoggedIn,
                 ReplyCodeData = new LoginReplyServerPacket.ReplyCodeDataLoggedIn()
@@ -49,7 +48,7 @@ public class LoginRequestClientPacketHandler(
 
         if (valid is false)
         {
-            await playerConnection.Send(new LoginReplyServerPacket
+            await playerState.Send(new LoginReplyServerPacket
             {
                 ReplyCode = LoginReply.WrongUserPassword,
                 ReplyCodeData = new LoginReplyServerPacket.ReplyCodeDataWrongUserPassword()
@@ -57,20 +56,20 @@ public class LoginRequestClientPacketHandler(
             return;
         }
 
-        playerConnection.Account = account;
-        await playerConnection.Send(new LoginReplyServerPacket
+        playerState.Account = account;
+        await playerState.Send(new LoginReplyServerPacket
         {
             ReplyCode = LoginReply.Ok,
             ReplyCodeData = new LoginReplyServerPacket.ReplyCodeDataOk
             {
-                Characters = playerConnection.Account.Characters
+                Characters = playerState.Account.Characters
                     .Select((x, id) => x.AsCharacterListEntry(id)).ToList()
             }
         });
     }
 
-    public Task HandleAsync(PlayerConnection playerConnection, object packet)
+    public Task HandleAsync(PlayerState playerState, object packet)
     {
-        return HandleAsync(playerConnection, (LoginRequestClientPacket)packet);
+        return HandleAsync(playerState, (LoginRequestClientPacket)packet);
     }
 }

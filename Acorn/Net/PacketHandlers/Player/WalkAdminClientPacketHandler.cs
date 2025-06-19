@@ -11,17 +11,17 @@ public class WalkAdminClientPacketHandler : IPacketHandler<WalkAdminClientPacket
         _playerWalkHandler = playerWalkHandler;
     }
 
-    public Task HandleAsync(PlayerConnection playerConnection,
+    public Task HandleAsync(PlayerState playerState,
         WalkAdminClientPacket packet)
     {
-        return _playerWalkHandler.HandleAsync(playerConnection, new WalkPlayerClientPacket
+        return _playerWalkHandler.HandleAsync(playerState, new WalkPlayerClientPacket
         {
             WalkAction = packet.WalkAction
         });
     }
 
-    public Task HandleAsync(PlayerConnection playerConnection, object packet)
+    public Task HandleAsync(PlayerState playerState, object packet)
     {
-        return HandleAsync(playerConnection, (WalkAdminClientPacket)packet);
+        return HandleAsync(playerState, (WalkAdminClientPacket)packet);
     }
 }

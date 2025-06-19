@@ -11,34 +11,34 @@ internal class InitInitClientPacketHandler(ILogger<InitInitClientPacketHandler> 
 {
     private readonly ILogger<InitInitClientPacketHandler> _logger = logger;
 
-    public async Task HandleAsync(PlayerConnection playerConnection, InitInitClientPacket packet)
+    public async Task HandleAsync(PlayerState playerState, InitInitClientPacket packet)
     {
-        playerConnection.PacketSequencer =
-            playerConnection.PacketSequencer.WithSequenceStart(playerConnection.StartSequence);
-        playerConnection.ClientEncryptionMulti = playerConnection.Rnd.Next(7) + 6;
-        playerConnection.ServerEncryptionMulti = playerConnection.Rnd.Next(7) + 6;
+        playerState.PacketSequencer =
+            playerState.PacketSequencer.WithSequenceStart(playerState.StartSequence);
+        playerState.ClientEncryptionMulti = playerState.Rnd.Next(7) + 6;
+        playerState.ServerEncryptionMulti = playerState.Rnd.Next(7) + 6;
 
         _logger.LogDebug("Sending Init Server Packet with Seq 1: {Seq1}, Seq 2: {Seq2} PlayerId: {PlayerId}",
-            playerConnection.StartSequence.Seq1, playerConnection.StartSequence.Seq2, playerConnection.SessionId);
-        await playerConnection.Send(new InitInitServerPacket
+            playerState.StartSequence.Seq1, playerState.StartSequence.Seq2, playerState.SessionId);
+        await playerState.Send(new InitInitServerPacket
         {
             ReplyCode = InitReply.Ok,
             ReplyCodeData = new InitInitServerPacket.ReplyCodeDataOk
             {
-                Seq1 = playerConnection.StartSequence.Seq1,
-                Seq2 = playerConnection.StartSequence.Seq2,
-                ClientEncryptionMultiple = playerConnection.ClientEncryptionMulti,
-                ServerEncryptionMultiple = playerConnection.ServerEncryptionMulti,
-                PlayerId = playerConnection.SessionId,
+                Seq1 = playerState.StartSequence.Seq1,
+                Seq2 = playerState.StartSequence.Seq2,
+                ClientEncryptionMultiple = playerState.ClientEncryptionMulti,
+                ServerEncryptionMultiple = playerState.ServerEncryptionMulti,
+                PlayerId = playerState.SessionId,
                 ChallengeResponse = ServerVerifier.Hash(packet.Challenge)
             }
         });
 
-        playerConnection.ClientState = ClientState.Initialized;
+        playerState.ClientState = ClientState.Initialized;
     }
 
-    public Task HandleAsync(PlayerConnection playerConnection, object packet)
+    public Task HandleAsync(PlayerState playerState, object packet)
     {
-        return HandleAsync(playerConnection, (InitInitClientPacket)packet);
+        return HandleAsync(playerState, (InitInitClientPacket)packet);
     }
 }

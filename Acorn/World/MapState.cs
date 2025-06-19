@@ -42,32 +42,26 @@ public class MapState
     public Emf Data { get; set; }
 
     public ConcurrentBag<NpcState> Npcs { get; set; } = new();
-    public ConcurrentBag<PlayerConnection> Players { get; set; } = new();
+    public ConcurrentBag<PlayerState> Players { get; set; } = new();
 
-    public bool HasPlayer(PlayerConnection player)
+    public bool HasPlayer(PlayerState player)
     {
         return Players.Contains(player);
     }
 
-    public IEnumerable<PlayerConnection> PlayersExcept(PlayerConnection playerConnection)
-    {
-        return Players.Where(x => x != playerConnection);
-    }
+    public IEnumerable<PlayerState> PlayersExcept(PlayerState? except)
+        => Players.Where(x => except is null || x != except);
 
-    public async Task BroadcastPacket(IPacket packet, PlayerConnection? except = null)
+    public async Task BroadcastPacket(IPacket packet, PlayerState? except = null)
     {
-        var otherPlayers = Players.Where(x => except is null || x != except)
-            .ToList();
-
-        var broadcast = otherPlayers
+        var broadcast = PlayersExcept(except)
             .Select(async otherPlayer => await otherPlayer.Send(packet));
 
         await Task.WhenAll(broadcast);
     }
 
-    public NearbyInfo AsNearbyInfo(PlayerConnection? except = null, WarpEffect warpEffect = WarpEffect.None)
-    {
-        return new NearbyInfo
+    public NearbyInfo AsNearbyInfo(PlayerState? except = null, WarpEffect warpEffect = WarpEffect.None)
+        => new()
         {
             Characters = Players
                 .Where(x => x.Character is not null)
@@ -77,14 +71,11 @@ public class MapState
             Items = [],
             Npcs = AsNpcMapInfo()
         };
-    }
 
     public List<NpcMapInfo> AsNpcMapInfo()
-    {
-        return Npcs.Select((x, i) => x.AsNpcMapInfo(i)).ToList();
-    }
+        => Npcs.Select((x, i) => x.AsNpcMapInfo(i)).ToList();
 
-    public async Task Enter(PlayerConnection player, WarpEffect warpEffect = WarpEffect.None)
+    public async Task NotifyEnter(PlayerState player, WarpEffect warpEffect = WarpEffect.None)
     {
         if (player.Character is null)
         {
@@ -102,22 +93,26 @@ public class MapState
         {
             Nearby = AsNearbyInfo(null, warpEffect)
         }, player);
+
+        player.CurrentMap = this;
     }
 
-    public async Task Leave(PlayerConnection player, WarpEffect warpEffect = WarpEffect.None)
+    public async Task NotifyLeave(PlayerState player, WarpEffect warpEffect = WarpEffect.None)
     {
-        Players = new ConcurrentBag<PlayerConnection>(Players.Where(p => p != player));
+        Players = new ConcurrentBag<PlayerState>(Players.Where(p => p != player));
 
-        await BroadcastPacket(new PlayersRemoveServerPacket
+        var playerRemoveTask = BroadcastPacket(new PlayersRemoveServerPacket
         {
             PlayerId = player.SessionId
         });
 
-        await BroadcastPacket(new AvatarRemoveServerPacket
+        var avatarRemoveTask = BroadcastPacket(new AvatarRemoveServerPacket
         {
             PlayerId = player.SessionId,
             WarpEffect = warpEffect
         });
+
+        await Task.WhenAll(playerRemoveTask, avatarRemoveTask);
     }
 
     public void Tick()

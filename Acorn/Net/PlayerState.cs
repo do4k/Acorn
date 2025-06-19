@@ -4,6 +4,7 @@ using Acorn.Extensions;
 using Acorn.Net.Models;
 using Acorn.Net.PacketHandlers;
 using Acorn.Net.PacketHandlers.Player.Warp;
+using Acorn.World;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Data;
 using Moffat.EndlessOnline.SDK.Packet;
@@ -13,22 +14,22 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.Net;
 
-public class PlayerConnection : IDisposable
+public class PlayerState : IDisposable
 {
-    private readonly Action<PlayerConnection> _onDispose;
+    private readonly Action<PlayerState> _onDispose;
     private readonly PacketResolver _resolver = new("Moffat.EndlessOnline.SDK.Protocol.Net.Client");
     private readonly IServiceProvider _serviceProvider;
     private readonly PingSequenceStart _upcomingSequence;
-    private readonly ILogger<PlayerConnection> _logger;
+    private readonly ILogger<PlayerState> _logger;
     private readonly CancellationTokenSource _tokenSource = new();
     private readonly CancellationToken _cancellationToken;
 
-    public PlayerConnection(
+    public PlayerState(
         IServiceProvider services,
         TcpClient tcpClient,
-        ILogger<PlayerConnection> logger,
+        ILogger<PlayerState> logger,
         int sessionId,
-        Action<PlayerConnection> onDispose
+        Action<PlayerState> onDispose
     )
     {
         TcpClient = tcpClient;
@@ -59,6 +60,8 @@ public class PlayerConnection : IDisposable
     public WarpSession? WarpSession { get; set; }
 
     public Character? Character { get; set; }
+
+    public MapState? CurrentMap { get; set; }
 
     public void Dispose()
     {
@@ -167,11 +170,37 @@ public class PlayerConnection : IDisposable
     }
 
     public Task ServerMessage(string message)
-    {
-        return Send(new TalkServerServerPacket
+        => Send(new TalkServerServerPacket
         {
             Message = message
         });
+
+    public Task Refresh()
+        => Character switch
+        {
+            null => throw new InvalidOperationException("Cannot refresh player where the selected character is not initialised"),
+            _ => CurrentMap switch
+            {
+                null => throw new InvalidOperationException("Cannot refresh player where the selected character's map is not initialised"),
+                _ => Warp(CurrentMap, Character.X, Character.Y)
+            }
+        };
+
+    public async Task Warp(MapState targetMap, int x, int y, WarpEffect warpEffect = WarpEffect.None)
+    {
+        WarpSession = new WarpSession(x, y, this, targetMap, warpEffect);
+
+        if (WarpSession.IsLocal is false)
+        {
+            if (CurrentMap is not null)
+            {
+                await CurrentMap.NotifyLeave(this, warpEffect);
+            }
+
+            await targetMap.NotifyEnter(this, warpEffect);
+        }
+        
+        await WarpSession.Execute();
     }
 
     public void Disconnect()

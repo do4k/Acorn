@@ -5,32 +5,32 @@ namespace Acorn.Net.PacketHandlers.Character;
 
 internal class CharacterRequestClientPacketHandler : IPacketHandler<CharacterRequestClientPacket>
 {
-    public async Task HandleAsync(PlayerConnection playerConnection,
+    public async Task HandleAsync(PlayerState playerState,
         CharacterRequestClientPacket packet)
     {
         if (string.Equals(packet.RequestString, "new", StringComparison.OrdinalIgnoreCase) is false)
         {
-        
+
         }
 
-        if (playerConnection.Account?.Characters.Count() >= 3)
+        if (playerState.Account?.Characters.Count() >= 3)
         {
-            await playerConnection.Send(new CharacterReplyServerPacket
+            await playerState.Send(new CharacterReplyServerPacket
             {
                 ReplyCode = CharacterReply.Full,
                 ReplyCodeData = new CharacterReplyServerPacket.ReplyCodeDataFull()
             });
         }
 
-        await playerConnection.Send(new CharacterReplyServerPacket
+        await playerState.Send(new CharacterReplyServerPacket
         {
-            ReplyCode = (CharacterReply)playerConnection.SessionId,
+            ReplyCode = (CharacterReply)playerState.SessionId,
             ReplyCodeData = new CharacterReplyServerPacket.ReplyCodeDataDefault()
         });
     }
 
-    public Task HandleAsync(PlayerConnection playerConnection, object packet)
+    public Task HandleAsync(PlayerState playerState, object packet)
     {
-        return HandleAsync(playerConnection, (CharacterRequestClientPacket)packet);
+        return HandleAsync(playerState, (CharacterRequestClientPacket)packet);
     }
 }

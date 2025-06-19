@@ -13,15 +13,15 @@ public class GlobalOpenClientPacketHandler : IPacketHandler<GlobalOpenClientPack
         _world = world;
     }
 
-    public Task HandleAsync(PlayerConnection playerConnection, GlobalOpenClientPacket packet)
+    public Task HandleAsync(PlayerState playerState, GlobalOpenClientPacket packet)
     {
-        playerConnection.IsListeningToGlobal = true;
+        playerState.IsListeningToGlobal = true;
         new[] { GlobalMessage.Welcome() }
             .Concat(_world.GlobalMessages.Values.OrderByDescending(x => x.CreatedAt).Take(10))
             .ToAsyncEnumerable()
             .ForEachAsync(async x =>
             {
-                await playerConnection.Send(new TalkMsgServerPacket
+                await playerState.Send(new TalkMsgServerPacket
                 {
                     Message = x.Message,
                     PlayerName = x.Author
@@ -31,8 +31,8 @@ public class GlobalOpenClientPacketHandler : IPacketHandler<GlobalOpenClientPack
         return Task.CompletedTask;
     }
 
-    public Task HandleAsync(PlayerConnection playerConnection, object packet)
+    public Task HandleAsync(PlayerState playerState, object packet)
     {
-        return HandleAsync(playerConnection, (GlobalOpenClientPacket)packet);
+        return HandleAsync(playerState, (GlobalOpenClientPacket)packet);
     }
 }

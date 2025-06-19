@@ -5,40 +5,49 @@ namespace Acorn.Net.PacketHandlers.Player.Warp;
 
 public class WarpSession
 {
-    public WarpEffect WarpEffect { get; set; }
-    public bool Local { get; set; }
-    public int MapId { get; set; }
-    public int X { get; set; }
-    public int Y { get; set; }
+    public WarpEffect WarpEffect { get; }
+    public int MapId { get; }
+    public int X { get; }
+    public int Y { get; }
+    public PlayerState Player { get; }
+    public MapState TargetMap { get; }
+    public bool IsLocal { get; }
 
-    public async Task Begin(PlayerConnection player, WorldState worldState)
+    public WarpSession(int x, int y, PlayerState player, MapState targetMap, WarpEffect warpEffect = WarpEffect.None)
     {
-        if (Local)
+        MapId = targetMap.Id;
+        X = x;
+        Y = y;
+        WarpEffect = warpEffect;
+        Player = player;
+        TargetMap = targetMap;
+        IsLocal = player.CurrentMap?.Id == MapId;
+    }
+
+    public async Task Execute()
+    {
+        if (IsLocal)
         {
-            await player.Send(new WarpRequestServerPacket
+            await Player.Send(new WarpRequestServerPacket
             {
                 WarpType = WarpType.Local,
                 MapId = MapId,
-                SessionId = player.SessionId,
+                SessionId = Player.SessionId,
                 WarpTypeData = null
             });
             return;
         }
 
-        var found = worldState.Maps.TryGetValue(MapId, out var map);
-        if (found && map is not null)
+        await Player.Send(new WarpRequestServerPacket
         {
-            await player.Send(new WarpRequestServerPacket
+            WarpType = WarpType.MapSwitch,
+            MapId = MapId,
+            SessionId = Player.SessionId,
+            WarpTypeData = new WarpRequestServerPacket.WarpTypeDataMapSwitch
             {
-                WarpType = WarpType.MapSwitch,
-                MapId = MapId,
-                SessionId = player.SessionId,
-                WarpTypeData = new WarpRequestServerPacket.WarpTypeDataMapSwitch
-                {
-                    MapFileSize = map.Data.ByteSize,
-                    MapRid = map.Data.Rid
-                }
-            });
-        }
+                MapFileSize = TargetMap.Data.ByteSize,
+                MapRid = TargetMap.Data.Rid
+            }
+        });
     }
 }

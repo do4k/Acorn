@@ -6,19 +6,12 @@ namespace Acorn.Net.PacketHandlers.Player;
 
 public class RefreshRequestClientPacketHandler : IPacketHandler<RefreshRequestClientPacket>
 {
-    private readonly WorldState _world;
-
-    public RefreshRequestClientPacketHandler(WorldState world)
-    {
-        _world = world;
-    }
-
-    public async Task HandleAsync(PlayerConnection playerConnection,
+    public async Task HandleAsync(PlayerState playerState,
         RefreshRequestClientPacket packet)
     {
-        await playerConnection.Send(new RefreshReplyServerPacket
+        await playerState.Send(new RefreshReplyServerPacket
         {
-            Nearby = _world.MapFor(playerConnection) switch
+            Nearby = playerState.CurrentMap switch
             {
                 { } map => map.AsNearbyInfo(),
                 _ => new NearbyInfo()
@@ -27,8 +20,8 @@ public class RefreshRequestClientPacketHandler : IPacketHandler<RefreshRequestCl
 
     }
 
-    public Task HandleAsync(PlayerConnection playerConnection, object packet)
+    public Task HandleAsync(PlayerState playerState, object packet)
     {
-        return HandleAsync(playerConnection, (RefreshRequestClientPacket)packet);
+        return HandleAsync(playerState, (RefreshRequestClientPacket)packet);
     }
 }

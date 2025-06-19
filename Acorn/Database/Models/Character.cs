@@ -120,12 +120,14 @@ public class Character
 
     public Coords NextCoords()
     {
-        var nextX = Direction switch {
+        var nextX = Direction switch
+        {
             Direction.Right => X + 1,
             Direction.Left => X - 1,
             _ => X
         };
-        var nextY = Direction switch {
+        var nextY = Direction switch
+        {
             Direction.Up => Y - 1,
             Direction.Down => Y + 1,
             _ => Y

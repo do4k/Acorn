@@ -15,14 +15,14 @@ internal class AccountCreateClientPacketHandler(
     private readonly IDbRepository<Database.Models.Account> _accountRepository = accountRepository;
     private readonly ILogger<AccountCreateClientPacketHandler> _logger = logger;
 
-    public async Task HandleAsync(PlayerConnection playerConnection,
+    public async Task HandleAsync(PlayerState playerState,
         AccountCreateClientPacket packet)
     {
         var account = await _accountRepository.GetByKeyAsync(packet.Username);
         if (account is not null)
         {
             _logger.LogDebug("Account with username {Username} already exists...", packet.Username);
-            await playerConnection.Send(
+            await playerState.Send(
                 new AccountReplyServerPacket
                 {
                     ReplyCode = AccountReply.Exists,
@@ -34,15 +34,15 @@ internal class AccountCreateClientPacketHandler(
         await _accountRepository.CreateAsync(newAccount);
 
         _logger.LogInformation("New account '{Username}'", packet.Username);
-        await playerConnection.Send(new AccountReplyServerPacket
+        await playerState.Send(new AccountReplyServerPacket
         {
             ReplyCode = AccountReply.Created,
             ReplyCodeData = new AccountReplyServerPacket.ReplyCodeDataCreated()
         });
     }
 
-    public Task HandleAsync(PlayerConnection playerConnection, object packet)
+    public Task HandleAsync(PlayerState playerState, object packet)
     {
-        return HandleAsync(playerConnection, (AccountCreateClientPacket)packet);
+        return HandleAsync(playerState, (AccountCreateClientPacket)packet);
     }
 }

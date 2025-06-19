@@ -12,7 +12,7 @@ public class FormulaService
     {
         _dataFileRepository = dataFileRepository;
     }
-    
+
     public int CalculateDamage(Character character, EnfRecord npcData)
     {
         // Example formula for calculating damage
@@ -25,7 +25,8 @@ public class FormulaService
 
         var baseDamage = @class.StatGroup switch
         {
-            2 => @class.Str * 2 + character.Level
+            2 => @class.Str * 2 + character.Level,
+            _ => @class.Str + character.Level,
         };
 
         var npcDefense = npcData.Armor;

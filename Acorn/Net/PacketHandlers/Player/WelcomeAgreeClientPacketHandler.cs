@@ -16,7 +16,7 @@ public class WelcomeAgreeClientPacketHandler : IPacketHandler<WelcomeAgreeClient
         _dataRepository = dataRepository;
     }
 
-    public async Task HandleAsync(PlayerConnection playerConnection,
+    public async Task HandleAsync(PlayerState playerState,
         WelcomeAgreeClientPacket packet)
     {
         var eoWriter = new EoWriter();
@@ -28,9 +28,9 @@ public class WelcomeAgreeClientPacketHandler : IPacketHandler<WelcomeAgreeClient
             FileType.Ecf => () => _dataRepository.Ecf.Serialize(eoWriter),
             FileType.Emf => () =>
             {
-                var map = _dataRepository.Maps.FirstOrDefault(map => map.Id == playerConnection.Character?.Map)?.Map ??
+                var map = _dataRepository.Maps.FirstOrDefault(map => map.Id == playerState.Character?.Map)?.Map ??
                           throw new ArgumentOutOfRangeException(
-                              $"Could not find map {playerConnection.Character?.Map} for character {playerConnection.Character?.Name}");
+                              $"Could not find map {playerState.Character?.Map} for character {playerState.Character?.Name}");
 
                 map.Serialize(eoWriter);
             }
@@ -41,7 +41,7 @@ public class WelcomeAgreeClientPacketHandler : IPacketHandler<WelcomeAgreeClient
 
         var bytes = eoWriter.ToByteArray();
 
-        await playerConnection.Send(new InitInitServerPacket
+        await playerState.Send(new InitInitServerPacket
         {
             ReplyCode = packet.FileType switch
             {
@@ -98,8 +98,8 @@ public class WelcomeAgreeClientPacketHandler : IPacketHandler<WelcomeAgreeClient
         });
     }
 
-    public Task HandleAsync(PlayerConnection playerConnection, object packet)
+    public Task HandleAsync(PlayerState playerState, object packet)
     {
-        return HandleAsync(playerConnection, (WelcomeAgreeClientPacket)packet);
+        return HandleAsync(playerState, (WelcomeAgreeClientPacket)packet);
     }
 }

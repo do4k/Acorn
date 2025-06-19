@@ -14,7 +14,7 @@ namespace Acorn.Net;
 public class NewConnectionHostedService(
     IServiceProvider services,
     ILogger<NewConnectionHostedService> logger,
-    ILogger<PlayerConnection> playerConnectionLogger,
+    ILogger<PlayerState> playerConnectionLogger,
     IStatsReporter statsReporter,
     WorldState worldState,
     IDbRepository<Character> characterRepository,
@@ -25,7 +25,7 @@ public class NewConnectionHostedService(
     private readonly IDbRepository<Character> _characterRepository = characterRepository;
     private readonly TcpListener _listener = new(IPAddress.Any, serverOptions.Value.Port);
     private readonly ILogger<NewConnectionHostedService> _logger = logger;
-    private readonly ILogger<PlayerConnection> _playerConnectionLogger = playerConnectionLogger;
+    private readonly ILogger<PlayerState> _playerConnectionLogger = playerConnectionLogger;
     private readonly IServiceProvider _services = services;
     private readonly IStatsReporter _statsReporter = statsReporter;
     private readonly WorldState _world = worldState;
@@ -39,23 +39,22 @@ public class NewConnectionHostedService(
         {
             var client = await _listener.AcceptTcpClientAsync(cancellationToken);
             var sessionId = sessionGenerator.Generate();
-            var added = _world.Players.TryAdd(sessionId, new PlayerConnection(_services, client, _playerConnectionLogger, sessionId,
-                async (playerConnection) =>
+            var added = _world.Players.TryAdd(sessionId, new PlayerState(_services, client, _playerConnectionLogger, sessionId,
+                async (player) =>
                 {
-                    if (playerConnection.Character is not null)
+                    if (player.Character is not null)
                     {
-                        var map = _world.MapFor(playerConnection);
-                        if (map is not null)
+                        if (player.CurrentMap is not null)
                         {
-                            await map.Leave(playerConnection);
-                            await _characterRepository.UpdateAsync(playerConnection.Character);
+                            await player.CurrentMap.NotifyLeave(player);
+                            await _characterRepository.UpdateAsync(player.Character);
                         }
                     }
 
                     var removed = _world.Players.TryRemove(sessionId, out var removedConnection);
                     if (removed is false)
                     {
-                        _logger.LogWarning("Failed to remove player connection with session ID {SessionId}", playerConnection.SessionId);
+                        _logger.LogWarning("Failed to remove player connection with session ID {SessionId}", player.SessionId);
                         return;
                     }
 

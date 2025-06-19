@@ -17,35 +17,35 @@ public class TalkAnnounceClientPacketHandler : IPacketHandler<TalkAnnounceClient
         _logger = logger;
     }
 
-    public async Task HandleAsync(PlayerConnection playerConnection,
+    public async Task HandleAsync(PlayerState playerState,
         TalkAnnounceClientPacket packet)
     {
-        if (playerConnection.Character is null)
+        if (playerState.Character is null)
         {
             return;
         }
 
-        if (playerConnection.Character.Admin == AdminLevel.Player)
+        if (playerState.Character.Admin == AdminLevel.Player)
         {
             _logger.LogDebug("Player tried to send an announcement packet without admin permissions {Player}",
-                playerConnection.Character.Name);
+                playerState.Character.Name);
             return;
         }
 
         var announcePackets = _world.Players
-            .Where(x => x.Value != playerConnection)
+            .Where(x => x.Value != playerState)
             .Select(async x => await x.Value.Send(new TalkAnnounceServerPacket
             {
                 Message = packet.Message,
-                PlayerName = playerConnection.Character.Name
+                PlayerName = playerState.Character.Name
             }));
 
         await Task.WhenAll(announcePackets);
 
     }
 
-    public Task HandleAsync(PlayerConnection playerConnection, object packet)
+    public Task HandleAsync(PlayerState playerState, object packet)
     {
-        return HandleAsync(playerConnection, (TalkAnnounceClientPacket)packet);
+        return HandleAsync(playerState, (TalkAnnounceClientPacket)packet);
     }
 }

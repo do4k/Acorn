@@ -61,7 +61,7 @@ public static class EcfExtension
 {
     public static EcfRecord? GetClass(this Ecf ecf, int id)
     {
-        return id > ecf.Classes.Count ? null : ecf.Classes[id];
+        return id >= ecf.Classes.Count ? null : ecf.Classes[id];
     }
 }
 
@@ -69,7 +69,7 @@ public static class EnfExtension
 {
     public static EnfRecord? GetNpc(this Enf enf, int id)
     {
-        return id > enf.Npcs.Count ? null : enf.Npcs[id];
+        return id >= enf.Npcs.Count ? null : enf.Npcs[id];
     }
 }
 
@@ -77,7 +77,7 @@ public static class EifExtension
 {
     public static EifRecord? GetItem(this Eif eif, int id)
     {
-        return id > eif.Items.Count ? null : eif.Items[id];
+        return id >= eif.Items.Count ? null : eif.Items[id];
     }
 }
 
@@ -85,7 +85,7 @@ public static class EsfExtension
 {
     public static EsfRecord? GetSkill(this Esf esf, int id)
     {
-        return id > esf.Skills.Count ? null : esf.Skills[id];
+        return id >= esf.Skills.Count ? null : esf.Skills[id];
     }
 }
 

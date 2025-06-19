@@ -24,39 +24,38 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
         _formulaService = formulaService;
     }
 
-    public async Task HandleAsync(PlayerConnection playerConnection, AttackUseClientPacket packet)
+    public async Task HandleAsync(PlayerState playerState, AttackUseClientPacket packet)
     {
         if ((_now() - _timeSinceLastAttack).TotalMilliseconds < 500)
         {
             return;
         }
 
-        var map = _world.MapFor(playerConnection);
-        if (map is null)
+        if (playerState.CurrentMap is null)
         {
             return;
         }
 
-        if (playerConnection.Character is not null)
+        if (playerState.Character is not null)
         {
-            var nextCoords = playerConnection.Character.NextCoords();
-            var target = map.Npcs.FirstOrDefault(x => 
-                x.X == nextCoords.X && x.Y == nextCoords.Y && 
+            var nextCoords = playerState.Character.NextCoords();
+            var target = playerState.CurrentMap.Npcs.FirstOrDefault(x =>
+                x.X == nextCoords.X && x.Y == nextCoords.Y &&
                 x.Data.Type is NpcType.Aggressive or NpcType.Passive);
-            
+
             if (target is null)
             {
                 return;
             }
-            
-            var damage = _formulaService.CalculateDamage(playerConnection.Character, target.Data);
+
+            var damage = _formulaService.CalculateDamage(playerState.Character, target.Data);
             target.Hp -= damage;
             target.Hp = Math.Max(target.Hp, 0);
-            await map.BroadcastPacket(new NpcReplyServerPacket
+            await playerState.CurrentMap.BroadcastPacket(new NpcReplyServerPacket
             {
-                PlayerId = playerConnection.SessionId,
-                PlayerDirection = playerConnection.Character.Direction,
-                NpcIndex = map.Npcs.ToList().IndexOf(target),
+                PlayerId = playerState.SessionId,
+                PlayerDirection = playerState.Character.Direction,
+                NpcIndex = playerState.CurrentMap.Npcs.ToList().IndexOf(target),
                 Damage = damage,
                 HpPercentage = (int)Math.Max((double)target.Hp / target.Data.Hp * 100, 0),
                 KillStealProtection = NpcKillStealProtectionState.Unprotected,
@@ -64,21 +63,21 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
 
             if (target.Hp == 0)
             {
-                playerConnection.Character.Exp += target.Data.Experience;
+                playerState.Character.Exp += target.Data.Experience;
             }
         }
 
-        await map.BroadcastPacket(new AttackPlayerServerPacket
-            {
-                Direction = playerConnection.Character?.Direction ?? Direction.Down,
-                PlayerId = playerConnection.SessionId
-            }, except: playerConnection);
+        await playerState.CurrentMap.BroadcastPacket(new AttackPlayerServerPacket
+        {
+            Direction = playerState.Character?.Direction ?? Direction.Down,
+            PlayerId = playerState.SessionId
+        }, except: playerState);
 
         _timeSinceLastAttack = DateTime.UtcNow;
     }
 
-    public Task HandleAsync(PlayerConnection playerConnection, object packet)
+    public Task HandleAsync(PlayerState playerState, object packet)
     {
-        return HandleAsync(playerConnection, (AttackUseClientPacket)packet);
+        return HandleAsync(playerState, (AttackUseClientPacket)packet);
     }
 }

@@ -15,10 +15,10 @@ public class PlayersRequestClientPacketHandler : IPacketHandler<PlayersRequestCl
         _world = world;
     }
 
-    public async Task HandleAsync(PlayerConnection playerConnection,
+    public async Task HandleAsync(PlayerState playerState,
         PlayersRequestClientPacket packet)
     {
-        await playerConnection.Send(new InitInitServerPacket
+        await playerState.Send(new InitInitServerPacket
         {
             ReplyCode = InitReply.PlayersList,
             ReplyCodeData = new ReplyCodeDataPlayersList
@@ -34,8 +34,8 @@ public class PlayersRequestClientPacketHandler : IPacketHandler<PlayersRequestCl
         });
     }
 
-    public Task HandleAsync(PlayerConnection playerConnection, object packet)
+    public Task HandleAsync(PlayerState playerState, object packet)
     {
-        return HandleAsync(playerConnection, (PlayersRequestClientPacket)packet);
+        return HandleAsync(playerState, (PlayersRequestClientPacket)packet);
     }
 }

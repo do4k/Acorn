@@ -6,42 +6,34 @@ namespace Acorn.Net.PacketHandlers.Player;
 
 internal class FacePlayerClientPacketHandler : IPacketHandler<FacePlayerClientPacket>
 {
-    private readonly WorldState _world;
-
-    public FacePlayerClientPacketHandler(WorldState world)
-    {
-        _world = world;
-    }
-
-    public async Task HandleAsync(PlayerConnection playerConnection,
+    public async Task HandleAsync(PlayerState playerState,
         FacePlayerClientPacket packet)
     {
-        if (playerConnection.Character is null)
+        if (playerState.Character is null)
         {
             return;
         }
 
-        playerConnection.Character.Direction = packet.Direction;
+        playerState.Character.Direction = packet.Direction;
 
-        var map = _world.MapFor(playerConnection);
-        if (map is null)
+        if (playerState.CurrentMap is null)
         {
             return;
         }
 
-        var broadcast = map.Players.ToList().Select(player =>
+        var broadcast = playerState.CurrentMap.Players.Select(player =>
             player.Send(new FacePlayerServerPacket
             {
                 Direction = packet.Direction,
-                PlayerId = playerConnection.SessionId
+                PlayerId = playerState.SessionId
             }));
 
         await Task.WhenAll(broadcast);
 
     }
 
-    public Task HandleAsync(PlayerConnection playerConnection, object packet)
+    public Task HandleAsync(PlayerState playerState, object packet)
     {
-        return HandleAsync(playerConnection, (FacePlayerClientPacket)packet);
+        return HandleAsync(playerState, (FacePlayerClientPacket)packet);
     }
 }

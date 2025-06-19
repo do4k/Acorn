@@ -25,10 +25,10 @@ internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequest
         _logger = logger;
     }
 
-    public async Task HandleAsync(PlayerConnection playerConnection,
+    public async Task HandleAsync(PlayerState playerState,
         WelcomeRequestClientPacket packet)
     {
-        var character = playerConnection.Account?.Characters[packet.CharacterId];
+        var character = playerState.Account?.Characters[packet.CharacterId];
         if (character is null)
         {
             _logger.LogError("Could not find character");
@@ -44,10 +44,10 @@ internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequest
         }
 
         var equipmentResult = character.Equipment();
-        playerConnection.Character = character;
+        playerState.Character = character;
         character.CalculateStats(_dataRepository.Ecf);
 
-        await playerConnection.Send(new WelcomeReplyServerPacket
+        await playerState.Send(new WelcomeReplyServerPacket
         {
             WelcomeCode = WelcomeCode.SelectCharacter,
             WelcomeCodeData = new WelcomeReplyServerPacket.WelcomeCodeDataSelectCharacter
@@ -102,7 +102,7 @@ internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequest
                 },
                 Title = character.Title ?? "",
                 Usage = character.Usage,
-                SessionId = playerConnection.SessionId,
+                SessionId = playerState.SessionId,
                 Level = character.Level,
                 LoginMessageCode = character.Usage switch
                 {
@@ -123,8 +123,8 @@ internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequest
         });
     }
 
-    public Task HandleAsync(PlayerConnection playerConnection, object packet)
+    public Task HandleAsync(PlayerState playerState, object packet)
     {
-        return HandleAsync(playerConnection, (WelcomeRequestClientPacket)packet);
+        return HandleAsync(playerState, (WelcomeRequestClientPacket)packet);
     }
 }
