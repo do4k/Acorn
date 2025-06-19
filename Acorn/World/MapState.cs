@@ -117,33 +117,103 @@ public class MapState
 
         await Task.WhenAll(playerRemoveTask, avatarRemoveTask);
     }
+    /*
+     *             return !matches!(
+           tile,
+           MapTileSpec::NpcBoundary
+               | MapTileSpec::Wall
+               | MapTileSpec::ChairDown
+               | MapTileSpec::ChairLeft
+               | MapTileSpec::ChairRight
+               | MapTileSpec::ChairUp
+               | MapTileSpec::ChairDownRight
+               | MapTileSpec::ChairUpLeft
+               | MapTileSpec::ChairAll
+               | MapTileSpec::Chest
+               | MapTileSpec::BankVault
+               | MapTileSpec::Edge
+               | MapTileSpec::Board1
+               | MapTileSpec::Board2
+               | MapTileSpec::Board3
+               | MapTileSpec::Board4
+               | MapTileSpec::Board5
+               | MapTileSpec::Board6
+               | MapTileSpec::Board7
+               | MapTileSpec::Board8
+               | MapTileSpec::Jukebox
+       );
+     */
+
+    public bool IsNpcWalkable(MapTileSpec tileSpec)
+        => tileSpec switch
+        {
+            MapTileSpec.Wall 
+            or MapTileSpec.ChairDown  
+            or MapTileSpec.ChairLeft  
+            or MapTileSpec.ChairRight 
+            or MapTileSpec.ChairUp 
+            or MapTileSpec.ChairDownRight  
+            or MapTileSpec.ChairUpLeft 
+            or MapTileSpec.ChairAll 
+            or MapTileSpec.Chest  
+            or MapTileSpec.BankVault  
+            or MapTileSpec.Edge  
+            or MapTileSpec.Board1 
+            or MapTileSpec.Board2
+            or MapTileSpec.Board3
+            or MapTileSpec.Board4
+            or MapTileSpec.Board5
+            or MapTileSpec.Board6
+            or MapTileSpec.Board7
+            or MapTileSpec.Board8
+            or MapTileSpec.Jukebox
+            => false,
+            _ => true
+        };
 
     public async Task Tick()
     {
+        if (Players.Any() is false) 
+            return;
+        
         List<Task> tasks = new();
         var random = new Random();
 
         var newPositions = Npcs.Select(npc =>
         {
-            npc.Direction = (Direction)random.Next(0, 3);
+            npc.Direction = (Direction)random.Next(0, 4);
             var nextCoords = npc.NextCoords();
+            var row = Data.TileSpecRows.Where(x => x.Y == nextCoords.Y).ToList();
+            if (row.Count == 0)
+            {
+                return npc;
+            }
+            var tile = row.SelectMany(x => x.Tiles)
+                .FirstOrDefault(x => x.X == nextCoords.X);
+
+            if (tile is not null && IsNpcWalkable(tile.TileSpec) is false)
+            {
+                return npc;
+            }
+            
             npc.X = nextCoords.X;
             npc.Y = nextCoords.Y;
             return npc;
         });
         
+        var npcUpdates = newPositions.Select((x, id) => new NpcUpdatePosition
+        {
+            NpcIndex = id,
+            Coords = new Coords
+            {
+                X = x.X,
+                Y = x.Y
+            },
+            Direction = x.Direction
+        }).ToList();
         tasks.Add(BroadcastPacket(new NpcPlayerServerPacket
         {
-            Positions = newPositions.Select((x, id) => new NpcUpdatePosition
-            {
-                NpcIndex = id,
-                Coords = new Coords
-                {
-                    X = x.X,
-                    Y = x.Y
-                },
-                Direction = x.Direction
-            }).ToList()
+            Positions = npcUpdates
         }));
         
         foreach (var player in Players)
