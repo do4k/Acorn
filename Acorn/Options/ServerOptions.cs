@@ -7,4 +7,5 @@ public class ServerOptions
     public required string Site { get; set; }
     public required string Hostname { get; set; }
     public required int Port { get; set; }
+    public required int WebSocketPort { get; set; }
 }

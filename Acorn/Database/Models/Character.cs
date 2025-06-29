@@ -88,7 +88,7 @@ public class Character
             Id = x.Id
         });
     }
-    
+
     public Coords AsCoords()
     {
         return new Coords

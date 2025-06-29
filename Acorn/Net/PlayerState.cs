@@ -1,6 +1,7 @@
 ﻿using System.Net.Sockets;
 using Acorn.Database.Models;
 using Acorn.Extensions;
+using Acorn.Infrastructure.Communicators;
 using Acorn.Net.Models;
 using Acorn.Net.PacketHandlers;
 using Acorn.Net.PacketHandlers.Player.Warp;
@@ -26,21 +27,21 @@ public class PlayerState : IDisposable
 
     public PlayerState(
         IServiceProvider services,
-        TcpClient tcpClient,
+        ICommunicator communicator,
         ILogger<PlayerState> logger,
         int sessionId,
         Action<PlayerState> onDispose
     )
     {
-        TcpClient = tcpClient;
         _logger = logger;
         _cancellationToken = _tokenSource.Token;
         _upcomingSequence = PingSequenceStart.Generate(Rnd);
-        _logger.LogInformation("New client connected from {Location}", TcpClient.Client.RemoteEndPoint);
+        _logger.LogInformation("New client connected from {Location}", communicator.GetConnectionOrigin());
         _onDispose = onDispose;
         _serviceProvider = services;
         SessionId = sessionId;
         StartSequence = InitSequenceStart.Generate(Rnd);
+        Communicator = communicator;
         Task.Run(Listen);
     }
 
@@ -52,7 +53,7 @@ public class PlayerState : IDisposable
     public int ServerEncryptionMulti { get; set; } = 0;
     public PacketSequencer PacketSequencer { get; set; } = new(ZeroSequence.Instance);
     public InitSequenceStart StartSequence { get; set; }
-    public TcpClient TcpClient { get; }
+    public ICommunicator Communicator { get; }
     public Account? Account { get; set; }
     public bool IsListeningToGlobal { get; set; }
 
@@ -66,7 +67,7 @@ public class PlayerState : IDisposable
     public void Dispose()
     {
         _onDispose(this);
-        TcpClient.Close();
+        Communicator.Close();
     }
 
     public async Task Listen()
@@ -75,7 +76,7 @@ public class PlayerState : IDisposable
         {
             try
             {
-                var stream = TcpClient.GetStream();
+                var stream = Communicator.Receive();
 
                 var len1 = (byte)stream.ReadByte();
                 var len2 = (byte)stream.ReadByte();
@@ -107,8 +108,7 @@ public class PlayerState : IDisposable
                 var handlerType = typeof(IPacketHandler<>).MakeGenericType(packet.GetType());
                 if (_serviceProvider.GetService(handlerType) is not IHandler handler)
                 {
-                    _logger.LogError("Handler not registered for packet of type {PacketType} Exiting...",
-                        packet.GetType());
+                    _logger.LogError("Handler not registered for packet of type {PacketType} Exiting...", packet.GetType());
                     break;
                 }
 
@@ -160,13 +160,12 @@ public class PlayerState : IDisposable
         var bytes = packet switch
         {
             InitInitServerPacket _ => writer.ToByteArray(),
-            _ => DataEncrypter.FlipMSB(
-                DataEncrypter.Interleave(DataEncrypter.SwapMultiples(writer.ToByteArray(), ServerEncryptionMulti)))
+            _ => DataEncrypter.FlipMSB(DataEncrypter.Interleave(DataEncrypter.SwapMultiples(writer.ToByteArray(), ServerEncryptionMulti)))
         };
 
         var encodedLength = NumberEncoder.EncodeNumber(bytes.Length);
         var fullBytes = encodedLength[..2].Concat(bytes);
-        await TcpClient.GetStream().WriteAsync(fullBytes.AsReadOnly());
+        await Communicator.Send(fullBytes);
     }
 
     public Task ServerMessage(string message)
@@ -199,7 +198,7 @@ public class PlayerState : IDisposable
 
             await targetMap.NotifyEnter(this, warpEffect);
         }
-        
+
         await WarpSession.Execute();
     }
 

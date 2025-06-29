@@ -25,7 +25,7 @@ internal class WorldHostedService : IHostedService
     public Task StopAsync(CancellationToken cancellationToken)
     {
         _timer.Stop();
-        throw new NotImplementedException();
+        return Task.CompletedTask;
     }
 
     private void Tick(object sender, ElapsedEventArgs args)
@@ -33,7 +33,7 @@ internal class WorldHostedService : IHostedService
         var tickTasks = _world
             .Maps
             .Select(x => x.Value.Tick());
-        
+
         Task.WhenAll(tickTasks).GetAwaiter().GetResult();
     }
 }

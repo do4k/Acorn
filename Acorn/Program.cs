@@ -5,6 +5,7 @@ using Acorn.Database;
 using Acorn.Database.Repository;
 using Acorn.Extensions;
 using Acorn.Infrastructure;
+using Acorn.Infrastructure.Communicators;
 using Acorn.Net;
 using Acorn.Net.PacketHandlers;
 using Acorn.Net.PacketHandlers.Player.Talk;
@@ -72,7 +73,9 @@ await Host.CreateDefaultBuilder(args)
             .AddSingleton<WorldState>()
             .AddAllOfType(typeof(IPacketHandler<>))
             .AddAllOfType<ITalkHandler>()
-            .AddRepositories();
+            .AddRepositories()
+            .AddSingleton<WebSocketCommunicatorFactory>()
+            .AddSingleton<TcpCommunicatorFactory>();
 
         var slnOptions = services.BuildServiceProvider().GetService<IOptions<SLNOptions>>();
         if (slnOptions?.Value.Enabled ?? false)

@@ -22,7 +22,7 @@ public class ConnectionAcceptClientPacketHandler(
         }
 
         _logger.LogDebug("Got expected connection accept packet from {Location} for player id {PlayerId}",
-            playerState.TcpClient.Client.RemoteEndPoint, playerState.SessionId);
+            playerState.Communicator.GetConnectionOrigin(), playerState.SessionId);
         return Task.CompletedTask;
     }
 

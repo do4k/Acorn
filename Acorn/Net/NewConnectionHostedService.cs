@@ -3,6 +3,7 @@ using System.Net.Sockets;
 using Acorn.Database.Models;
 using Acorn.Database.Repository;
 using Acorn.Infrastructure;
+using Acorn.Infrastructure.Communicators;
 using Acorn.Options;
 using Acorn.World;
 using Microsoft.Extensions.Hosting;
@@ -19,7 +20,9 @@ public class NewConnectionHostedService(
     WorldState worldState,
     IDbRepository<Character> characterRepository,
     ISessionGenerator sessionGenerator,
-    IOptions<ServerOptions> serverOptions
+    IOptions<ServerOptions> serverOptions,
+    TcpCommunicatorFactory tcpCommunicatorFactory,
+    WebSocketCommunicatorFactory webSocketCommunicatorFactory
 ) : BackgroundService, IDisposable
 {
     private readonly IDbRepository<Character> _characterRepository = characterRepository;
@@ -34,34 +37,44 @@ public class NewConnectionHostedService(
     {
         await _statsReporter.Report();
         _listener.Start();
-        _logger.LogInformation("Waiting for connections on {Endpoint}...", _listener.LocalEndpoint);
-        while (cancellationToken.IsCancellationRequested is false)
+
+        // Start WebSocket listener
+        var wsListener = new HttpListener();
+        wsListener.Prefixes.Add($"http://*:{serverOptions.Value.WebSocketPort}/");
+        wsListener.Start();
+
+        _logger.LogInformation("Waiting for TCP on {Endpoint} and WebSocket on ws://*:{Port}...",
+            _listener.LocalEndpoint, serverOptions.Value.WebSocketPort);
+
+        while (!cancellationToken.IsCancellationRequested)
         {
-            var client = await _listener.AcceptTcpClientAsync(cancellationToken);
+            var tcpAcceptTask = _listener.AcceptTcpClientAsync(cancellationToken).AsTask();
+            var wsAcceptTask = wsListener.GetContextAsync();
+            var completed = await Task.WhenAny(tcpAcceptTask, wsAcceptTask);
+            ICommunicator communicator = completed switch
+            {
+                Task<TcpClient> tcp when tcp == tcpAcceptTask => tcpCommunicatorFactory.Initialise(tcp.Result),
+                Task<HttpListenerContext> ws when ws == wsAcceptTask => webSocketCommunicatorFactory.Initialise(ws.Result),
+                _ => throw new InvalidOperationException("Unexpected task completion")
+            };
+
             var sessionId = sessionGenerator.Generate();
-            var added = _world.Players.TryAdd(sessionId, new PlayerState(_services, client, _playerConnectionLogger, sessionId,
+
+            var playerState = new PlayerState(_services, communicator, _playerConnectionLogger, sessionId,
                 async (player) =>
                 {
-                    if (player.Character is not null)
+                    if (player.Character is not null && player.CurrentMap is not null)
                     {
-                        if (player.CurrentMap is not null)
-                        {
-                            await player.CurrentMap.NotifyLeave(player);
-                            await _characterRepository.UpdateAsync(player.Character);
-                        }
+                        await player.CurrentMap.NotifyLeave(player);
+                        await _characterRepository.UpdateAsync(player.Character);
                     }
 
-                    var removed = _world.Players.TryRemove(sessionId, out var removedConnection);
-                    if (removed is false)
-                    {
-                        _logger.LogWarning("Failed to remove player connection with session ID {SessionId}", player.SessionId);
-                        return;
-                    }
-
+                    _world.Players.TryRemove(sessionId, out _);
                     _logger.LogInformation("Player disconnected");
                     UpdateConnectedCount();
-                }));
+                });
 
+            var added = _world.Players.TryAdd(sessionId, playerState);
             _logger.LogInformation("Connection accepted. {PlayersConnected} players connected", _world.Players.Count);
             UpdateConnectedCount();
         }
