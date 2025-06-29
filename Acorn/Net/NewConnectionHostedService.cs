@@ -41,17 +41,15 @@ public class NewConnectionHostedService(
         // Start WebSocket listener
         var wsListener = new HttpListener();
         wsListener.Prefixes.Add($"http://*:{serverOptions.Value.WebSocketPort}/");
-        wsListener.Prefixes.Add($"https://*:{serverOptions.Value.WebSocketPort}/");
         wsListener.Start();
 
         _logger.LogInformation("Waiting for TCP on {Endpoint} and WebSocket on ws://*:{Port}...",
             _listener.LocalEndpoint, serverOptions.Value.WebSocketPort);
 
-        var tcpAcceptTask = _listener.AcceptTcpClientAsync(cancellationToken).AsTask();
-        var wsAcceptTask = wsListener.GetContextAsync();
-
         while (!cancellationToken.IsCancellationRequested)
         {
+            var tcpAcceptTask = _listener.AcceptTcpClientAsync(cancellationToken).AsTask();
+            var wsAcceptTask = wsListener.GetContextAsync();
             var completed = await Task.WhenAny(tcpAcceptTask, wsAcceptTask);
             ICommunicator communicator = completed switch
             {

@@ -41,6 +41,7 @@ public class PlayerState : IDisposable
         _serviceProvider = services;
         SessionId = sessionId;
         StartSequence = InitSequenceStart.Generate(Rnd);
+        Communicator = communicator;
         Task.Run(Listen);
     }
 
