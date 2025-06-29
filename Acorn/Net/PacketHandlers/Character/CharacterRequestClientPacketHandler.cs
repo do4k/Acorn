@@ -5,7 +5,7 @@ namespace Acorn.Net.PacketHandlers.Character;
 
 internal class CharacterRequestClientPacketHandler : IPacketHandler<CharacterRequestClientPacket>
 {
-    public async Task HandleAsync(PlayerState playerState,
+    public async Task HandleAsync(ConnectionHandler connectionHandler,
         CharacterRequestClientPacket packet)
     {
         if (string.Equals(packet.RequestString, "new", StringComparison.OrdinalIgnoreCase) is false)
@@ -13,24 +13,24 @@ internal class CharacterRequestClientPacketHandler : IPacketHandler<CharacterReq
 
         }
 
-        if (playerState.Account?.Characters.Count() >= 3)
+        if (connectionHandler.Account?.Characters.Count() >= 3)
         {
-            await playerState.Send(new CharacterReplyServerPacket
+            await connectionHandler.Send(new CharacterReplyServerPacket
             {
                 ReplyCode = CharacterReply.Full,
                 ReplyCodeData = new CharacterReplyServerPacket.ReplyCodeDataFull()
             });
         }
 
-        await playerState.Send(new CharacterReplyServerPacket
+        await connectionHandler.Send(new CharacterReplyServerPacket
         {
-            ReplyCode = (CharacterReply)playerState.SessionId,
+            ReplyCode = (CharacterReply)connectionHandler.SessionId,
             ReplyCodeData = new CharacterReplyServerPacket.ReplyCodeDataDefault()
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, object packet)
+    public Task HandleAsync(ConnectionHandler connectionHandler, object packet)
     {
-        return HandleAsync(playerState, (CharacterRequestClientPacket)packet);
+        return HandleAsync(connectionHandler, (CharacterRequestClientPacket)packet);
     }
 }

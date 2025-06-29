@@ -15,14 +15,14 @@ internal class AccountRequestClientPacketHandler(
     private readonly IDbRepository<Database.Models.Account> _accountRepository = accountRepository;
     private readonly ILogger<AccountRequestClientPacket> _logger = logger;
 
-    public async Task HandleAsync(PlayerState playerState,
+    public async Task HandleAsync(ConnectionHandler connectionHandler,
         AccountRequestClientPacket packet)
     {
         var account = await _accountRepository.GetByKeyAsync(packet.Username);
         if (account is not null)
         {
             _logger.LogDebug("Account exists {username}", account.Username);
-            await playerState.Send(new AccountReplyServerPacket
+            await connectionHandler.Send(new AccountReplyServerPacket
             {
                 ReplyCode = AccountReply.Exists,
                 ReplyCodeData = new AccountReplyServerPacket.ReplyCodeDataExists()
@@ -32,24 +32,24 @@ internal class AccountRequestClientPacketHandler(
         {
             _logger.LogDebug("Account \"{username}\" does not exist", packet.Username);
 
-            if (playerState.StartSequence.Value > EoNumericLimits.CHAR_MAX)
+            if (connectionHandler.StartSequence.Value > EoNumericLimits.CHAR_MAX)
             {
-                playerState.StartSequence = InitSequenceStart.Generate(playerState.Rnd);
+                connectionHandler.StartSequence = InitSequenceStart.Generate(connectionHandler.Rnd);
             }
 
-            await playerState.Send(new AccountReplyServerPacket
+            await connectionHandler.Send(new AccountReplyServerPacket
             {
-                ReplyCode = (AccountReply)playerState.SessionId,
+                ReplyCode = (AccountReply)connectionHandler.SessionId,
                 ReplyCodeData = new AccountReplyServerPacket.ReplyCodeDataDefault
                 {
-                    SequenceStart = playerState.StartSequence.Seq1
+                    SequenceStart = connectionHandler.StartSequence.Seq1
                 }
             });
         }
     }
 
-    public Task HandleAsync(PlayerState playerState, object packet)
+    public Task HandleAsync(ConnectionHandler connectionHandler, object packet)
     {
-        return HandleAsync(playerState, (AccountRequestClientPacket)packet);
+        return HandleAsync(connectionHandler, (AccountRequestClientPacket)packet);
     }
 }

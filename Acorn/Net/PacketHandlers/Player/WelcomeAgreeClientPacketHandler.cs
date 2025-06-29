@@ -16,7 +16,7 @@ public class WelcomeAgreeClientPacketHandler : IPacketHandler<WelcomeAgreeClient
         _dataRepository = dataRepository;
     }
 
-    public async Task HandleAsync(PlayerState playerState,
+    public async Task HandleAsync(ConnectionHandler connectionHandler,
         WelcomeAgreeClientPacket packet)
     {
         var eoWriter = new EoWriter();
@@ -28,9 +28,9 @@ public class WelcomeAgreeClientPacketHandler : IPacketHandler<WelcomeAgreeClient
             FileType.Ecf => () => _dataRepository.Ecf.Serialize(eoWriter),
             FileType.Emf => () =>
             {
-                var map = _dataRepository.Maps.FirstOrDefault(map => map.Id == playerState.Character?.Map)?.Map ??
+                var map = _dataRepository.Maps.FirstOrDefault(map => map.Id == connectionHandler.CharacterController?.Data.Map)?.Map ??
                           throw new ArgumentOutOfRangeException(
-                              $"Could not find map {playerState.Character?.Map} for character {playerState.Character?.Name}");
+                              $"Could not find map {connectionHandler.CharacterController?.Data.Map} for character {connectionHandler.CharacterController?.Data.Name}");
 
                 map.Serialize(eoWriter);
             }
@@ -41,7 +41,7 @@ public class WelcomeAgreeClientPacketHandler : IPacketHandler<WelcomeAgreeClient
 
         var bytes = eoWriter.ToByteArray();
 
-        await playerState.Send(new InitInitServerPacket
+        await connectionHandler.Send(new InitInitServerPacket
         {
             ReplyCode = packet.FileType switch
             {
@@ -98,8 +98,8 @@ public class WelcomeAgreeClientPacketHandler : IPacketHandler<WelcomeAgreeClient
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, object packet)
+    public Task HandleAsync(ConnectionHandler connectionHandler, object packet)
     {
-        return HandleAsync(playerState, (WelcomeAgreeClientPacket)packet);
+        return HandleAsync(connectionHandler, (WelcomeAgreeClientPacket)packet);
     }
 }

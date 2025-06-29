@@ -22,23 +22,23 @@ public class SetCommandHandler : ITalkHandler
         return string.Equals("set", command, StringComparison.InvariantCultureIgnoreCase);
     }
 
-    public async Task HandleAsync(PlayerState playerState, string command, params string[] args)
+    public async Task HandleAsync(ConnectionHandler connectionHandler, string command, params string[] args)
     {
         if (args.Length < 3)
         {
-            await playerState.ServerMessage(Usage);
+            await connectionHandler.ServerMessage(Usage);
             return;
         }
 
         var target = _world.Players.FirstOrDefault(x =>
-            string.Equals(x.Value.Character?.Name, args[0], StringComparison.CurrentCultureIgnoreCase)).Value;
+            string.Equals(x.Value.CharacterController.Data?.Name, args[0], StringComparison.CurrentCultureIgnoreCase)).Value;
         if (target is null)
         {
-            await playerState.ServerMessage($"Player {args[0]} not found.");
+            await connectionHandler.ServerMessage($"ConnectionHandler {args[0]} not found.");
             return;
         }
 
-        if (target.Character is null)
+        if (target.CharacterController.Data is null)
         {
             _logger.LogError("Tried set command on a character that has not been initialised");
             return;
@@ -46,43 +46,43 @@ public class SetCommandHandler : ITalkHandler
 
         if (!int.TryParse(args[2], out var value))
         {
-            await playerState.ServerMessage($"Value must be an integer. {Usage}");
+            await connectionHandler.ServerMessage($"Value must be an integer. {Usage}");
             return;
         }
 
         Action adjustment = args[1].ToLower() switch
         {
-            "admin" => () => target.Character.Admin = (AdminLevel)value,
-            "class" => () => target.Character.Class = value,
-            "gender" => () => target.Character.Gender = (Gender)value,
-            "level" => () => target.Character.Level = value,
-            "skin" => () => target.Character.Race = value,
-            "exp" => () => target.Character.Exp = value,
-            "maxhp" => () => target.Character.MaxHp = value,
-            "hp" => () => target.Character.Hp = value,
-            "maxtp" => () => target.Character.MaxTp = value,
-            "tp" => () => target.Character.Tp = value,
-            "maxsp" => () => target.Character.MaxSp = value,
-            "sp" => () => target.Character.Sp = value,
-            "str" => () => target.Character.Str = value,
-            "wis" => () => target.Character.Wis = value,
-            "agi" => () => target.Character.Agi = value,
-            "con" => () => target.Character.Con = value,
-            "cha" => () => target.Character.Cha = value,
-            "statpoints" => () => target.Character.StatPoints = value,
-            "skillpoints" => () => target.Character.SkillPoints = value,
-            "karma" => () => target.Character.Karma = value,
-            "sitstate" => () => target.Character.SitState = (SitState)Enum.Parse(typeof(SitState), args[3], true),
-            "hidden" => () => target.Character.Hidden = bool.Parse(args[3]),
-            "nointeract" => () => target.Character.NoInteract = bool.Parse(args[3]),
-            "bankmax" => () => target.Character.BankMax = value,
-            "goldbank" => () => target.Character.GoldBank = value,
-            "usage" => () => target.Character.Usage = value,
-            _ => async () => await playerState.ServerMessage($"Attribute {args[2]} is not supported.")
+            "admin" => () => target.CharacterController.Data.Admin = (AdminLevel)value,
+            "class" => () => target.CharacterController.Data.Class = value,
+            "gender" => () => target.CharacterController.Data.Gender = (Gender)value,
+            "level" => () => target.CharacterController.Data.Level = value,
+            "skin" => () => target.CharacterController.Data.Race = value,
+            "exp" => () => target.CharacterController.Data.Exp = value,
+            "maxhp" => () => target.CharacterController.Data.MaxHp = value,
+            "hp" => () => target.CharacterController.Data.Hp = value,
+            "maxtp" => () => target.CharacterController.Data.MaxTp = value,
+            "tp" => () => target.CharacterController.Data.Tp = value,
+            "maxsp" => () => target.CharacterController.Data.MaxSp = value,
+            "sp" => () => target.CharacterController.Data.Sp = value,
+            "str" => () => target.CharacterController.Data.Str = value,
+            "wis" => () => target.CharacterController.Data.Wis = value,
+            "agi" => () => target.CharacterController.Data.Agi = value,
+            "con" => () => target.CharacterController.Data.Con = value,
+            "cha" => () => target.CharacterController.Data.Cha = value,
+            "statpoints" => () => target.CharacterController.Data.StatPoints = value,
+            "skillpoints" => () => target.CharacterController.Data.SkillPoints = value,
+            "karma" => () => target.CharacterController.Data.Karma = value,
+            "sitstate" => () => target.CharacterController.Data.SitState = (SitState)Enum.Parse(typeof(SitState), args[3], true),
+            "hidden" => () => target.CharacterController.Data.Hidden = bool.Parse(args[3]),
+            "nointeract" => () => target.CharacterController.Data.NoInteract = bool.Parse(args[3]),
+            "bankmax" => () => target.CharacterController.Data.BankMax = value,
+            "goldbank" => () => target.CharacterController.Data.GoldBank = value,
+            "usage" => () => target.CharacterController.Data.Usage = value,
+            _ => async () => await connectionHandler.ServerMessage($"Attribute {args[2]} is not supported.")
         };
 
         adjustment();
-        await playerState.ServerMessage($"Player {args[0]} had {args[1]} updated to {value}.");
-        await playerState.Refresh();
+        await connectionHandler.ServerMessage($"ConnectionHandler {args[0]} had {args[1]} updated to {value}.");
+        await connectionHandler.Refresh();
     }
 }

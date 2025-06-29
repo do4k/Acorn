@@ -26,17 +26,17 @@ public class SpawnNpcCommandHandler : ITalkHandler
                || command.Equals("snpc", StringComparison.InvariantCultureIgnoreCase);
     }
 
-    public async Task HandleAsync(PlayerState playerState, string command, params string[] args)
+    public async Task HandleAsync(ConnectionHandler connectionHandler, string command, params string[] args)
     {
         if (args.Length < 1)
         {
-            await playerState.ServerMessage("Usage: $[spawnnpc | snpc] <npc_id|npc_name>");
+            await connectionHandler.ServerMessage("Usage: $[spawnnpc | snpc] <npc_id|npc_name>");
             return;
         }
 
         if (int.TryParse(args[0], out var npcId) is false)
         {
-            await SpawnByName(playerState, args[0]);
+            await SpawnByName(connectionHandler, args[0]);
             return;
         }
 
@@ -46,12 +46,12 @@ public class SpawnNpcCommandHandler : ITalkHandler
             return;
         }
 
-        await SpawnNpc(playerState, npc);
+        await SpawnNpc(connectionHandler, npc);
     }
 
-    private async Task SpawnNpc(PlayerState playerState, EnfRecord enf)
+    private async Task SpawnNpc(ConnectionHandler connectionHandler, EnfRecord enf)
     {
-        if (playerState.Character is null)
+        if (connectionHandler.CharacterController is null)
         {
             _logger.LogError("Character has not been initialised on connection");
             return;
@@ -61,31 +61,31 @@ public class SpawnNpcCommandHandler : ITalkHandler
 
         var npc = new NpcState(enf)
         {
-            Direction = playerState.Character.Direction,
-            X = playerState.Character.X,
-            Y = playerState.Character.Y,
+            Direction = connectionHandler.CharacterController.Data.Direction,
+            X = connectionHandler.CharacterController.Data.X,
+            Y = connectionHandler.CharacterController.Data.Y,
             Hp = enf.Hp,
             Id = npcId + 1
         };
 
-        if (playerState.CurrentMap is null)
+        if (connectionHandler.CurrentMap is null)
         {
             return;
         }
 
-        playerState.CurrentMap.Npcs.Add(npc);
-        await playerState.ServerMessage($"Spawned NPC {enf.Name} ({npcId}).");
-        await playerState.CurrentMap.BroadcastPacket(new NpcAgreeServerPacket
+        connectionHandler.CurrentMap.Npcs.Add(npc);
+        await connectionHandler.ServerMessage($"Spawned NPC {enf.Name} ({npcId}).");
+        await connectionHandler.CurrentMap.BroadcastPacket(new NpcAgreeServerPacket
         {
-            Npcs = playerState.CurrentMap.AsNpcMapInfo()
+            Npcs = connectionHandler.CurrentMap.AsNpcMapInfo()
         });
     }
 
-    private Task SpawnByName(PlayerState playerState, string name)
+    private Task SpawnByName(ConnectionHandler connectionHandler, string name)
     {
         var npc = _dataFiles.Enf.Npcs.FirstOrDefault(x =>
             x.Name.Contains(name, StringComparison.CurrentCultureIgnoreCase));
 
-        return npc == null ? playerState.ServerMessage($"NPC {name} not found.") : SpawnNpc(playerState, npc);
+        return npc == null ? connectionHandler.ServerMessage($"NPC {name} not found.") : SpawnNpc(connectionHandler, npc);
     }
 }

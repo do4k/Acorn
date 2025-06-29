@@ -3,5 +3,5 @@
 public interface ITalkHandler
 {
     bool CanHandle(string command);
-    Task HandleAsync(PlayerState playerState, string command, params string[] args);
+    Task HandleAsync(ConnectionHandler connectionHandler, string command, params string[] args);
 }

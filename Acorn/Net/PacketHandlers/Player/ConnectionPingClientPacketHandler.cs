@@ -4,14 +4,14 @@ namespace Acorn.Net.PacketHandlers.Player;
 
 internal class ConnectionPingClientPacketHandler : IPacketHandler<ConnectionPingClientPacket>
 {
-    public Task HandleAsync(PlayerState playerState, ConnectionPingClientPacket packet)
+    public Task HandleAsync(ConnectionHandler connectionHandler, ConnectionPingClientPacket packet)
     {
-        playerState.NeedPong = false;
+        connectionHandler.NeedPong = false;
         return Task.CompletedTask;
     }
 
-    public Task HandleAsync(PlayerState playerState, object packet)
+    public Task HandleAsync(ConnectionHandler connectionHandler, object packet)
     {
-        return HandleAsync(playerState, (ConnectionPingClientPacket)packet);
+        return HandleAsync(connectionHandler, (ConnectionPingClientPacket)packet);
     }
 }

@@ -12,36 +12,44 @@ internal class WelcomeMsgClientPacketHandler : IPacketHandler<WelcomeMsgClientPa
 {
     private readonly string[] _newsTxt;
     private readonly WorldState _world;
+    private readonly ILogger<WelcomeMsgClientPacketHandler> _logger;
 
     public WelcomeMsgClientPacketHandler(
-        WorldState worldState
+        WorldState worldState,
+        ILogger<WelcomeMsgClientPacketHandler> logger
     )
     {
+        _logger = logger;
         _newsTxt = File.ReadAllLines("Data/news.txt");
         _world = worldState;
     }
 
     public async Task HandleAsync(
-        PlayerState playerState,
+        ConnectionHandler connectionHandler,
         WelcomeMsgClientPacket packet)
     {
-        playerState.ClientState = ClientState.InGame;
-        var map = _world.MapForId(playerState.Character?.Map ?? -1);
+        if (connectionHandler.CharacterController is null)
+        {
+            _logger.LogWarning("ConnectionHandler '{SessionId}' tried to enter the game without a character controller.", connectionHandler.SessionId);
+            return;
+        }
+        
+        connectionHandler.ClientState = ClientState.InGame;
+        var map = _world.MapForId(connectionHandler.CharacterController.Data.Map);
         if (map is null)
         {
             return;
         }
 
-        await map.NotifyEnter(playerState);
+        await map.NotifyEnter(connectionHandler);
 
-        await playerState.Send(new WelcomeReplyServerPacket
+        await connectionHandler.Send(new WelcomeReplyServerPacket
         {
             WelcomeCode = WelcomeCode.EnterGame,
             WelcomeCodeData = new WelcomeReplyServerPacket.WelcomeCodeDataEnterGame
             {
-                Items = playerState.Character?.Items().ToList(),
-                News = new List<string> { " " }
-                    .Concat(_newsTxt.Concat(Enumerable.Range(0, 8 - _newsTxt.Length).Select(_ => ""))).ToList(),
+                Items = connectionHandler.CharacterController.GetItems().ToList(),
+                News = new List<string> { " " }.Concat(_newsTxt.Concat(Enumerable.Range(0, 8 - _newsTxt.Length).Select(_ => ""))).ToList(),
                 Weight = new Weight
                 {
                     Current = 0,
@@ -52,8 +60,8 @@ internal class WelcomeMsgClientPacketHandler : IPacketHandler<WelcomeMsgClientPa
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, object packet)
+    public Task HandleAsync(ConnectionHandler connectionHandler, object packet)
     {
-        return HandleAsync(playerState, (WelcomeMsgClientPacket)packet);
+        return HandleAsync(connectionHandler, (WelcomeMsgClientPacket)packet);
     }
 }

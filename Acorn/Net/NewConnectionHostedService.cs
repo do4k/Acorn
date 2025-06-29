@@ -14,7 +14,7 @@ namespace Acorn.Net;
 public class NewConnectionHostedService(
     IServiceProvider services,
     ILogger<NewConnectionHostedService> logger,
-    ILogger<PlayerState> playerConnectionLogger,
+    ILogger<ConnectionHandler> playerConnectionLogger,
     IStatsReporter statsReporter,
     WorldState worldState,
     IDbRepository<Character> characterRepository,
@@ -25,7 +25,7 @@ public class NewConnectionHostedService(
     private readonly IDbRepository<Character> _characterRepository = characterRepository;
     private readonly TcpListener _listener = new(IPAddress.Any, serverOptions.Value.Port);
     private readonly ILogger<NewConnectionHostedService> _logger = logger;
-    private readonly ILogger<PlayerState> _playerConnectionLogger = playerConnectionLogger;
+    private readonly ILogger<ConnectionHandler> _playerConnectionLogger = playerConnectionLogger;
     private readonly IServiceProvider _services = services;
     private readonly IStatsReporter _statsReporter = statsReporter;
     private readonly WorldState _world = worldState;
@@ -39,15 +39,15 @@ public class NewConnectionHostedService(
         {
             var client = await _listener.AcceptTcpClientAsync(cancellationToken);
             var sessionId = sessionGenerator.Generate();
-            var added = _world.Players.TryAdd(sessionId, new PlayerState(_services, client, _playerConnectionLogger, sessionId,
+            var added = _world.Players.TryAdd(sessionId, new ConnectionHandler(_services, client, _playerConnectionLogger, sessionId,
                 async (player) =>
                 {
-                    if (player.Character is not null)
+                    if (player.CharacterController is not null)
                     {
                         if (player.CurrentMap is not null)
                         {
                             await player.CurrentMap.NotifyLeave(player);
-                            await _characterRepository.UpdateAsync(player.Character);
+                            await player.CharacterController.Save();
                         }
                     }
 
@@ -58,7 +58,7 @@ public class NewConnectionHostedService(
                         return;
                     }
 
-                    _logger.LogInformation("Player disconnected");
+                    _logger.LogInformation("ConnectionHandler disconnected");
                     UpdateConnectedCount();
                 }));
 

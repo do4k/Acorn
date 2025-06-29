@@ -1,6 +1,6 @@
-﻿using Acorn.Database.Repository;
+﻿using Acorn.Controllers;
+using Acorn.Database.Repository;
 using Acorn.Extensions;
-using Acorn.Infrastructure;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
@@ -12,25 +12,28 @@ internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequest
 {
     private readonly IDataFileRepository _dataRepository;
     private readonly ILogger<WelcomeRequestClientPacketHandler> _logger;
+    private readonly ICharacterControllerFactory _characterControllerFactory;
 
     public WelcomeRequestClientPacketHandler(
         IDataFileRepository dataRepository,
+        ICharacterControllerFactory characterControllerFactory,
         ILogger<WelcomeRequestClientPacketHandler> logger
     )
     {
+        _characterControllerFactory = characterControllerFactory;
         _dataRepository = dataRepository;
         _logger = logger;
     }
 
-    public async Task HandleAsync(PlayerState playerState,
+    public async Task HandleAsync(ConnectionHandler connectionHandler,
         WelcomeRequestClientPacket packet)
     {
-        var character = playerState.Account?.Characters[packet.CharacterId];
-        if (character is null)
+        if (connectionHandler.Account is null)
         {
-            _logger.LogError("Could not find character");
+            _logger.LogError("Account has not been initialised for player {PlayerId}", connectionHandler.SessionId);
             return;
         }
+        var character = connectionHandler.Account.Characters[packet.CharacterId];
 
         //playerConnection.SessionId = _sessionGenerator.Generate();
         var map = _dataRepository.Maps.FirstOrDefault(map => map.Id == character.Map)?.Map;
@@ -39,12 +42,12 @@ internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequest
             _logger.LogError("Could not find map {MapId} for character {Name}", character.Map, character.Name);
             return;
         }
+        connectionHandler.CharacterController = _characterControllerFactory.Create(character);
+        connectionHandler.CharacterController.SetStats(_dataRepository.Ecf);
 
-        var equipmentResult = character.Equipment();
-        playerState.Character = character;
-        character.CalculateStats(_dataRepository.Ecf);
+        var equipmentResult = connectionHandler.CharacterController.GetEquipment();
 
-        await playerState.Send(new WelcomeReplyServerPacket
+        await connectionHandler.Send(new WelcomeReplyServerPacket
         {
             WelcomeCode = WelcomeCode.SelectCharacter,
             WelcomeCodeData = new WelcomeReplyServerPacket.WelcomeCodeDataSelectCharacter
@@ -99,7 +102,7 @@ internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequest
                 },
                 Title = character.Title ?? "",
                 Usage = character.Usage,
-                SessionId = playerState.SessionId,
+                SessionId = connectionHandler.SessionId,
                 Level = character.Level,
                 LoginMessageCode = character.Usage switch
                 {
@@ -120,8 +123,8 @@ internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequest
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, object packet)
+    public Task HandleAsync(ConnectionHandler connectionHandler, object packet)
     {
-        return HandleAsync(playerState, (WelcomeRequestClientPacket)packet);
+        return HandleAsync(connectionHandler, (WelcomeRequestClientPacket)packet);
     }
 }

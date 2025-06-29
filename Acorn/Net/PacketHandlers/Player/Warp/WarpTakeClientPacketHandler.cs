@@ -17,25 +17,25 @@ internal class WarpTakeClientPacketHandler : IPacketHandler<WarpTakeClientPacket
         _logger = logger;
     }
 
-    public async Task HandleAsync(PlayerState playerState, WarpTakeClientPacket packet)
+    public async Task HandleAsync(ConnectionHandler connectionHandler, WarpTakeClientPacket packet)
     {
-        if (packet.SessionId != playerState.SessionId)
+        if (packet.SessionId != connectionHandler.SessionId)
         {
-            _logger.LogError("Sesison ID was not as expected for player {Player}", playerState.Account?.Username);
+            _logger.LogError("Sesison ID was not as expected for player {ConnectionHandler}", connectionHandler.Account?.Username);
             return;
         }
 
         var foundMap = _world.Maps.TryGetValue(packet.MapId, out var map);
         if (foundMap is false || map is null)
         {
-            _logger.LogError("Map with ID {MapId} not found for player {Player}", packet.MapId, playerState.Account?.Username);
+            _logger.LogError("Map with ID {MapId} not found for player {ConnectionHandler}", packet.MapId, connectionHandler.Account?.Username);
             return;
         }
 
         var writer = new EoWriter();
         map.Data.Serialize(writer);
 
-        await playerState.Send(new InitInitServerPacket
+        await connectionHandler.Send(new InitInitServerPacket
         {
             ReplyCode = InitReply.WarpMap,
             ReplyCodeData = new InitInitServerPacket.ReplyCodeDataWarpMap
@@ -48,8 +48,8 @@ internal class WarpTakeClientPacketHandler : IPacketHandler<WarpTakeClientPacket
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, object packet)
+    public Task HandleAsync(ConnectionHandler connectionHandler, object packet)
     {
-        return HandleAsync(playerState, (WarpTakeClientPacket)packet);
+        return HandleAsync(connectionHandler, (WarpTakeClientPacket)packet);
     }
 }

@@ -17,35 +17,36 @@ public class TalkAnnounceClientPacketHandler : IPacketHandler<TalkAnnounceClient
         _logger = logger;
     }
 
-    public async Task HandleAsync(PlayerState playerState,
+    public async Task HandleAsync(ConnectionHandler connectionHandler,
         TalkAnnounceClientPacket packet)
     {
-        if (playerState.Character is null)
+        if (connectionHandler.CharacterController is null)
         {
+            _logger.LogError("ConnectionHandler state has no Character initialised.");
             return;
         }
 
-        if (playerState.Character.Admin == AdminLevel.Player)
+        if (connectionHandler.CharacterController.Data.Admin == AdminLevel.Player)
         {
-            _logger.LogDebug("Player tried to send an announcement packet without admin permissions {Player}",
-                playerState.Character.Name);
+            _logger.LogDebug("ConnectionHandler tried to send an announcement packet without admin permissions {ConnectionHandler}",
+                connectionHandler.CharacterController.Data.Name);
             return;
         }
 
         var announcePackets = _world.Players
-            .Where(x => x.Value != playerState)
+            .Where(x => x.Value != connectionHandler)
             .Select(async x => await x.Value.Send(new TalkAnnounceServerPacket
             {
                 Message = packet.Message,
-                PlayerName = playerState.Character.Name
+                PlayerName = connectionHandler.CharacterController.Data.Name
             }));
 
         await Task.WhenAll(announcePackets);
 
     }
 
-    public Task HandleAsync(PlayerState playerState, object packet)
+    public Task HandleAsync(ConnectionHandler connectionHandler, object packet)
     {
-        return HandleAsync(playerState, (TalkAnnounceClientPacket)packet);
+        return HandleAsync(connectionHandler, (TalkAnnounceClientPacket)packet);
     }
 }

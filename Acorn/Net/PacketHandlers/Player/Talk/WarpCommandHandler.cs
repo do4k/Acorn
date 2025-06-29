@@ -18,17 +18,17 @@ internal class WarpCommandHandler : ITalkHandler
                command.Equals("w", StringComparison.InvariantCultureIgnoreCase);
     }
 
-    public async Task HandleAsync(PlayerState playerState, string command, params string[] args)
+    public async Task HandleAsync(ConnectionHandler connectionHandler, string command, params string[] args)
     {
         if (args.Length < 3)
         {
-            await playerState.ServerMessage("Usage: $warp <map> <x> <y>");
+            await connectionHandler.ServerMessage("Usage: $warp <map> <x> <y>");
         }
 
         if (!int.TryParse(args[0], out var mapId) || !int.TryParse(args[1], out var x) ||
             !int.TryParse(args[2], out var y))
         {
-            await playerState.ServerMessage("Invalid coordinates.");
+            await connectionHandler.ServerMessage("Invalid coordinates.");
             return;
         }
 
@@ -37,6 +37,6 @@ internal class WarpCommandHandler : ITalkHandler
         {
             return;
         }
-        await playerState.Warp(map, x, y, WarpEffect.Admin);
+        await connectionHandler.Warp(map, x, y, WarpEffect.Admin);
     }
 }

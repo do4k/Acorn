@@ -4,14 +4,14 @@ namespace Acorn.Net.PacketHandlers.Player;
 
 internal class GlobalCloseClientPacketHandler : IPacketHandler<GlobalCloseClientPacket>
 {
-    public Task HandleAsync(PlayerState playerState, GlobalCloseClientPacket packet)
+    public Task HandleAsync(ConnectionHandler connectionHandler, GlobalCloseClientPacket packet)
     {
-        playerState.IsListeningToGlobal = false;
+        connectionHandler.IsListeningToGlobal = false;
         return Task.CompletedTask;
     }
 
-    public Task HandleAsync(PlayerState playerState, object packet)
+    public Task HandleAsync(ConnectionHandler connectionHandler, object packet)
     {
-        return HandleAsync(playerState, (GlobalCloseClientPacket)packet);
+        return HandleAsync(connectionHandler, (GlobalCloseClientPacket)packet);
     }
 }

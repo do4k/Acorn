@@ -18,51 +18,51 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
         _world = world;
     }
 
-    public async Task HandleAsync(PlayerState playerState,
+    public async Task HandleAsync(ConnectionHandler connectionHandler,
         WalkPlayerClientPacket packet)
     {
-        if (playerState.Character is null)
+        if (connectionHandler.CharacterController is null)
         {
             _logger.LogError(
                 "Tried to handler player walk, but the character associated with this connection has not been initialised");
             return;
         }
 
-        playerState.Character.X = packet.WalkAction.Direction switch
+        connectionHandler.CharacterController.Data.X = packet.WalkAction.Direction switch
         {
-            Direction.Left => playerState.Character.X - 1,
-            Direction.Right => playerState.Character.X + 1,
-            _ => playerState.Character.X
+            Direction.Left => connectionHandler.CharacterController.Data.X - 1,
+            Direction.Right => connectionHandler.CharacterController.Data.X + 1,
+            _ => connectionHandler.CharacterController.Data.X
         };
 
-        playerState.Character.Y = packet.WalkAction.Direction switch
+        connectionHandler.CharacterController.Data.Y = packet.WalkAction.Direction switch
         {
-            Direction.Up => playerState.Character.Y - 1,
-            Direction.Down => playerState.Character.Y + 1,
-            _ => playerState.Character.Y
+            Direction.Up => connectionHandler.CharacterController.Data.Y - 1,
+            Direction.Down => connectionHandler.CharacterController.Data.Y + 1,
+            _ => connectionHandler.CharacterController.Data.Y
         };
 
-        playerState.Character.Direction = packet.WalkAction.Direction;
+        connectionHandler.CharacterController.Data.Direction = packet.WalkAction.Direction;
 
-        if (playerState.CurrentMap is null)
+        if (connectionHandler.CurrentMap is null)
         {
             _logger.LogError("Tried to handle walk player packet, but the map for the player connection was not found. MapId: {MapId}, PlayerId: {PlayerId}",
-                playerState.Character.Map, playerState.SessionId);
+                connectionHandler.CharacterController.Data.Map, connectionHandler.SessionId);
             return;
         }
 
-        await playerState.CurrentMap.BroadcastPacket(new WalkPlayerServerPacket
+        await connectionHandler.CurrentMap.BroadcastPacket(new WalkPlayerServerPacket
         {
-            Direction = playerState.Character.Direction,
-            PlayerId = playerState.SessionId,
+            Direction = connectionHandler.CharacterController.Data.Direction,
+            PlayerId = connectionHandler.SessionId,
             Coords = new Coords
             {
-                X = playerState.Character.X,
-                Y = playerState.Character.Y
+                X = connectionHandler.CharacterController.Data.X,
+                Y = connectionHandler.CharacterController.Data.Y
             }
-        }, except: playerState);
+        }, except: connectionHandler);
 
-        var hasWarp = TryGetWarpTile(playerState.CurrentMap, playerState.Character, out var warpTile);
+        var hasWarp = TryGetWarpTile(connectionHandler.CurrentMap, connectionHandler.CharacterController.Data, out var warpTile);
         if (hasWarp is false || warpTile is null)
         {
             return;
@@ -74,7 +74,7 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
             return;
         }
 
-        await playerState.Warp(
+        await connectionHandler.Warp(
             targetMap,
             warpTile.Warp.DestinationCoords.X,
             warpTile.Warp.DestinationCoords.Y);
@@ -102,8 +102,8 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
         return warpTile is not null;
     }
 
-    public Task HandleAsync(PlayerState playerState, object packet)
+    public Task HandleAsync(ConnectionHandler connectionHandler, object packet)
     {
-        return HandleAsync(playerState, (WalkPlayerClientPacket)packet);
+        return HandleAsync(connectionHandler, (WalkPlayerClientPacket)packet);
     }
 }

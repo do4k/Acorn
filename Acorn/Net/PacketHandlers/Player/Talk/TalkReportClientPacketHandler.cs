@@ -8,12 +8,12 @@ namespace Acorn.Net.PacketHandlers.Player.Talk;
 internal class TalkReportClientPacketHandler(IEnumerable<ITalkHandler> talkHandlers, ILogger<TalkReportClientPacketHandler> logger)
     : IPacketHandler<TalkReportClientPacket>
 {
-    public async Task HandleAsync(PlayerState playerState,
+    public async Task HandleAsync(ConnectionHandler connectionHandler,
         TalkReportClientPacket packet)
     {
-        var author = playerState.Character;
+        var author = connectionHandler.CharacterController;
 
-        if (author?.Admin > AdminLevel.Player && packet.Message.StartsWith("$"))
+        if (author?.Data.Admin > AdminLevel.Player && packet.Message.StartsWith("$"))
         {
             var args = packet.Message.Split(" ");
             var command = args[0][1..];
@@ -24,25 +24,25 @@ internal class TalkReportClientPacketHandler(IEnumerable<ITalkHandler> talkHandl
                 return;
             }
 
-            await handler.HandleAsync(playerState, command, args[1..]);
+            await handler.HandleAsync(connectionHandler, command, args[1..]);
             return;
         }
 
-        if (playerState.CurrentMap is null)
+        if (connectionHandler.CurrentMap is null)
         {
             logger.LogError("Tried to handle talk report packet, but the map for the player connection was not found.");
             return;
         }
 
-        await playerState.CurrentMap.BroadcastPacket(new TalkPlayerServerPacket
+        await connectionHandler.CurrentMap.BroadcastPacket(new TalkPlayerServerPacket
         {
             Message = packet.Message,
-            PlayerId = playerState.SessionId
-        }, except: playerState);
+            PlayerId = connectionHandler.SessionId
+        }, except: connectionHandler);
     }
 
-    public Task HandleAsync(PlayerState playerState, object packet)
+    public Task HandleAsync(ConnectionHandler connectionHandler, object packet)
     {
-        return HandleAsync(playerState, (TalkReportClientPacket)packet);
+        return HandleAsync(connectionHandler, (TalkReportClientPacket)packet);
     }
 }

@@ -13,26 +13,26 @@ internal class TalkMsgClientPacketHandler : IPacketHandler<TalkMsgClientPacket>
         _world = world;
     }
 
-    public async Task HandleAsync(PlayerState playerState, TalkMsgClientPacket packet)
+    public async Task HandleAsync(ConnectionHandler connectionHandler, TalkMsgClientPacket packet)
     {
         var id = Guid.NewGuid();
-        var message = new GlobalMessage(Guid.NewGuid(), packet.Message, playerState.Character?.Name ?? "Unknown", DateTime.UtcNow);
+        var message = new GlobalMessage(Guid.NewGuid(), packet.Message, connectionHandler.CharacterController?.Data.Name ?? "Unknown", DateTime.UtcNow);
         _world.GlobalMessages.TryAdd(id, message);
 
         var broadcast = _world.Players
-            .Where(x => x.Value != playerState && x.Value.IsListeningToGlobal)
+            .Where(x => x.Value != connectionHandler && x.Value.IsListeningToGlobal)
             .Select(x => x.Value.Send(new TalkMsgServerPacket
             {
                 Message = packet.Message,
-                PlayerName = playerState.Character?.Name!
+                PlayerName = connectionHandler.CharacterController?.Data.Name!
             }));
 
         await Task.WhenAll(broadcast);
 
     }
 
-    public Task HandleAsync(PlayerState playerState, object packet)
+    public Task HandleAsync(ConnectionHandler connectionHandler, object packet)
     {
-        return HandleAsync(playerState, (TalkMsgClientPacket)packet);
+        return HandleAsync(connectionHandler, (TalkMsgClientPacket)packet);
     }
 }

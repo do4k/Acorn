@@ -6,12 +6,12 @@ namespace Acorn.Net.PacketHandlers.Player;
 
 public class RefreshRequestClientPacketHandler : IPacketHandler<RefreshRequestClientPacket>
 {
-    public async Task HandleAsync(PlayerState playerState,
+    public async Task HandleAsync(ConnectionHandler connectionHandler,
         RefreshRequestClientPacket packet)
     {
-        await playerState.Send(new RefreshReplyServerPacket
+        await connectionHandler.Send(new RefreshReplyServerPacket
         {
-            Nearby = playerState.CurrentMap switch
+            Nearby = connectionHandler.CurrentMap switch
             {
                 { } map => map.AsNearbyInfo(),
                 _ => new NearbyInfo()
@@ -20,8 +20,8 @@ public class RefreshRequestClientPacketHandler : IPacketHandler<RefreshRequestCl
 
     }
 
-    public Task HandleAsync(PlayerState playerState, object packet)
+    public Task HandleAsync(ConnectionHandler connectionHandler, object packet)
     {
-        return HandleAsync(playerState, (RefreshRequestClientPacket)packet);
+        return HandleAsync(connectionHandler, (RefreshRequestClientPacket)packet);
     }
 }

@@ -4,11 +4,11 @@ namespace Acorn.Net.PacketHandlers.Player;
 
 public class PaperdollRequestClientPacketHandler : IPacketHandler<PaperdollRequestClientPacket>
 {
-    public Task HandleAsync(PlayerState playerState, PaperdollRequestClientPacket packet)
+    public Task HandleAsync(ConnectionHandler connectionHandler, PaperdollRequestClientPacket packet)
     {
         throw new NotImplementedException();
     }
 
-    public Task HandleAsync(PlayerState playerState, object packet)
-        => HandleAsync(playerState, (PaperdollRequestClientPacket)packet);
+    public Task HandleAsync(ConnectionHandler connectionHandler, object packet)
+        => HandleAsync(connectionHandler, (PaperdollRequestClientPacket)packet);
 }

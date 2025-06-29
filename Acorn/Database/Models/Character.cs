@@ -1,10 +1,6 @@
 ﻿using System.Collections.Concurrent;
-using Acorn.Database.Repository;
-using Acorn.Extensions;
 using Moffat.EndlessOnline.SDK.Protocol;
-using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using Moffat.EndlessOnline.SDK.Protocol.Pub;
 
 namespace Acorn.Database.Models;
 
@@ -58,77 +54,6 @@ public class Character
     //TODO: Add spells
     //TODO: Add guilds
     //TODO: Add quests
-
-    public void CalculateStats(Ecf classes)
-    {
-        var @class = classes.GetClass(Class);
-        if (@class is not null)
-        {
-            MaxHp = 100;
-            MaxTp = 100;
-            MaxSp = 100;
-            MinDamage = 100;
-            MaxDamage = 150;
-            MaxWeight = 100;
-
-            Hp = Hp > MaxHp ? MaxHp : Hp;
-            Str = @class.Str + Str;
-            Wis = @class.Wis + Wis;
-            Agi = @class.Agi + Agi;
-            Con = @class.Con + Con;
-            Cha = @class.Cha + Cha;
-        }
-    }
-
-    public IEnumerable<Item> Items()
-    {
-        return Inventory.Items.Select(x => new Item
-        {
-            Amount = x.Amount,
-            Id = x.Id
-        });
-    }
-    
-    public Coords AsCoords()
-    {
-        return new Coords
-        {
-            X = X,
-            Y = Y
-        };
-    }
-
-    public EquipmentPaperdoll Equipment()
-    {
-        return new EquipmentPaperdoll
-        {
-            Hat = Paperdoll.Hat,
-            Necklace = Paperdoll.Necklace,
-            Armor = Paperdoll.Armor,
-            Belt = Paperdoll.Belt,
-            Boots = Paperdoll.Boots,
-            Gloves = Paperdoll.Gloves,
-            Weapon = Paperdoll.Weapon,
-            Shield = Paperdoll.Shield,
-            Accessory = Paperdoll.Accessory,
-            Ring = [Paperdoll.Ring1, Paperdoll.Ring2],
-            Bracer = [Paperdoll.Bracer1, Paperdoll.Bracer2],
-            Armlet = [Paperdoll.Armlet1, Paperdoll.Armlet2]
-        };
-    }
-
-    public int Recover(int amount)
-    {
-        Hp = Hp switch
-        {
-            var hp when hp < MaxHp && hp + amount < MaxHp => hp + amount,
-            _ => MaxHp
-        };
-
-        return Hp;
-    }
-
-    public Coords NextCoords() => AsCoords().NextCoords(Direction);
 }
 
 public record Bank(ConcurrentBag<ItemWithAmount> Items);

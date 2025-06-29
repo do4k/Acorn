@@ -1,4 +1,5 @@
 ﻿using System.Net.Sockets;
+using Acorn.Controllers;
 using Acorn.Database.Models;
 using Acorn.Extensions;
 using Acorn.Net.Models;
@@ -14,22 +15,22 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.Net;
 
-public class PlayerState : IDisposable
+public class ConnectionHandler : IDisposable
 {
-    private readonly Action<PlayerState> _onDispose;
+    private readonly Action<ConnectionHandler> _onDispose;
     private readonly PacketResolver _resolver = new("Moffat.EndlessOnline.SDK.Protocol.Net.Client");
     private readonly IServiceProvider _serviceProvider;
     private readonly PingSequenceStart _upcomingSequence;
-    private readonly ILogger<PlayerState> _logger;
+    private readonly ILogger<ConnectionHandler> _logger;
     private readonly CancellationTokenSource _tokenSource = new();
     private readonly CancellationToken _cancellationToken;
 
-    public PlayerState(
+    public ConnectionHandler(
         IServiceProvider services,
         TcpClient tcpClient,
-        ILogger<PlayerState> logger,
+        ILogger<ConnectionHandler> logger,
         int sessionId,
-        Action<PlayerState> onDispose
+        Action<ConnectionHandler> onDispose
     )
     {
         TcpClient = tcpClient;
@@ -57,9 +58,8 @@ public class PlayerState : IDisposable
     public bool IsListeningToGlobal { get; set; }
 
     public int SessionId { get; set; }
-    public WarpSession? WarpSession { get; set; }
 
-    public Character? Character { get; set; }
+    public ICharacterController? CharacterController { get; set; }
 
     public MapState? CurrentMap { get; set; }
 
@@ -176,32 +176,15 @@ public class PlayerState : IDisposable
         });
 
     public Task Refresh()
-        => Character switch
+        => CharacterController switch
         {
             null => throw new InvalidOperationException("Cannot refresh player where the selected character is not initialised"),
             _ => CurrentMap switch
             {
                 null => throw new InvalidOperationException("Cannot refresh player where the selected character's map is not initialised"),
-                _ => Warp(CurrentMap, Character.X, Character.Y)
+                _ => Warp(CurrentMap, CharacterController.Data.X, CharacterController.Data.Y)
             }
         };
-
-    public async Task Warp(MapState targetMap, int x, int y, WarpEffect warpEffect = WarpEffect.None)
-    {
-        WarpSession = new WarpSession(x, y, this, targetMap, warpEffect);
-
-        if (WarpSession.IsLocal is false)
-        {
-            if (CurrentMap is not null)
-            {
-                await CurrentMap.NotifyLeave(this, warpEffect);
-            }
-
-            await targetMap.NotifyEnter(this, warpEffect);
-        }
-        
-        await WarpSession.Execute();
-    }
 
     public void Disconnect()
     {

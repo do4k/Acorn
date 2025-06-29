@@ -9,7 +9,7 @@ public class WorldState
 {
     public ConcurrentDictionary<Guid, GlobalMessage> GlobalMessages = [];
     public ConcurrentDictionary<int, MapState> Maps = [];
-    public ConcurrentDictionary<int, PlayerState> Players = [];
+    public ConcurrentDictionary<int, ConnectionHandler> Players = [];
     private readonly ILogger<WorldState> _logger;
 
     public WorldState(IDataFileRepository dataRepository, ILogger<WorldState> logger)

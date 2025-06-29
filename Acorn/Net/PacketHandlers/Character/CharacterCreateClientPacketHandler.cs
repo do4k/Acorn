@@ -17,7 +17,7 @@ internal class CharacterCreateClientPacketHandler(
 {
     private readonly ServerOptions _serverOptions = gameOptions.Value;
 
-    public async Task HandleAsync(PlayerState playerState,
+    public async Task HandleAsync(ConnectionHandler connectionHandler,
         CharacterCreateClientPacket packet)
     {
         var characterQuery = await repository.GetByKeyAsync(packet.Name);
@@ -25,7 +25,7 @@ internal class CharacterCreateClientPacketHandler(
 
         if (exists)
         {
-            await playerState.Send(
+            await connectionHandler.Send(
                 new CharacterReplyServerPacket
                 {
                     ReplyCode = CharacterReply.Exists,
@@ -42,7 +42,7 @@ internal class CharacterCreateClientPacketHandler(
                 "danzo" => AdminLevel.HighGameMaster,
                 _ => (int)AdminLevel.Player
             },
-            Accounts_Username = playerState.Account?.Username ??
+            Accounts_Username = connectionHandler.Account?.Username ??
                 throw new InvalidOperationException("Cannot create a character without a user"),
             Map = _serverOptions.NewCharacter.Map,
             X = _serverOptions.NewCharacter.X,
@@ -54,21 +54,21 @@ internal class CharacterCreateClientPacketHandler(
 
         await repository.CreateAsync(character);
         logger.LogInformation("Character '{Name}' created by '{Username}'.", character.Name,
-            playerState.Account.Username);
-        playerState.Account.Characters.Add(character);
+            connectionHandler.Account.Username);
+        connectionHandler.Account.Characters.Add(character);
 
-        await playerState.Send(new CharacterReplyServerPacket
+        await connectionHandler.Send(new CharacterReplyServerPacket
         {
             ReplyCode = CharacterReply.Ok,
             ReplyCodeData = new CharacterReplyServerPacket.ReplyCodeDataOk
             {
-                Characters = playerState.Account.Characters.Select((c, id) => c.AsCharacterListEntry(id)).ToList()
+                Characters = connectionHandler.Account.Characters.Select((c, id) => c.AsCharacterListEntry(id)).ToList()
             }
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, object packet)
+    public Task HandleAsync(ConnectionHandler connectionHandler, object packet)
     {
-        return HandleAsync(playerState, (CharacterCreateClientPacket)packet);
+        return HandleAsync(connectionHandler, (CharacterCreateClientPacket)packet);
     }
 }

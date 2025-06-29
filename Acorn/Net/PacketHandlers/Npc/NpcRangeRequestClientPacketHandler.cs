@@ -13,23 +13,23 @@ public class NpcRangeRequestClientPacketHandler : IPacketHandler<NpcRangeRequest
         _logger = logger;
     }
 
-    public async Task HandleAsync(PlayerState playerState,
+    public async Task HandleAsync(ConnectionHandler connectionHandler,
         NpcRangeRequestClientPacket packet)
     {
-        if (playerState.CurrentMap is null)
+        if (connectionHandler.CurrentMap is null)
         {
-            _logger.LogWarning("Player {PlayerId} requested NPC range but is not in a map.", playerState.SessionId);
+            _logger.LogWarning("ConnectionHandler {PlayerId} requested NPC range but is not in a map.", connectionHandler.SessionId);
             return;
         }
 
-        await playerState.Send(new NpcAgreeServerPacket
+        await connectionHandler.Send(new NpcAgreeServerPacket
         {
-            Npcs = playerState.CurrentMap.AsNpcMapInfo()
+            Npcs = connectionHandler.CurrentMap.AsNpcMapInfo()
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, object packet)
+    public Task HandleAsync(ConnectionHandler connectionHandler, object packet)
     {
-        return HandleAsync(playerState, (NpcRangeRequestClientPacket)packet);
+        return HandleAsync(connectionHandler, (NpcRangeRequestClientPacket)packet);
     }
 }

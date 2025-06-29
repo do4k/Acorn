@@ -14,6 +14,7 @@ namespace Acorn.World;
 public class MapState
 {
     private readonly ILogger<WorldState> _logger;
+    private readonly Random _rnd = new();
 
     public MapState(MapWithId data, IDataFileRepository dataRepository, ILogger<WorldState> logger)
     {
@@ -45,17 +46,17 @@ public class MapState
     public Emf Data { get; set; }
 
     public ConcurrentBag<NpcState> Npcs { get; set; } = new();
-    public ConcurrentBag<PlayerState> Players { get; set; } = new();
+    public ConcurrentBag<ConnectionHandler> Players { get; set; } = new();
 
-    public bool HasPlayer(PlayerState player)
+    public bool HasPlayer(ConnectionHandler player)
     {
         return Players.Contains(player);
     }
 
-    public IEnumerable<PlayerState> PlayersExcept(PlayerState? except)
+    public IEnumerable<ConnectionHandler> PlayersExcept(ConnectionHandler? except)
         => Players.Where(x => except is null || x != except);
 
-    public async Task BroadcastPacket(IPacket packet, PlayerState? except = null)
+    public async Task BroadcastPacket(IPacket packet, ConnectionHandler? except = null)
     {
         var broadcast = PlayersExcept(except)
             .Select(async otherPlayer => await otherPlayer.Send(packet));
@@ -63,13 +64,13 @@ public class MapState
         await Task.WhenAll(broadcast);
     }
 
-    public NearbyInfo AsNearbyInfo(PlayerState? except = null, WarpEffect warpEffect = WarpEffect.None)
+    public NearbyInfo AsNearbyInfo(ConnectionHandler? except = null, WarpEffect warpEffect = WarpEffect.None)
         => new()
         {
             Characters = Players
-                .Where(x => x.Character is not null)
+                .Where(x => x.CharacterController is not null)
                 .Where(x => except == null || x != except)
-                .Select(x => x.Character?.AsCharacterMapInfo(x.SessionId, warpEffect))
+                .Select(x => x.CharacterController?.AsCharacterMapInfo(x.SessionId, warpEffect))
                 .ToList(),
             Items = [],
             Npcs = AsNpcMapInfo()
@@ -78,14 +79,14 @@ public class MapState
     public List<NpcMapInfo> AsNpcMapInfo()
         => Npcs.Select((x, i) => x.AsNpcMapInfo(i)).ToList();
 
-    public async Task NotifyEnter(PlayerState player, WarpEffect warpEffect = WarpEffect.None)
+    public async Task NotifyEnter(ConnectionHandler player, WarpEffect warpEffect = WarpEffect.None)
     {
-        if (player.Character is null)
+        if (player.CharacterController is null)
         {
             return;
         }
 
-        player.Character.Map = Id;
+        player.CharacterController.Data.Map = Id;
 
         if (!Players.Contains(player))
         {
@@ -100,9 +101,9 @@ public class MapState
         player.CurrentMap = this;
     }
 
-    public async Task NotifyLeave(PlayerState player, WarpEffect warpEffect = WarpEffect.None)
+    public async Task NotifyLeave(ConnectionHandler player, WarpEffect warpEffect = WarpEffect.None)
     {
-        Players = new ConcurrentBag<PlayerState>(Players.Where(p => p != player));
+        Players = new ConcurrentBag<ConnectionHandler>(Players.Where(p => p != player));
 
         var playerRemoveTask = BroadcastPacket(new PlayersRemoveServerPacket
         {
@@ -117,32 +118,6 @@ public class MapState
 
         await Task.WhenAll(playerRemoveTask, avatarRemoveTask);
     }
-    /*
-     *             return !matches!(
-           tile,
-           MapTileSpec::NpcBoundary
-               | MapTileSpec::Wall
-               | MapTileSpec::ChairDown
-               | MapTileSpec::ChairLeft
-               | MapTileSpec::ChairRight
-               | MapTileSpec::ChairUp
-               | MapTileSpec::ChairDownRight
-               | MapTileSpec::ChairUpLeft
-               | MapTileSpec::ChairAll
-               | MapTileSpec::Chest
-               | MapTileSpec::BankVault
-               | MapTileSpec::Edge
-               | MapTileSpec::Board1
-               | MapTileSpec::Board2
-               | MapTileSpec::Board3
-               | MapTileSpec::Board4
-               | MapTileSpec::Board5
-               | MapTileSpec::Board6
-               | MapTileSpec::Board7
-               | MapTileSpec::Board8
-               | MapTileSpec::Jukebox
-       );
-     */
 
     public bool IsNpcWalkable(MapTileSpec tileSpec)
         => tileSpec switch
@@ -173,21 +148,27 @@ public class MapState
 
     public async Task Tick()
     {
+        
         if (Players.Any() is false) 
             return;
         
         List<Task> tasks = new();
-        var random = new Random();
 
         var newPositions = Npcs.Select(npc =>
         {
-            npc.Direction = (Direction)random.Next(0, 4);
+            if (_rnd.Next(0, 100) < 90)
+            {
+                return npc;
+            }
+            
+            npc.Direction = (Direction)_rnd.Next(0, 4);
             var nextCoords = npc.NextCoords();
             var row = Data.TileSpecRows.Where(x => x.Y == nextCoords.Y).ToList();
             if (row.Count == 0)
             {
                 return npc;
             }
+            
             var tile = row.SelectMany(x => x.Tiles)
                 .FirstOrDefault(x => x.X == nextCoords.X);
 
@@ -211,6 +192,7 @@ public class MapState
             },
             Direction = x.Direction
         }).ToList();
+        
         tasks.Add(BroadcastPacket(new NpcPlayerServerPacket
         {
             Positions = npcUpdates
@@ -218,22 +200,22 @@ public class MapState
         
         foreach (var player in Players)
         {
-            if (player.Character is null)
+            if (player.CharacterController is null)
             {
-                _logger.LogWarning("Player {PlayerId} has no character associated with them, skipping tick.", player.SessionId);
+                _logger.LogWarning("ConnectionHandler {PlayerId} has no character associated with them, skipping tick.", player.SessionId);
                 continue;
             }
             
-            var hp = player.Character.SitState switch
+            var hp = player.CharacterController.Data.SitState switch
             {
-                SitState.Stand => player.Character.Recover(5),
-                _ => player.Character.Recover(10)
+                SitState.Stand => player.CharacterController.Recover(5),
+                _ => player.CharacterController.Recover(10)
             };
 
             tasks.Add(player.Send(new RecoverPlayerServerPacket
             {
                 Hp = hp,
-                Tp = player.Character.Tp,
+                Tp = player.CharacterController.Data.Tp,
             }));
         }
 
