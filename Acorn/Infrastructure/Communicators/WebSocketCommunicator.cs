@@ -20,25 +20,10 @@ public class WebSocketCommunicator : ICommunicator
         _logger = logger;
     }
 
-    public async Task Send(IPacket packet, int serverEncryptionMulti)
+    public async Task Send(IEnumerable<byte> bytes)
     {
-        _logger.LogDebug("[Server] {Packet}", packet.ToString());
-        var writer = new EoWriter();
-        writer.AddByte((int)packet.Action);
-        writer.AddByte((int)packet.Family);
-        packet.Serialize(writer);
-        var bytes = packet switch
-        {
-            InitInitServerPacket _ => writer.ToByteArray(),
-            _ => DataEncrypter.FlipMSB(
-                DataEncrypter.Interleave(DataEncrypter.SwapMultiples(writer.ToByteArray(), serverEncryptionMulti)))
-        };
-
-        var encodedLength = NumberEncoder.EncodeNumber(bytes.Length);
-        var fullBytes = encodedLength[..2].Concat(bytes).ToArray();
-        
         await _webSocket.SendAsync(
-            new ArraySegment<byte>(fullBytes),
+            new ArraySegment<byte>(bytes.ToArray()),
             WebSocketMessageType.Binary,
             true,
             CancellationToken.None);
@@ -52,7 +37,7 @@ public class WebSocketCommunicator : ICommunicator
 
     public void Close()
     {
-        if (_webSocket.State == WebSocketState.Open || _webSocket.State == WebSocketState.CloseReceived)
+        if (_webSocket.State is WebSocketState.Open or WebSocketState.CloseReceived)
         {
             _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None).GetAwaiter().GetResult();
         }

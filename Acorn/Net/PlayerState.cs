@@ -152,7 +152,20 @@ public class PlayerState : IDisposable
 
     public async Task Send(IPacket packet)
     {
-        await Communicator.Send(packet, ServerEncryptionMulti);
+        _logger.LogDebug("[Server] {Packet}", packet.ToString());
+        var writer = new EoWriter();
+        writer.AddByte((int)packet.Action);
+        writer.AddByte((int)packet.Family);
+        packet.Serialize(writer);
+        var bytes = packet switch
+        {
+            InitInitServerPacket _ => writer.ToByteArray(),
+            _ => DataEncrypter.FlipMSB(DataEncrypter.Interleave(DataEncrypter.SwapMultiples(writer.ToByteArray(), ServerEncryptionMulti)))
+        };
+
+        var encodedLength = NumberEncoder.EncodeNumber(bytes.Length);
+        var fullBytes = encodedLength[..2].Concat(bytes);
+        await Communicator.Send(fullBytes);
     }
 
     public Task ServerMessage(string message)
