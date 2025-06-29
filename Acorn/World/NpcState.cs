@@ -19,7 +19,7 @@ public class NpcState
     public int Y { get; set; }
     public int Id { get; set; }
     public int Hp { get; set; }
-    
+
     public Coords AsCoords()
     {
         return new Coords
@@ -28,7 +28,7 @@ public class NpcState
             Y = Y
         };
     }
-    
+
     public Coords NextCoords()
     {
         return AsCoords().NextCoords(Direction);

@@ -147,18 +147,18 @@ public class MapState
     public bool IsNpcWalkable(MapTileSpec tileSpec)
         => tileSpec switch
         {
-            MapTileSpec.Wall 
-            or MapTileSpec.ChairDown  
-            or MapTileSpec.ChairLeft  
-            or MapTileSpec.ChairRight 
-            or MapTileSpec.ChairUp 
-            or MapTileSpec.ChairDownRight  
-            or MapTileSpec.ChairUpLeft 
-            or MapTileSpec.ChairAll 
-            or MapTileSpec.Chest  
-            or MapTileSpec.BankVault  
-            or MapTileSpec.Edge  
-            or MapTileSpec.Board1 
+            MapTileSpec.Wall
+            or MapTileSpec.ChairDown
+            or MapTileSpec.ChairLeft
+            or MapTileSpec.ChairRight
+            or MapTileSpec.ChairUp
+            or MapTileSpec.ChairDownRight
+            or MapTileSpec.ChairUpLeft
+            or MapTileSpec.ChairAll
+            or MapTileSpec.Chest
+            or MapTileSpec.BankVault
+            or MapTileSpec.Edge
+            or MapTileSpec.Board1
             or MapTileSpec.Board2
             or MapTileSpec.Board3
             or MapTileSpec.Board4
@@ -173,9 +173,9 @@ public class MapState
 
     public async Task Tick()
     {
-        if (Players.Any() is false) 
+        if (Players.Any() is false)
             return;
-        
+
         List<Task> tasks = new();
         var random = new Random();
 
@@ -195,12 +195,12 @@ public class MapState
             {
                 return npc;
             }
-            
+
             npc.X = nextCoords.X;
             npc.Y = nextCoords.Y;
             return npc;
         });
-        
+
         var npcUpdates = newPositions.Select((x, id) => new NpcUpdatePosition
         {
             NpcIndex = id,
@@ -215,7 +215,7 @@ public class MapState
         {
             Positions = npcUpdates
         }));
-        
+
         foreach (var player in Players)
         {
             if (player.Character is null)
@@ -223,7 +223,7 @@ public class MapState
                 _logger.LogWarning("Player {PlayerId} has no character associated with them, skipping tick.", player.SessionId);
                 continue;
             }
-            
+
             var hp = player.Character.SitState switch
             {
                 SitState.Stand => player.Character.Recover(5),

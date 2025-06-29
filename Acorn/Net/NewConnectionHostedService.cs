@@ -57,7 +57,7 @@ public class NewConnectionHostedService(
                 Task<HttpListenerContext> ws when ws == wsAcceptTask => webSocketCommunicatorFactory.Initialise(ws.Result),
                 _ => throw new InvalidOperationException("Unexpected task completion")
             };
-            
+
             var sessionId = sessionGenerator.Generate();
 
             var playerState = new PlayerState(_services, communicator, _playerConnectionLogger, sessionId,

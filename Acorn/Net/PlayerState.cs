@@ -198,7 +198,7 @@ public class PlayerState : IDisposable
 
             await targetMap.NotifyEnter(this, warpEffect);
         }
-        
+
         await WarpSession.Execute();
     }
 
