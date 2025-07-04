@@ -64,7 +64,7 @@ public class LoginRequestClientPacketHandler(
             ReplyCodeData = new LoginReplyServerPacket.ReplyCodeDataOk
             {
                 Characters = playerState.Account.Characters
-                    .Select((x, id) => x.AsCharacterListEntry(id)).ToList()
+                    .Select((x, id) => x.AsGameModel().AsCharacterListEntry(id)).ToList()
             }
         });
     }

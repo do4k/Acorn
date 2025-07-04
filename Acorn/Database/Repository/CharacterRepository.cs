@@ -56,20 +56,15 @@ public class CharacterRepository : BaseDbRepository, IDbRepository<Character>, I
     {
         try
         {
-            var character = await _conn.QueryAsync<Character, ItemWithAmount, Character>(
-                SQLStatements.GetByKey,
-                (character, item) =>
-                {
-                    if (character.Inventory.Items.All(x => x.Id != item.Id))
-                    {
-                        character.Inventory.Items.Add(item);
-                    }
+            var characters = (await _conn.QueryAsync<Character>(
+                SQLStatements.GetByKey, new { name })).ToList();
 
-                    return character;
-                },
-                new { name });
-
-            return character.Single();
+            if (characters.Count > 0)
+            {
+                return characters.First();
+            }
+            _logger.LogInformation("Character {Character} not found", name);
+            return null;
         }
         catch (Exception e)
         {

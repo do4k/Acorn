@@ -41,18 +41,18 @@ internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequest
             return;
         }
 
-        var equipmentResult = character.Equipment();
-        playerState.Character = character;
-        character.CalculateStats(_dataRepository.Ecf);
+        playerState.Character = character.AsGameModel();
+        var equipmentResult = playerState.Character.Equipment();
+        playerState.Character.CalculateStats(_dataRepository.Ecf);
 
         await playerState.Send(new WelcomeReplyServerPacket
         {
             WelcomeCode = WelcomeCode.SelectCharacter,
             WelcomeCodeData = new WelcomeReplyServerPacket.WelcomeCodeDataSelectCharacter
             {
-                Admin = character.Admin,
+                Admin = playerState.Character.Admin,
                 CharacterId = packet.CharacterId,
-                ClassId = character.Class,
+                ClassId = playerState.Character.Class,
                 EcfLength = _dataRepository.Ecf.ByteSize,
                 EcfRid = _dataRepository.Ecf.Rid,
                 EifLength = _dataRepository.Eif.ByteSize,
@@ -62,24 +62,24 @@ internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequest
                 Equipment = equipmentResult.AsEquipmentWelcome(),
                 EsfLength = _dataRepository.Esf.ByteSize,
                 EsfRid = _dataRepository.Esf.Rid,
-                Experience = character.Exp,
+                Experience = playerState.Character.Exp,
                 GuildName = "DansArmy",
                 GuildRank = 0,
                 GuildRankName = "The Boss",
                 GuildTag = "DAN",
                 MapFileSize = map.ByteSize,
-                MapId = character.Map,
+                MapId = playerState.Character.Map,
                 MapRid = map.Rid,
-                Name = character.Name,
+                Name = playerState.Character.Name,
                 Stats = new CharacterStatsWelcome
                 {
                     Base = new CharacterBaseStatsWelcome
                     {
-                        Agi = character.Agi,
-                        Cha = character.Cha,
-                        Con = character.Con,
-                        Str = character.Str,
-                        Wis = character.Wis
+                        Agi = playerState.Character.Agi,
+                        Cha = playerState.Character.Cha,
+                        Con = playerState.Character.Con,
+                        Str = playerState.Character.Str,
+                        Wis = playerState.Character.Wis
                     },
                     Secondary = new CharacterSecondaryStats
                     {
@@ -89,20 +89,20 @@ internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequest
                         MaxDamage = 150,
                         MinDamage = 100
                     },
-                    Karma = character.Karma,
-                    MaxSp = character.MaxSp,
-                    MaxTp = character.MaxTp,
-                    Tp = character.Tp,
-                    MaxHp = character.MaxHp,
-                    Hp = character.Hp,
-                    SkillPoints = character.SkillPoints,
-                    StatPoints = character.StatPoints
+                    Karma = playerState.Character.Karma,
+                    MaxSp = playerState.Character.MaxSp,
+                    MaxTp = playerState.Character.MaxTp,
+                    Tp = playerState.Character.Tp,
+                    MaxHp = playerState.Character.MaxHp,
+                    Hp = playerState.Character.Hp,
+                    SkillPoints = playerState.Character.SkillPoints,
+                    StatPoints = playerState.Character.StatPoints
                 },
-                Title = character.Title ?? "",
-                Usage = character.Usage,
+                Title = playerState.Character.Title ?? "",
+                Usage = playerState.Character.Usage,
                 SessionId = playerState.SessionId,
-                Level = character.Level,
-                LoginMessageCode = character.Usage switch
+                Level = playerState.Character.Level,
+                LoginMessageCode = playerState.Character.Usage switch
                 {
                     0 => LoginMessageCode.Yes,
                     _ => LoginMessageCode.No

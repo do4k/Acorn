@@ -3,7 +3,7 @@ using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
 
-namespace Acorn.World;
+namespace Acorn.World.Npc;
 
 
 public class NpcState

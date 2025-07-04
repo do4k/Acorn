@@ -1,11 +1,9 @@
-﻿using System.Net.Sockets;
-using Acorn.Database.Models;
-using Acorn.Extensions;
+﻿using Acorn.Database.Models;
 using Acorn.Infrastructure.Communicators;
 using Acorn.Net.Models;
 using Acorn.Net.PacketHandlers;
 using Acorn.Net.PacketHandlers.Player.Warp;
-using Acorn.World;
+using Acorn.World.Map;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Data;
 using Moffat.EndlessOnline.SDK.Packet;
@@ -60,7 +58,7 @@ public class PlayerState : IDisposable
     public int SessionId { get; set; }
     public WarpSession? WarpSession { get; set; }
 
-    public Character? Character { get; set; }
+    public Game.Models.Character? Character { get; set; }
 
     public MapState? CurrentMap { get; set; }
 
@@ -109,8 +107,8 @@ public class PlayerState : IDisposable
                 var resolvedHandler = _handlers.FirstOrDefault(h => handlerType.IsInstanceOfType(h));
                 if (resolvedHandler is null)
                 {
-                    _logger.LogError("Handler not registered for packet of type {PacketType} Exiting...", packet.GetType());
-                    break;
+                    _logger.LogError("Handler not registered for packet of type {PacketType} Skipping...", packet.GetType());
+                    continue;
                 }
 
                 await resolvedHandler.HandleAsync(this, packet);

@@ -1,4 +1,5 @@
 ﻿using Acorn.World;
+using Acorn.World.Npc;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
@@ -24,6 +25,12 @@ public class SetCommandHandler : ITalkHandler
 
     public async Task HandleAsync(PlayerState playerState, string command, params string[] args)
     {
+        if (args[0] == "npcdirection")
+        {
+            _world.NpcDirection = (Direction)int.Parse(args[1]);
+            return;
+        }
+        
         if (args.Length < 3)
         {
             await playerState.ServerMessage(Usage);
@@ -84,7 +91,9 @@ public class SetCommandHandler : ITalkHandler
             "bankmax" => () => target.Character.BankMax = value,
             "goldbank" => () => target.Character.GoldBank = value,
             "usage" => () => target.Character.Usage = value,
-            _ => throw new ArgumentException($"Unknown attribute: {args[1]}. {Usage}")
+            "haircolor" => () => target.Character.HairColor = value,
+            "hairstyle" => () => target.Character.HairStyle = value,
+            _ => () => throw new ArgumentException($"Unknown attribute: {args[1]}. {Usage}")
         };
         
         try 

@@ -1,7 +1,3 @@
-SELECT c.*,
-       i.ItemId,
-       i.Amount
-FROM Characters c
-         LEFT JOIN
-     Inventory i ON c.Name = i.Characters_Name
+SELECT *
+FROM Characters c 
 WHERE c.Name = @name

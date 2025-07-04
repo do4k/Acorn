@@ -13,7 +13,7 @@ public class FormulaService
         _dataFileRepository = dataFileRepository;
     }
 
-    public int CalculateDamage(Character character, EnfRecord npcData)
+    public int CalculateDamage(Game.Models.Character character, EnfRecord npcData)
     {
         // Example formula for calculating damage
         // This is a placeholder and should be replaced with the actual game logic
@@ -31,7 +31,7 @@ public class FormulaService
 
         var npcDefense = npcData.Armor;
 
-        // Calculate final damage considering NPC defense
+        // Calculate final damage considering Npc defense
         var finalDamage = baseDamage - (npcDefense / 2);
 
         // Ensure damage is not negative

@@ -2,24 +2,28 @@ using System.Collections.Concurrent;
 using Acorn.Database.Repository;
 using Acorn.Extensions;
 using Acorn.Net;
+using Acorn.World.Npc;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
-namespace Acorn.World;
+namespace Acorn.World.Map;
 
 
 public class MapState
 {
-    private readonly ILogger<WorldState> _logger;
+    private readonly ILogger<MapState> _logger;
+    private readonly WorldState _world;
 
-    public MapState(MapWithId data, IDataFileRepository dataRepository, ILogger<WorldState> logger)
+    public MapState(MapWithId data, WorldState world, IDataFileRepository dataRepository, ILogger<MapState> logger)
     {
         Id = data.Id;
         Data = data.Map;
         _logger = logger;
+        _world = world;
+        
         var mapNpcs = data.Map.Npcs.SelectMany(mapNpc => Enumerable.Range(0, mapNpc.Amount).Select(_ => mapNpc));
         foreach (var npc in mapNpcs)
         {
@@ -152,87 +156,88 @@ public class MapState
             return;
 
         List<Task> tasks = new();
-        var random = new Random();
-
-        var newPositions = Npcs.Select(npc =>
-        {
-            var newDirection = (Direction)random.Next(0, 4);
-            var nextCoords = npc.NextCoords(newDirection);
-            if (nextCoords.X < 0 || nextCoords.Y < 0)
-            {
-                return null;
-            }
-            
-            if (Players.Any(x => x.Character?.AsCoords().Equals(nextCoords) == true))
-            {
-                return null;
-            }
-
-            if (Npcs.Any(x => x.AsCoords().Equals(nextCoords)))
-            {
-                return null;
-            }
-            
-            var row = Data.TileSpecRows.Where(x => x.Y == nextCoords.Y).ToList();
-            if (row.Count == 0)
-            {
-                return null;
-            }
-            var tile = row.SelectMany(x => x.Tiles)
-                .FirstOrDefault(x => x.X == nextCoords.X);
-
-            if (tile is not null)
-            {
-                if (IsNpcWalkable(tile.TileSpec) is false)
-                {
-                    return null;
-                }
-            }
-
-            npc.X = nextCoords.X;
-            npc.Y = nextCoords.Y;
-            npc.Direction = newDirection;
-            return npc;
-        }).ToList();
-
+        var newPositions = Npcs.Select(MoveNpc).ToList();
         var npcUpdates = newPositions
-            .Where(newPosition => newPosition is not null)
-            .Select((x, id) => new NpcUpdatePosition
-        {
-            NpcIndex = id,
-            Coords = new Coords
+            .Select((x, id) => new
             {
-                X = x!.X,
-                Y = x.Y
-            },
-            Direction = x.Direction
-        }).ToList();
+                Position = new NpcUpdatePosition
+                {
+                    NpcIndex = id,
+                    Coords = new Coords
+                    {
+                        X = x.Item1.X,
+                        Y = x.Item1.Y
+                    },
+                    Direction = x.Item1.Direction
+                },
+                Moved = x.Item2
+            }).ToList();
+        
         tasks.Add(BroadcastPacket(new NpcPlayerServerPacket
         {
-            Positions = npcUpdates
+            Positions = npcUpdates.Where(x => x.Moved).Select(x => x.Position).ToList()
         }));
 
-        foreach (var player in Players)
-        {
-            if (player.Character is null)
-            {
-                _logger.LogWarning("Player {PlayerId} has no character associated with them, skipping tick.", player.SessionId);
-                continue;
-            }
-
-            var hp = player.Character.SitState switch
-            {
-                SitState.Stand => player.Character.Recover(5),
-                _ => player.Character.Recover(10)
-            };
-
-            tasks.Add(player.Send(new RecoverPlayerServerPacket
-            {
-                Hp = hp,
-                Tp = player.Character.Tp,
-            }));
-        }
+        tasks.AddRange(Players.Select(RecoverPlayer));
 
         await Task.WhenAll(tasks);
+    }
+
+    private Task RecoverPlayer(PlayerState player)
+    {
+        if (player.Character is null)
+        {
+            _logger.LogWarning("Player {PlayerId} has no character associated with them, skipping tick.", player.SessionId);
+            return Task.CompletedTask;
+        }
+
+        var hp = player.Character.SitState switch
+        {
+            SitState.Stand => player.Character.Recover(5),
+            _ => player.Character.Recover(10)
+        };
+
+        return player.Send(new RecoverPlayerServerPacket
+        {
+            Hp = hp,
+            Tp = player.Character.Tp,
+        });
+    }
+
+    private (NpcState, bool) MoveNpc(NpcState npc)
+    {
+        var newDirection = _world.NpcDirection;
+        var nextCoords = npc.NextCoords(newDirection);
+        if (nextCoords.X < 0 || nextCoords.Y < 0 || nextCoords.X > Data.Width || nextCoords.Y > Data.Height)
+        {
+            return (npc, false);
+        }
+            
+        if (Players.Any(x => x.Character?.AsCoords().Equals(nextCoords) == true))
+        {
+            return (npc, false);
+        }
+
+        if (Npcs.Any(x => x.AsCoords().Equals(nextCoords)))
+        {
+            return (npc, false);
+        }
+            
+        var row = Data.TileSpecRows.Where(x => x.Y == nextCoords.Y).ToList();
+        var tile = row.SelectMany(x => x.Tiles)
+            .FirstOrDefault(x => x.X == nextCoords.X);
+
+        if (tile is not null)
+        {
+            if (IsNpcWalkable(tile.TileSpec) is false)
+            {
+                return (npc, false);
+            }
+        }
+
+        npc.X = nextCoords.X;
+        npc.Y = nextCoords.Y;
+        npc.Direction = newDirection;
+        return (npc, true);
     }
 }

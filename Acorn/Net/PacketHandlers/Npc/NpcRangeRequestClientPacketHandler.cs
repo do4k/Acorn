@@ -19,7 +19,7 @@ public class NpcRangeRequestClientPacketHandler : IPacketHandler<NpcRangeRequest
     {
         if (playerState.CurrentMap is null)
         {
-            _logger.LogWarning("Player {PlayerId} requested NPC range but is not in a map.", playerState.SessionId);
+            _logger.LogWarning("Player {PlayerId} requested Npc range but is not in a map.", playerState.SessionId);
             return;
         }
 

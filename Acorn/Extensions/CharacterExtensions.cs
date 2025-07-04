@@ -1,4 +1,4 @@
-﻿using Acorn.Database.Models;
+﻿using Acorn.Game.Models;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.Extensions;
@@ -48,16 +48,16 @@ public static class CharacterExtensions
             GuildTag = "   ", //todo: guilds
             HairColor = c.HairColor,
             HairStyle = c.HairStyle,
-            Hp = c.Hp,
-            MaxHp = c.MaxHp,
             MapId = c.Map,
-            MaxTp = c.MaxTp,
             Name = c.Name,
             Invisible = c.Hidden,
             Level = c.Level,
             PlayerId = playerId,
             SitState = c.SitState,
             Tp = c.Tp,
+            MaxTp = c.MaxTp,
+            Hp = c.Hp,
+            MaxHp = c.MaxHp,
             Skin = c.Race
         };
     }

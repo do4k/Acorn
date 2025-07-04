@@ -52,7 +52,10 @@ internal class CharacterCreateClientPacketHandler(
             Y = _serverOptions.NewCharacter.Y,
             HairColor = packet.HairColor,
             HairStyle = packet.HairStyle,
-            Gender = packet.Gender
+            Gender = packet.Gender,
+            Inventory = string.Empty,
+            Bank = string.Empty,
+            Paperdoll = string.Empty,
         };
 
         await repository.CreateAsync(character);
@@ -65,7 +68,7 @@ internal class CharacterCreateClientPacketHandler(
             ReplyCode = CharacterReply.Ok,
             ReplyCodeData = new CharacterReplyServerPacket.ReplyCodeDataOk
             {
-                Characters = playerState.Account.Characters.Select((c, id) => c.AsCharacterListEntry(id)).ToList()
+                Characters = playerState.Account.Characters.Select((c, id) => c.AsGameModel().AsCharacterListEntry(id)).ToList()
             }
         });
     }

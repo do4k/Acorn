@@ -1,10 +1,7 @@
 ﻿using System.Collections.Concurrent;
-using Acorn.Database.Repository;
-using Acorn.Extensions;
+using Acorn.Game.Models;
 using Moffat.EndlessOnline.SDK.Protocol;
-using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using Moffat.EndlessOnline.SDK.Protocol.Pub;
 
 namespace Acorn.Database.Models;
 
@@ -51,86 +48,96 @@ public class Character
     public int BankMax { get; set; }
     public int GoldBank { get; set; }
     public int Usage { get; set; }
-    public Inventory Inventory { get; set; } = new([]);
-    public Bank Bank { get; set; } = new([]);
-    public Paperdoll Paperdoll { get; set; } = new();
+    public string? Inventory { get; set; }
+    public string? Bank { get; set; }
+    public string? Paperdoll { get; set; }
 
-    //TODO: Add spells
-    //TODO: Add guilds
-    //TODO: Add quests
-
-    public void CalculateStats(Ecf classes)
+    public Game.Models.Character AsGameModel()
     {
-        var @class = classes.GetClass(Class);
-        if (@class is not null)
+        Paperdoll GetPaperdoll(Character c)
         {
-            MaxHp = 100;
-            MaxTp = 100;
-            MaxSp = 100;
-            MinDamage = 100;
-            MaxDamage = 150;
-            MaxWeight = 100;
-
-            Hp = Hp > MaxHp ? MaxHp : Hp;
-            Str = @class.Str + Str;
-            Wis = @class.Wis + Wis;
-            Agi = @class.Agi + Agi;
-            Con = @class.Con + Con;
-            Cha = @class.Cha + Cha;
+            var items = c.Paperdoll.Split(',');
+            return new Paperdoll
+            {
+                Hat = items.Length > 0 && int.TryParse(items[0], out var hatId) ? hatId : 0,
+                Armor = items.Length > 1 && int.TryParse(items[1], out var armorId) ? armorId : 0,
+                Shield = items.Length > 2 && int.TryParse(items[2], out var shieldId) ? shieldId : 0,
+                Weapon = items.Length > 3 && int.TryParse(items[3], out var weaponId) ? weaponId : 0,
+                Boots = items.Length > 4 && int.TryParse(items[4], out var bootsId) ? bootsId : 0,
+                Gloves = items.Length > 5 && int.TryParse(items[5], out var glovesId) ? glovesId : 0,
+                Necklace = items.Length > 6 && int.TryParse(items[6], out var necklaceId) ? necklaceId : 0,
+                Belt = items.Length > 7 && int.TryParse(items[7], out var beltId) ? beltId : 0,
+                Accessory = items.Length > 8 && int.TryParse(items[8], out var accessoryId) ? accessoryId : 0,
+                Ring1 = items.Length > 9 && int.TryParse(items[9], out var ring1Id) ? ring1Id : 0,
+                Ring2 = items.Length > 10 && int.TryParse(items[10], out var ring2Id) ? ring2Id : 0,
+                Bracer1 = items.Length > 11 && int.TryParse(items[11], out var bracer1Id) ? bracer1Id : 0,
+                Bracer2 = items.Length > 12 && int.TryParse(items[12], out var bracer2Id) ? bracer2Id : 0,
+                Armlet1 = items.Length > 13 && int.TryParse(items[13], out var armlet1Id) ? armlet1Id : 0,
+                Armlet2 = items.Length > 14 && int.TryParse(items[14], out var armlet2Id) ? armlet2Id : 0
+            };
         }
-    }
-
-    public IEnumerable<Item> Items()
-    {
-        return Inventory.Items.Select(x => new Item
+        
+        ConcurrentBag<ItemWithAmount> GetItemsWithAmount(string? s)
         {
-            Amount = x.Amount,
-            Id = x.Id
-        });
-    }
+            if (string.IsNullOrEmpty(s))
+            {
+                return [];
+            }
 
-    public Coords AsCoords()
-    {
-        return new Coords
+            return new ConcurrentBag<ItemWithAmount>(
+                s.Split('|').Select(b =>
+                {
+                    var parts = b.Split(',');
+                    return new ItemWithAmount
+                    {
+                        Id = int.Parse(parts[0]),
+                        Amount = int.Parse(parts[1]),
+                    };
+                }).ToList());
+        }
+        
+        return new Game.Models.Character
         {
+            Accounts_Username = Accounts_Username,
+            Level = Level,
+            Exp = Exp,
+            Class = Class,
+            Name = Name,
+            Map = Map,
             X = X,
-            Y = Y
+            Y = Y,
+            Admin = Admin,
+            HairColor = HairColor,
+            HairStyle = HairStyle,
+            Race = Race,
+            Agi = Agi,
+            Str = Str,
+            Wis = Wis,
+            Cha = Cha,
+            Con = Con,
+            Hp = Hp,
+            MaxHp = MaxHp,
+            Sp = Sp,
+            MaxSp = MaxSp,
+            Tp = Tp,
+            MaxTp = MaxTp,
+            Direction = Direction,
+            Fiance = Fiance,
+            Home = Home,
+            Partner = Partner,
+            SitState = SitState,
+            MinDamage = MinDamage,
+            MaxDamage = MaxDamage,
+            MaxWeight = MaxWeight,
+            StatPoints = StatPoints,
+            SkillPoints = SkillPoints,
+            Karma = Karma,
+            Hidden = Hidden,
+            NoInteract = NoInteract,
+            Bank = new Bank(GetItemsWithAmount(Bank)),
+            Inventory = new Inventory(GetItemsWithAmount(Inventory)),
+            Paperdoll = GetPaperdoll(this),
+            Usage = Usage,
         };
     }
-
-    public EquipmentPaperdoll Equipment()
-    {
-        return new EquipmentPaperdoll
-        {
-            Hat = Paperdoll.Hat,
-            Necklace = Paperdoll.Necklace,
-            Armor = Paperdoll.Armor,
-            Belt = Paperdoll.Belt,
-            Boots = Paperdoll.Boots,
-            Gloves = Paperdoll.Gloves,
-            Weapon = Paperdoll.Weapon,
-            Shield = Paperdoll.Shield,
-            Accessory = Paperdoll.Accessory,
-            Ring = [Paperdoll.Ring1, Paperdoll.Ring2],
-            Bracer = [Paperdoll.Bracer1, Paperdoll.Bracer2],
-            Armlet = [Paperdoll.Armlet1, Paperdoll.Armlet2]
-        };
-    }
-
-    public int Recover(int amount)
-    {
-        Hp = Hp switch
-        {
-            var hp when hp < MaxHp && hp + amount < MaxHp => hp + amount,
-            _ => MaxHp
-        };
-
-        return Hp;
-    }
-
-    public Coords NextCoords() => AsCoords().NextCoords(Direction);
 }
-
-public record Bank(ConcurrentBag<ItemWithAmount> Items);
-
-public record Inventory(ConcurrentBag<ItemWithAmount> Items);

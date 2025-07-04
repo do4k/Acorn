@@ -1,4 +1,5 @@
 ﻿using Acorn.World;
+using Acorn.World.Map;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Map;
@@ -81,7 +82,7 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
             warpTile.Warp.DestinationCoords.Y);
     }
 
-    private bool TryGetWarpTile(MapState map, Database.Models.Character character, out MapWarpRowTile? tile)
+    private bool TryGetWarpTile(MapState map, Game.Models.Character character, out MapWarpRowTile? tile)
     {
         var possibleY = map.Data.WarpRows.Where(wr => wr.Y == character.Y);
         var mapWarpRows = possibleY as MapWarpRow[] ?? possibleY.ToArray();

@@ -1,6 +1,5 @@
 ﻿using System.Timers;
 using Acorn.Options;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 

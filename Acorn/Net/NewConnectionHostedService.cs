@@ -79,7 +79,7 @@ public class NewConnectionHostedService(
         if (player.Character is not null && player.CurrentMap is not null)
         {
             await player.CurrentMap.NotifyLeave(player);
-            await characterRepository.UpdateAsync(player.Character);
+            await characterRepository.UpdateAsync(player.Character.AsDatabaseModel());
         }
 
         worldState.Players.TryRemove(sessionId, out _);

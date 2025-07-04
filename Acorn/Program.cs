@@ -7,11 +7,11 @@ using Acorn.Extensions;
 using Acorn.Infrastructure;
 using Acorn.Infrastructure.Communicators;
 using Acorn.Net;
-using Acorn.Net.PacketHandlers;
 using Acorn.Net.PacketHandlers.Player.Talk;
 using Acorn.Options;
-using Acorn.World;
 using Acorn.SLN;
+using Acorn.World;
+using Acorn.World.Map;
 using Microsoft.Data.SqlClient;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
@@ -76,6 +76,7 @@ await Host.CreateDefaultBuilder(args)
             .AddRepositories()
             .AddSingleton<WebSocketCommunicatorFactory>()
             .AddSingleton<TcpCommunicatorFactory>()
+            .AddSingleton<MapStateFactory>()
             .AddSingleton<PlayerStateFactory>()
             .AddHostedService<ServerLinkNetworkPingHostedService>()
             .AddRefitClient<IServerLinkNetworkClient>()

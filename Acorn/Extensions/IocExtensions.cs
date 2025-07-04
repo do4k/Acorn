@@ -44,7 +44,7 @@ internal static class IocRegistrations
     {
         return services
             .AddSingleton<IDbRepository<Account>, AccountRepository>()
-            .AddSingleton<IDbRepository<Character>, CharacterRepository>()
+            .AddSingleton<IDbRepository<Database.Models.Character>, CharacterRepository>()
             .AddSingleton<IDataFileRepository, DataFileRepository>();
     }
 
@@ -85,6 +85,7 @@ internal static class IocRegistrations
             AddPacketHandler<WelcomeAgreeClientPacket, WelcomeAgreeClientPacketHandler>();
             AddPacketHandler<WelcomeMsgClientPacket, WelcomeMsgClientPacketHandler>();
             AddPacketHandler<WelcomeRequestClientPacket, WelcomeRequestClientPacketHandler>();
+            AddPacketHandler<FacePlayerClientPacket, FacePlayerClientPacketHandler>();
             return services;
     }
 }

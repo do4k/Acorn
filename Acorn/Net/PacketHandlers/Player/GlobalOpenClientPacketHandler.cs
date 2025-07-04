@@ -1,7 +1,9 @@
 ﻿using Acorn.World;
+using Acorn.World.Npc;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+
 namespace Acorn.Net.PacketHandlers.Player;
 
 public class GlobalOpenClientPacketHandler : IPacketHandler<GlobalOpenClientPacket>

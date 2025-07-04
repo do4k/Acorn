@@ -1,5 +1,6 @@
 ﻿using Acorn.Database.Repository;
 using Acorn.World;
+using Acorn.World.Npc;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
@@ -74,7 +75,7 @@ public class SpawnNpcCommandHandler : ITalkHandler
         }
 
         playerState.CurrentMap.Npcs.Add(npc);
-        await playerState.ServerMessage($"Spawned NPC {enf.Name} ({npcId}).");
+        await playerState.ServerMessage($"Spawned Npc {enf.Name} ({npcId}).");
         await playerState.CurrentMap.BroadcastPacket(new NpcAgreeServerPacket
         {
             Npcs = playerState.CurrentMap.AsNpcMapInfo()
@@ -86,6 +87,6 @@ public class SpawnNpcCommandHandler : ITalkHandler
         var npc = _dataFiles.Enf.Npcs.FirstOrDefault(x =>
             x.Name.Contains(name, StringComparison.CurrentCultureIgnoreCase));
 
-        return npc == null ? playerState.ServerMessage($"NPC {name} not found.") : SpawnNpc(playerState, npc);
+        return npc == null ? playerState.ServerMessage($"Npc {name} not found.") : SpawnNpc(playerState, npc);
     }
 }

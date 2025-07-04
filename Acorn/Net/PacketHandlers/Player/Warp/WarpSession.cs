@@ -1,4 +1,5 @@
-﻿using Acorn.World;
+﻿using Acorn.World.Map;
+using Acorn.World.Npc;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.Net.PacketHandlers.Player.Warp;

@@ -1,4 +1,4 @@
-namespace Acorn.World;
+namespace Acorn.World.Npc;
 
 public record GlobalMessage(
     Guid Id,
