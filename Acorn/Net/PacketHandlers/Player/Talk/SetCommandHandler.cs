@@ -69,6 +69,12 @@ public class SetCommandHandler : ITalkHandler
             "agi" => () => target.Character.Agi = value,
             "con" => () => target.Character.Con = value,
             "cha" => () => target.Character.Cha = value,
+            "armor" => () => target.Character.Paperdoll.Armor = value,
+            "hat" => () => target.Character.Paperdoll.Hat = value,
+            "shield" => () => target.Character.Paperdoll.Shield = value,
+            "weapon" => () => target.Character.Paperdoll.Weapon = value,
+            "gloves" => () => target.Character.Paperdoll.Gloves = value,
+            "boots" => () => target.Character.Paperdoll.Boots = value,
             "statpoints" => () => target.Character.StatPoints = value,
             "skillpoints" => () => target.Character.SkillPoints = value,
             "karma" => () => target.Character.Karma = value,
@@ -78,11 +84,20 @@ public class SetCommandHandler : ITalkHandler
             "bankmax" => () => target.Character.BankMax = value,
             "goldbank" => () => target.Character.GoldBank = value,
             "usage" => () => target.Character.Usage = value,
-            _ => async () => await playerState.ServerMessage($"Attribute {args[2]} is not supported.")
+            _ => throw new ArgumentException($"Unknown attribute: {args[1]}. {Usage}")
         };
-
-        adjustment();
-        await playerState.ServerMessage($"Player {args[0]} had {args[1]} updated to {value}.");
-        await playerState.Refresh();
+        
+        try 
+        {
+            adjustment();
+            await playerState.ServerMessage($"Player {args[0]} had {args[1]} updated to {value}.");
+            await playerState.Refresh();
+        }
+        catch (Exception ex)
+        {
+            await playerState.ServerMessage($"{args[1]} is not a recognised attribute. {Usage}");
+            _logger.LogError(ex, "Failed to set attribute {Attribute} for player {Player}", args[1], args[0]);
+            return;
+        }
     }
 }
