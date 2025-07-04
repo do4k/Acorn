@@ -10,7 +10,14 @@ public static class CharacterExtensions
         return new CharacterSelectionListEntry
         {
             Admin = c.Admin,
-            Equipment = new EquipmentCharacterSelect(),
+            Equipment = new EquipmentCharacterSelect
+            {
+                Armor = c.Paperdoll.Armor,
+                Boots = c.Paperdoll.Boots,
+                Weapon = c.Paperdoll.Weapon,
+                Shield = c.Paperdoll.Shield,
+                Hat = c.Paperdoll.Hat
+            },
             Gender = c.Gender,
             HairColor = c.HairColor,
             HairStyle = c.HairStyle,
@@ -28,7 +35,14 @@ public static class CharacterExtensions
             ClassId = c.Class,
             Direction = c.Direction,
             Coords = new BigCoords { X = c.X, Y = c.Y },
-            Equipment = new EquipmentMapInfo(),
+            Equipment = new EquipmentMapInfo
+            {
+                Armor = c.Paperdoll.Armor,
+                Boots = c.Paperdoll.Boots,
+                Weapon = c.Paperdoll.Weapon,
+                Shield = c.Paperdoll.Shield,
+                Hat = c.Paperdoll.Hat
+            },
             WarpEffect = wapEffect,
             Gender = c.Gender,
             GuildTag = "   ", //todo: guilds
