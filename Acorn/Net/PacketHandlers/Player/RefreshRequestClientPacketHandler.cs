@@ -1,4 +1,4 @@
-﻿using Acorn.World;
+﻿using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
@@ -20,7 +20,7 @@ public class RefreshRequestClientPacketHandler : IPacketHandler<RefreshRequestCl
 
     }
 
-    public Task HandleAsync(PlayerState playerState, object packet)
+    public Task HandleAsync(PlayerState playerState, IPacket packet)
     {
         return HandleAsync(playerState, (RefreshRequestClientPacket)packet);
     }

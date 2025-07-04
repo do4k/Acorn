@@ -1,5 +1,6 @@
 ﻿using Acorn.Extensions;
 using Acorn.World;
+using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using static Moffat.EndlessOnline.SDK.Protocol.Net.Server.InitInitServerPacket;
@@ -34,7 +35,7 @@ public class PlayersRequestClientPacketHandler : IPacketHandler<PlayersRequestCl
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, object packet)
+    public Task HandleAsync(PlayerState playerState, IPacket packet)
     {
         return HandleAsync(playerState, (PlayersRequestClientPacket)packet);
     }

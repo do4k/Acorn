@@ -34,6 +34,11 @@ public class NpcState
         return AsCoords().NextCoords(Direction);
     }
 
+    public Coords NextCoords(Direction direction)
+    {
+        return AsCoords().NextCoords(direction);
+    }
+
     public NpcMapInfo AsNpcMapInfo(int index)
     {
         return new NpcMapInfo

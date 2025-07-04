@@ -2,7 +2,7 @@ namespace Acorn.Options;
 
 public class NewCharacterOptions
 {
-    public int X { get; set; }
-    public int Y { get; set; }
-    public int Map { get; set; }
+    public required int X { get; set; }
+    public required int Y { get; set; }
+    public required int Map { get; set; }
 }

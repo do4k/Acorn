@@ -1,5 +1,5 @@
-﻿using Acorn.Infrastructure;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
+using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 
 namespace Acorn.Net.PacketHandlers.Player;
@@ -26,7 +26,7 @@ public class ConnectionAcceptClientPacketHandler(
         return Task.CompletedTask;
     }
 
-    public Task HandleAsync(PlayerState playerState, object packet)
+    public Task HandleAsync(PlayerState playerState, IPacket packet)
     {
         return HandleAsync(playerState, (ConnectionAcceptClientPacket)packet);
     }

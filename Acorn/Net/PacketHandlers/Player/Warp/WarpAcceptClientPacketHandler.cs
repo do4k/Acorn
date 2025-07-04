@@ -1,5 +1,6 @@
 ﻿using Acorn.World;
 using Microsoft.Extensions.Logging;
+using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
@@ -71,7 +72,7 @@ public class WarpAcceptClientPacketHandler : IPacketHandler<WarpAcceptClientPack
         playerState.WarpSession = null;
     }
 
-    public Task HandleAsync(PlayerState playerState, object packet)
+    public Task HandleAsync(PlayerState playerState, IPacket packet)
     {
         return HandleAsync(playerState, (WarpAcceptClientPacket)packet);
     }

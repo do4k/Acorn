@@ -4,6 +4,7 @@ using Acorn.Options;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Protocol;
+using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
@@ -12,14 +13,21 @@ namespace Acorn.Net.PacketHandlers.Character;
 internal class CharacterCreateClientPacketHandler(
     IDbRepository<Database.Models.Character> repository,
     ILogger<CharacterCreateClientPacketHandler> logger,
-    IOptions<ServerOptions> gameOptions)
+    IOptions<ServerOptions> serverOptions)
     : IPacketHandler<CharacterCreateClientPacket>
 {
-    private readonly ServerOptions _serverOptions = gameOptions.Value;
+    private readonly ServerOptions _serverOptions = serverOptions.Value;
 
     public async Task HandleAsync(PlayerState playerState,
         CharacterCreateClientPacket packet)
     {
+        if (playerState.Account is null)
+        {
+            logger.LogWarning("PlayerState does not have an account associated with it. PlayerId: {PlayerId}",
+                playerState.SessionId);
+            return;
+        }
+        
         var characterQuery = await repository.GetByKeyAsync(packet.Name);
         var exists = characterQuery is not null;
 
@@ -37,13 +45,8 @@ internal class CharacterCreateClientPacketHandler(
         {
             Name = packet.Name,
             Race = packet.Skin,
-            Admin = packet.Name.ToLower() switch
-            {
-                "danzo" => AdminLevel.HighGameMaster,
-                _ => (int)AdminLevel.Player
-            },
-            Accounts_Username = playerState.Account?.Username ??
-                throw new InvalidOperationException("Cannot create a character without a user"),
+            Admin = AdminLevel.HighGameMaster,
+            Accounts_Username = playerState.Account.Username,
             Map = _serverOptions.NewCharacter.Map,
             X = _serverOptions.NewCharacter.X,
             Y = _serverOptions.NewCharacter.Y,
@@ -67,7 +70,7 @@ internal class CharacterCreateClientPacketHandler(
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, object packet)
+    public Task HandleAsync(PlayerState playerState, IPacket packet)
     {
         return HandleAsync(playerState, (CharacterCreateClientPacket)packet);
     }

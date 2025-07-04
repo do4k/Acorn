@@ -7,4 +7,6 @@ public class SLNOptions
     public required int PingRate { get; set; }
     public required string UserAgent { get; set; }
     public required string Zone { get; set; }
+    public required string ServerName { get; set; }
+    public required string Site { get; set; }
 }

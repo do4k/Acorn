@@ -1,4 +1,5 @@
-﻿using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
+﻿using Moffat.EndlessOnline.SDK.Protocol.Net;
+using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.Net.PacketHandlers.Character;
@@ -29,7 +30,7 @@ internal class CharacterRequestClientPacketHandler : IPacketHandler<CharacterReq
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, object packet)
+    public Task HandleAsync(PlayerState playerState, IPacket packet)
     {
         return HandleAsync(playerState, (CharacterRequestClientPacket)packet);
     }

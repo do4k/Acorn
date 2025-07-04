@@ -13,38 +13,32 @@ using Microsoft.Extensions.Options;
 namespace Acorn.Net;
 
 public class NewConnectionHostedService(
-    IServiceProvider services,
     ILogger<NewConnectionHostedService> logger,
-    ILogger<PlayerState> playerConnectionLogger,
     IStatsReporter statsReporter,
     WorldState worldState,
     IDbRepository<Character> characterRepository,
     ISessionGenerator sessionGenerator,
     IOptions<ServerOptions> serverOptions,
     TcpCommunicatorFactory tcpCommunicatorFactory,
-    WebSocketCommunicatorFactory webSocketCommunicatorFactory
-) : BackgroundService, IDisposable
+    WebSocketCommunicatorFactory webSocketCommunicatorFactory,
+    PlayerStateFactory playerStateFactory
+) : BackgroundService
 {
-    private readonly IDbRepository<Character> _characterRepository = characterRepository;
-    private readonly TcpListener _listener = new(IPAddress.Any, serverOptions.Value.Port);
-    private readonly ILogger<NewConnectionHostedService> _logger = logger;
-    private readonly ILogger<PlayerState> _playerConnectionLogger = playerConnectionLogger;
-    private readonly IServiceProvider _services = services;
-    private readonly IStatsReporter _statsReporter = statsReporter;
-    private readonly WorldState _world = worldState;
+    private readonly ServerOptions _serverOptions = serverOptions.Value;
+    private readonly TcpListener _listener = new(IPAddress.Any, serverOptions.Value.Hosting.Port);
 
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
-        await _statsReporter.Report();
+        await statsReporter.Report();
         _listener.Start();
 
         // Start WebSocket listener
         var wsListener = new HttpListener();
-        wsListener.Prefixes.Add($"http://*:{serverOptions.Value.WebSocketPort}/");
+        wsListener.Prefixes.Add($"http://*:{_serverOptions.Hosting.WebSocketPort}/");
         wsListener.Start();
 
-        _logger.LogInformation("Waiting for TCP on {Endpoint} and WebSocket on ws://*:{Port}...",
-            _listener.LocalEndpoint, serverOptions.Value.WebSocketPort);
+        logger.LogInformation("Waiting for TCP on {Endpoint} and WebSocket on ws://*:{Port}...",
+            _listener.LocalEndpoint, _serverOptions.Hosting.WebSocketPort);
 
         while (!cancellationToken.IsCancellationRequested)
         {
@@ -60,22 +54,11 @@ public class NewConnectionHostedService(
 
             var sessionId = sessionGenerator.Generate();
 
-            var playerState = new PlayerState(_services, communicator, _playerConnectionLogger, sessionId,
-                async (player) =>
-                {
-                    if (player.Character is not null && player.CurrentMap is not null)
-                    {
-                        await player.CurrentMap.NotifyLeave(player);
-                        await _characterRepository.UpdateAsync(player.Character);
-                    }
+            var playerState = playerStateFactory.CreatePlayerState(communicator, sessionId,
+                async (player) => await OnClientDisposed(player, sessionId));
 
-                    _world.Players.TryRemove(sessionId, out _);
-                    _logger.LogInformation("Player disconnected");
-                    UpdateConnectedCount();
-                });
-
-            var added = _world.Players.TryAdd(sessionId, playerState);
-            _logger.LogInformation("Connection accepted. {PlayersConnected} players connected", _world.Players.Count);
+            var added = worldState.Players.TryAdd(sessionId, playerState);
+            logger.LogInformation("Connection accepted. {PlayersConnected} players connected", worldState.Players.Count);
             UpdateConnectedCount();
         }
     }
@@ -88,7 +71,20 @@ public class NewConnectionHostedService(
 
     private void UpdateConnectedCount()
     {
-        Console.Title = $"Acorn Server ({_world.Players.Count} Connected)";
+        Console.Title = $"Acorn Server ({worldState.Players.Count} Connected)";
+    }
+
+    private async Task OnClientDisposed(PlayerState player, int sessionId)
+    {
+        if (player.Character is not null && player.CurrentMap is not null)
+        {
+            await player.CurrentMap.NotifyLeave(player);
+            await characterRepository.UpdateAsync(player.Character);
+        }
+
+        worldState.Players.TryRemove(sessionId, out _);
+        logger.LogInformation("Player disconnected");
+        UpdateConnectedCount();
     }
 
     public override void Dispose()

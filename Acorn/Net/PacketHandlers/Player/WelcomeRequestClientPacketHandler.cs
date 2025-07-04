@@ -3,6 +3,7 @@ using Acorn.Extensions;
 using Acorn.Infrastructure;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol;
+using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
@@ -120,7 +121,7 @@ internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequest
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, object packet)
+    public Task HandleAsync(PlayerState playerState, IPacket packet)
     {
         return HandleAsync(playerState, (WelcomeRequestClientPacket)packet);
     }

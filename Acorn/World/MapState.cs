@@ -117,32 +117,6 @@ public class MapState
 
         await Task.WhenAll(playerRemoveTask, avatarRemoveTask);
     }
-    /*
-     *             return !matches!(
-           tile,
-           MapTileSpec::NpcBoundary
-               | MapTileSpec::Wall
-               | MapTileSpec::ChairDown
-               | MapTileSpec::ChairLeft
-               | MapTileSpec::ChairRight
-               | MapTileSpec::ChairUp
-               | MapTileSpec::ChairDownRight
-               | MapTileSpec::ChairUpLeft
-               | MapTileSpec::ChairAll
-               | MapTileSpec::Chest
-               | MapTileSpec::BankVault
-               | MapTileSpec::Edge
-               | MapTileSpec::Board1
-               | MapTileSpec::Board2
-               | MapTileSpec::Board3
-               | MapTileSpec::Board4
-               | MapTileSpec::Board5
-               | MapTileSpec::Board6
-               | MapTileSpec::Board7
-               | MapTileSpec::Board8
-               | MapTileSpec::Jukebox
-       );
-     */
 
     public bool IsNpcWalkable(MapTileSpec tileSpec)
         => tileSpec switch
@@ -167,6 +141,7 @@ public class MapState
             or MapTileSpec.Board7
             or MapTileSpec.Board8
             or MapTileSpec.Jukebox
+            or MapTileSpec.NpcBoundary
             => false,
             _ => true
         };
@@ -181,32 +156,53 @@ public class MapState
 
         var newPositions = Npcs.Select(npc =>
         {
-            npc.Direction = (Direction)random.Next(0, 4);
-            var nextCoords = npc.NextCoords();
+            var newDirection = (Direction)random.Next(0, 4);
+            var nextCoords = npc.NextCoords(newDirection);
+            if (nextCoords.X < 0 || nextCoords.Y < 0)
+            {
+                return null;
+            }
+            
+            if (Players.Any(x => x.Character?.AsCoords().Equals(nextCoords) == true))
+            {
+                return null;
+            }
+
+            if (Npcs.Any(x => x.AsCoords().Equals(nextCoords)))
+            {
+                return null;
+            }
+            
             var row = Data.TileSpecRows.Where(x => x.Y == nextCoords.Y).ToList();
             if (row.Count == 0)
             {
-                return npc;
+                return null;
             }
             var tile = row.SelectMany(x => x.Tiles)
                 .FirstOrDefault(x => x.X == nextCoords.X);
 
-            if (tile is not null && IsNpcWalkable(tile.TileSpec) is false)
+            if (tile is not null)
             {
-                return npc;
+                if (IsNpcWalkable(tile.TileSpec) is false)
+                {
+                    return null;
+                }
             }
 
             npc.X = nextCoords.X;
             npc.Y = nextCoords.Y;
+            npc.Direction = newDirection;
             return npc;
-        });
+        }).ToList();
 
-        var npcUpdates = newPositions.Select((x, id) => new NpcUpdatePosition
+        var npcUpdates = newPositions
+            .Where(newPosition => newPosition is not null)
+            .Select((x, id) => new NpcUpdatePosition
         {
             NpcIndex = id,
             Coords = new Coords
             {
-                X = x.X,
+                X = x!.X,
                 Y = x.Y
             },
             Direction = x.Direction

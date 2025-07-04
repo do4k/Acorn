@@ -236,40 +236,40 @@ OR REPLACE INTO Characters
 )
 VALUES 
 (
-    'acorn',
-    'acorn',
-    'acorn',
-    'acorn',
-    '',
-    '',
-    5,
-    1,
-    0,
-    5,
-    1,
-    1,
-    1,
-    5,
-    5,
-    0,
-    100,
-    0,
-    100,
-    100,
-    10,
-    10,
-    10,
-    10,
-    10,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    100,
-    10,
-    0
+    'acorn', --Accounts_Username
+    'acorn', --Name
+    'acorn', --Title
+    'acorn', --Home
+    '', --Fiance
+    '', --Partner
+    5, --Admin
+    1, --Class
+    1, --Gender
+    5, --Race
+    1, --HairStyle
+    1, --HairColor
+    192, --Map
+    6, --X
+    6, --Y
+    0, --Direction
+    100, --Level
+    0, --Exp
+    100, --Hp
+    100, --Tp
+    10, --Str
+    10, --Wis
+    10, --Agi
+    10, --Con
+    10, --Cha
+    0, --StatPoints
+    0, --SkillPoints
+    0, --Karma
+    0, --SitState
+    0, --Hidden
+    0, --NoInteract
+    100, --BankMax
+    10, --GoldBank
+    0 --Usage
 );
 
 CREATE TABLE IF NOT EXISTS Inventory

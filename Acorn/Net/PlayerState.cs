@@ -19,14 +19,14 @@ public class PlayerState : IDisposable
 {
     private readonly Action<PlayerState> _onDispose;
     private readonly PacketResolver _resolver = new("Moffat.EndlessOnline.SDK.Protocol.Net.Client");
-    private readonly IServiceProvider _serviceProvider;
     private readonly PingSequenceStart _upcomingSequence;
     private readonly ILogger<PlayerState> _logger;
     private readonly CancellationTokenSource _tokenSource = new();
     private readonly CancellationToken _cancellationToken;
+    private readonly IEnumerable<IPacketHandler> _handlers;
 
     public PlayerState(
-        IServiceProvider services,
+        IEnumerable<IPacketHandler> handlers,
         ICommunicator communicator,
         ILogger<PlayerState> logger,
         int sessionId,
@@ -38,7 +38,7 @@ public class PlayerState : IDisposable
         _upcomingSequence = PingSequenceStart.Generate(Rnd);
         _logger.LogInformation("New client connected from {Location}", communicator.GetConnectionOrigin());
         _onDispose = onDispose;
-        _serviceProvider = services;
+        _handlers = handlers;
         SessionId = sessionId;
         StartSequence = InitSequenceStart.Generate(Rnd);
         Communicator = communicator;
@@ -106,13 +106,14 @@ public class PlayerState : IDisposable
                 _logger.LogDebug("[Client] {Packet}", packet.ToString());
 
                 var handlerType = typeof(IPacketHandler<>).MakeGenericType(packet.GetType());
-                if (_serviceProvider.GetService(handlerType) is not IHandler handler)
+                var resolvedHandler = _handlers.FirstOrDefault(h => handlerType.IsInstanceOfType(h));
+                if (resolvedHandler is null)
                 {
                     _logger.LogError("Handler not registered for packet of type {PacketType} Exiting...", packet.GetType());
                     break;
                 }
 
-                await handler.HandleAsync(this, packet);
+                await resolvedHandler.HandleAsync(this, packet);
             }
             catch (Exception e)
             {

@@ -1,4 +1,5 @@
-﻿using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
+﻿using Moffat.EndlessOnline.SDK.Protocol.Net;
+using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 
 namespace Acorn.Net.PacketHandlers.Player;
 
@@ -10,7 +11,7 @@ internal class GlobalCloseClientPacketHandler : IPacketHandler<GlobalCloseClient
         return Task.CompletedTask;
     }
 
-    public Task HandleAsync(PlayerState playerState, object packet)
+    public Task HandleAsync(PlayerState playerState, IPacket packet)
     {
         return HandleAsync(playerState, (GlobalCloseClientPacket)packet);
     }

@@ -12,7 +12,9 @@ public class WorldState
     public ConcurrentDictionary<int, PlayerState> Players = [];
     private readonly ILogger<WorldState> _logger;
 
-    public WorldState(IDataFileRepository dataRepository, ILogger<WorldState> logger)
+    public WorldState(
+        IDataFileRepository dataRepository, 
+        ILogger<WorldState> logger)
     {
         _logger = logger;
         foreach (var map in dataRepository.Maps)

@@ -1,34 +1,27 @@
 ﻿using Acorn.Database.Repository;
 using Moffat.EndlessOnline.SDK.Data;
+using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.Net.PacketHandlers.Player;
 
-public class WelcomeAgreeClientPacketHandler : IPacketHandler<WelcomeAgreeClientPacket>
+public class WelcomeAgreeClientPacketHandler(IDataFileRepository dataRepository)
+    : IPacketHandler<WelcomeAgreeClientPacket>
 {
-    private readonly IDataFileRepository _dataRepository;
-
-    public WelcomeAgreeClientPacketHandler(
-        IDataFileRepository dataRepository
-    )
-    {
-        _dataRepository = dataRepository;
-    }
-
     public async Task HandleAsync(PlayerState playerState,
         WelcomeAgreeClientPacket packet)
     {
         var eoWriter = new EoWriter();
         Action serialise = packet.FileType switch
         {
-            FileType.Eif => () => _dataRepository.Eif.Serialize(eoWriter),
-            FileType.Esf => () => _dataRepository.Esf.Serialize(eoWriter),
-            FileType.Enf => () => _dataRepository.Enf.Serialize(eoWriter),
-            FileType.Ecf => () => _dataRepository.Ecf.Serialize(eoWriter),
+            FileType.Eif => () => dataRepository.Eif.Serialize(eoWriter),
+            FileType.Esf => () => dataRepository.Esf.Serialize(eoWriter),
+            FileType.Enf => () => dataRepository.Enf.Serialize(eoWriter),
+            FileType.Ecf => () => dataRepository.Ecf.Serialize(eoWriter),
             FileType.Emf => () =>
             {
-                var map = _dataRepository.Maps.FirstOrDefault(map => map.Id == playerState.Character?.Map)?.Map ??
+                var map = dataRepository.Maps.FirstOrDefault(map => map.Id == playerState.Character?.Map)?.Map ??
                           throw new ArgumentOutOfRangeException(
                               $"Could not find map {playerState.Character?.Map} for character {playerState.Character?.Name}");
 
@@ -98,7 +91,7 @@ public class WelcomeAgreeClientPacketHandler : IPacketHandler<WelcomeAgreeClient
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, object packet)
+    public Task HandleAsync(PlayerState playerState, IPacket packet)
     {
         return HandleAsync(playerState, (WelcomeAgreeClientPacket)packet);
     }

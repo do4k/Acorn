@@ -1,6 +1,8 @@
 ﻿using System.Timers;
+using Acorn.Options;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace Acorn.World;
 
@@ -9,10 +11,10 @@ internal class WorldHostedService : IHostedService
     private readonly WorldState _world;
     private readonly System.Timers.Timer _timer;
 
-    public WorldHostedService(IConfiguration configuration, WorldState world)
+    public WorldHostedService(IOptions<ServerOptions> options, WorldState world)
     {
         _world = world;
-        _timer = new(1000);
+        _timer = new(options.Value.TickRate);
         _timer.Elapsed += Tick!;
     }
 

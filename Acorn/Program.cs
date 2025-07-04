@@ -71,24 +71,20 @@ await Host.CreateDefaultBuilder(args)
             .AddHostedService<NewConnectionHostedService>()
             .AddHostedService<WorldHostedService>()
             .AddSingleton<WorldState>()
-            .AddAllOfType(typeof(IPacketHandler<>))
             .AddAllOfType<ITalkHandler>()
+            .AddPacketHandlers()
             .AddRepositories()
             .AddSingleton<WebSocketCommunicatorFactory>()
-            .AddSingleton<TcpCommunicatorFactory>();
-
-        var slnOptions = services.BuildServiceProvider().GetService<IOptions<SLNOptions>>();
-        if (slnOptions?.Value.Enabled ?? false)
-        {
-            services
+            .AddSingleton<TcpCommunicatorFactory>()
+            .AddSingleton<PlayerStateFactory>()
             .AddHostedService<ServerLinkNetworkPingHostedService>()
             .AddRefitClient<IServerLinkNetworkClient>()
-            .ConfigureHttpClient(c =>
+            .ConfigureHttpClient((svc, c) =>
             {
-                c.BaseAddress = new Uri(slnOptions.Value.Url);
-                c.DefaultRequestHeaders.Add("User-Agent", slnOptions.Value.UserAgent);
+                var slnOptions = svc.GetRequiredService<IOptions<ServerOptions>>().Value.Hosting.SLN;
+                c.BaseAddress = new Uri(slnOptions.Url);
+                c.DefaultRequestHeaders.Add("User-Agent", slnOptions.UserAgent);
             });
-        }
     })
     .ConfigureLogging(builder =>
     {
