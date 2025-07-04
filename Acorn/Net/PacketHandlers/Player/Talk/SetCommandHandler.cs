@@ -30,7 +30,7 @@ public class SetCommandHandler : ITalkHandler
             _world.NpcDirection = (Direction)int.Parse(args[1]);
             return;
         }
-        
+
         if (args.Length < 3)
         {
             await playerState.ServerMessage(Usage);
@@ -95,8 +95,8 @@ public class SetCommandHandler : ITalkHandler
             "hairstyle" => () => target.Character.HairStyle = value,
             _ => () => throw new ArgumentException($"Unknown attribute: {args[1]}. {Usage}")
         };
-        
-        try 
+
+        try
         {
             adjustment();
             await playerState.ServerMessage($"Player {args[0]} had {args[1]} updated to {value}.");

@@ -76,7 +76,7 @@ public class Character
                 Armlet2 = items.Length > 14 && int.TryParse(items[14], out var armlet2Id) ? armlet2Id : 0
             };
         }
-        
+
         ConcurrentBag<ItemWithAmount> GetItemsWithAmount(string? s)
         {
             if (string.IsNullOrEmpty(s))
@@ -95,7 +95,7 @@ public class Character
                     };
                 }).ToList());
         }
-        
+
         return new Game.Models.Character
         {
             Accounts_Username = Accounts_Username,

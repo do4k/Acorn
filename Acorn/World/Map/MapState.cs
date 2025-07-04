@@ -23,7 +23,7 @@ public class MapState
         Data = data.Map;
         _logger = logger;
         _world = world;
-        
+
         var mapNpcs = data.Map.Npcs.SelectMany(mapNpc => Enumerable.Range(0, mapNpc.Amount).Select(_ => mapNpc));
         foreach (var npc in mapNpcs)
         {
@@ -172,7 +172,7 @@ public class MapState
                 },
                 Moved = x.Item2
             }).ToList();
-        
+
         tasks.Add(BroadcastPacket(new NpcPlayerServerPacket
         {
             Positions = npcUpdates.Where(x => x.Moved).Select(x => x.Position).ToList()
@@ -212,7 +212,7 @@ public class MapState
         {
             return (npc, false);
         }
-            
+
         if (Players.Any(x => x.Character?.AsCoords().Equals(nextCoords) == true))
         {
             return (npc, false);
@@ -222,7 +222,7 @@ public class MapState
         {
             return (npc, false);
         }
-            
+
         var row = Data.TileSpecRows.Where(x => x.Y == nextCoords.Y).ToList();
         var tile = row.SelectMany(x => x.Tiles)
             .FirstOrDefault(x => x.X == nextCoords.X);

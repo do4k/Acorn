@@ -50,43 +50,43 @@ internal static class IocRegistrations
 
     public static IServiceCollection AddPacketHandlers(this IServiceCollection services)
     {
-            void AddPacketHandler<TPacket, THandler>()
-                where TPacket : IPacket
-                where THandler : class, IPacketHandler<TPacket>, IPacketHandler
-            {
-                services.AddTransient<IPacketHandler<TPacket>, THandler>();
-                services.AddTransient<IPacketHandler, THandler>(sp => (THandler)sp.GetRequiredService<IPacketHandler<TPacket>>());
-            }
+        void AddPacketHandler<TPacket, THandler>()
+            where TPacket : IPacket
+            where THandler : class, IPacketHandler<TPacket>, IPacketHandler
+        {
+            services.AddTransient<IPacketHandler<TPacket>, THandler>();
+            services.AddTransient<IPacketHandler, THandler>(sp => (THandler)sp.GetRequiredService<IPacketHandler<TPacket>>());
+        }
 
-            AddPacketHandler<AccountCreateClientPacket, AccountCreateClientPacketHandler>();
-            AddPacketHandler<AccountRequestClientPacket, AccountRequestClientPacketHandler>();
-            AddPacketHandler<LoginRequestClientPacket, LoginRequestClientPacketHandler>();
-            AddPacketHandler<CharacterCreateClientPacket, CharacterCreateClientPacketHandler>();
-            AddPacketHandler<CharacterRequestClientPacket, CharacterRequestClientPacketHandler>();
-            AddPacketHandler<NpcRangeRequestClientPacket, NpcRangeRequestClientPacketHandler>();
-            AddPacketHandler<WarpAcceptClientPacket, WarpAcceptClientPacketHandler>();
-            AddPacketHandler<WarpTakeClientPacket, WarpTakeClientPacketHandler>();
-            AddPacketHandler<TalkAnnounceClientPacket, TalkAnnounceClientPacketHandler>();
-            AddPacketHandler<TalkMsgClientPacket, TalkMsgClientPacketHandler>();
-            AddPacketHandler<TalkReportClientPacket, TalkReportClientPacketHandler>();
-            AddPacketHandler<AttackUseClientPacket, AttackUseClientPacketHandler>();
-            AddPacketHandler<ConnectionAcceptClientPacket, ConnectionAcceptClientPacketHandler>();
-            AddPacketHandler<ConnectionPingClientPacket, ConnectionPingClientPacketHandler>();
-            AddPacketHandler<DoorOpenClientPacket, DoorOpenClientPacketHandler>();
-            AddPacketHandler<GlobalCloseClientPacket, GlobalCloseClientPacketHandler>();
-            AddPacketHandler<GlobalOpenClientPacket, GlobalOpenClientPacketHandler>();
-            AddPacketHandler<InitInitClientPacket, InitInitClientPacketHandler>();
-            AddPacketHandler<PaperdollRequestClientPacket, PaperdollRequestClientPacketHandler>();
-            AddPacketHandler<PlayerRangeRequestClientPacket, PlayerRangeRequestClientPacketHandler>();
-            AddPacketHandler<PlayersRequestClientPacket, PlayersRequestClientPacketHandler>();
-            AddPacketHandler<RefreshRequestClientPacket, RefreshRequestClientPacketHandler>();
-            AddPacketHandler<WalkAdminClientPacket, WalkAdminClientPacketHandler>();
-            AddPacketHandler<WalkPlayerClientPacket, WalkPlayerClientPacketHandler>();
-            AddPacketHandler<WelcomeAgreeClientPacket, WelcomeAgreeClientPacketHandler>();
-            AddPacketHandler<WelcomeMsgClientPacket, WelcomeMsgClientPacketHandler>();
-            AddPacketHandler<WelcomeRequestClientPacket, WelcomeRequestClientPacketHandler>();
-            AddPacketHandler<FacePlayerClientPacket, FacePlayerClientPacketHandler>();
-            return services;
+        AddPacketHandler<AccountCreateClientPacket, AccountCreateClientPacketHandler>();
+        AddPacketHandler<AccountRequestClientPacket, AccountRequestClientPacketHandler>();
+        AddPacketHandler<LoginRequestClientPacket, LoginRequestClientPacketHandler>();
+        AddPacketHandler<CharacterCreateClientPacket, CharacterCreateClientPacketHandler>();
+        AddPacketHandler<CharacterRequestClientPacket, CharacterRequestClientPacketHandler>();
+        AddPacketHandler<NpcRangeRequestClientPacket, NpcRangeRequestClientPacketHandler>();
+        AddPacketHandler<WarpAcceptClientPacket, WarpAcceptClientPacketHandler>();
+        AddPacketHandler<WarpTakeClientPacket, WarpTakeClientPacketHandler>();
+        AddPacketHandler<TalkAnnounceClientPacket, TalkAnnounceClientPacketHandler>();
+        AddPacketHandler<TalkMsgClientPacket, TalkMsgClientPacketHandler>();
+        AddPacketHandler<TalkReportClientPacket, TalkReportClientPacketHandler>();
+        AddPacketHandler<AttackUseClientPacket, AttackUseClientPacketHandler>();
+        AddPacketHandler<ConnectionAcceptClientPacket, ConnectionAcceptClientPacketHandler>();
+        AddPacketHandler<ConnectionPingClientPacket, ConnectionPingClientPacketHandler>();
+        AddPacketHandler<DoorOpenClientPacket, DoorOpenClientPacketHandler>();
+        AddPacketHandler<GlobalCloseClientPacket, GlobalCloseClientPacketHandler>();
+        AddPacketHandler<GlobalOpenClientPacket, GlobalOpenClientPacketHandler>();
+        AddPacketHandler<InitInitClientPacket, InitInitClientPacketHandler>();
+        AddPacketHandler<PaperdollRequestClientPacket, PaperdollRequestClientPacketHandler>();
+        AddPacketHandler<PlayerRangeRequestClientPacket, PlayerRangeRequestClientPacketHandler>();
+        AddPacketHandler<PlayersRequestClientPacket, PlayersRequestClientPacketHandler>();
+        AddPacketHandler<RefreshRequestClientPacket, RefreshRequestClientPacketHandler>();
+        AddPacketHandler<WalkAdminClientPacket, WalkAdminClientPacketHandler>();
+        AddPacketHandler<WalkPlayerClientPacket, WalkPlayerClientPacketHandler>();
+        AddPacketHandler<WelcomeAgreeClientPacket, WelcomeAgreeClientPacketHandler>();
+        AddPacketHandler<WelcomeMsgClientPacket, WelcomeMsgClientPacketHandler>();
+        AddPacketHandler<WelcomeRequestClientPacket, WelcomeRequestClientPacketHandler>();
+        AddPacketHandler<FacePlayerClientPacket, FacePlayerClientPacketHandler>();
+        return services;
     }
 }
 

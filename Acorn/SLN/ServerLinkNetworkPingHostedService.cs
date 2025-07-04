@@ -22,7 +22,7 @@ public class ServerLinkNetworkPingHostedService(
         {
             return;
         }
-        
+
         logger.LogDebug("Starting ServerLinkNetworkPingHostedService");
         var timer = new PeriodicTimer(TimeSpan.FromMinutes(_slnOptions.PingRate));
         while (cancellationToken.IsCancellationRequested is false)
@@ -66,13 +66,13 @@ public class ServerLinkNetworkPingHostedService(
             logger.LogInformation("SLN PingRate is set to {PingRate}, not starting SLN ping service", _slnOptions.PingRate);
             return false;
         }
-        
+
         if (string.IsNullOrEmpty(_slnOptions.ServerName) || string.IsNullOrEmpty(_slnOptions.Site) || string.IsNullOrEmpty(_slnOptions.Zone))
         {
             logger.LogInformation("SLN ServerName, Site or Zone is not set, not starting SLN ping service");
             return false;
         }
-        
+
         if (_slnOptions.Enabled is false)
         {
             logger.LogInformation("SLN is disabled, not starting SLN ping service");

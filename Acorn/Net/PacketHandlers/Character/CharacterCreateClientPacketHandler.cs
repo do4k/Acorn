@@ -27,7 +27,7 @@ internal class CharacterCreateClientPacketHandler(
                 playerState.SessionId);
             return;
         }
-        
+
         var characterQuery = await repository.GetByKeyAsync(packet.Name);
         var exists = characterQuery is not null;
 
