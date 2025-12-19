@@ -11,9 +11,9 @@ namespace Acorn.Game.Mappers;
 /// </summary>
 public class CharacterMapper : ICharacterMapper
 {
-    public Database.Models.Character ToDatabase(GameCharacter character)
+    public Character ToDatabase(GameCharacter character)
     {
-        return new Database.Models.Character
+        return new Character
         {
             Accounts_Username = character.Accounts_Username,
             Name = character.Name,
@@ -98,7 +98,7 @@ public class CharacterMapper : ICharacterMapper
     {
         var inventoryItems = dbCharacter.Items?
             .Where(i => i.Slot == 0)
-            .Select(i => new ItemWithAmount { Id = i.ItemId, Amount = i.Amount }) 
+            .Select(i => new ItemWithAmount { Id = i.ItemId, Amount = i.Amount })
             ?? Enumerable.Empty<ItemWithAmount>();
 
         var bankItems = dbCharacter.Items?

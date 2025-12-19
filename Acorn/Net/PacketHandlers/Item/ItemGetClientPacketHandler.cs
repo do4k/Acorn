@@ -27,7 +27,7 @@ public class ItemGetClientPacketHandler(
 
         // Use map item service for pickup logic
         var result = await mapItemService.TryPickupItem(player, player.CurrentMap, packet.ItemIndex);
-        
+
         if (result.Success)
         {
             // Save character inventory to database

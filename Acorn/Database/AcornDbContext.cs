@@ -8,7 +8,7 @@ public class AcornDbContext : DbContext
 {
     private readonly DatabaseOptions _options;
 
-    public AcornDbContext(DbContextOptions<AcornDbContext> options, IOptions<DatabaseOptions> dbOptions) 
+    public AcornDbContext(DbContextOptions<AcornDbContext> options, IOptions<DatabaseOptions> dbOptions)
         : base(options)
     {
         _options = dbOptions.Value;
@@ -59,19 +59,19 @@ public class AcornDbContext : DbContext
             entity.Property(e => e.Class).IsRequired();
             entity.Property(e => e.Gender).IsRequired();
             entity.Property(e => e.Race).IsRequired();
-            
+
             // Configure relationships
             entity.HasMany(e => e.Items)
                 .WithOne(i => i.Character)
                 .HasForeignKey(i => i.CharacterName)
                 .OnDelete(DeleteBehavior.Cascade);
-                
+
             entity.HasOne(e => e.Paperdoll)
                 .WithOne(p => p.Character)
                 .HasForeignKey<CharacterPaperdoll>(p => p.CharacterName)
                 .OnDelete(DeleteBehavior.Cascade);
         });
-        
+
         // Configure CharacterItem entity
         modelBuilder.Entity<CharacterItem>(entity =>
         {
@@ -80,11 +80,11 @@ public class AcornDbContext : DbContext
             entity.Property(e => e.ItemId).IsRequired();
             entity.Property(e => e.Amount).IsRequired();
             entity.Property(e => e.Slot).IsRequired();
-            
+
             // Create index for faster queries
             entity.HasIndex(e => new { e.CharacterName, e.Slot });
         });
-        
+
         // Configure CharacterPaperdoll entity
         modelBuilder.Entity<CharacterPaperdoll>(entity =>
         {

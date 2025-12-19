@@ -27,7 +27,7 @@ public class MapState
 {
     private readonly ILogger<MapState> _logger;
     private readonly IDataFileRepository _dataRepository;
-    
+
     // Settings - should come from configuration
     private const int DROP_DISTANCE = 2;
     private const int DROP_PROTECT_TICKS = 300; // ~3 seconds at 10 ticks/sec
@@ -176,7 +176,7 @@ public class MapState
         };
 
     // Map utility methods
-    
+
     public MapTileSpec? GetTile(Coords coords)
     {
         var row = Data.TileSpecRows.FirstOrDefault(r => r.Y == coords.Y);
@@ -193,7 +193,7 @@ public class MapState
 
     public bool IsTileOccupied(Coords coords)
     {
-        return Players.Any(p => p.Character != null && !p.Character.Hidden && 
+        return Players.Any(p => p.Character != null && !p.Character.Hidden &&
                                 p.Character.X == coords.X && p.Character.Y == coords.Y)
             || Npcs.Any(n => n.X == coords.X && n.Y == coords.Y);
     }
@@ -352,7 +352,7 @@ public class MapState
                     npc.Hp = npc.Data.Hp;
                     npc.X = npc.SpawnX;
                     npc.Y = npc.SpawnY;
-                    
+
                     _logger.LogInformation("NPC {NpcName} (ID: {NpcId}) respawned at ({X}, {Y})",
                         npc.Data.Name, npc.Id, npc.X, npc.Y);
 
@@ -370,7 +370,7 @@ public class MapState
         }
 
         List<Task> tasks = new();
-        
+
         // Only move NPCs that are alive
         var aliveNpcs = Npcs.Where(n => !n.IsDead).ToList();
         var newPositions = aliveNpcs.Select(MoveNpc).ToList();
@@ -432,7 +432,7 @@ public class MapState
         // Get next direction based on NPC behavior
         var newDirection = npc.GetNextDirection();
         var nextCoords = npc.NextCoords(newDirection);
-        
+
         // Boundary check
         if (nextCoords.X < 0 || nextCoords.Y < 0 || nextCoords.X > Data.Width || nextCoords.Y > Data.Height)
         {

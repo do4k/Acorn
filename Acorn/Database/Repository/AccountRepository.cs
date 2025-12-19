@@ -53,7 +53,7 @@ public class AccountRepository : IDbRepository<Account>
             var account = await _context.Accounts
                 .Include(a => a.Characters)
                 .FirstOrDefaultAsync(a => a.Username == username);
-            
+
             if (account is null)
             {
                 _logger.LogWarning("Account {Username} not found", username);

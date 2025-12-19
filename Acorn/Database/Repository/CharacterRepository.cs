@@ -60,7 +60,7 @@ public class CharacterRepository : IDbRepository<Character>
                 _logger.LogInformation("Character {Character} not found", name);
                 return null;
             }
-            
+
             return character;
         }
         catch (Exception e)

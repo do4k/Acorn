@@ -35,10 +35,10 @@ public class ItemJunkClientPacketHandler(
         {
             logger.LogInformation("Player {Character} junked item {ItemId} x{Amount}",
                 player.Character.Name, packet.Item.Id, packet.Item.Amount);
-            
+
             // TODO: Send ItemJunk packet to player with updated inventory
             // await player.Send(new ItemJunkServerPacket { ... });
-            
+
             // Save character inventory to database
             await characterRepository.UpdateAsync(characterMapper.ToDatabase(player.Character));
         }

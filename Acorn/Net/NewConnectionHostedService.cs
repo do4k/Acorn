@@ -96,13 +96,13 @@ public class NewConnectionHostedService(
     {
         _listener.Stop();
         _listener.Dispose();
-        
+
         if (_wsListener != null)
         {
             _wsListener.Stop();
             _wsListener.Close();
         }
-        
+
         base.Dispose();
     }
 }

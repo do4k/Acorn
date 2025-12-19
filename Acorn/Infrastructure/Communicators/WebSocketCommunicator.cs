@@ -124,7 +124,7 @@ public class WebSocketStream : Stream
         try
         {
             var result = await _webSocket.ReceiveAsync(new ArraySegment<byte>(_receiveBuffer), cancellationToken);
-            
+
             if (result.MessageType == WebSocketMessageType.Close)
             {
                 return 0; // End of stream
@@ -135,7 +135,7 @@ public class WebSocketStream : Stream
             _buffer.Position = 0;
             _buffer.Write(_receiveBuffer, 0, result.Count);
             _buffer.Position = 0;
-            
+
             return _buffer.Read(buffer, offset, count);
         }
         catch (WebSocketException)

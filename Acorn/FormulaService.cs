@@ -69,7 +69,7 @@ public class FormulaService
     {
         // EOSERV formula: base_exp * (npc_level / char_level) with level difference modifiers
         int baseExp = npcLevel * 10;
-        
+
         int levelDiff = npcLevel - characterLevel;
         double modifier = levelDiff switch
         {
@@ -92,9 +92,9 @@ public class FormulaService
 
         // EOSERV: base accuracy from Agi + class bonus + level
         int accuracy = character.Agi / 2 + @class.Agi / 4 + character.Level;
-        
+
         // TODO: Add weapon accuracy bonus
-        
+
         return accuracy;
     }
 
@@ -105,9 +105,9 @@ public class FormulaService
 
         // EOSERV: base evade from Agi + class bonus
         int evade = character.Agi / 2 + @class.Agi / 4;
-        
+
         // TODO: Add armor evade bonus
-        
+
         return evade;
     }
 
@@ -118,7 +118,7 @@ public class FormulaService
 
         // Base armor from Con
         int armor = character.Con / 4;
-        
+
         // Add equipment armor
         if (character.Paperdoll.Armor > 0)
         {
@@ -128,7 +128,7 @@ public class FormulaService
                 armor += armorItem.Hp; // Armor value is stored in HP field for armor items
             }
         }
-        
+
         return armor;
     }
 
@@ -164,7 +164,7 @@ public class FormulaService
 
         // Increment level
         character.Level++;
-        
+
         // Deduct experience for this level
         int requiredExp = GetExperienceToNextLevel(character.Level - 1);
         character.Exp -= requiredExp;

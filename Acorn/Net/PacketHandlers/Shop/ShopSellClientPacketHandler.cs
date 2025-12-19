@@ -38,7 +38,7 @@ public class ShopSellClientPacketHandler(
         // TODO: Add gold to inventory: inventoryService.TryAddItem(player.Character, goldItemId, sellValue)
         // TODO: Send ShopSell server packet with updated inventory and gold
         // TODO: Update character in database: await characterRepository.UpdateAsync(characterMapper.ToDatabase(player.Character));
-        
+
         await Task.CompletedTask;
     }
 

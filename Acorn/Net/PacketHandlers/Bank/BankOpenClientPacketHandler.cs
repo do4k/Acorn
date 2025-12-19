@@ -24,7 +24,7 @@ public class BankOpenClientPacketHandler(ILogger<BankOpenClientPacketHandler> lo
         //       - Bank items: player.Character.Bank.Items
         //       - Bank capacity: player.Character.BankMax
         //       - Gold in bank: player.Character.GoldBank
-        
+
         await Task.CompletedTask;
     }
 

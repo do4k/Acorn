@@ -68,11 +68,11 @@ public class StatCalculator : IStatCalculator
         // Calculate Accuracy (Agi-based + class bonus + level)
         character.Accuracy = (adjAgi / 2) + (@class.Agi / 4) + character.Level;
         // TODO: Add weapon accuracy bonus
-        
+
         // Calculate Evade (Agi-based + class bonus)
         character.Evade = (adjAgi / 2) + (@class.Agi / 4);
         // TODO: Add armor evade bonus
-        
+
         // Calculate Armor (Con-based)
         character.Armor = adjCon / 4;
         // TODO: Add equipment armor bonuses

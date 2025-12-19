@@ -24,10 +24,10 @@ public class ItemDropClientPacketHandler(
 
         // Convert ByteCoords to Coords
         var coords = new Moffat.EndlessOnline.SDK.Protocol.Coords { X = packet.Coords.X, Y = packet.Coords.Y };
-        
+
         // Use map item service for drop logic
         var result = await mapItemService.TryDropItem(player, player.CurrentMap, packet.Item.Id, packet.Item.Amount, coords);
-        
+
         // Save character inventory to database if successful
         if (result.Success)
         {

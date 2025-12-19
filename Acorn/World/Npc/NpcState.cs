@@ -10,7 +10,7 @@ public class NpcState
 {
     private static readonly Random _random = new Random();
     private static readonly Direction[] _directions = Enum.GetValues<Direction>();
-    
+
     public NpcState(EnfRecord data)
     {
         Data = data;
@@ -75,7 +75,7 @@ public class NpcState
         {
             return _random.Next(100) < 40 ? NpcBehaviorType.Stationary : NpcBehaviorType.Patrol;
         }
-        
+
         // Boss NPCs (very high HP) are more likely to patrol
         if (data.Hp > 1000)
         {
@@ -99,7 +99,7 @@ public class NpcState
     public Direction GetNextDirection()
     {
         var timeSinceLastChange = DateTime.UtcNow - LastDirectionChange;
-        
+
         switch (BehaviorType)
         {
             case NpcBehaviorType.Stationary:

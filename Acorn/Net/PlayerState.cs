@@ -75,7 +75,7 @@ public class PlayerState : IDisposable
         {
             _logger.LogInformation("Player disconnected: {Reason}", _disconnectReason);
         }
-        
+
         _onDispose(this);
         // Fire and forget close - we're already in synchronous Dispose
         _ = Communicator.CloseAsync(_cancellationToken);
@@ -107,7 +107,7 @@ public class PlayerState : IDisposable
 
                 var decodedLength = NumberEncoder.DecodeNumber([len1, len2]);
                 _logger.LogDebug("Len1 {Len1}, Len2 {Len2}, Decoded length {DecodedLength}", len1, len2, decodedLength);
-                
+
                 if (decodedLength <= 0 || decodedLength > 65535)
                 {
                     CloseWithReason($"Invalid packet length: {decodedLength}");

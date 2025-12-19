@@ -28,7 +28,7 @@ public class ChairRequestClientPacketHandler(ILogger<ChairRequestClientPacketHan
                     await player.CurrentMap.SitInChair(player, sitData.Coords);
                 }
                 break;
-            
+
             case SitAction.Stand:
                 await player.CurrentMap.StandFromChair(player);
                 break;

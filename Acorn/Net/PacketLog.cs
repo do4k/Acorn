@@ -32,14 +32,14 @@ public class PacketLog
     /// </summary>
     public bool ShouldRateLimit(PacketAction action, PacketFamily family)
     {
-        var rateLimit = _rateLimits.FirstOrDefault(l => 
+        var rateLimit = _rateLimits.FirstOrDefault(l =>
             l.Action == action && l.Family == family);
 
         if (rateLimit == null)
             return false; // No rate limit for this packet type
 
         var key = new PacketKey(action, family);
-        
+
         if (!_lastProcessed.TryGetValue(key, out var lastProcessed))
             return false; // First time seeing this packet
 

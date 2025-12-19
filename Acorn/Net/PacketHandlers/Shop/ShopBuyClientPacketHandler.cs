@@ -31,7 +31,7 @@ public class ShopBuyClientPacketHandler(
         // TODO: Add purchased item: player.Character.AddItem(packet.BuyItem.Id, packet.BuyItem.Amount)
         // TODO: Send ShopBuy server packet with updated inventory and gold
         // TODO: Update character in database: await characterRepository.UpdateAsync(player.Character.AsDatabaseModel());
-        
+
         await Task.CompletedTask;
     }
 

@@ -21,25 +21,25 @@ public class WorldStateQueries : IWorldQueries
 
     public IDataFileRepository DataRepository => _dataRepository;
 
-    public MapState? FindMap(int mapId) 
+    public MapState? FindMap(int mapId)
         => _world.MapForId(mapId);
 
-    public IEnumerable<PlayerState> GetPlayersInMap(int mapId) 
+    public IEnumerable<PlayerState> GetPlayersInMap(int mapId)
         => _world.Players.Values.Where(p => p.Character?.Map == mapId);
 
-    public IEnumerable<PlayerState> GetAllPlayers() 
+    public IEnumerable<PlayerState> GetAllPlayers()
         => _world.Players.Values;
 
     public IEnumerable<PlayerState> GetGlobalChatListeners()
         => _world.Players.Values.Where(p => p.IsListeningToGlobal);
 
-    public bool IsPlayerOnline(string username) 
+    public bool IsPlayerOnline(string username)
         => _world.LoggedIn(username);
 
-    public PlayerState? GetPlayer(int sessionId) 
+    public PlayerState? GetPlayer(int sessionId)
         => _world.Players.TryGetValue(sessionId, out var player) ? player : null;
 
-    public IEnumerable<MapState> GetAllMaps() 
+    public IEnumerable<MapState> GetAllMaps()
         => _world.Maps.Values;
 
     public IEnumerable<GlobalMessage> GetRecentGlobalMessages(int count = 10)

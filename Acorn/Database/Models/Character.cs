@@ -9,7 +9,7 @@ namespace Acorn.Database.Models;
 public class Character
 {
     public required string Accounts_Username { get; set; }
-    
+
     [Key]
     public string? Name { get; set; }
     public string? Title { get; set; }
@@ -54,7 +54,7 @@ public class Character
     public int BankMax { get; set; }
     public int GoldBank { get; set; }
     public int Usage { get; set; }
-    
+
     // Navigation properties for relational data
     public ICollection<CharacterItem> Items { get; set; } = new List<CharacterItem>();
     public CharacterPaperdoll? Paperdoll { get; set; }
@@ -67,7 +67,7 @@ public class Character
                 .Where(i => i.Slot == slot)
                 .Select(i => new ItemWithAmount { Id = i.ItemId, Amount = i.Amount })
                 .ToList();
-            
+
             return new ConcurrentBag<ItemWithAmount>(itemsList);
         }
 

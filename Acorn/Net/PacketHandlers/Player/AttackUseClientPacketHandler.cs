@@ -52,10 +52,10 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
             var damage = _formulaService.CalculateDamage(playerState.Character, target.Data);
             target.Hp -= damage;
             target.Hp = Math.Max(target.Hp, 0);
-            
+
             var npcIndex = playerState.CurrentMap.Npcs.ToList().IndexOf(target);
             var hpPercentage = (int)Math.Max((double)target.Hp / target.Data.Hp * 100, 0);
-            
+
             await playerState.CurrentMap.BroadcastPacket(new NpcReplyServerPacket
             {
                 PlayerId = playerState.SessionId,
@@ -71,7 +71,7 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
             {
                 target.IsDead = true;
                 target.DeathTime = DateTime.UtcNow;
-                
+
                 _logger.LogInformation("NPC {NpcName} (ID: {NpcId}) killed by {PlayerName}",
                     target.Data.Name, target.Id, playerState.Character.Name);
 
@@ -88,7 +88,7 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
                 {
                     var newLevel = _formulaService.LevelUp(playerState.Character, _dataFiles.Ecf);
                     levelsGained++;
-                    
+
                     _logger.LogInformation("Player {PlayerName} leveled up to level {Level}!",
                         playerState.Character.Name, newLevel);
                 }

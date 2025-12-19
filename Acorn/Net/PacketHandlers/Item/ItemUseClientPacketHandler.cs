@@ -9,7 +9,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Pub;
 namespace Acorn.Net.PacketHandlers.Item;
 
 public class ItemUseClientPacketHandler(
-    ILogger<ItemUseClientPacketHandler> logger, 
+    ILogger<ItemUseClientPacketHandler> logger,
     IWorldQueries worldQueries,
     IInventoryService inventoryService)
     : IPacketHandler<ItemUseClientPacket>
