@@ -8,22 +8,21 @@ namespace Acorn.Net.PacketHandlers.Player.Talk;
 
 internal class TalkMsgClientPacketHandler : IPacketHandler<TalkMsgClientPacket>
 {
-    private readonly WorldState _world;
+    private readonly IWorldQueries _world;
 
-    public TalkMsgClientPacketHandler(WorldState world)
+    public TalkMsgClientPacketHandler(IWorldQueries world)
     {
         _world = world;
     }
 
     public async Task HandleAsync(PlayerState playerState, TalkMsgClientPacket packet)
     {
-        var id = Guid.NewGuid();
         var message = new GlobalMessage(Guid.NewGuid(), packet.Message, playerState.Character?.Name ?? "Unknown", DateTime.UtcNow);
-        _world.GlobalMessages.TryAdd(id, message);
+        _world.AddGlobalMessage(message);
 
-        var broadcast = _world.Players
-            .Where(x => x.Value != playerState && x.Value.IsListeningToGlobal)
-            .Select(x => x.Value.Send(new TalkMsgServerPacket
+        var broadcast = _world.GetGlobalChatListeners()
+            .Where(x => x != playerState)
+            .Select(x => x.Send(new TalkMsgServerPacket
             {
                 Message = packet.Message,
                 PlayerName = playerState.Character?.Name!

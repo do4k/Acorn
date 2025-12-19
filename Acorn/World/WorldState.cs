@@ -13,7 +13,6 @@ public class WorldState
     public ConcurrentDictionary<Guid, GlobalMessage> GlobalMessages = [];
     public ConcurrentDictionary<int, MapState> Maps = [];
     public ConcurrentDictionary<int, PlayerState> Players = [];
-    public Direction NpcDirection = Direction.Up;
     private readonly ILogger<WorldState> _logger;
 
     public WorldState(
@@ -24,7 +23,7 @@ public class WorldState
         _logger = logger;
         foreach (var map in dataRepository.Maps)
         {
-            var added = Maps.TryAdd(map.Id, mapStateFactory.Create(map, this));
+            var added = Maps.TryAdd(map.Id, mapStateFactory.Create(map));
             if (added is false)
             {
                 _logger.LogWarning("Failed to add map {MapId} to world state", map.Id);

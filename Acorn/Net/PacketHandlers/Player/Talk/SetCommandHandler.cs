@@ -10,9 +10,9 @@ public class SetCommandHandler : ITalkHandler
 {
     private const string Usage = "Usage: $set <player> <attribute> <value>";
     private readonly ILogger<SetCommandHandler> _logger;
-    private readonly WorldState _world;
+    private readonly IWorldQueries _world;
 
-    public SetCommandHandler(WorldState world, ILogger<SetCommandHandler> logger)
+    public SetCommandHandler(IWorldQueries world, ILogger<SetCommandHandler> logger)
     {
         _world = world;
         _logger = logger;
@@ -25,20 +25,14 @@ public class SetCommandHandler : ITalkHandler
 
     public async Task HandleAsync(PlayerState playerState, string command, params string[] args)
     {
-        if (args[0] == "npcdirection")
-        {
-            _world.NpcDirection = (Direction)int.Parse(args[1]);
-            return;
-        }
-
         if (args.Length < 3)
         {
             await playerState.ServerMessage(Usage);
             return;
         }
 
-        var target = _world.Players.FirstOrDefault(x =>
-            string.Equals(x.Value.Character?.Name, args[0], StringComparison.CurrentCultureIgnoreCase)).Value;
+        var target = _world.GetAllPlayers().FirstOrDefault(x =>
+            string.Equals(x.Character?.Name, args[0], StringComparison.CurrentCultureIgnoreCase));
         if (target is null)
         {
             await playerState.ServerMessage($"Player {args[0]} not found.");

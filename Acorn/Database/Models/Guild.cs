@@ -1,7 +1,10 @@
-﻿namespace Acorn.Database.Models;
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Acorn.Database.Models;
 
 public class Guild
 {
+    [Key]
     public string? Tag { get; set; }
     public string? Name { get; set; }
     public string? Description { get; set; }

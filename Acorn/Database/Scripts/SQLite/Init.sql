@@ -71,10 +71,7 @@ CREATE TABLE IF NOT EXISTS Characters
     NoInteract INTEGER NOT NULL, 
     BankMax INTEGER NOT NULL, 
     GoldBank INTEGER NOT NULL, 
-    `Usage` INTEGER NOT NULL,
-    Paperdoll TEXT,
-    Inventory TEXT,
-    Bank TEXT
+    `Usage` INTEGER NOT NULL
 );
 
 INSERT OR REPLACE INTO Characters
@@ -82,7 +79,7 @@ INSERT OR REPLACE INTO Characters
     Accounts_Username, Name, Title, Home, Fiance, Partner, Admin, Class, Gender, 
     Race, HairStyle, HairColor, Map, X, Y, Direction, Level, Exp, Hp, Tp, Str, 
     Wis, Agi, Con, Cha, StatPoints, SkillPoints, Karma, SitState, Hidden, NoInteract, 
-    BankMax, GoldBank, Usage, Paperdoll, Inventory, Bank
+    BankMax, GoldBank, Usage
 )
 VALUES 
 (
@@ -119,8 +116,48 @@ VALUES
     0, --NoInteract
     100, --BankMax
     10, --GoldBank
-    0, --Usage
-    '', --Paperdoll
-    '', --Inventory
-    '' --Bank
+    0 --Usage
 );
+
+-- Create CharacterItems table (relational inventory/bank storage)
+CREATE TABLE IF NOT EXISTS CharacterItems
+(
+    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+    CharacterName TEXT NOT NULL,
+    ItemId INTEGER NOT NULL,
+    Amount INTEGER NOT NULL,
+    Slot INTEGER NOT NULL,  -- 0 = Inventory, 1 = Bank
+    FOREIGN KEY (CharacterName) REFERENCES Characters(Name) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS IX_CharacterItems_CharacterName_Slot 
+    ON CharacterItems(CharacterName, Slot);
+
+-- Create CharacterPaperdolls table (relational equipment storage)
+CREATE TABLE IF NOT EXISTS CharacterPaperdolls
+(
+    CharacterName TEXT PRIMARY KEY NOT NULL,
+    Hat INTEGER NOT NULL DEFAULT 0,
+    Necklace INTEGER NOT NULL DEFAULT 0,
+    Armor INTEGER NOT NULL DEFAULT 0,
+    Belt INTEGER NOT NULL DEFAULT 0,
+    Boots INTEGER NOT NULL DEFAULT 0,
+    Gloves INTEGER NOT NULL DEFAULT 0,
+    Weapon INTEGER NOT NULL DEFAULT 0,
+    Shield INTEGER NOT NULL DEFAULT 0,
+    Accessory INTEGER NOT NULL DEFAULT 0,
+    Ring1 INTEGER NOT NULL DEFAULT 0,
+    Ring2 INTEGER NOT NULL DEFAULT 0,
+    Bracer1 INTEGER NOT NULL DEFAULT 0,
+    Bracer2 INTEGER NOT NULL DEFAULT 0,
+    Armlet1 INTEGER NOT NULL DEFAULT 0,
+    Armlet2 INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY (CharacterName) REFERENCES Characters(Name) ON DELETE CASCADE
+);
+
+-- Insert default paperdoll for the acorn character
+INSERT OR REPLACE INTO CharacterPaperdolls
+(CharacterName, Hat, Necklace, Armor, Belt, Boots, Gloves, Weapon, Shield, 
+ Accessory, Ring1, Ring2, Bracer1, Bracer2, Armlet1, Armlet2)
+VALUES
+('acorn', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);

@@ -110,9 +110,9 @@ public static class CharacterExtensions
     {
         return new CharacterSecondaryStats
         {
-            Accuracy = 0,
-            Armor = 0,
-            Evade = 0,
+            Accuracy = c.Accuracy,
+            Armor = c.Armor,
+            Evade = c.Evade,
             MinDamage = c.MinDamage,
             MaxDamage = c.MaxDamage
         };

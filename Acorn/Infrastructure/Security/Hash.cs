@@ -2,7 +2,7 @@
 
 namespace Acorn.Infrastructure.Security;
 
-internal static class Hash
+public static class Hash
 {
     public static string HashPassword(string username, string password, out byte[] salt)
     {
@@ -15,8 +15,7 @@ internal static class Hash
         var combined = username + password;
 
         // Hash the combined string using PBKDF2
-        using var pbkdf2 = new Rfc2898DeriveBytes(combined, salt, 10000, HashAlgorithmName.SHA256);
-        var hash = pbkdf2.GetBytes(32); // Generate a 32-byte hash
+        var hash = Rfc2898DeriveBytes.Pbkdf2(combined, salt, 10000, HashAlgorithmName.SHA256, 32);
         return Convert.ToBase64String(hash);
     }
 
@@ -26,8 +25,7 @@ internal static class Hash
         var combined = username + password;
 
         // Hash the combined string using PBKDF2 with the same salt
-        using var pbkdf2 = new Rfc2898DeriveBytes(combined, salt, 10000, HashAlgorithmName.SHA256);
-        var hash = pbkdf2.GetBytes(32); // Generate a 32-byte hash
+        var hash = Rfc2898DeriveBytes.Pbkdf2(combined, salt, 10000, HashAlgorithmName.SHA256, 32);
         var hashString = Convert.ToBase64String(hash);
         return hashString == storedHash;
     }

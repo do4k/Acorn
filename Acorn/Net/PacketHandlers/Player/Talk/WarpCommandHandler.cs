@@ -5,9 +5,9 @@ namespace Acorn.Net.PacketHandlers.Player.Talk;
 
 internal class WarpCommandHandler : ITalkHandler
 {
-    private readonly WorldState _world;
+    private readonly IWorldQueries _world;
 
-    public WarpCommandHandler(WorldState world)
+    public WarpCommandHandler(IWorldQueries world)
     {
         _world = world;
     }
@@ -32,7 +32,7 @@ internal class WarpCommandHandler : ITalkHandler
             return;
         }
 
-        var map = _world.MapForId(mapId);
+        var map = _world.FindMap(mapId);
         if (map is null)
         {
             return;

@@ -11,9 +11,9 @@ public class SpawnNpcCommandHandler : ITalkHandler
 {
     private readonly ILogger<SpawnNpcCommandHandler> _logger;
     private readonly IDataFileRepository _dataFiles;
-    private readonly WorldState _world;
+    private readonly IWorldQueries _world;
 
-    public SpawnNpcCommandHandler(WorldState world, IDataFileRepository dataFiles,
+    public SpawnNpcCommandHandler(IWorldQueries world, IDataFileRepository dataFiles,
         ILogger<SpawnNpcCommandHandler> logger)
     {
         _world = world;

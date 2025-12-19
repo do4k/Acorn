@@ -43,8 +43,8 @@ internal static class IocRegistrations
     public static IServiceCollection AddRepositories(this IServiceCollection services)
     {
         return services
-            .AddSingleton<IDbRepository<Account>, AccountRepository>()
-            .AddSingleton<IDbRepository<Database.Models.Character>, CharacterRepository>()
+            .AddScoped<IDbRepository<Account>, AccountRepository>()
+            .AddScoped<IDbRepository<Character>, CharacterRepository>()
             .AddSingleton<IDataFileRepository, DataFileRepository>();
     }
 

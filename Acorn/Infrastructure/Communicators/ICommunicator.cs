@@ -4,6 +4,7 @@ public interface ICommunicator
 {
     Task Send(IEnumerable<byte> bytes);
     Stream Receive();
-    void Close();
+    Task CloseAsync(CancellationToken cancellationToken = default);
     string GetConnectionOrigin();
+    bool IsConnected { get; }
 }

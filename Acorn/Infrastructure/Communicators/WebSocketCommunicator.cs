@@ -12,41 +12,76 @@ public class WebSocketCommunicator : ICommunicator
     private readonly HttpListenerWebSocketContext _wsContext;
     private readonly WebSocket _webSocket;
     private readonly ILogger<WebSocketCommunicator> _logger;
+    private bool _disposed;
 
-    public WebSocketCommunicator(HttpListenerContext context, ILogger<WebSocketCommunicator> logger)
+    private WebSocketCommunicator(HttpListenerWebSocketContext wsContext, ILogger<WebSocketCommunicator> logger)
     {
-        _wsContext = context.AcceptWebSocketAsync(null).GetAwaiter().GetResult();
-        _webSocket = _wsContext.WebSocket;
+        _wsContext = wsContext;
+        _webSocket = wsContext.WebSocket;
         _logger = logger;
+    }
+
+    public static async Task<WebSocketCommunicator> CreateAsync(HttpListenerContext context, ILogger<WebSocketCommunicator> logger, CancellationToken cancellationToken = default)
+    {
+        var wsContext = await context.AcceptWebSocketAsync(null);
+        return new WebSocketCommunicator(wsContext, logger);
     }
 
     public async Task Send(IEnumerable<byte> bytes)
     {
-        await _webSocket.SendAsync(
-            new ArraySegment<byte>(bytes.ToArray()),
-            WebSocketMessageType.Binary,
-            true,
-            CancellationToken.None);
+        try
+        {
+            if (!IsConnected)
+                throw new InvalidOperationException("Cannot send data - WebSocket is not connected");
+
+            await _webSocket.SendAsync(
+                new ArraySegment<byte>(bytes.ToArray()),
+                WebSocketMessageType.Binary,
+                true,
+                CancellationToken.None);
+        }
+        catch (WebSocketException)
+        {
+            _disposed = true;
+            throw;
+        }
     }
 
     public Stream Receive()
     {
-        // Return a stream that reads from the WebSocket
+        if (!IsConnected)
+            throw new InvalidOperationException("Cannot receive data - WebSocket is not connected");
+
         return new WebSocketStream(_webSocket);
     }
 
-    public void Close()
+    public async Task CloseAsync(CancellationToken cancellationToken = default)
     {
-        if (_webSocket.State is WebSocketState.Open or WebSocketState.CloseReceived)
+        if (_disposed)
+            return;
+
+        _disposed = true;
+
+        try
         {
-            _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None).GetAwaiter().GetResult();
+            if (_webSocket.State is WebSocketState.Open or WebSocketState.CloseReceived)
+            {
+                await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", cancellationToken);
+            }
+        }
+        catch (WebSocketException ex)
+        {
+            _logger.LogWarning(ex, "Error closing WebSocket");
+        }
+        finally
+        {
+            _webSocket.Dispose();
         }
     }
 
-    public string GetConnectionOrigin()
-    {
-        return _wsContext.Origin;
-    }
+    public string GetConnectionOrigin() => _wsContext.Origin;
+
+    public bool IsConnected => !_disposed && _webSocket.State == WebSocketState.Open;
 }
 
 // Helper stream to read from WebSocket
@@ -54,6 +89,7 @@ public class WebSocketStream : Stream
 {
     private readonly WebSocket _webSocket;
     private readonly MemoryStream _buffer = new();
+    private readonly byte[] _receiveBuffer = new byte[8192]; // Match TCP buffer size
 
     public WebSocketStream(WebSocket webSocket)
     {
@@ -73,23 +109,52 @@ public class WebSocketStream : Stream
 
     public override int Read(byte[] buffer, int offset, int count)
     {
-        if (_buffer.Length != 0 && _buffer.Position != _buffer.Length)
+        return ReadAsync(buffer, offset, count, CancellationToken.None).GetAwaiter().GetResult();
+    }
+
+    public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+    {
+        // Return buffered data if available
+        if (_buffer.Length > 0 && _buffer.Position < _buffer.Length)
         {
             return _buffer.Read(buffer, offset, count);
         }
 
-        var receiveBuffer = new byte[4096];
-        var result = _webSocket.ReceiveAsync(new ArraySegment<byte>(receiveBuffer), CancellationToken.None).GetAwaiter()
-            .GetResult();
-        _buffer.SetLength(0);
-        _buffer.Position = 0;
-        _buffer.Write(receiveBuffer, 0, result.Count);
-        _buffer.Position = 0;
-        return _buffer.Read(buffer, offset, count);
+        // Receive new data from WebSocket
+        try
+        {
+            var result = await _webSocket.ReceiveAsync(new ArraySegment<byte>(_receiveBuffer), cancellationToken);
+            
+            if (result.MessageType == WebSocketMessageType.Close)
+            {
+                return 0; // End of stream
+            }
+
+            // Reset buffer and write new data
+            _buffer.SetLength(0);
+            _buffer.Position = 0;
+            _buffer.Write(_receiveBuffer, 0, result.Count);
+            _buffer.Position = 0;
+            
+            return _buffer.Read(buffer, offset, count);
+        }
+        catch (WebSocketException)
+        {
+            return 0; // Connection closed or error
+        }
     }
 
     public override void Flush() => throw new NotSupportedException();
     public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
     public override void SetLength(long value) => throw new NotSupportedException();
     public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _buffer.Dispose();
+        }
+        base.Dispose(disposing);
+    }
 }

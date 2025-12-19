@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.ComponentModel.DataAnnotations;
 using Acorn.Game.Models;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
@@ -8,6 +9,8 @@ namespace Acorn.Database.Models;
 public class Character
 {
     public required string Accounts_Username { get; set; }
+    
+    [Key]
     public string? Name { get; set; }
     public string? Title { get; set; }
     public string? Home { get; set; }
@@ -39,6 +42,9 @@ public class Character
     public int MinDamage { get; set; }
     public int MaxDamage { get; set; }
     public int MaxWeight { get; set; }
+    public int Accuracy { get; set; }
+    public int Evade { get; set; }
+    public int Armor { get; set; }
     public int StatPoints { get; set; }
     public int SkillPoints { get; set; }
     public int Karma { get; set; }
@@ -48,52 +54,21 @@ public class Character
     public int BankMax { get; set; }
     public int GoldBank { get; set; }
     public int Usage { get; set; }
-    public string? Inventory { get; set; }
-    public string? Bank { get; set; }
-    public string? Paperdoll { get; set; }
+    
+    // Navigation properties for relational data
+    public ICollection<CharacterItem> Items { get; set; } = new List<CharacterItem>();
+    public CharacterPaperdoll? Paperdoll { get; set; }
 
     public Game.Models.Character AsGameModel()
     {
-        Paperdoll GetPaperdoll(Character c)
+        ConcurrentBag<ItemWithAmount> GetItemsFromDb(int slot)
         {
-            var items = c.Paperdoll.Split(',');
-            return new Paperdoll
-            {
-                Hat = items.Length > 0 && int.TryParse(items[0], out var hatId) ? hatId : 0,
-                Armor = items.Length > 1 && int.TryParse(items[1], out var armorId) ? armorId : 0,
-                Shield = items.Length > 2 && int.TryParse(items[2], out var shieldId) ? shieldId : 0,
-                Weapon = items.Length > 3 && int.TryParse(items[3], out var weaponId) ? weaponId : 0,
-                Boots = items.Length > 4 && int.TryParse(items[4], out var bootsId) ? bootsId : 0,
-                Gloves = items.Length > 5 && int.TryParse(items[5], out var glovesId) ? glovesId : 0,
-                Necklace = items.Length > 6 && int.TryParse(items[6], out var necklaceId) ? necklaceId : 0,
-                Belt = items.Length > 7 && int.TryParse(items[7], out var beltId) ? beltId : 0,
-                Accessory = items.Length > 8 && int.TryParse(items[8], out var accessoryId) ? accessoryId : 0,
-                Ring1 = items.Length > 9 && int.TryParse(items[9], out var ring1Id) ? ring1Id : 0,
-                Ring2 = items.Length > 10 && int.TryParse(items[10], out var ring2Id) ? ring2Id : 0,
-                Bracer1 = items.Length > 11 && int.TryParse(items[11], out var bracer1Id) ? bracer1Id : 0,
-                Bracer2 = items.Length > 12 && int.TryParse(items[12], out var bracer2Id) ? bracer2Id : 0,
-                Armlet1 = items.Length > 13 && int.TryParse(items[13], out var armlet1Id) ? armlet1Id : 0,
-                Armlet2 = items.Length > 14 && int.TryParse(items[14], out var armlet2Id) ? armlet2Id : 0
-            };
-        }
-
-        ConcurrentBag<ItemWithAmount> GetItemsWithAmount(string? s)
-        {
-            if (string.IsNullOrEmpty(s))
-            {
-                return [];
-            }
-
-            return new ConcurrentBag<ItemWithAmount>(
-                s.Split('|').Select(b =>
-                {
-                    var parts = b.Split(',');
-                    return new ItemWithAmount
-                    {
-                        Id = int.Parse(parts[0]),
-                        Amount = int.Parse(parts[1]),
-                    };
-                }).ToList());
+            var itemsList = Items
+                .Where(i => i.Slot == slot)
+                .Select(i => new ItemWithAmount { Id = i.ItemId, Amount = i.Amount })
+                .ToList();
+            
+            return new ConcurrentBag<ItemWithAmount>(itemsList);
         }
 
         return new Game.Models.Character
@@ -129,14 +104,34 @@ public class Character
             MinDamage = MinDamage,
             MaxDamage = MaxDamage,
             MaxWeight = MaxWeight,
+            Accuracy = Accuracy,
+            Evade = Evade,
+            Armor = Armor,
             StatPoints = StatPoints,
             SkillPoints = SkillPoints,
             Karma = Karma,
             Hidden = Hidden,
             NoInteract = NoInteract,
-            Bank = new Bank(GetItemsWithAmount(Bank)),
-            Inventory = new Inventory(GetItemsWithAmount(Inventory)),
-            Paperdoll = GetPaperdoll(this),
+            Bank = new Bank(GetItemsFromDb(1)),
+            Inventory = new Inventory(GetItemsFromDb(0)),
+            Paperdoll = Paperdoll == null ? new Paperdoll() : new Paperdoll
+            {
+                Hat = Paperdoll.Hat,
+                Necklace = Paperdoll.Necklace,
+                Armor = Paperdoll.Armor,
+                Belt = Paperdoll.Belt,
+                Boots = Paperdoll.Boots,
+                Gloves = Paperdoll.Gloves,
+                Weapon = Paperdoll.Weapon,
+                Shield = Paperdoll.Shield,
+                Accessory = Paperdoll.Accessory,
+                Ring1 = Paperdoll.Ring1,
+                Ring2 = Paperdoll.Ring2,
+                Bracer1 = Paperdoll.Bracer1,
+                Bracer2 = Paperdoll.Bracer2,
+                Armlet1 = Paperdoll.Armlet1,
+                Armlet2 = Paperdoll.Armlet2
+            },
             Usage = Usage,
         };
     }

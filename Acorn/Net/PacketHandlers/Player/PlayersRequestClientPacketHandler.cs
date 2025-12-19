@@ -9,9 +9,9 @@ namespace Acorn.Net.PacketHandlers.Player;
 
 public class PlayersRequestClientPacketHandler : IPacketHandler<PlayersRequestClientPacket>
 {
-    private readonly WorldState _world;
+    private readonly IWorldQueries _world;
 
-    public PlayersRequestClientPacketHandler(WorldState world)
+    public PlayersRequestClientPacketHandler(IWorldQueries world)
     {
         _world = world;
     }
@@ -26,9 +26,9 @@ public class PlayersRequestClientPacketHandler : IPacketHandler<PlayersRequestCl
             {
                 PlayersList = new PlayersList
                 {
-                    Players = _world.Players
-                        .Where(x => x.Value.Character is not null)
-                        .Select(x => x.Value.Character!.AsOnlinePlayer())
+                    Players = _world.GetAllPlayers()
+                        .Where(x => x.Character is not null)
+                        .Select(x => x.Character!.AsOnlinePlayer())
                         .ToList()
                 }
             }

@@ -10,9 +10,9 @@ namespace Acorn.Net.PacketHandlers.Player.Warp;
 internal class WarpTakeClientPacketHandler : IPacketHandler<WarpTakeClientPacket>
 {
     private readonly ILogger<WarpTakeClientPacketHandler> _logger;
-    private readonly WorldState _world;
+    private readonly IWorldQueries _world;
 
-    public WarpTakeClientPacketHandler(WorldState world, ILogger<WarpTakeClientPacketHandler> logger)
+    public WarpTakeClientPacketHandler(IWorldQueries world, ILogger<WarpTakeClientPacketHandler> logger)
     {
         _world = world;
         _logger = logger;
@@ -26,8 +26,8 @@ internal class WarpTakeClientPacketHandler : IPacketHandler<WarpTakeClientPacket
             return;
         }
 
-        var foundMap = _world.Maps.TryGetValue(packet.MapId, out var map);
-        if (foundMap is false || map is null)
+        var map = _world.FindMap(packet.MapId);
+        if (map is null)
         {
             _logger.LogError("Map with ID {MapId} not found for player {Player}", packet.MapId, playerState.Account?.Username);
             return;

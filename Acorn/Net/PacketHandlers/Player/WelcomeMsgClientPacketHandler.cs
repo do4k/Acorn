@@ -9,10 +9,10 @@ namespace Acorn.Net.PacketHandlers.Player;
 internal class WelcomeMsgClientPacketHandler : IPacketHandler<WelcomeMsgClientPacket>
 {
     private readonly string[] _newsTxt;
-    private readonly WorldState _world;
+    private readonly IWorldQueries _world;
 
     public WelcomeMsgClientPacketHandler(
-        WorldState worldState
+        IWorldQueries worldState
     )
     {
         _newsTxt = File.ReadAllLines("Data/news.txt");
@@ -24,7 +24,7 @@ internal class WelcomeMsgClientPacketHandler : IPacketHandler<WelcomeMsgClientPa
         WelcomeMsgClientPacket packet)
     {
         playerState.ClientState = ClientState.InGame;
-        var map = _world.MapForId(playerState.Character?.Map ?? -1);
+        var map = _world.FindMap(playerState.Character?.Map ?? -1);
         if (map is null)
         {
             return;

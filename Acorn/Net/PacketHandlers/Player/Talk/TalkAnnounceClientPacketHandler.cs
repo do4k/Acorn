@@ -10,9 +10,9 @@ namespace Acorn.Net.PacketHandlers.Player.Talk;
 public class TalkAnnounceClientPacketHandler : IPacketHandler<TalkAnnounceClientPacket>
 {
     private readonly ILogger<TalkAnnounceClientPacketHandler> _logger;
-    private readonly WorldState _world;
+    private readonly IWorldQueries _world;
 
-    public TalkAnnounceClientPacketHandler(WorldState world, ILogger<TalkAnnounceClientPacketHandler> logger)
+    public TalkAnnounceClientPacketHandler(IWorldQueries world, ILogger<TalkAnnounceClientPacketHandler> logger)
     {
         _world = world;
         _logger = logger;
@@ -33,9 +33,9 @@ public class TalkAnnounceClientPacketHandler : IPacketHandler<TalkAnnounceClient
             return;
         }
 
-        var announcePackets = _world.Players
-            .Where(x => x.Value != playerState)
-            .Select(async x => await x.Value.Send(new TalkAnnounceServerPacket
+        var announcePackets = _world.GetAllPlayers()
+            .Where(x => x != playerState)
+            .Select(async x => await x.Send(new TalkAnnounceServerPacket
             {
                 Message = packet.Message,
                 PlayerName = playerState.Character.Name

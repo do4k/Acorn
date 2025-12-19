@@ -1,0 +1,165 @@
+services:
+  # Acorn Server with MySQL (default for Docker)
+  acorn:
+    build:
+      context: .
+      dockerfile: Acorn/Dockerfile
+    container_name: acorn
+    ports:
+      - "8078:8078"
+      - "8079:8079"
+    volumes:
+      - ./Acorn/Data:/app/Data:ro
+    environment:
+      - Database__Engine=MySQL
+      - Database__ConnectionString=Server=mysql;Port=3306;Database=acorn;User=acorn;Password=acornpassword
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - acorn-network
+
+  # MySQL Database (default for Docker)
+  mysql:
+    image: mysql:9.1
+    container_name: acorn-mysql-db
+    environment:
+      - MYSQL_DATABASE=acorn
+      - MYSQL_USER=acorn
+      - MYSQL_PASSWORD=acornpassword
+      - MYSQL_ROOT_PASSWORD=rootpassword
+    volumes:
+      - mysql-data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "acorn", "-pacornpassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - acorn-network
+
+  # Acorn Server with SQLite (for profile: sqlite)
+  acorn-sqlite:
+    build:
+      context: .
+      dockerfile: Acorn/Dockerfile
+    container_name: acorn-sqlite
+    ports:
+      - "8078:8078"
+      - "8079:8079"
+    volumes:
+      - ./data/sqlite:/app/mnt
+      - ./Acorn/Data:/app/Data:ro
+    environment:
+      - Database__Engine=SQLite
+      - Database__ConnectionString=Data Source=/app/mnt/Acorn.db;
+    restart: unless-stopped
+    networks:
+      - acorn-network
+    profiles:
+      - sqlite
+
+  # Acorn Server with PostgreSQL
+  acorn-postgres:
+    build:
+      context: .
+      dockerfile: Acorn/Dockerfile
+    container_name: acorn-postgres
+    ports:
+      - "8078:8078"
+      - "8079:8079"
+    volumes:
+      - ./Acorn/Data:/app/Data:ro
+    environment:
+      - Database__Engine=PostgreSQL
+      - Database__ConnectionString=Host=postgres;Port=5432;Database=acorn;Username=acorn;Password=acornpassword
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - acorn-network
+    profiles:
+      - postgres
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:17-alpine
+    container_name: acorn-postgres-db
+    environment:
+      - POSTGRES_DB=acorn
+      - POSTGRES_USER=acorn
+      - POSTGRES_PASSWORD=acornpassword
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U acorn -d acorn"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - acorn-network
+    profiles:
+      - postgres
+
+  # Acorn Server with SQL Server (for profile: sqlserver)
+  acorn-sqlserver:
+    build:
+      context: .
+      dockerfile: Acorn/Dockerfile
+    container_name: acorn-sqlserver
+    ports:
+      - "8078:8078"
+      - "8079:8079"
+    volumes:
+      - ./Acorn/Data:/app/Data:ro
+    environment:
+      - Database__Engine=SqlServer
+      - Database__ConnectionString=Server=sqlserver;Database=acorn;User Id=sa;Password=AcornPassword123!;TrustServerCertificate=True
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - acorn-network
+    profiles:
+      - sqlserver
+
+  # SQL Server Database
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: acorn-sqlserver-db
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=AcornPassword123!
+      - MSSQL_PID=Developer
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    ports:
+      - "1433:1433"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P AcornPassword123! -C -Q 'SELECT 1'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - acorn-network
+    profiles:
+      - sqlserver
+
+volumes:
+  postgres-data:
+  mysql-data:
+  sqlserver-data:
+
+networks:
+  acorn-network:
+    driver: bridge

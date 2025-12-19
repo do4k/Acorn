@@ -7,9 +7,9 @@ namespace Acorn.Net.PacketHandlers.Player;
 
 public class DoorOpenClientPacketHandler : IPacketHandler<DoorOpenClientPacket>
 {
-    private readonly WorldState _world;
+    private readonly IWorldQueries _world;
 
-    public DoorOpenClientPacketHandler(WorldState world)
+    public DoorOpenClientPacketHandler(IWorldQueries world)
     {
         _world = world;
     }

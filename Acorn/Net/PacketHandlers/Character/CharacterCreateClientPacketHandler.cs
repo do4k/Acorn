@@ -53,9 +53,11 @@ internal class CharacterCreateClientPacketHandler(
             HairColor = packet.HairColor,
             HairStyle = packet.HairStyle,
             Gender = packet.Gender,
-            Inventory = string.Empty,
-            Bank = string.Empty,
-            Paperdoll = string.Empty,
+            Items = new List<Database.Models.CharacterItem>(),
+            Paperdoll = new Database.Models.CharacterPaperdoll
+            {
+                CharacterName = packet.Name
+            }
         };
 
         await repository.CreateAsync(character);

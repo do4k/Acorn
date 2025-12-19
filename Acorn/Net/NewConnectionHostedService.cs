@@ -26,6 +26,7 @@ public class NewConnectionHostedService(
 {
     private readonly ServerOptions _serverOptions = serverOptions.Value;
     private readonly TcpListener _listener = new(IPAddress.Any, serverOptions.Value.Hosting.Port);
+    private HttpListener? _wsListener;
 
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
@@ -33,22 +34,24 @@ public class NewConnectionHostedService(
         _listener.Start();
 
         // Start WebSocket listener
-        var wsListener = new HttpListener();
-        wsListener.Prefixes.Add($"http://*:{_serverOptions.Hosting.WebSocketPort}/");
-        wsListener.Start();
+        // Note: Using localhost instead of * to avoid requiring admin privileges on Windows
+        // Change to http://+: or http://*: if you need external access and have reserved the URL
+        _wsListener = new HttpListener();
+        _wsListener.Prefixes.Add($"http://localhost:{_serverOptions.Hosting.WebSocketPort}/");
+        _wsListener.Start();
 
-        logger.LogInformation("Waiting for TCP on {Endpoint} and WebSocket on ws://*:{Port}...",
+        logger.LogInformation("Waiting for TCP on {Endpoint} and WebSocket on ws://localhost:{Port}...",
             _listener.LocalEndpoint, _serverOptions.Hosting.WebSocketPort);
 
         while (!cancellationToken.IsCancellationRequested)
         {
             var tcpAcceptTask = _listener.AcceptTcpClientAsync(cancellationToken).AsTask();
-            var wsAcceptTask = wsListener.GetContextAsync();
+            var wsAcceptTask = _wsListener.GetContextAsync();
             var completed = await Task.WhenAny(tcpAcceptTask, wsAcceptTask);
             ICommunicator communicator = completed switch
             {
                 Task<TcpClient> tcp when tcp == tcpAcceptTask => tcpCommunicatorFactory.Initialise(tcp.Result),
-                Task<HttpListenerContext> ws when ws == wsAcceptTask => webSocketCommunicatorFactory.Initialise(ws.Result),
+                Task<HttpListenerContext> ws when ws == wsAcceptTask => await webSocketCommunicatorFactory.InitialiseAsync(ws.Result, cancellationToken),
                 _ => throw new InvalidOperationException("Unexpected task completion")
             };
 
@@ -91,6 +94,13 @@ public class NewConnectionHostedService(
     {
         _listener.Stop();
         _listener.Dispose();
+        
+        if (_wsListener != null)
+        {
+            _wsListener.Stop();
+            _wsListener.Close();
+        }
+        
         base.Dispose();
     }
 }

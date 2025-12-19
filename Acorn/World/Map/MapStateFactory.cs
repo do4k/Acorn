@@ -5,6 +5,6 @@ namespace Acorn.World.Map;
 
 public class MapStateFactory(IDataFileRepository dataRepository, ILogger<MapState> logger)
 {
-    public MapState Create(MapWithId data, WorldState worldState)
-        => new(data, worldState, dataRepository, logger);
+    public MapState Create(MapWithId data)
+        => new(data, dataRepository, logger);
 }

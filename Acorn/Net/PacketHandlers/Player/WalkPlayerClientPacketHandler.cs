@@ -12,9 +12,9 @@ namespace Acorn.Net.PacketHandlers.Player;
 internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPacket>
 {
     private readonly ILogger<WalkPlayerClientPacketHandler> _logger;
-    private readonly WorldState _world;
+    private readonly IWorldQueries _world;
 
-    public WalkPlayerClientPacketHandler(ILogger<WalkPlayerClientPacketHandler> logger, WorldState world)
+    public WalkPlayerClientPacketHandler(ILogger<WalkPlayerClientPacketHandler> logger, IWorldQueries world)
     {
         _logger = logger;
         _world = world;
@@ -70,7 +70,7 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
             return;
         }
 
-        var targetMap = _world.MapForId(warpTile.Warp.DestinationMap);
+        var targetMap = _world.FindMap(warpTile.Warp.DestinationMap);
         if (targetMap is null)
         {
             return;

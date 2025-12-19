@@ -3,8 +3,10 @@ using Acorn.Infrastructure.Communicators;
 using Acorn.Net.Models;
 using Acorn.Net.PacketHandlers;
 using Acorn.Net.PacketHandlers.Player.Warp;
+using Acorn.Options;
 using Acorn.World.Map;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Data;
 using Moffat.EndlessOnline.SDK.Packet;
 using Moffat.EndlessOnline.SDK.Protocol;
@@ -22,16 +24,21 @@ public class PlayerState : IDisposable
     private readonly CancellationTokenSource _tokenSource = new();
     private readonly CancellationToken _cancellationToken;
     private readonly IEnumerable<IPacketHandler> _handlers;
+    private readonly PacketLog _packetLog = new();
+    private readonly ServerOptions _serverOptions;
+    private string? _disconnectReason;
 
     public PlayerState(
         IEnumerable<IPacketHandler> handlers,
         ICommunicator communicator,
         ILogger<PlayerState> logger,
+        IOptions<ServerOptions> serverOptions,
         int sessionId,
         Action<PlayerState> onDispose
     )
     {
         _logger = logger;
+        _serverOptions = serverOptions.Value;
         _cancellationToken = _tokenSource.Token;
         _upcomingSequence = PingSequenceStart.Generate(Rnd);
         _logger.LogInformation("New client connected from {Location}", communicator.GetConnectionOrigin());
@@ -64,8 +71,14 @@ public class PlayerState : IDisposable
 
     public void Dispose()
     {
+        if (_disconnectReason != null)
+        {
+            _logger.LogInformation("Player disconnected: {Reason}", _disconnectReason);
+        }
+        
         _onDispose(this);
-        Communicator.Close();
+        // Fire and forget close - we're already in synchronous Dispose
+        _ = Communicator.CloseAsync(_cancellationToken);
     }
 
     public async Task Listen()
@@ -74,13 +87,33 @@ public class PlayerState : IDisposable
         {
             try
             {
+                if (!Communicator.IsConnected)
+                {
+                    CloseWithReason("Connection closed by client");
+                    break;
+                }
+
                 var stream = Communicator.Receive();
 
                 var len1 = (byte)stream.ReadByte();
                 var len2 = (byte)stream.ReadByte();
 
+                if (len1 == 255 && len2 == 255)
+                {
+                    // End of stream or invalid packet
+                    CloseWithReason("Invalid packet received");
+                    break;
+                }
+
                 var decodedLength = NumberEncoder.DecodeNumber([len1, len2]);
                 _logger.LogDebug("Len1 {Len1}, Len2 {Len2}, Decoded length {DecodedLength}", len1, len2, decodedLength);
+                
+                if (decodedLength <= 0 || decodedLength > 65535)
+                {
+                    CloseWithReason($"Invalid packet length: {decodedLength}");
+                    break;
+                }
+
                 var bytes = new byte[decodedLength];
                 await stream.ReadExactlyAsync(bytes.AsMemory(0, decodedLength), _cancellationToken);
 
@@ -94,6 +127,14 @@ public class PlayerState : IDisposable
                 var reader = new EoReader(decodedBytes);
                 var action = (PacketAction)reader.GetByte();
                 var family = (PacketFamily)reader.GetByte();
+
+                // Rate limiting check
+                if (_packetLog.ShouldRateLimit(action, family))
+                {
+                    _logger.LogDebug("Rate limited: {Action}_{Family}", action, family);
+                    // Send back a special marker to indicate rate limiting
+                    continue;
+                }
 
                 HandleSequence(family, action, ref reader);
 
@@ -111,11 +152,30 @@ public class PlayerState : IDisposable
                     continue;
                 }
 
+                // Record packet for rate limiting after successful processing
+                _packetLog.RecordPacket(action, family);
+
                 await resolvedHandler.HandleAsync(this, packet);
+            }
+            catch (EndOfStreamException)
+            {
+                CloseWithReason("Connection closed");
+                break;
+            }
+            catch (IOException ex)
+            {
+                CloseWithReason($"I/O error: {ex.Message}");
+                break;
+            }
+            catch (OperationCanceledException)
+            {
+                CloseWithReason("Operation cancelled");
+                break;
             }
             catch (Exception e)
             {
-                _logger.LogError("Caught exception \"{Message}\" terminating...", e.Message);
+                _logger.LogError(e, "Caught exception terminating...");
+                CloseWithReason($"Unhandled error: {e.Message}");
                 break;
             }
         }
@@ -143,10 +203,19 @@ public class PlayerState : IDisposable
             _ => reader.GetChar()
         };
 
-        if (serverSequence != clientSequence)
+        if (_serverOptions.EnforceSequence && serverSequence != clientSequence)
         {
-            _logger.LogError("Expected sequence {Expected} got {Actual}", serverSequence, clientSequence);
+            var message = $"Sending invalid sequence: Got {clientSequence}, expected {serverSequence}";
+            _logger.LogWarning(message);
+            CloseWithReason(message);
+            throw new InvalidOperationException(message);
         }
+    }
+
+    private void CloseWithReason(string reason)
+    {
+        _disconnectReason = reason;
+        _logger.LogInformation("Closing connection: {Reason}", reason);
     }
 
     public async Task Send(IPacket packet)

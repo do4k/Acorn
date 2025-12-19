@@ -1,68 +1,48 @@
-﻿using System.Data;
-using Acorn.Database.Models;
-using Dapper;
+﻿using Acorn.Database.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Acorn.Database.Repository;
 
-public class AccountRepository : BaseDbRepository, IDbRepository<Account>, IDisposable
+public class AccountRepository : IDbRepository<Account>
 {
-    private readonly IDbConnection _conn;
+    private readonly AcornDbContext _context;
     private readonly ILogger<AccountRepository> _logger;
 
     public AccountRepository(
-        IDbConnection conn,
-        ILogger<AccountRepository> logger,
-        IOptions<DatabaseOptions> options,
-        IDbInitialiser initialiser
-    ) : base(initialiser)
+        AcornDbContext context,
+        ILogger<AccountRepository> logger
+    )
     {
-        _conn = conn;
+        _context = context;
         _logger = logger;
-
-        SQLStatements.Create = File.ReadAllText($"Database/Scripts/{options.Value.Engine}/Account/Create.sql");
-        SQLStatements.Update = File.ReadAllText($"Database/Scripts/{options.Value.Engine}/Account/Update.sql");
-        SQLStatements.GetByKey = File.ReadAllText($"Database/Scripts/{options.Value.Engine}/Account/GetByKey.sql");
-        SQLStatements.Delete = File.ReadAllText($"Database/Scripts/{options.Value.Engine}/Account/Delete.sql");
-        SQLStatements.GetCharacters =
-            File.ReadAllText($"Database/Scripts/{options.Value.Engine}/Account/GetCharacters.sql");
-        SQLStatements.GetAll = File.ReadAllText($"Database/Scripts/{options.Value.Engine}/Account/GetAll.sql");
-
-        if (_conn.State != ConnectionState.Open)
-        {
-            _conn.Open();
-        }
     }
 
     public async Task CreateAsync(Account entity)
     {
-        using var t = _conn.BeginTransaction(IsolationLevel.ReadCommitted);
         try
         {
-            await _conn.ExecuteAsync(SQLStatements.Create, entity);
-
-            t.Commit();
+            await _context.Accounts.AddAsync(entity);
+            await _context.SaveChangesAsync();
         }
         catch (Exception e)
         {
-            _logger.LogError("Error saving account information for {PlayerName}. Exception {Exception}",
-                entity.Username, e.Message);
-            t.Rollback();
+            _logger.LogError(e, "Error saving account information for {PlayerName}", entity.Username);
+            throw;
         }
     }
 
     public async Task DeleteAsync(Account entity)
     {
-        using var t = _conn.BeginTransaction();
         try
         {
-            await _conn.ExecuteAsync(SQLStatements.Delete, new { entity.Username });
+            _context.Accounts.Remove(entity);
+            await _context.SaveChangesAsync();
         }
         catch (Exception e)
         {
-            _logger.LogError("Error deleting account {PlayerName}. Exception {Exception}", entity.Username, e.Message);
-            t.Rollback();
+            _logger.LogError(e, "Error deleting account {PlayerName}", entity.Username);
+            throw;
         }
     }
 
@@ -70,81 +50,51 @@ public class AccountRepository : BaseDbRepository, IDbRepository<Account>, IDisp
     {
         try
         {
-            var acc = await _conn.QuerySingleOrDefaultAsync<Account>(SQLStatements.GetByKey, new { username });
-            if (acc is null)
+            var account = await _context.Accounts
+                .Include(a => a.Characters)
+                .FirstOrDefaultAsync(a => a.Username == username);
+            
+            if (account is null)
             {
                 _logger.LogWarning("Account {Username} not found", username);
                 return null;
             }
 
-            acc.Characters = (await _conn.QueryAsync<Character>(SQLStatements.GetCharacters, new { username }))
-                .ToList();
-            return acc;
+            return account;
         }
         catch (Exception e)
         {
             _logger.LogError(e, "Error fetching account {Username}", username);
+            return null;
         }
-
-        return null;
     }
 
     public async Task<IEnumerable<Account>> GetAllAsync()
     {
         try
         {
-            var accounts = (await _conn.QueryAsync<Account>(SQLStatements.GetAll)).ToList();
-            var withCharacters = accounts.Select(async a =>
-            {
-                a.Characters =
-                    (await _conn.QueryAsync<Character>(SQLStatements.GetCharacters, new { username = a.Username }))
-                    .ToList();
-                return a;
-            });
-
-            return await Task.WhenAll(withCharacters);
+            return await _context.Accounts
+                .Include(a => a.Characters)
+                .ToListAsync();
         }
         catch (Exception e)
         {
             _logger.LogError(e, "Error fetching all accounts");
+            return [];
         }
-
-        return [];
     }
 
     public async Task UpdateAsync(Account entity)
     {
-        using var t = _conn.BeginTransaction(IsolationLevel.ReadCommitted);
         try
         {
-            await _conn.ExecuteAsync(SQLStatements.Update, entity);
-            t.Commit();
+            _context.Accounts.Update(entity);
+            await _context.SaveChangesAsync();
         }
         catch (Exception e)
         {
-            _logger.LogError("Error saving account information for {PlayerName}. Exception {Exception}",
-                entity.Username, e.Message);
-            t.Rollback();
+            _logger.LogError(e, "Error updating account information for {PlayerName}", entity.Username);
+            throw;
         }
-    }
-
-    public void Dispose()
-    {
-        if (_conn.State == ConnectionState.Open)
-        {
-            _conn.Close();
-        }
-
-        _conn.Dispose();
-    }
-
-    public static class SQLStatements
-    {
-        public static string Create = "";
-        public static string Update = "";
-        public static string GetByKey = "";
-        public static string Delete = "";
-        public static string GetCharacters = "";
-        public static string GetAll = "";
     }
 }

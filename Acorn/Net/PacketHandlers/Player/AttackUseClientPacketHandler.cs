@@ -1,4 +1,5 @@
-﻿using Acorn.Extensions;
+﻿using Acorn.Database.Repository;
+using Acorn.Extensions;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
@@ -14,12 +15,14 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
     private DateTime _timeSinceLastAttack;
     private readonly ILogger<AttackUseClientPacketHandler> _logger;
     private readonly FormulaService _formulaService;
+    private readonly IDataFileRepository _dataFiles;
 
-    public AttackUseClientPacketHandler(UtcNowDelegate now, ILogger<AttackUseClientPacketHandler> logger, FormulaService formulaService)
+    public AttackUseClientPacketHandler(UtcNowDelegate now, ILogger<AttackUseClientPacketHandler> logger, FormulaService formulaService, IDataFileRepository dataFiles)
     {
         _now = now;
         _logger = logger;
         _formulaService = formulaService;
+        _dataFiles = dataFiles;
     }
 
     public async Task HandleAsync(PlayerState playerState, AttackUseClientPacket packet)
@@ -49,19 +52,80 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
             var damage = _formulaService.CalculateDamage(playerState.Character, target.Data);
             target.Hp -= damage;
             target.Hp = Math.Max(target.Hp, 0);
+            
+            var npcIndex = playerState.CurrentMap.Npcs.ToList().IndexOf(target);
+            var hpPercentage = (int)Math.Max((double)target.Hp / target.Data.Hp * 100, 0);
+            
             await playerState.CurrentMap.BroadcastPacket(new NpcReplyServerPacket
             {
                 PlayerId = playerState.SessionId,
                 PlayerDirection = playerState.Character.Direction,
-                NpcIndex = playerState.CurrentMap.Npcs.ToList().IndexOf(target),
+                NpcIndex = npcIndex,
                 Damage = damage,
-                HpPercentage = (int)Math.Max((double)target.Hp / target.Data.Hp * 100, 0),
+                HpPercentage = hpPercentage,
                 KillStealProtection = NpcKillStealProtectionState.Unprotected,
             });
 
-            if (target.Hp == 0)
+            // Handle NPC death
+            if (target.Hp == 0 && !target.IsDead)
             {
-                playerState.Character.Exp += target.Data.Experience;
+                target.IsDead = true;
+                target.DeathTime = DateTime.UtcNow;
+                
+                _logger.LogInformation("NPC {NpcName} (ID: {NpcId}) killed by {PlayerName}",
+                    target.Data.Name, target.Id, playerState.Character.Name);
+
+                // Calculate and award experience
+                var experienceGained = _formulaService.CalculateExperience(target.Data.Level, playerState.Character.Level);
+                playerState.Character.GainExperience(experienceGained);
+
+                _logger.LogInformation("Player {PlayerName} gained {Exp} experience (Level {Level}, Total Exp: {TotalExp})",
+                    playerState.Character.Name, experienceGained, playerState.Character.Level, playerState.Character.Exp);
+
+                // Check for level up(s)
+                int levelsGained = 0;
+                while (_formulaService.CanLevelUp(playerState.Character))
+                {
+                    var newLevel = _formulaService.LevelUp(playerState.Character, _dataFiles.Ecf);
+                    levelsGained++;
+                    
+                    _logger.LogInformation("Player {PlayerName} leveled up to level {Level}!",
+                        playerState.Character.Name, newLevel);
+                }
+
+                if (levelsGained > 0)
+                {
+                    // Send updated HP/TP to player after level up
+                    await playerState.Send(new RecoverPlayerServerPacket
+                    {
+                        Hp = playerState.Character.Hp,
+                        Tp = playerState.Character.Tp
+                    });
+
+                    // TODO: Send proper level up packets when protocol structures are confirmed
+                    await playerState.ServerMessage($"You gained {levelsGained} level(s)! You are now level {playerState.Character.Level}!");
+                }
+                else
+                {
+                    // Just send experience gain message
+                    await playerState.ServerMessage($"You gained {experienceGained} experience!");
+                }
+
+                // Broadcast NPC death 
+                await playerState.CurrentMap.BroadcastPacket(new NpcSpecServerPacket
+                {
+                    NpcKilledData = new NpcKilledData
+                    {
+                        KillerId = playerState.SessionId,
+                        KillerDirection = playerState.Character.Direction,
+                        NpcIndex = npcIndex,
+                        DropIndex = 0, // TODO: Handle item drops
+                        DropId = 0,
+                        DropAmount = 0
+                    }
+                });
+
+                // TODO: Handle NPC drops (items, gold)
             }
         }
 

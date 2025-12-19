@@ -1,5 +1,4 @@
-﻿using System.Data;
-using System.Reflection;
+﻿using System.Reflection;
 using Acorn;
 using Acorn.Database;
 using Acorn.Database.Repository;
@@ -12,8 +11,7 @@ using Acorn.Options;
 using Acorn.SLN;
 using Acorn.World;
 using Acorn.World.Map;
-using Microsoft.Data.SqlClient;
-using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -44,7 +42,7 @@ var configuration = new ConfigurationBuilder()
     .AddUserSecrets(Assembly.GetExecutingAssembly(), true)
     .Build();
 
-await Host.CreateDefaultBuilder(args)
+var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices(services =>
     {
         services
@@ -52,25 +50,48 @@ await Host.CreateDefaultBuilder(args)
             .Configure<DatabaseOptions>(configuration.GetSection("Database"))
             .Configure<ServerOptions>(configuration.GetSection("Server"))
             .Configure<SLNOptions>(configuration.GetSection("SLN"))
-            .AddSingleton<UtcNowDelegate>(() => DateTime.UtcNow)
-            .AddTransient<IDbConnection>(sp =>
-            {
-                var dbOptions = sp.GetRequiredService<IOptions<DatabaseOptions>>().Value;
-                var connectionString = dbOptions.ConnectionString;
+            .AddSingleton<UtcNowDelegate>(() => DateTime.UtcNow);
 
-                if (dbOptions.Engine?.ToLower() != "sqlite")
-                {
-                    return new SqlConnection(connectionString);
-                }
-                return new SqliteConnection(connectionString);
-            })
+        // Configure DbContext based on database engine
+        services.AddDbContext<AcornDbContext>((sp, options) =>
+        {
+            var dbOptions = sp.GetRequiredService<IOptions<DatabaseOptions>>().Value;
+            var connectionString = dbOptions.ConnectionString;
+            var engine = dbOptions.Engine?.ToLower() ?? "sqlite";
+
+            switch (engine)
+            {
+                case "postgresql":
+                case "postgres":
+                    options.UseNpgsql(connectionString);
+                    break;
+                case "mysql":
+                case "mariadb":
+                    options.UseMySQL(connectionString!);
+                    break;
+                case "sqlserver":
+                case "mssql":
+                    options.UseSqlServer(connectionString);
+                    break;
+                case "sqlite":
+                default:
+                    options.UseSqlite(connectionString);
+                    break;
+            }
+
+            options.EnableSensitiveDataLogging(false);
+            options.EnableDetailedErrors(true);
+        });
+
+        services
             .AddSingleton<FormulaService>()
             .AddSingleton<IStatsReporter, StatsReporter>()
             .AddSingleton<ISessionGenerator, SessionGenerator>()
-            .AddTransient<IDbInitialiser, DbInitialiser>()
+            .AddScoped<IDbInitialiser, DbInitialiser>()
             .AddHostedService<NewConnectionHostedService>()
             .AddHostedService<WorldHostedService>()
             .AddSingleton<WorldState>()
+            .AddSingleton<IWorldQueries, WorldStateQueries>()
             .AddAllOfType<ITalkHandler>()
             .AddPacketHandlers()
             .AddRepositories()
@@ -90,9 +111,17 @@ await Host.CreateDefaultBuilder(args)
     .ConfigureLogging(builder =>
     {
         builder.SetMinimumLevel(LogLevel.Debug);
-#pragma warning disable CS0618 // Type or member is obsolete
+#pragma warning disable CS0618
         builder.AddConsole(options => { options.TimestampFormat = "[HH:mm:ss] "; });
-#pragma warning restore CS0618 // Type or member is obsolete
+#pragma warning restore CS0618
     })
-    .Build()
-    .RunAsync();
+    .Build();
+
+// Initialize database
+using (var scope = host.Services.CreateScope())
+{
+    var initialiser = scope.ServiceProvider.GetRequiredService<IDbInitialiser>();
+    await initialiser.InitialiseAsync();
+}
+
+await host.RunAsync();

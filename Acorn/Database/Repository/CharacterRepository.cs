@@ -1,117 +1,135 @@
-﻿using System.Data;
-using Acorn.Database.Models;
-using Dapper;
+﻿using Acorn.Database.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Acorn.Database.Repository;
 
-public class CharacterRepository : BaseDbRepository, IDbRepository<Character>, IDisposable
+public class CharacterRepository : IDbRepository<Character>
 {
-    private readonly IDbConnection _conn;
-    private readonly ILogger<AccountRepository> _logger;
+    private readonly AcornDbContext _context;
+    private readonly ILogger<CharacterRepository> _logger;
 
     public CharacterRepository(
-        IDbConnection conn,
-        ILogger<AccountRepository> logger,
-        IOptions<DatabaseOptions> options,
-        IDbInitialiser initialiser
-    ) : base(initialiser)
+        AcornDbContext context,
+        ILogger<CharacterRepository> logger
+    )
     {
-        _conn = conn;
+        _context = context;
         _logger = logger;
-
-        SQLStatements.Create = File.ReadAllText($"Database/Scripts/{options.Value.Engine}/Character/Create.sql");
-        SQLStatements.Update = File.ReadAllText($"Database/Scripts/{options.Value.Engine}/Character/Update.sql");
-        SQLStatements.GetByKey = File.ReadAllText($"Database/Scripts/{options.Value.Engine}/Character/GetByKey.sql");
-
-        if (_conn.State != ConnectionState.Open)
-        {
-            _conn.Open();
-        }
     }
 
     public async Task CreateAsync(Character entity)
     {
-        using var t = _conn.BeginTransaction(IsolationLevel.ReadCommitted);
         try
         {
-            await _conn.ExecuteAsync(SQLStatements.Create, entity);
-            t.Commit();
+            await _context.Characters.AddAsync(entity);
+            await _context.SaveChangesAsync();
         }
         catch (Exception e)
         {
-            _logger.LogError("Error saving character information for {CharacterName}. Exception {Exception}",
-                entity.Name, e.Message);
-            t.Rollback();
+            _logger.LogError(e, "Error saving character information for {CharacterName}", entity.Name);
+            throw;
         }
     }
 
-    public Task DeleteAsync(Character entity)
+    public async Task DeleteAsync(Character entity)
     {
-        throw new NotImplementedException();
+        try
+        {
+            _context.Characters.Remove(entity);
+            await _context.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error deleting character {CharacterName}", entity.Name);
+            throw;
+        }
     }
 
     public async Task<Character?> GetByKeyAsync(string name)
     {
         try
         {
-            var characters = (await _conn.QueryAsync<Character>(
-                SQLStatements.GetByKey, new { name })).ToList();
+            var character = await _context.Characters
+                .Include(c => c.Items)
+                .Include(c => c.Paperdoll)
+                .FirstOrDefaultAsync(c => c.Name == name);
 
-            if (characters.Count > 0)
+            if (character is null)
             {
-                return characters.First();
+                _logger.LogInformation("Character {Character} not found", name);
+                return null;
             }
-            _logger.LogInformation("Character {Character} not found", name);
-            return null;
+            
+            return character;
         }
         catch (Exception e)
         {
-            _logger.LogError("Error fetching character {Character}. Exception {Exception}", name, e.Message);
+            _logger.LogError(e, "Error fetching character {Character}", name);
+            return null;
         }
-
-        return null;
     }
 
     public async Task UpdateAsync(Character entity)
     {
-        using var t = _conn.BeginTransaction(IsolationLevel.ReadCommitted);
         try
         {
-            await _conn.ExecuteAsync(SQLStatements.Update, entity);
+            // Load existing character with related entities
+            var existingCharacter = await _context.Characters
+                .Include(c => c.Items)
+                .Include(c => c.Paperdoll)
+                .FirstOrDefaultAsync(c => c.Name == entity.Name);
 
+            if (existingCharacter == null)
+            {
+                _logger.LogWarning("Character '{Name}' not found for update", entity.Name);
+                return;
+            }
+
+            // Update character properties
+            _context.Entry(existingCharacter).CurrentValues.SetValues(entity);
+
+            // Update Items - remove old ones and add new ones
+            _context.CharacterItems.RemoveRange(existingCharacter.Items);
+            existingCharacter.Items.Clear();
+            foreach (var item in entity.Items)
+            {
+                existingCharacter.Items.Add(item);
+            }
+
+            // Update Paperdoll
+            if (existingCharacter.Paperdoll != null && entity.Paperdoll != null)
+            {
+                _context.Entry(existingCharacter.Paperdoll).CurrentValues.SetValues(entity.Paperdoll);
+            }
+            else if (entity.Paperdoll != null)
+            {
+                existingCharacter.Paperdoll = entity.Paperdoll;
+            }
+
+            await _context.SaveChangesAsync();
             _logger.LogInformation("Saved character '{Name}'", entity.Name);
-
-            t.Commit();
         }
         catch (Exception e)
         {
-            _logger.LogError("Error saving character information for {CharacterName}. Exception {Exception}",
-                entity.Name, e.Message);
-            t.Rollback();
+            _logger.LogError(e, "Error updating character information for {CharacterName}", entity.Name);
+            throw;
         }
     }
 
-    public Task<IEnumerable<Character>> GetAllAsync()
+    public async Task<IEnumerable<Character>> GetAllAsync()
     {
-        throw new NotImplementedException();
-    }
-
-    public void Dispose()
-    {
-        if (_conn.State == ConnectionState.Open)
+        try
         {
-            _conn.Close();
+            return await _context.Characters
+                .Include(c => c.Items)
+                .Include(c => c.Paperdoll)
+                .ToListAsync();
         }
-
-        _conn.Dispose();
-    }
-
-    public static class SQLStatements
-    {
-        public static string Create = "";
-        public static string Update = "";
-        public static string GetByKey = "";
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error fetching all characters");
+            return [];
+        }
     }
 }

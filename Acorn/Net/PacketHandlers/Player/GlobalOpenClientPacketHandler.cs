@@ -8,29 +8,27 @@ namespace Acorn.Net.PacketHandlers.Player;
 
 public class GlobalOpenClientPacketHandler : IPacketHandler<GlobalOpenClientPacket>
 {
-    private readonly WorldState _world;
+    private readonly IWorldQueries _world;
 
-    public GlobalOpenClientPacketHandler(WorldState world)
+    public GlobalOpenClientPacketHandler(IWorldQueries world)
     {
         _world = world;
     }
 
-    public Task HandleAsync(PlayerState playerState, GlobalOpenClientPacket packet)
+    public async Task HandleAsync(PlayerState playerState, GlobalOpenClientPacket packet)
     {
         playerState.IsListeningToGlobal = true;
-        new[] { GlobalMessage.Welcome() }
-            .Concat(_world.GlobalMessages.Values.OrderByDescending(x => x.CreatedAt).Take(10))
-            .ToAsyncEnumerable()
-            .ForEachAsync(async x =>
-            {
-                await playerState.Send(new TalkMsgServerPacket
-                {
-                    Message = x.Message,
-                    PlayerName = x.Author
-                });
-            });
+        var messages = new[] { GlobalMessage.Welcome() }
+            .Concat(_world.GetRecentGlobalMessages(10));
 
-        return Task.CompletedTask;
+        foreach (var message in messages)
+        {
+            await playerState.Send(new TalkMsgServerPacket
+            {
+                Message = message.Message,
+                PlayerName = message.Author
+            });
+        }
     }
 
     public Task HandleAsync(PlayerState playerState, IPacket packet)

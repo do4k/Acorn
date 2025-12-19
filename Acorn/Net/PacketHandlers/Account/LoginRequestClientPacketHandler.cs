@@ -13,12 +13,12 @@ namespace Acorn.Net.PacketHandlers.Account;
 public class LoginRequestClientPacketHandler(
     ILogger<LoginRequestClientPacketHandler> logger,
     IDbRepository<Database.Models.Account> repository,
-    WorldState world
+    IWorldQueries world
 ) : IPacketHandler<LoginRequestClientPacket>
 {
     private readonly ILogger<LoginRequestClientPacketHandler> _logger = logger;
     private readonly IDbRepository<Database.Models.Account> _repository = repository;
-    private readonly WorldState _world = world;
+    private readonly IWorldQueries _world = world;
 
     public async Task HandleAsync(PlayerState playerState,
         LoginRequestClientPacket packet)
@@ -34,7 +34,7 @@ public class LoginRequestClientPacketHandler(
             return;
         }
 
-        if (_world.LoggedIn(account.Username))
+        if (_world.IsPlayerOnline(account.Username))
         {
             await playerState.Send(new LoginReplyServerPacket
             {
