@@ -1,5 +1,6 @@
 ﻿using Acorn.Database.Repository;
 using Acorn.Extensions;
+using Acorn.Game.Services;
 using Acorn.Infrastructure;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol;
@@ -12,14 +13,17 @@ namespace Acorn.Net.PacketHandlers.Player;
 internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequestClientPacket>
 {
     private readonly IDataFileRepository _dataRepository;
+    private readonly IStatCalculator _statCalculator;
     private readonly ILogger<WelcomeRequestClientPacketHandler> _logger;
 
     public WelcomeRequestClientPacketHandler(
         IDataFileRepository dataRepository,
+        IStatCalculator statCalculator,
         ILogger<WelcomeRequestClientPacketHandler> logger
     )
     {
         _dataRepository = dataRepository;
+        _statCalculator = statCalculator;
         _logger = logger;
     }
 
@@ -43,7 +47,7 @@ internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequest
 
         playerState.Character = character.AsGameModel();
         var equipmentResult = playerState.Character.Equipment();
-        playerState.Character.CalculateStats(_dataRepository.Ecf);
+        _statCalculator.RecalculateStats(playerState.Character, _dataRepository.Ecf);
 
         await playerState.Send(new WelcomeReplyServerPacket
         {

@@ -1,5 +1,7 @@
 using Acorn.Database.Repository;
+using Acorn.Game.Mappers;
 using Acorn.World;
+using Acorn.World.Services;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 
@@ -7,7 +9,8 @@ namespace Acorn.Net.PacketHandlers.Item;
 
 public class ItemGetClientPacketHandler(
     ILogger<ItemGetClientPacketHandler> logger,
-    IWorldQueries worldQueries,
+    IMapItemService mapItemService,
+    ICharacterMapper characterMapper,
     IDbRepository<Database.Models.Character> characterRepository)
     : IPacketHandler<ItemGetClientPacket>
 {
@@ -22,11 +25,14 @@ public class ItemGetClientPacketHandler(
         logger.LogInformation("Player {Character} picking up item at index {ItemIndex}",
             player.Character.Name, packet.ItemIndex);
 
-        // Use map's get item method which handles all validation and broadcasting
-        await player.CurrentMap.GetItem(player, packet.ItemIndex);
+        // Use map item service for pickup logic
+        var result = await mapItemService.TryPickupItem(player, player.CurrentMap, packet.ItemIndex);
         
-        // Save character inventory to database
-        await characterRepository.UpdateAsync(player.Character.AsDatabaseModel());
+        if (result.Success)
+        {
+            // Save character inventory to database
+            await characterRepository.UpdateAsync(characterMapper.ToDatabase(player.Character));
+        }
     }
 
     public Task HandleAsync(PlayerState playerState, Moffat.EndlessOnline.SDK.Protocol.Net.IPacket packet)

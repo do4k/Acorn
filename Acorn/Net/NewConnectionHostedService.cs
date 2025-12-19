@@ -2,6 +2,7 @@
 using System.Net.Sockets;
 using Acorn.Database.Models;
 using Acorn.Database.Repository;
+using Acorn.Game.Mappers;
 using Acorn.Infrastructure;
 using Acorn.Infrastructure.Communicators;
 using Acorn.Options;
@@ -17,6 +18,7 @@ public class NewConnectionHostedService(
     IStatsReporter statsReporter,
     WorldState worldState,
     IDbRepository<Character> characterRepository,
+    ICharacterMapper characterMapper,
     ISessionGenerator sessionGenerator,
     IOptions<ServerOptions> serverOptions,
     TcpCommunicatorFactory tcpCommunicatorFactory,
@@ -82,7 +84,7 @@ public class NewConnectionHostedService(
         if (player.Character is not null && player.CurrentMap is not null)
         {
             await player.CurrentMap.NotifyLeave(player);
-            await characterRepository.UpdateAsync(player.Character.AsDatabaseModel());
+            await characterRepository.UpdateAsync(characterMapper.ToDatabase(player.Character));
         }
 
         worldState.Players.TryRemove(sessionId, out _);

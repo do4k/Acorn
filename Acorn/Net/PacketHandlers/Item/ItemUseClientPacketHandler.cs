@@ -1,4 +1,5 @@
 using Acorn.Database.Repository;
+using Acorn.Game.Services;
 using Acorn.World;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol;
@@ -7,7 +8,10 @@ using Moffat.EndlessOnline.SDK.Protocol.Pub;
 
 namespace Acorn.Net.PacketHandlers.Item;
 
-public class ItemUseClientPacketHandler(ILogger<ItemUseClientPacketHandler> logger, IWorldQueries worldQueries)
+public class ItemUseClientPacketHandler(
+    ILogger<ItemUseClientPacketHandler> logger, 
+    IWorldQueries worldQueries,
+    IInventoryService inventoryService)
     : IPacketHandler<ItemUseClientPacket>
 {
     public async Task HandleAsync(PlayerState player, ItemUseClientPacket packet)
@@ -19,7 +23,7 @@ public class ItemUseClientPacketHandler(ILogger<ItemUseClientPacketHandler> logg
         }
 
         // Validate player has the item
-        if (!player.Character.HasItem(packet.ItemId))
+        if (!inventoryService.HasItem(player.Character, packet.ItemId))
         {
             logger.LogWarning("Player {Character} tried to use item {ItemId} but doesn't have it",
                 player.Character.Name, packet.ItemId);
@@ -66,7 +70,7 @@ public class ItemUseClientPacketHandler(ILogger<ItemUseClientPacketHandler> logg
         // Remove item from inventory if consumed
         if (consumed)
         {
-            player.Character.RemoveItem(packet.ItemId, 1);
+            inventoryService.TryRemoveItem(player.Character, packet.ItemId, 1);
             // TODO: Send updated inventory packet
         }
 

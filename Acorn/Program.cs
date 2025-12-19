@@ -3,6 +3,8 @@ using Acorn;
 using Acorn.Database;
 using Acorn.Database.Repository;
 using Acorn.Extensions;
+using Acorn.Game.Mappers;
+using Acorn.Game.Services;
 using Acorn.Infrastructure;
 using Acorn.Infrastructure.Communicators;
 using Acorn.Net;
@@ -11,6 +13,7 @@ using Acorn.Options;
 using Acorn.SLN;
 using Acorn.World;
 using Acorn.World.Map;
+using Acorn.World.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -87,6 +90,14 @@ var host = Host.CreateDefaultBuilder(args)
             .AddSingleton<FormulaService>()
             .AddSingleton<IStatsReporter, StatsReporter>()
             .AddSingleton<ISessionGenerator, SessionGenerator>()
+            // Game services
+            .AddSingleton<IStatCalculator, StatCalculator>()
+            .AddSingleton<IInventoryService, InventoryService>()
+            .AddSingleton<IBankService, BankService>()
+            .AddSingleton<IWeightCalculator, WeightCalculator>()
+            .AddSingleton<ICharacterMapper, CharacterMapper>()
+            // World services
+            .AddSingleton<IMapItemService, MapItemService>()
             .AddScoped<IDbInitialiser, DbInitialiser>()
             .AddHostedService<NewConnectionHostedService>()
             .AddHostedService<WorldHostedService>()

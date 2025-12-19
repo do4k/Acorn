@@ -1,4 +1,6 @@
 using Acorn.Database.Repository;
+using Acorn.Game.Mappers;
+using Acorn.Game.Services;
 using Acorn.World;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
@@ -7,7 +9,8 @@ namespace Acorn.Net.PacketHandlers.Item;
 
 public class ItemJunkClientPacketHandler(
     ILogger<ItemJunkClientPacketHandler> logger,
-    IWorldQueries worldQueries,
+    IInventoryService inventoryService,
+    ICharacterMapper characterMapper,
     IDbRepository<Database.Models.Character> characterRepository)
     : IPacketHandler<ItemJunkClientPacket>
 {
@@ -20,7 +23,7 @@ public class ItemJunkClientPacketHandler(
         }
 
         // Validate player has the item
-        if (!player.Character.HasItem(packet.Item.Id, packet.Item.Amount))
+        if (!inventoryService.HasItem(player.Character, packet.Item.Id, packet.Item.Amount))
         {
             logger.LogWarning("Player {Character} tried to junk item {ItemId} x{Amount} but doesn't have it",
                 player.Character.Name, packet.Item.Id, packet.Item.Amount);
@@ -28,7 +31,7 @@ public class ItemJunkClientPacketHandler(
         }
 
         // Remove from inventory (junking destroys the item)
-        if (player.Character.RemoveItem(packet.Item.Id, packet.Item.Amount))
+        if (inventoryService.TryRemoveItem(player.Character, packet.Item.Id, packet.Item.Amount))
         {
             logger.LogInformation("Player {Character} junked item {ItemId} x{Amount}",
                 player.Character.Name, packet.Item.Id, packet.Item.Amount);
@@ -37,7 +40,7 @@ public class ItemJunkClientPacketHandler(
             // await player.Send(new ItemJunkServerPacket { ... });
             
             // Save character inventory to database
-            await characterRepository.UpdateAsync(player.Character.AsDatabaseModel());
+            await characterRepository.UpdateAsync(characterMapper.ToDatabase(player.Character));
         }
     }
 

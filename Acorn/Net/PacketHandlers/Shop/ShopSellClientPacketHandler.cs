@@ -1,4 +1,5 @@
 using Acorn.Database.Repository;
+using Acorn.Game.Services;
 using Acorn.World;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
@@ -7,7 +8,7 @@ namespace Acorn.Net.PacketHandlers.Shop;
 
 public class ShopSellClientPacketHandler(
     ILogger<ShopSellClientPacketHandler> logger,
-    IWorldQueries worldQueries,
+    IInventoryService inventoryService,
     IDbRepository<Database.Models.Character> characterRepository)
     : IPacketHandler<ShopSellClientPacket>
 {
@@ -20,7 +21,7 @@ public class ShopSellClientPacketHandler(
         }
 
         // Validate player has the item
-        if (!player.Character.HasItem(packet.SellItem.Id, packet.SellItem.Amount))
+        if (!inventoryService.HasItem(player.Character, packet.SellItem.Id, packet.SellItem.Amount))
         {
             logger.LogWarning("Player {Character} tried to sell item {ItemId} x{Amount} but doesn't have it",
                 player.Character.Name, packet.SellItem.Id, packet.SellItem.Amount);
@@ -33,10 +34,10 @@ public class ShopSellClientPacketHandler(
         // TODO: Get shop data from map/world
         // TODO: Validate shop accepts this item
         // TODO: Calculate sell value
-        // TODO: Remove sold item: player.Character.RemoveItem(packet.SellItem.Id, packet.SellItem.Amount)
-        // TODO: Add gold to inventory: player.Character.AddItem(goldItemId, sellValue)
+        // TODO: Remove sold item: inventoryService.TryRemoveItem(player.Character, packet.SellItem.Id, packet.SellItem.Amount)
+        // TODO: Add gold to inventory: inventoryService.TryAddItem(player.Character, goldItemId, sellValue)
         // TODO: Send ShopSell server packet with updated inventory and gold
-        // TODO: Update character in database: await characterRepository.UpdateAsync(player.Character.AsDatabaseModel());
+        // TODO: Update character in database: await characterRepository.UpdateAsync(characterMapper.ToDatabase(player.Character));
         
         await Task.CompletedTask;
     }

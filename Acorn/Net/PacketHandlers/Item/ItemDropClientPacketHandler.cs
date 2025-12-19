@@ -1,5 +1,7 @@
 using Acorn.Database.Repository;
+using Acorn.Game.Mappers;
 using Acorn.World;
+using Acorn.World.Services;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 
@@ -7,7 +9,8 @@ namespace Acorn.Net.PacketHandlers.Item;
 
 public class ItemDropClientPacketHandler(
     ILogger<ItemDropClientPacketHandler> logger,
-    IWorldQueries worldQueries,
+    IMapItemService mapItemService,
+    ICharacterMapper characterMapper,
     IDbRepository<Database.Models.Character> characterRepository)
     : IPacketHandler<ItemDropClientPacket>
 {
@@ -22,13 +25,13 @@ public class ItemDropClientPacketHandler(
         // Convert ByteCoords to Coords
         var coords = new Moffat.EndlessOnline.SDK.Protocol.Coords { X = packet.Coords.X, Y = packet.Coords.Y };
         
-        // Use map's drop item method which handles all validation and broadcasting
-        var success = await player.CurrentMap.DropItem(player, packet.Item.Id, packet.Item.Amount, coords);
+        // Use map item service for drop logic
+        var result = await mapItemService.TryDropItem(player, player.CurrentMap, packet.Item.Id, packet.Item.Amount, coords);
         
         // Save character inventory to database if successful
-        if (success)
+        if (result.Success)
         {
-            await characterRepository.UpdateAsync(player.Character.AsDatabaseModel());
+            await characterRepository.UpdateAsync(characterMapper.ToDatabase(player.Character));
         }
     }
 

@@ -1,5 +1,6 @@
 using Acorn.Database.Models;
 using Acorn.Database.Repository;
+using Acorn.Game.Services;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
 
 namespace Acorn;
@@ -7,11 +8,13 @@ namespace Acorn;
 public class FormulaService
 {
     private readonly IDataFileRepository _dataFileRepository;
+    private readonly IStatCalculator _statCalculator;
     private static readonly Random _random = new Random();
 
-    public FormulaService(IDataFileRepository dataFileRepository)
+    public FormulaService(IDataFileRepository dataFileRepository, IStatCalculator statCalculator)
     {
         _dataFileRepository = dataFileRepository;
+        _statCalculator = statCalculator;
     }
 
     public int CalculateDamage(Game.Models.Character character, EnfRecord npcData)
@@ -173,7 +176,7 @@ public class FormulaService
         character.SkillPoints += 1;
 
         // Recalculate stats
-        character.CalculateStats(classes);
+        _statCalculator.RecalculateStats(character, classes);
 
         // Fully restore HP/TP/SP on level up
         character.Hp = character.MaxHp;
