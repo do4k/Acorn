@@ -21,12 +21,6 @@ RUN dotnet restore "Acorn.csproj"
 # Copy remaining source files
 COPY . .
 
-# Build the application
-RUN dotnet build "Acorn.csproj" \
-    -c $BUILD_CONFIGURATION \
-    -o /app/build \
-    --no-restore
-
 # Stage 3: Publish image
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
@@ -34,7 +28,6 @@ RUN dotnet publish "Acorn.csproj" \
     -c $BUILD_CONFIGURATION \
     -o /app/publish \
     --no-restore \
-    --no-build \
     /p:UseAppHost=false
 
 # Stage 4: Final image
