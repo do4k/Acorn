@@ -141,14 +141,14 @@ public enum NpcType
 public enum NpcBehaviorType
 {
     /// <summary>
+    /// NPC wanders randomly (default for aggressive/passive)
+    /// </summary>
+    Wander,
+
+    /// <summary>
     /// NPC doesn't move at all
     /// </summary>
     Stationary,
-
-    /// <summary>
-    /// NPC wanders randomly
-    /// </summary>
-    Wander,
 
     /// <summary>
     /// NPC patrols back and forth near spawn point

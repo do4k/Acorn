@@ -41,6 +41,7 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
         {
             var nextCoords = playerState.Character.NextCoords();
             var target = playerState.CurrentMap.Npcs.FirstOrDefault(x =>
+                !x.IsDead &&
                 x.X == nextCoords.X && x.Y == nextCoords.Y &&
                 x.Data.Type is NpcType.Aggressive or NpcType.Passive);
 
@@ -77,6 +78,7 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
             {
                 target.IsDead = true;
                 target.DeathTime = DateTime.UtcNow;
+                target.Opponents.Clear();
 
                 _logger.LogInformation("NPC {NpcName} (ID: {NpcId}) killed by {PlayerName}",
                     target.Data.Name, target.Id, playerState.Character.Name);
@@ -106,7 +108,8 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
                     NpcIndex = npcIndex,
                     DropIndex = 0, // TODO: Handle item drops
                     DropId = 0,
-                    DropAmount = 0
+                    DropAmount = 0,
+                    Damage = damage
                 };
 
                 if (levelsGained > 0)

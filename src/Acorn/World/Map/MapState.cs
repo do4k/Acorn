@@ -33,12 +33,18 @@ public class MapState
     private readonly IMapTileService _tileService;
     private readonly IMapBroadcastService _broadcastService;
     private readonly INpcCombatService _npcCombatService;
+    private readonly IPlayerController _playerController;
+    private readonly INpcController _npcController;
+    private readonly int _playerRecoverRate;
 
     // Settings - should come from configuration
     private const int DROP_DISTANCE = 2;
     private const int DROP_PROTECT_TICKS = 300; // ~3 seconds at 10 ticks/sec
     private const int NPC_ACT_RATE = 2; // Ticks between NPC actions
     private const int NPC_BORED_THRESHOLD = 60; // Ticks before NPC forgets an opponent
+
+    // Tick counters for periodic events
+    private int _playerRecoverTicks;
 
     public MapState(
         MapWithId data,
@@ -47,6 +53,9 @@ public class MapState
         IMapTileService tileService,
         IMapBroadcastService broadcastService,
         INpcCombatService npcCombatService,
+        IPlayerController playerController,
+        INpcController npcController,
+        int playerRecoverRate,
         ILogger<MapState> logger)
     {
         Id = data.Id;
@@ -57,6 +66,9 @@ public class MapState
         _tileService = tileService;
         _broadcastService = broadcastService;
         _npcCombatService = npcCombatService;
+        _playerController = playerController;
+        _npcController = npcController;
+        _playerRecoverRate = playerRecoverRate;
 
         var mapNpcs = data.Map.Npcs.SelectMany(mapNpc => Enumerable.Range(0, mapNpc.Amount).Select(_ => mapNpc));
         foreach (var npc in mapNpcs)
@@ -84,14 +96,10 @@ public class MapState
                 Hp = npcData!.Hp,
                 Id = npc.Id,
                 SpawnType = npc.SpawnType,
-                SpawnTime = npc.SpawnTime
+                SpawnTime = npc.SpawnTime,
+                // Fixed NPCs (SpawnType 7) are stationary, others wander/chase
+                BehaviorType = npc.SpawnType == 7 ? NpcBehaviorType.Stationary : NpcBehaviorType.Wander
             };
-
-            // For SpawnType 7 (fixed NPCs), override behavior to stationary
-            if (npc.SpawnType == 7)
-            {
-                npcState.BehaviorType = NpcBehaviorType.Stationary;
-            }
 
             Npcs.Add(npcState);
         }
@@ -136,7 +144,10 @@ public class MapState
         };
 
     public List<NpcMapInfo> AsNpcMapInfo()
-        => Npcs.Select((x, i) => x.AsNpcMapInfo(i)).ToList();
+        => Npcs.Select((x, i) => (npc: x, index: i))
+            .Where(t => !t.npc.IsDead)
+            .Select(t => t.npc.AsNpcMapInfo(t.index))
+            .ToList();
 
     public async Task NotifyEnter(PlayerState player, WarpEffect warpEffect = WarpEffect.None)
     {
@@ -293,12 +304,28 @@ public class MapState
                 var timeSinceDeath = DateTime.UtcNow - npc.DeathTime.Value;
                 if (timeSinceDeath.TotalSeconds >= npc.RespawnTimeSeconds)
                 {
-                    // Respawn the NPC
+                    // Respawn the NPC - reset all state like reoserv
                     npc.IsDead = false;
                     npc.DeathTime = null;
                     npc.Hp = npc.Data.Hp;
-                    npc.X = npc.SpawnX;
-                    npc.Y = npc.SpawnY;
+                    npc.Opponents.Clear();
+                    npc.ActTicks = 0;
+                    
+                    // Calculate spawn position with variance for non-fixed NPCs
+                    if (_npcController.ShouldUseSpawnVariance(npc))
+                    {
+                        var (spawnX, spawnY) = _npcController.FindSpawnPosition(npc, npc.SpawnX, npc.SpawnY, Players, Npcs, Data);
+                        npc.X = spawnX;
+                        npc.Y = spawnY;
+                    }
+                    else
+                    {
+                        npc.X = npc.SpawnX;
+                        npc.Y = npc.SpawnY;
+                    }
+                    
+                    // Reset direction using controller
+                    npc.Direction = _npcController.GetSpawnDirection(npc);
 
                     _logger.LogInformation("NPC {NpcName} (ID: {NpcId}) respawned at ({X}, {Y})",
                         npc.Data.Name, npc.Id, npc.X, npc.Y);
@@ -371,17 +398,32 @@ public class MapState
         }
 
         // Handle player deaths from NPC attacks
-        foreach (var attack in attackUpdates.Where(a => a.Killed == PlayerKilledState.Killed))
+        var attackedPlayerIds = new HashSet<int>();
+        foreach (var attack in attackUpdates)
         {
-            var deadPlayer = Players.FirstOrDefault(p => p.SessionId == attack.PlayerId);
-            if (deadPlayer?.Character != null)
+            attackedPlayerIds.Add(attack.PlayerId);
+            
+            if (attack.Killed == PlayerKilledState.Killed)
             {
-                _logger.LogInformation("Player {PlayerName} was killed by NPC", deadPlayer.Character.Name);
-                // TODO: Handle player death (respawn, drop items, etc.)
+                var deadPlayer = Players.FirstOrDefault(p => p.SessionId == attack.PlayerId);
+                if (deadPlayer?.Character != null)
+                {
+                    tasks.Add(_playerController.DieAsync(deadPlayer));
+                }
             }
         }
 
-        tasks.AddRange(Players.Select(RecoverPlayer));
+        // Track recovery timer and recover players periodically (like reoserv)
+        _playerRecoverTicks++;
+        if (_playerRecoverTicks >= _playerRecoverRate)
+        {
+            _playerRecoverTicks = 0;
+            
+            // Recover players who weren't attacked this tick
+            tasks.AddRange(Players
+                .Where(p => !attackedPlayerIds.Contains(p.SessionId))
+                .Select(RecoverPlayer));
+        }
 
         await Task.WhenAll(tasks);
     }
@@ -394,76 +436,20 @@ public class MapState
             return Task.CompletedTask;
         }
 
-        var hp = player.Character.SitState switch
-        {
-            SitState.Stand => player.Character.Recover(5),
-            _ => player.Character.Recover(10)
-        };
+        // Use reoserv formula: divisor is 5 for standing, 10 for sitting
+        var divisor = player.Character.SitState == SitState.Stand ? 5 : 10;
+        var (hp, tp) = player.Character.Recover(divisor);
 
         return player.Send(new RecoverPlayerServerPacket
         {
             Hp = hp,
-            Tp = player.Character.Tp,
+            Tp = tp,
         });
     }
 
     private (NpcState, bool) MoveNpc(NpcState npc)
     {
-        // Check if this NPC should move this tick
-        if (!npc.ShouldMove())
-        {
-            return (npc, false);
-        }
-
-        // Get next direction based on NPC behavior
-        var newDirection = npc.GetNextDirection();
-        var nextCoords = npc.NextCoords(newDirection);
-
-        // Boundary check
-        if (nextCoords.X < 0 || nextCoords.Y < 0 || nextCoords.X > Data.Width || nextCoords.Y > Data.Height)
-        {
-            // If we hit a boundary, consider changing direction for wandering NPCs
-            if (npc.BehaviorType == NpcBehaviorType.Wander)
-            {
-                npc.LastDirectionChange = DateTime.UtcNow.AddSeconds(-5); // Force direction change next tick
-            }
-            return (npc, false);
-        }
-
-        // Check for player collision
-        if (Players.Any(x => x.Character?.AsCoords().Equals(nextCoords) == true))
-        {
-            return (npc, false);
-        }
-
-        // Check for NPC collision
-        if (Npcs.Any(x => x != npc && x.AsCoords().Equals(nextCoords)))
-        {
-            return (npc, false);
-        }
-
-        // Check tile walkability
-        var row = Data.TileSpecRows.Where(x => x.Y == nextCoords.Y).ToList();
-        var tile = row.SelectMany(x => x.Tiles)
-            .FirstOrDefault(x => x.X == nextCoords.X);
-
-        if (tile is not null)
-        {
-            if (_tileService.IsNpcWalkable(tile.TileSpec) is false)
-            {
-                // Hit an obstacle, might want to change direction
-                if (npc.BehaviorType == NpcBehaviorType.Wander)
-                {
-                    npc.LastDirectionChange = DateTime.UtcNow.AddSeconds(-3);
-                }
-                return (npc, false);
-            }
-        }
-
-        // Successfully move
-        npc.X = nextCoords.X;
-        npc.Y = nextCoords.Y;
-        npc.Direction = newDirection;
-        return (npc, true);
+        var result = _npcController.TryMove(npc, Players, Npcs, Data);
+        return (npc, result.Moved);
     }
 }

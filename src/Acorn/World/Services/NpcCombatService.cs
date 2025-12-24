@@ -44,6 +44,8 @@ public class NpcCombatService : INpcCombatService
             return null;
 
         // Find adjacent tiles
+
+        // Find adjacent tiles
         var adjacentCoords = new[]
         {
             new Coords { X = npc.X, Y = npc.Y - 1 }, // Up

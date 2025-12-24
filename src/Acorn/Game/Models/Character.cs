@@ -109,17 +109,25 @@ public class Character
     public Coords NextCoords() => AsCoords().NextCoords(Direction);
 
     /// <summary>
-    /// Recover HP up to MaxHp.
+    /// Recover HP and TP based on divisor.
+    /// Uses reoserv formula: (MaxHP/divisor + 1) for HP, (MaxTP/divisor + 1) for TP.
+    /// Divisor should be 5 for standing, 10 for sitting.
     /// </summary>
-    public int Recover(int amount)
+    public (int Hp, int Tp) Recover(int divisor)
     {
-        Hp = Hp switch
+        if (Hp < MaxHp)
         {
-            var hp when hp < MaxHp && hp + amount < MaxHp => hp + amount,
-            _ => MaxHp
-        };
+            var hpGain = (MaxHp / divisor) + 1;
+            Hp = Math.Min(Hp + hpGain, MaxHp);
+        }
 
-        return Hp;
+        if (Tp < MaxTp)
+        {
+            var tpGain = (MaxTp / divisor) + 1;
+            Tp = Math.Min(Tp + tpGain, MaxTp);
+        }
+
+        return (Hp, Tp);
     }
 
     /// <summary>

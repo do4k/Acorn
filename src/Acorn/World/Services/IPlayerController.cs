@@ -39,4 +39,9 @@ public interface IPlayerController
     /// Stand a player up from sitting.
     /// </summary>
     Task StandAsync(PlayerState player);
+
+    /// <summary>
+    /// Handle player death. Warps them to rescue spawn location.
+    /// </summary>
+    Task DieAsync(PlayerState player);
 }

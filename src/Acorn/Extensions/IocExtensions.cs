@@ -56,7 +56,21 @@ internal static class IocRegistrations
             .AddSingleton<IMapTileService, MapTileService>()
             .AddSingleton<IMapBroadcastService, MapBroadcastService>()
             .AddSingleton<INpcCombatService, NpcCombatService>()
-            .AddSingleton<IPlayerController, PlayerController>();
+            .AddSingleton<IPlayerController, PlayerController>()
+            .AddSingleton<INpcController, NpcController>()
+            // Lazy<T> registration to break circular dependencies
+            .AddTransient(typeof(Lazy<>), typeof(LazyServiceProvider<>));
+    }
+
+    /// <summary>
+    /// Helper class for Lazy&lt;T&gt; resolution to break circular dependencies
+    /// </summary>
+    private class LazyServiceProvider<T> : Lazy<T> where T : class
+    {
+        public LazyServiceProvider(IServiceProvider serviceProvider)
+            : base(() => serviceProvider.GetRequiredService<T>())
+        {
+        }
     }
 
     public static IServiceCollection AddPacketHandlers(this IServiceCollection services)
