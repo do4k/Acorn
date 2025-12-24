@@ -16,6 +16,7 @@ public class MapItemService : IMapItemService
     private readonly IInventoryService _inventoryService;
     private readonly IWeightCalculator _weightCalculator;
     private readonly IDataFileRepository _dataRepository;
+    private readonly IMapTileService _tileService;
     private readonly ILogger<MapItemService> _logger;
 
     private const int DropDistance = 2;
@@ -25,11 +26,13 @@ public class MapItemService : IMapItemService
         IInventoryService inventoryService,
         IWeightCalculator weightCalculator,
         IDataFileRepository dataRepository,
+        IMapTileService tileService,
         ILogger<MapItemService> logger)
     {
         _inventoryService = inventoryService;
         _weightCalculator = weightCalculator;
         _dataRepository = dataRepository;
+        _tileService = tileService;
         _logger = logger;
     }
 
@@ -40,7 +43,7 @@ public class MapItemService : IMapItemService
 
         // Validate distance
         var playerCoords = player.Character.AsCoords();
-        if (map.GetDistance(playerCoords, coords) > DropDistance)
+        if (_tileService.GetDistance(playerCoords, coords) > DropDistance)
         {
             _logger.LogWarning("Player {Character} tried to drop item too far away", player.Character.Name);
             return new ItemDropResult(false, ErrorMessage: "Too far away");
@@ -55,7 +58,7 @@ public class MapItemService : IMapItemService
         }
 
         // Validate tile is walkable
-        if (!map.IsTileWalkable(coords))
+        if (!_tileService.IsTileWalkable(map.Data, coords))
         {
             _logger.LogWarning("Player {Character} tried to drop item on unwalkable tile", player.Character.Name);
             return new ItemDropResult(false, ErrorMessage: "Cannot drop here");
@@ -106,7 +109,7 @@ public class MapItemService : IMapItemService
 
         // Check distance
         var playerCoords = player.Character.AsCoords();
-        if (map.GetDistance(playerCoords, mapItem.Coords) > DropDistance)
+        if (_tileService.GetDistance(playerCoords, mapItem.Coords) > DropDistance)
         {
             _logger.LogWarning("Player {Character} tried to get item too far away", player.Character.Name);
             return new ItemPickupResult(false, ErrorMessage: "Too far away");

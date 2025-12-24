@@ -1,6 +1,7 @@
 using Acorn.Database.Models;
 using Acorn.Database.Repository;
 using Acorn.Game.Services;
+using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
 
 namespace Acorn;
@@ -9,7 +10,7 @@ namespace Acorn;
 /// Formula calculations based on reoserv/eoserv implementation.
 /// See: https://github.com/sorokya/reoserv/blob/master/config/Formulas.ron
 /// </summary>
-public class FormulaService
+public class FormulaService : IFormulaService
 {
     private readonly IDataFileRepository _dataFileRepository;
     private readonly IStatCalculator _statCalculator;
@@ -84,6 +85,26 @@ public class FormulaService
         bool critical = (npcData.Hp == npcData.Hp) || attackingBackOrSide; // First hit is always critical in reoserv
 
         return CalculateDamage(rawDamage, npcData.Armor, critical);
+    }
+
+    /// <summary>
+    /// Calculate damage dealt by an NPC to a player.
+    /// </summary>
+    public int CalculateNpcDamageToPlayer(EnfRecord npcData, Game.Models.Character target, bool attackingBackOrSide = false)
+    {
+        // Check if attack hits
+        if (!DoesAttackHit(npcData.Accuracy, target.Evade, target.SitState != Moffat.EndlessOnline.SDK.Protocol.Net.Server.SitState.Stand))
+        {
+            return 0; // Miss
+        }
+
+        // Roll damage between NPC's min and max
+        int rawDamage = _random.Next(npcData.MinDamage, npcData.MaxDamage + 1);
+
+        // Critical hit if NPC is attacking from back or side
+        bool critical = attackingBackOrSide;
+
+        return Math.Min(CalculateDamage(rawDamage, target.Armor, critical), target.Hp);
     }
 
     /// <summary>

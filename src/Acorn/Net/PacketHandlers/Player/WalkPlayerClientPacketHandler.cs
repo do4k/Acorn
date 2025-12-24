@@ -1,5 +1,6 @@
 ﻿using Acorn.World;
 using Acorn.World.Map;
+using Acorn.World.Services;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Map;
@@ -13,11 +14,13 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
 {
     private readonly ILogger<WalkPlayerClientPacketHandler> _logger;
     private readonly IWorldQueries _world;
+    private readonly IPlayerController _playerController;
 
-    public WalkPlayerClientPacketHandler(ILogger<WalkPlayerClientPacketHandler> logger, IWorldQueries world)
+    public WalkPlayerClientPacketHandler(ILogger<WalkPlayerClientPacketHandler> logger, IWorldQueries world, IPlayerController playerController)
     {
         _logger = logger;
         _world = world;
+        _playerController = playerController;
     }
 
     public async Task HandleAsync(PlayerState playerState,
@@ -76,7 +79,8 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
             return;
         }
 
-        await playerState.Warp(
+        await _playerController.WarpAsync(
+            playerState,
             targetMap,
             warpTile.Warp.DestinationCoords.X,
             warpTile.Warp.DestinationCoords.Y);

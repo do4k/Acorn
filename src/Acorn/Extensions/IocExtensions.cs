@@ -8,6 +8,7 @@ using Acorn.Net.PacketHandlers.Npc;
 using Acorn.Net.PacketHandlers.Player;
 using Acorn.Net.PacketHandlers.Player.Talk;
 using Acorn.Net.PacketHandlers.Player.Warp;
+using Acorn.World.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
@@ -46,6 +47,16 @@ internal static class IocRegistrations
             .AddScoped<IDbRepository<Account>, AccountRepository>()
             .AddScoped<IDbRepository<Character>, CharacterRepository>()
             .AddSingleton<IDataFileRepository, DataFileRepository>();
+    }
+
+    public static IServiceCollection AddWorldServices(this IServiceCollection services)
+    {
+        return services
+            .AddSingleton<IFormulaService, FormulaService>()
+            .AddSingleton<IMapTileService, MapTileService>()
+            .AddSingleton<IMapBroadcastService, MapBroadcastService>()
+            .AddSingleton<INpcCombatService, NpcCombatService>()
+            .AddSingleton<IPlayerController, PlayerController>();
     }
 
     public static IServiceCollection AddPacketHandlers(this IServiceCollection services)

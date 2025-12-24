@@ -496,4 +496,4 @@ $RECYCLE.BIN/
 *.etf
 
 src/Acorn/Data/Quests/*.txt
-Acorn.db
+Acorn.db*

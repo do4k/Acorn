@@ -236,40 +236,6 @@ public class PlayerState : IDisposable
         await Communicator.Send(fullBytes);
     }
 
-    public Task ServerMessage(string message)
-        => Send(new TalkServerServerPacket
-        {
-            Message = message
-        });
-
-    public Task Refresh()
-        => Character switch
-        {
-            null => throw new InvalidOperationException("Cannot refresh player where the selected character is not initialised"),
-            _ => CurrentMap switch
-            {
-                null => throw new InvalidOperationException("Cannot refresh player where the selected character's map is not initialised"),
-                _ => Warp(CurrentMap, Character.X, Character.Y)
-            }
-        };
-
-    public async Task Warp(MapState targetMap, int x, int y, WarpEffect warpEffect = WarpEffect.None)
-    {
-        WarpSession = new WarpSession(x, y, this, targetMap, warpEffect);
-
-        if (WarpSession.IsLocal is false)
-        {
-            if (CurrentMap is not null)
-            {
-                await CurrentMap.NotifyLeave(this, warpEffect);
-            }
-
-            await targetMap.NotifyEnter(this, warpEffect);
-        }
-
-        await WarpSession.Execute();
-    }
-
     public void Disconnect()
     {
         _tokenSource.Cancel();

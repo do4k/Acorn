@@ -9,6 +9,7 @@ using Acorn.Infrastructure;
 using Acorn.Infrastructure.Communicators;
 using Acorn.Net;
 using Acorn.Net.PacketHandlers.Player.Talk;
+using Acorn.Net.Services;
 using Acorn.Options;
 using Acorn.SLN;
 using Acorn.World;
@@ -87,7 +88,6 @@ var host = Host.CreateDefaultBuilder(args)
         });
 
         services
-            .AddSingleton<FormulaService>()
             .AddSingleton<IStatsReporter, StatsReporter>()
             .AddSingleton<ISessionGenerator, SessionGenerator>()
             // Game services
@@ -98,6 +98,8 @@ var host = Host.CreateDefaultBuilder(args)
             .AddSingleton<ICharacterMapper, CharacterMapper>()
             // World services
             .AddSingleton<IMapItemService, MapItemService>()
+            // Notification services
+            .AddSingleton<INotificationService, NotificationService>()
             .AddScoped<IDbInitialiser, DbInitialiser>()
             .AddHostedService<NewConnectionHostedService>()
             .AddHostedService<WorldHostedService>()
@@ -106,6 +108,7 @@ var host = Host.CreateDefaultBuilder(args)
             .AddAllOfType<ITalkHandler>()
             .AddPacketHandlers()
             .AddRepositories()
+            .AddWorldServices()
             .AddSingleton<WebSocketCommunicatorFactory>()
             .AddSingleton<TcpCommunicatorFactory>()
             .AddSingleton<MapStateFactory>()

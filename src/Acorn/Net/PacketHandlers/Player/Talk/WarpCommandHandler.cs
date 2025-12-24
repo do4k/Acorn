@@ -1,4 +1,6 @@
-﻿using Acorn.World;
+﻿using Acorn.Net.Services;
+using Acorn.World;
+using Acorn.World.Services;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.Net.PacketHandlers.Player.Talk;
@@ -6,10 +8,14 @@ namespace Acorn.Net.PacketHandlers.Player.Talk;
 internal class WarpCommandHandler : ITalkHandler
 {
     private readonly IWorldQueries _world;
+    private readonly INotificationService _notifications;
+    private readonly IPlayerController _playerController;
 
-    public WarpCommandHandler(IWorldQueries world)
+    public WarpCommandHandler(IWorldQueries world, INotificationService notifications, IPlayerController playerController)
     {
         _world = world;
+        _notifications = notifications;
+        _playerController = playerController;
     }
 
     public bool CanHandle(string command)
@@ -22,13 +28,13 @@ internal class WarpCommandHandler : ITalkHandler
     {
         if (args.Length < 3)
         {
-            await playerState.ServerMessage("Usage: $warp <map> <x> <y>");
+            await _notifications.SystemMessage(playerState, "Usage: $warp <map> <x> <y>");
         }
 
         if (!int.TryParse(args[0], out var mapId) || !int.TryParse(args[1], out var x) ||
             !int.TryParse(args[2], out var y))
         {
-            await playerState.ServerMessage("Invalid coordinates.");
+            await _notifications.SystemMessage(playerState, "Invalid coordinates.");
             return;
         }
 
@@ -37,6 +43,6 @@ internal class WarpCommandHandler : ITalkHandler
         {
             return;
         }
-        await playerState.Warp(map, x, y, WarpEffect.Admin);
+        await _playerController.WarpAsync(playerState, map, x, y, WarpEffect.Admin);
     }
 }

@@ -14,10 +14,10 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
     private readonly UtcNowDelegate _now;
     private DateTime _timeSinceLastAttack;
     private readonly ILogger<AttackUseClientPacketHandler> _logger;
-    private readonly FormulaService _formulaService;
+    private readonly IFormulaService _formulaService;
     private readonly IDataFileRepository _dataFiles;
 
-    public AttackUseClientPacketHandler(UtcNowDelegate now, ILogger<AttackUseClientPacketHandler> logger, FormulaService formulaService, IDataFileRepository dataFiles)
+    public AttackUseClientPacketHandler(UtcNowDelegate now, ILogger<AttackUseClientPacketHandler> logger, IFormulaService formulaService, IDataFileRepository dataFiles)
     {
         _now = now;
         _logger = logger;
@@ -52,6 +52,12 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
             var damage = _formulaService.CalculateDamageToNpc(playerState.Character, target.Data);
             target.Hp -= damage;
             target.Hp = Math.Max(target.Hp, 0);
+
+            // Register player as opponent for NPC aggro
+            if (damage > 0)
+            {
+                target.AddOpponent(playerState.SessionId, damage);
+            }
 
             var npcIndex = playerState.CurrentMap.Npcs.ToList().IndexOf(target);
             var hpPercentage = (int)Math.Max((double)target.Hp / target.Data.Hp * 100, 0);
@@ -93,37 +99,55 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
                         playerState.Character.Name, newLevel);
                 }
 
+                var npcKilledData = new NpcKilledData
+                {
+                    KillerId = playerState.SessionId,
+                    KillerDirection = playerState.Character.Direction,
+                    NpcIndex = npcIndex,
+                    DropIndex = 0, // TODO: Handle item drops
+                    DropId = 0,
+                    DropAmount = 0
+                };
+
                 if (levelsGained > 0)
                 {
-                    // Send updated HP/TP to player after level up
-                    await playerState.Send(new RecoverPlayerServerPacket
+                    // Send NpcAcceptServerPacket for level up (includes experience and level up stats)
+                    await playerState.Send(new NpcAcceptServerPacket
                     {
-                        Hp = playerState.Character.Hp,
-                        Tp = playerState.Character.Tp
+                        NpcKilledData = npcKilledData,
+                        Experience = playerState.Character.Exp,
+                        LevelUp = new LevelUpStats
+                        {
+                            Level = playerState.Character.Level,
+                            StatPoints = playerState.Character.StatPoints,
+                            SkillPoints = playerState.Character.SkillPoints,
+                            MaxHp = playerState.Character.MaxHp,
+                            MaxTp = playerState.Character.MaxTp,
+                            MaxSp = playerState.Character.MaxSp
+                        }
                     });
 
-                    // TODO: Send proper level up packets when protocol structures are confirmed
-                    await playerState.ServerMessage($"You gained {levelsGained} level(s)! You are now level {playerState.Character.Level}!");
+                    // Broadcast death to others (without experience)
+                    await playerState.CurrentMap.BroadcastPacket(new NpcSpecServerPacket
+                    {
+                        NpcKilledData = npcKilledData
+                    }, except: playerState);
                 }
                 else
                 {
-                    // Just send experience gain message
-                    await playerState.ServerMessage($"You gained {experienceGained} experience!");
-                }
-
-                // Broadcast NPC death 
-                await playerState.CurrentMap.BroadcastPacket(new NpcSpecServerPacket
-                {
-                    NpcKilledData = new NpcKilledData
+                    // Send NpcSpecServerPacket with experience to the killer
+                    await playerState.Send(new NpcSpecServerPacket
                     {
-                        KillerId = playerState.SessionId,
-                        KillerDirection = playerState.Character.Direction,
-                        NpcIndex = npcIndex,
-                        DropIndex = 0, // TODO: Handle item drops
-                        DropId = 0,
-                        DropAmount = 0
-                    }
-                });
+                        NpcKilledData = npcKilledData,
+                        Experience = playerState.Character.Exp
+                    });
+
+                    // Broadcast death to others (without experience)
+                    await playerState.CurrentMap.BroadcastPacket(new NpcSpecServerPacket
+                    {
+                        NpcKilledData = npcKilledData
+                    }, except: playerState);
+                }
 
                 // TODO: Handle NPC drops (items, gold)
             }

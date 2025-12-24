@@ -1,10 +1,11 @@
 using Acorn.World;
+using Acorn.World.Services;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 
 namespace Acorn.Net.PacketHandlers.Board;
 
-public class BoardOpenClientPacketHandler(ILogger<BoardOpenClientPacketHandler> logger, IWorldQueries worldQueries)
+public class BoardOpenClientPacketHandler(ILogger<BoardOpenClientPacketHandler> logger, IWorldQueries worldQueries, IMapTileService tileService)
     : IPacketHandler<BoardOpenClientPacket>
 {
     public async Task HandleAsync(PlayerState player, BoardOpenClientPacket packet)
@@ -44,7 +45,7 @@ public class BoardOpenClientPacketHandler(ILogger<BoardOpenClientPacketHandler> 
             return;
 
         // Check if player is in range of the board tile
-        if (!player.CurrentMap.PlayerInRangeOfTile(player, boardTileSpec.Value))
+        if (!tileService.PlayerInRangeOfTile(player.CurrentMap.Data, player.Character.AsCoords(), boardTileSpec.Value))
         {
             logger.LogWarning("Player {Character} tried to open board {BoardId} but not in range",
                 player.Character.Name, packet.BoardId);

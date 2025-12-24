@@ -3,11 +3,13 @@ using Acorn.Database.Repository;
 using Acorn.Extensions;
 using Acorn.Net;
 using Acorn.World.Npc;
+using Acorn.World.Services;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+using Moffat.EndlessOnline.SDK.Protocol.Pub;
 
 namespace Acorn.World.Map;
 
@@ -27,18 +29,34 @@ public class MapState
 {
     private readonly ILogger<MapState> _logger;
     private readonly IDataFileRepository _dataRepository;
+    private readonly IFormulaService _formulaService;
+    private readonly IMapTileService _tileService;
+    private readonly IMapBroadcastService _broadcastService;
+    private readonly INpcCombatService _npcCombatService;
 
     // Settings - should come from configuration
     private const int DROP_DISTANCE = 2;
     private const int DROP_PROTECT_TICKS = 300; // ~3 seconds at 10 ticks/sec
-    private const int CLIENT_RANGE = 13;
+    private const int NPC_ACT_RATE = 2; // Ticks between NPC actions
+    private const int NPC_BORED_THRESHOLD = 60; // Ticks before NPC forgets an opponent
 
-    public MapState(MapWithId data, IDataFileRepository dataRepository, ILogger<MapState> logger)
+    public MapState(
+        MapWithId data,
+        IDataFileRepository dataRepository,
+        IFormulaService formulaService,
+        IMapTileService tileService,
+        IMapBroadcastService broadcastService,
+        INpcCombatService npcCombatService,
+        ILogger<MapState> logger)
     {
         Id = data.Id;
         Data = data.Map;
         _logger = logger;
         _dataRepository = dataRepository;
+        _formulaService = formulaService;
+        _tileService = tileService;
+        _broadcastService = broadcastService;
+        _npcCombatService = npcCombatService;
 
         var mapNpcs = data.Map.Npcs.SelectMany(mapNpc => Enumerable.Range(0, mapNpc.Amount).Select(_ => mapNpc));
         foreach (var npc in mapNpcs)
@@ -49,16 +67,32 @@ public class MapState
                 logger.LogError("Could not find npc with id {NpcId}", npc.Id);
                 continue;
             }
+
+            // SpawnType 7 means fixed position/direction (e.g., shopkeepers)
+            // For type 7, the lower 2 bits of SpawnTime encode the direction
+            var direction = npc.SpawnType == 7
+                ? (Direction)(npc.SpawnTime & 0x03)
+                : Direction.Down;
+
             var npcState = new NpcState(npcData)
             {
-                Direction = Direction.Down,
+                Direction = direction,
                 X = npc.Coords.X,
                 Y = npc.Coords.Y,
                 SpawnX = npc.Coords.X,
                 SpawnY = npc.Coords.Y,
                 Hp = npcData!.Hp,
-                Id = npc.Id
+                Id = npc.Id,
+                SpawnType = npc.SpawnType,
+                SpawnTime = npc.SpawnTime
             };
+
+            // For SpawnType 7 (fixed NPCs), override behavior to stationary
+            if (npc.SpawnType == 7)
+            {
+                npcState.BehaviorType = NpcBehaviorType.Stationary;
+            }
+
             Npcs.Add(npcState);
         }
     }
@@ -80,10 +114,7 @@ public class MapState
 
     public async Task BroadcastPacket(IPacket packet, PlayerState? except = null)
     {
-        var broadcast = PlayersExcept(except)
-            .Select(async otherPlayer => await otherPlayer.Send(packet));
-
-        await Task.WhenAll(broadcast);
+        await _broadcastService.BroadcastPacket(Players, packet, except);
     }
 
     public NearbyInfo AsNearbyInfo(PlayerState? except = null, WarpEffect warpEffect = WarpEffect.None)
@@ -133,62 +164,7 @@ public class MapState
     {
         Players = new ConcurrentBag<PlayerState>(Players.Where(p => p != player));
 
-        var playerRemoveTask = BroadcastPacket(new PlayersRemoveServerPacket
-        {
-            PlayerId = player.SessionId
-        });
-
-        var avatarRemoveTask = BroadcastPacket(new AvatarRemoveServerPacket
-        {
-            PlayerId = player.SessionId,
-            WarpEffect = warpEffect
-        });
-
-        await Task.WhenAll(playerRemoveTask, avatarRemoveTask);
-    }
-
-    public bool IsNpcWalkable(MapTileSpec tileSpec)
-        => tileSpec switch
-        {
-            MapTileSpec.Wall
-            or MapTileSpec.ChairDown
-            or MapTileSpec.ChairLeft
-            or MapTileSpec.ChairRight
-            or MapTileSpec.ChairUp
-            or MapTileSpec.ChairDownRight
-            or MapTileSpec.ChairUpLeft
-            or MapTileSpec.ChairAll
-            or MapTileSpec.Chest
-            or MapTileSpec.BankVault
-            or MapTileSpec.Edge
-            or MapTileSpec.Board1
-            or MapTileSpec.Board2
-            or MapTileSpec.Board3
-            or MapTileSpec.Board4
-            or MapTileSpec.Board5
-            or MapTileSpec.Board6
-            or MapTileSpec.Board7
-            or MapTileSpec.Board8
-            or MapTileSpec.Jukebox
-            or MapTileSpec.NpcBoundary
-            => false,
-            _ => true
-        };
-
-    // Map utility methods
-
-    public MapTileSpec? GetTile(Coords coords)
-    {
-        var row = Data.TileSpecRows.FirstOrDefault(r => r.Y == coords.Y);
-        var tile = row?.Tiles.FirstOrDefault(t => t.X == coords.X);
-        return tile?.TileSpec;
-    }
-
-    public bool IsTileWalkable(Coords coords)
-    {
-        var tile = GetTile(coords);
-        if (tile == null) return true;
-        return IsNpcWalkable(tile.Value);
+        await _broadcastService.NotifyPlayerLeave(Players, player, warpEffect);
     }
 
     public bool IsTileOccupied(Coords coords)
@@ -196,16 +172,6 @@ public class MapState
         return Players.Any(p => p.Character != null && !p.Character.Hidden &&
                                 p.Character.X == coords.X && p.Character.Y == coords.Y)
             || Npcs.Any(n => n.X == coords.X && n.Y == coords.Y);
-    }
-
-    public int GetDistance(Coords a, Coords b)
-    {
-        return Math.Abs(a.X - b.X) + Math.Abs(a.Y - b.Y);
-    }
-
-    public bool InClientRange(Coords a, Coords b)
-    {
-        return GetDistance(a, b) <= CLIENT_RANGE;
     }
 
     private int GetNextItemIndex(int seed = 1)
@@ -228,7 +194,7 @@ public class MapState
 
         // Check distance
         var playerCoords = player.Character.AsCoords();
-        if (GetDistance(playerCoords, coords) > 1)
+        if (_tileService.GetDistance(playerCoords, coords) > 1)
         {
             _logger.LogWarning("Player {Character} tried to sit in chair too far away", player.Character.Name);
             return false;
@@ -242,7 +208,7 @@ public class MapState
         }
 
         // Check if tile is a chair
-        var tile = GetTile(coords);
+        var tile = _tileService.GetTile(Data, coords);
         if (tile == null)
             return false;
 
@@ -307,25 +273,6 @@ public class MapState
         return true;
     }
 
-    public bool PlayerInRangeOfTile(PlayerState player, MapTileSpec tileSpec)
-    {
-        if (player.Character == null) return false;
-
-        var playerCoords = player.Character.AsCoords();
-
-        foreach (var row in Data.TileSpecRows)
-        {
-            foreach (var tile in row.Tiles.Where(t => t.TileSpec == tileSpec))
-            {
-                var tileCoords = new Coords { X = tile.X, Y = row.Y };
-                if (InClientRange(playerCoords, tileCoords))
-                    return true;
-            }
-        }
-
-        return false;
-    }
-
     public async Task Tick()
     {
         if (Players.Any() is false)
@@ -371,29 +318,68 @@ public class MapState
 
         List<Task> tasks = new();
 
-        // Only move NPCs that are alive
+        // Only move/act NPCs that are alive and can attack (aggressive/passive)
         var aliveNpcs = Npcs.Where(n => !n.IsDead).ToList();
-        var newPositions = aliveNpcs.Select(MoveNpc).ToList();
-        var npcUpdates = newPositions
-            .Select((x, id) => new
-            {
-                Position = new NpcUpdatePosition
-                {
-                    NpcIndex = Npcs.ToList().IndexOf(x.Item1),
-                    Coords = new Coords
-                    {
-                        X = x.Item1.X,
-                        Y = x.Item1.Y
-                    },
-                    Direction = x.Item1.Direction
-                },
-                Moved = x.Item2
-            }).ToList();
+        var npcList = Npcs.ToList();
 
-        tasks.Add(BroadcastPacket(new NpcPlayerServerPacket
+        var positionUpdates = new List<NpcUpdatePosition>();
+        var attackUpdates = new List<NpcUpdateAttack>();
+
+        foreach (var npc in aliveNpcs)
         {
-            Positions = npcUpdates.Where(x => x.Moved).Select(x => x.Position).ToList()
-        }));
+            // Increment act ticks and process opponent boredom
+            npc.ActTicks += NPC_ACT_RATE;
+            _npcCombatService.ProcessOpponentBoredom(npc, NPC_ACT_RATE, NPC_BORED_THRESHOLD);
+
+            // Only act if enough time has passed based on spawn type speed
+            var actRate = _npcCombatService.GetActRate(npc.SpawnType);
+            if (actRate == 0 || npc.ActTicks < actRate)
+                continue;
+
+            // Try to attack first
+            var attackResult = _npcCombatService.TryAttack(npc, npcList.IndexOf(npc), Players, _formulaService);
+            if (attackResult != null)
+            {
+                attackUpdates.Add(attackResult);
+                npc.ActTicks = 0;
+            }
+            else
+            {
+                // If not attacking, try to move (chase or wander)
+                var moveResult = MoveNpc(npc);
+                if (moveResult.Item2)
+                {
+                    positionUpdates.Add(new NpcUpdatePosition
+                    {
+                        NpcIndex = npcList.IndexOf(npc),
+                        Coords = new Coords { X = npc.X, Y = npc.Y },
+                        Direction = npc.Direction
+                    });
+                    npc.ActTicks = 0;
+                }
+            }
+        }
+
+        // Send NPC updates to all players
+        if (positionUpdates.Count > 0 || attackUpdates.Count > 0)
+        {
+            tasks.Add(BroadcastPacket(new NpcPlayerServerPacket
+            {
+                Positions = positionUpdates,
+                Attacks = attackUpdates
+            }));
+        }
+
+        // Handle player deaths from NPC attacks
+        foreach (var attack in attackUpdates.Where(a => a.Killed == PlayerKilledState.Killed))
+        {
+            var deadPlayer = Players.FirstOrDefault(p => p.SessionId == attack.PlayerId);
+            if (deadPlayer?.Character != null)
+            {
+                _logger.LogInformation("Player {PlayerName} was killed by NPC", deadPlayer.Character.Name);
+                // TODO: Handle player death (respawn, drop items, etc.)
+            }
+        }
 
         tasks.AddRange(Players.Select(RecoverPlayer));
 
@@ -463,7 +449,7 @@ public class MapState
 
         if (tile is not null)
         {
-            if (IsNpcWalkable(tile.TileSpec) is false)
+            if (_tileService.IsNpcWalkable(tile.TileSpec) is false)
             {
                 // Hit an obstacle, might want to change direction
                 if (npc.BehaviorType == NpcBehaviorType.Wander)

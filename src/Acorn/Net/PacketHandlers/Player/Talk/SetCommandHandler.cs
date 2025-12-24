@@ -1,5 +1,7 @@
-﻿using Acorn.World;
+﻿using Acorn.Net.Services;
+using Acorn.World;
 using Acorn.World.Npc;
+using Acorn.World.Services;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
@@ -11,11 +13,15 @@ public class SetCommandHandler : ITalkHandler
     private const string Usage = "Usage: $set <player> <attribute> <value>";
     private readonly ILogger<SetCommandHandler> _logger;
     private readonly IWorldQueries _world;
+    private readonly INotificationService _notifications;
+    private readonly IPlayerController _playerController;
 
-    public SetCommandHandler(IWorldQueries world, ILogger<SetCommandHandler> logger)
+    public SetCommandHandler(IWorldQueries world, ILogger<SetCommandHandler> logger, INotificationService notifications, IPlayerController playerController)
     {
         _world = world;
         _logger = logger;
+        _notifications = notifications;
+        _playerController = playerController;
     }
 
     public bool CanHandle(string command)
@@ -27,7 +33,7 @@ public class SetCommandHandler : ITalkHandler
     {
         if (args.Length < 3)
         {
-            await playerState.ServerMessage(Usage);
+            await _notifications.SystemMessage(playerState, Usage);
             return;
         }
 
@@ -35,7 +41,7 @@ public class SetCommandHandler : ITalkHandler
             string.Equals(x.Character?.Name, args[0], StringComparison.CurrentCultureIgnoreCase));
         if (target is null)
         {
-            await playerState.ServerMessage($"Player {args[0]} not found.");
+            await _notifications.SystemMessage(playerState, $"Player {args[0]} not found.");
             return;
         }
 
@@ -47,7 +53,7 @@ public class SetCommandHandler : ITalkHandler
 
         if (!int.TryParse(args[2], out var value))
         {
-            await playerState.ServerMessage($"Value must be an integer. {Usage}");
+            await _notifications.SystemMessage(playerState, $"Value must be an integer. {Usage}");
             return;
         }
 
@@ -93,12 +99,12 @@ public class SetCommandHandler : ITalkHandler
         try
         {
             adjustment();
-            await playerState.ServerMessage($"Player {args[0]} had {args[1]} updated to {value}.");
-            await playerState.Refresh();
+            await _notifications.SystemMessage(playerState, $"Player {args[0]} had {args[1]} updated to {value}.");
+            await _playerController.RefreshAsync(playerState);
         }
         catch (Exception ex)
         {
-            await playerState.ServerMessage($"{args[1]} is not a recognised attribute. {Usage}");
+            await _notifications.SystemMessage(playerState, $"{args[1]} is not a recognised attribute. {Usage}");
             _logger.LogError(ex, "Failed to set attribute {Attribute} for player {Player}", args[1], args[0]);
             return;
         }

@@ -1,4 +1,5 @@
 ﻿using Acorn.Database.Repository;
+using Acorn.Net.Services;
 using Acorn.World;
 using Acorn.World.Npc;
 using Microsoft.Extensions.Logging;
@@ -12,13 +13,15 @@ public class SpawnNpcCommandHandler : ITalkHandler
     private readonly ILogger<SpawnNpcCommandHandler> _logger;
     private readonly IDataFileRepository _dataFiles;
     private readonly IWorldQueries _world;
+    private readonly INotificationService _notifications;
 
     public SpawnNpcCommandHandler(IWorldQueries world, IDataFileRepository dataFiles,
-        ILogger<SpawnNpcCommandHandler> logger)
+        ILogger<SpawnNpcCommandHandler> logger, INotificationService notifications)
     {
         _world = world;
         _dataFiles = dataFiles;
         _logger = logger;
+        _notifications = notifications;
     }
 
     public bool CanHandle(string command)
@@ -31,7 +34,7 @@ public class SpawnNpcCommandHandler : ITalkHandler
     {
         if (args.Length < 1)
         {
-            await playerState.ServerMessage("Usage: $[spawnnpc | snpc] <npc_id|npc_name>");
+            await _notifications.SystemMessage(playerState, "Usage: $[spawnnpc | snpc] <npc_id|npc_name>");
             return;
         }
 
@@ -75,7 +78,7 @@ public class SpawnNpcCommandHandler : ITalkHandler
         }
 
         playerState.CurrentMap.Npcs.Add(npc);
-        await playerState.ServerMessage($"Spawned Npc {enf.Name} ({npcId}).");
+        await _notifications.SystemMessage(playerState, $"Spawned Npc {enf.Name} ({npcId}).");
         await playerState.CurrentMap.BroadcastPacket(new NpcAgreeServerPacket
         {
             Npcs = playerState.CurrentMap.AsNpcMapInfo()
@@ -87,6 +90,6 @@ public class SpawnNpcCommandHandler : ITalkHandler
         var npc = _dataFiles.Enf.Npcs.FirstOrDefault(x =>
             x.Name.Contains(name, StringComparison.CurrentCultureIgnoreCase));
 
-        return npc == null ? playerState.ServerMessage($"Npc {name} not found.") : SpawnNpc(playerState, npc);
+        return npc == null ? _notifications.SystemMessage(playerState, $"Npc {name} not found.") : SpawnNpc(playerState, npc);
     }
 }

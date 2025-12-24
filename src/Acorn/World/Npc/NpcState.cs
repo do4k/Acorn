@@ -5,6 +5,15 @@ using Moffat.EndlessOnline.SDK.Protocol.Pub;
 
 namespace Acorn.World.Npc;
 
+/// <summary>
+/// Tracks a player who has attacked an NPC
+/// </summary>
+public class NpcOpponent
+{
+    public int PlayerId { get; set; }
+    public int DamageDealt { get; set; }
+    public int BoredTicks { get; set; }
+}
 
 public class NpcState
 {
@@ -33,7 +42,77 @@ public class NpcState
     public DateTime LastDirectionChange { get; set; }
     public bool IsDead { get; set; }
     public DateTime? DeathTime { get; set; }
-    public int RespawnTimeSeconds { get; set; } = 60; // Default 60 seconds respawn
+
+    /// <summary>
+    /// Spawn type from EMF file.
+    /// Type 7 = fixed position/direction (stationary NPCs like shopkeepers).
+    /// Other values allow variable spawn positions for aggressive/passive NPCs.
+    /// </summary>
+    public int SpawnType { get; set; }
+
+    /// <summary>
+    /// Respawn time in seconds from EMF file.
+    /// For SpawnType 7, the lower 2 bits encode the fixed direction.
+    /// </summary>
+    public int SpawnTime { get; set; } = 60;
+
+    /// <summary>
+    /// Gets the respawn time in seconds.
+    /// For SpawnType 7, respawn is typically instant (0) since they're fixed NPCs.
+    /// </summary>
+    public int RespawnTimeSeconds => SpawnType == 7 ? 0 : SpawnTime;
+
+    /// <summary>
+    /// List of players who have attacked this NPC.
+    /// Used for aggro targeting and damage tracking.
+    /// </summary>
+    public List<NpcOpponent> Opponents { get; set; } = new();
+
+    /// <summary>
+    /// Ticks since last action (attack/move).
+    /// </summary>
+    public int ActTicks { get; set; }
+
+    /// <summary>
+    /// Add or update an opponent when they attack this NPC.
+    /// </summary>
+    public void AddOpponent(int playerId, int damage)
+    {
+        var existing = Opponents.FirstOrDefault(o => o.PlayerId == playerId);
+        if (existing != null)
+        {
+            existing.DamageDealt += damage;
+            existing.BoredTicks = 0;
+        }
+        else
+        {
+            Opponents.Add(new NpcOpponent
+            {
+                PlayerId = playerId,
+                DamageDealt = damage,
+                BoredTicks = 0
+            });
+        }
+    }
+
+    /// <summary>
+    /// Remove opponents who have been "bored" (not attacked) for too long.
+    /// </summary>
+    public void DropBoredOpponents(int boredThreshold)
+    {
+        Opponents.RemoveAll(o => o.BoredTicks >= boredThreshold);
+    }
+
+    /// <summary>
+    /// Increment bored ticks for all opponents.
+    /// </summary>
+    public void IncrementBoredTicks(int amount)
+    {
+        foreach (var opponent in Opponents)
+        {
+            opponent.BoredTicks += amount;
+        }
+    }
 
     public Coords AsCoords()
     {
