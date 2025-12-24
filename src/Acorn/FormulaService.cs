@@ -5,11 +5,15 @@ using Moffat.EndlessOnline.SDK.Protocol.Pub;
 
 namespace Acorn;
 
+/// <summary>
+/// Formula calculations based on reoserv/eoserv implementation.
+/// See: https://github.com/sorokya/reoserv/blob/master/config/Formulas.ron
+/// </summary>
 public class FormulaService
 {
     private readonly IDataFileRepository _dataFileRepository;
     private readonly IStatCalculator _statCalculator;
-    private static readonly Random _random = new Random();
+    private static readonly Random _random = new();
 
     public FormulaService(IDataFileRepository dataFileRepository, IStatCalculator statCalculator)
     {
@@ -17,124 +21,217 @@ public class FormulaService
         _statCalculator = statCalculator;
     }
 
-    public int CalculateDamage(Game.Models.Character character, EnfRecord npcData)
+    /// <summary>
+    /// Calculate hit rate for an attack.
+    /// Formula: min(0.8, max(0.5, accuracy / (target_evade * 2.0)))
+    /// If target is sitting, always hits (1.0)
+    /// </summary>
+    public double CalculateHitRate(int accuracy, int targetEvade, bool targetSitting = false)
     {
-        var @class = _dataFileRepository.Ecf.GetClass(character.Class);
-        if (@class is null)
-        {
-            return 0;
-        }
-
-        // Get weapon damage if equipped
-        int weaponDamage = 0;
-        if (character.Paperdoll.Weapon > 0)
-        {
-            var weapon = _dataFileRepository.Eif.GetItem(character.Paperdoll.Weapon);
-            if (weapon != null)
-            {
-                // TODO: Determine correct property names for weapon damage in EifRecord
-                // Likely candidates: MinDamage/MaxDamage, Str, or other stat bonuses
-                weaponDamage = 0; // (weapon.MinDam + weapon.MaxDam) / 2;
-            }
-        }
-
-        // Calculate base damage using character's min/max damage (which includes stats)
-        int baseDamage = _random.Next(character.MinDamage, character.MaxDamage + 1) + weaponDamage;
-
-        // Apply class-specific damage multipliers
-        double classMultiplier = @class.StatGroup switch
-        {
-            1 => 1.0,   // Warriors - normal damage
-            2 => 0.9,   // Rogues - slightly less damage
-            3 => 0.8,   // Mages - less physical damage
-            4 => 0.95,  // Archers - slightly less damage
-            _ => 1.0    // Default
-        };
-
-        baseDamage = (int)(baseDamage * classMultiplier);
-
-        // Apply NPC defense
-        int npcDefense = npcData.Armor;
-        int finalDamage = baseDamage - (npcDefense / 2);
-
-        // Add randomness variance (±10%)
-        int variance = _random.Next(-finalDamage / 10, finalDamage / 10);
-        finalDamage += variance;
-
-        // Ensure damage is at least 1 if the attack succeeded
-        return Math.Max(finalDamage, 1);
-    }
-
-    public int CalculateExperience(int npcLevel, int characterLevel)
-    {
-        // EOSERV formula: base_exp * (npc_level / char_level) with level difference modifiers
-        int baseExp = npcLevel * 10;
-
-        int levelDiff = npcLevel - characterLevel;
-        double modifier = levelDiff switch
-        {
-            > 10 => 1.5,   // Much harder mob
-            > 5 => 1.2,    // Harder mob
-            > 0 => 1.0,    // Slightly harder
-            0 => 0.9,      // Same level
-            > -5 => 0.7,   // Slightly easier
-            > -10 => 0.5,  // Easier
-            _ => 0.3       // Much easier
-        };
-
-        return Math.Max(1, (int)(baseExp * modifier));
-    }
-
-    public int CalculateAccuracy(Game.Models.Character character)
-    {
-        var @class = _dataFileRepository.Ecf.GetClass(character.Class);
-        if (@class is null) return 0;
-
-        // EOSERV: base accuracy from Agi + class bonus + level
-        int accuracy = character.Agi / 2 + @class.Agi / 4 + character.Level;
-
-        // TODO: Add weapon accuracy bonus
-
-        return accuracy;
-    }
-
-    public int CalculateEvade(Game.Models.Character character)
-    {
-        var @class = _dataFileRepository.Ecf.GetClass(character.Class);
-        if (@class is null) return 0;
-
-        // EOSERV: base evade from Agi + class bonus
-        int evade = character.Agi / 2 + @class.Agi / 4;
-
-        // TODO: Add armor evade bonus
-
-        return evade;
-    }
-
-    public int CalculateArmor(Game.Models.Character character)
-    {
-        var @class = _dataFileRepository.Ecf.GetClass(character.Class);
-        if (@class is null) return 0;
-
-        // Base armor from Con
-        int armor = character.Con / 4;
-
-        // Add equipment armor
-        if (character.Paperdoll.Armor > 0)
-        {
-            var armorItem = _dataFileRepository.Eif.GetItem(character.Paperdoll.Armor);
-            if (armorItem != null)
-            {
-                armor += armorItem.Hp; // Armor value is stored in HP field for armor items
-            }
-        }
-
-        return armor;
+        if (targetSitting) return 1.0;
+        if (accuracy + targetEvade == 0) return 0.5;
+        return Math.Min(0.8, Math.Max(0.5, (double)accuracy / (targetEvade * 2.0)));
     }
 
     /// <summary>
-    /// Calculate the experience required to reach the next level
-    /// Based on EOSERV formula: (level^3 * 133) / 100
+    /// Determine if an attack hits based on hit rate.
+    /// </summary>
+    public bool DoesAttackHit(int accuracy, int targetEvade, bool targetSitting = false)
+    {
+        var hitRate = CalculateHitRate(accuracy, targetEvade, targetSitting);
+        return _random.NextDouble() < hitRate;
+    }
+
+    /// <summary>
+    /// Calculate final damage after armor reduction.
+    /// Formula: if(critical, 1.5, 1.0) * max(1, if(damage >= target_armor * 2.0, damage, damage * pow(damage / (target_armor * 2.0), 2.0)))
+    /// </summary>
+    public int CalculateDamage(int rawDamage, int targetArmor, bool critical = false)
+    {
+        double criticalMultiplier = critical ? 1.5 : 1.0;
+        double armorThreshold = targetArmor * 2.0;
+
+        double damage;
+        if (rawDamage >= armorThreshold || targetArmor == 0)
+        {
+            damage = rawDamage;
+        }
+        else
+        {
+            // Armor reduction: damage * (damage / (armor * 2))^2
+            double ratio = rawDamage / armorThreshold;
+            damage = rawDamage * Math.Pow(ratio, 2.0);
+        }
+
+        return Math.Max(1, (int)(criticalMultiplier * damage));
+    }
+
+    /// <summary>
+    /// Calculate damage dealt to an NPC.
+    /// </summary>
+    public int CalculateDamageToNpc(Game.Models.Character character, EnfRecord npcData, bool attackingBackOrSide = false)
+    {
+        // Check if attack hits
+        if (!DoesAttackHit(character.Accuracy, npcData.Evade))
+        {
+            return 0; // Miss
+        }
+
+        // Roll damage between min and max
+        int rawDamage = _random.Next(character.MinDamage, character.MaxDamage + 1);
+
+        // Critical hit if NPC is at full HP or attacking from back/side
+        bool critical = (npcData.Hp == npcData.Hp) || attackingBackOrSide; // First hit is always critical in reoserv
+
+        return CalculateDamage(rawDamage, npcData.Armor, critical);
+    }
+
+    /// <summary>
+    /// Calculate damage dealt to a player.
+    /// </summary>
+    public int CalculateDamageToPlayer(Game.Models.Character attacker, Game.Models.Character target, bool attackingBackOrSide = false)
+    {
+        // Check if attack hits
+        if (!DoesAttackHit(attacker.Accuracy, target.Evade))
+        {
+            return 0; // Miss
+        }
+
+        // Roll damage between min and max
+        int rawDamage = _random.Next(attacker.MinDamage, attacker.MaxDamage + 1);
+
+        // Critical hit if target is at full HP or attacking from back/side
+        bool critical = (target.Hp == target.MaxHp) || attackingBackOrSide;
+
+        return CalculateDamage(rawDamage, target.Armor, critical);
+    }
+
+    /// <summary>
+    /// Calculate max HP.
+    /// Formula: 10.0 + (2.5 * level) + (2.5 * con)
+    /// </summary>
+    public int CalculateMaxHp(int level, int con)
+    {
+        return Math.Min(64000, (int)(10.0 + (2.5 * level) + (2.5 * con)));
+    }
+
+    /// <summary>
+    /// Calculate max TP.
+    /// Formula: 10.0 + (2.5 * level) + (2.5 * int) + (1.5 * wis)
+    /// </summary>
+    public int CalculateMaxTp(int level, int intelligence, int wisdom)
+    {
+        return Math.Min(64000, (int)(10.0 + (2.5 * level) + (2.5 * intelligence) + (1.5 * wisdom)));
+    }
+
+    /// <summary>
+    /// Calculate max SP.
+    /// Formula: 20.0 + (2.0 * level)
+    /// </summary>
+    public int CalculateMaxSp(int level)
+    {
+        return Math.Min(64000, (int)(20.0 + (2.0 * level)));
+    }
+
+    /// <summary>
+    /// Calculate max weight.
+    /// Formula: 70.0 + str
+    /// </summary>
+    public int CalculateMaxWeight(int strength)
+    {
+        return Math.Min(250, 70 + strength);
+    }
+
+    /// <summary>
+    /// Get class-specific damage bonus.
+    /// Based on stat_group: Melee=str/3, Rogue=str/5, Caster=int/3, Archer=str/6
+    /// </summary>
+    public int GetClassDamageBonus(int statGroup, int strength, int intelligence)
+    {
+        return statGroup switch
+        {
+            0 => strength / 3,     // Melee
+            1 => strength / 5,     // Rogue
+            2 => intelligence / 3, // Caster
+            3 => strength / 6,     // Archer
+            _ => 0                 // Peasant
+        };
+    }
+
+    /// <summary>
+    /// Get class-specific accuracy bonus.
+    /// Based on stat_group: Melee=agi/3, Rogue=agi/3, Caster=wis/3, Archer=agi/5
+    /// </summary>
+    public int GetClassAccuracyBonus(int statGroup, int agility, int wisdom)
+    {
+        return statGroup switch
+        {
+            0 => agility / 3, // Melee
+            1 => agility / 3, // Rogue
+            2 => wisdom / 3,  // Caster
+            3 => agility / 5, // Archer
+            _ => 0            // Peasant
+        };
+    }
+
+    /// <summary>
+    /// Get class-specific evade bonus.
+    /// Based on stat_group: Melee=agi/5, Rogue=agi/3, Caster=agi/4, Archer=agi/4
+    /// </summary>
+    public int GetClassEvadeBonus(int statGroup, int agility)
+    {
+        return statGroup switch
+        {
+            0 => agility / 5, // Melee
+            1 => agility / 3, // Rogue
+            2 => agility / 4, // Caster
+            3 => agility / 4, // Archer
+            _ => 0            // Peasant
+        };
+    }
+
+    /// <summary>
+    /// Get class-specific defense bonus.
+    /// Based on stat_group: Melee=con/4, Rogue=con/4, Caster=con/5, Archer=con/5
+    /// </summary>
+    public int GetClassDefenseBonus(int statGroup, int constitution)
+    {
+        return statGroup switch
+        {
+            0 => constitution / 4, // Melee
+            1 => constitution / 4, // Rogue
+            2 => constitution / 5, // Caster
+            3 => constitution / 5, // Archer
+            _ => 0                 // Peasant
+        };
+    }
+
+    /// <summary>
+    /// Calculate party experience share.
+    /// Formula: if(members > 2, floor(exp * ((1 + members) / members)), floor(exp / 2))
+    /// </summary>
+    public int CalculatePartyExpShare(int exp, int members)
+    {
+        if (members <= 1) return exp;
+        if (members > 2)
+        {
+            return (int)Math.Floor(exp * ((1.0 + members) / members));
+        }
+        return (int)Math.Floor(exp / 2.0);
+    }
+
+    /// <summary>
+    /// Get experience from NPC data. In EO, experience comes directly from EnfRecord.Experience.
+    /// This is a simple passthrough for clarity.
+    /// </summary>
+    public int GetNpcExperience(EnfRecord npcData)
+    {
+        return Math.Max(0, npcData.Experience);
+    }
+
+    /// <summary>
+    /// Calculate the experience required to reach the next level.
+    /// EOSERV formula: (level^3 * 133) / 100
     /// </summary>
     public int GetExperienceToNextLevel(int level)
     {
@@ -143,7 +240,7 @@ public class FormulaService
     }
 
     /// <summary>
-    /// Check if character has enough experience to level up
+    /// Check if character has enough experience to level up.
     /// </summary>
     public bool CanLevelUp(Game.Models.Character character)
     {
@@ -153,7 +250,7 @@ public class FormulaService
     }
 
     /// <summary>
-    /// Level up a character and return the new level
+    /// Level up a character and return the new level.
     /// </summary>
     public int LevelUp(Game.Models.Character character, Ecf classes)
     {
@@ -169,7 +266,7 @@ public class FormulaService
         int requiredExp = GetExperienceToNextLevel(character.Level - 1);
         character.Exp -= requiredExp;
 
-        // Three skill points per level
+        // Three stat points per level
         character.StatPoints += 3;
 
         // One skill point per level

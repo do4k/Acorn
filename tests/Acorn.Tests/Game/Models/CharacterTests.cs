@@ -42,7 +42,7 @@ public class CharacterTests
             }
         };
     }
-    
+
     [Fact]
     public void Items_ShouldReturnProjectedInventoryItems()
     {
@@ -50,16 +50,16 @@ public class CharacterTests
         var character = CreateTestCharacter();
         character.Inventory.Items.Add(new ItemWithAmount { Id = 1, Amount = 10 });
         character.Inventory.Items.Add(new ItemWithAmount { Id = 2, Amount = 5 });
-        
+
         // Act
         var items = character.Items().ToList();
-        
+
         // Assert
         items.Should().HaveCount(2);
         items.Should().Contain(i => i.Id == 1 && i.Amount == 10);
         items.Should().Contain(i => i.Id == 2 && i.Amount == 5);
     }
-    
+
     [Fact]
     public void AsCoords_ShouldReturnCoordsWithXAndY()
     {
@@ -67,24 +67,24 @@ public class CharacterTests
         var character = CreateTestCharacter();
         character.X = 15;
         character.Y = 25;
-        
+
         // Act
         var coords = character.AsCoords();
-        
+
         // Assert
         coords.X.Should().Be(15);
         coords.Y.Should().Be(25);
     }
-    
+
     [Fact]
     public void Equipment_ShouldReturnPaperdollAsEquipmentPaperdoll()
     {
         // Arrange
         var character = CreateTestCharacter();
-        
+
         // Act
         var equipment = character.Equipment();
-        
+
         // Assert
         equipment.Hat.Should().Be(1);
         equipment.Armor.Should().Be(2);

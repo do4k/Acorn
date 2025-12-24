@@ -49,7 +49,7 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
                 return;
             }
 
-            var damage = _formulaService.CalculateDamage(playerState.Character, target.Data);
+            var damage = _formulaService.CalculateDamageToNpc(playerState.Character, target.Data);
             target.Hp -= damage;
             target.Hp = Math.Max(target.Hp, 0);
 
@@ -75,8 +75,8 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
                 _logger.LogInformation("NPC {NpcName} (ID: {NpcId}) killed by {PlayerName}",
                     target.Data.Name, target.Id, playerState.Character.Name);
 
-                // Calculate and award experience
-                var experienceGained = _formulaService.CalculateExperience(target.Data.Level, playerState.Character.Level);
+                // Award experience from NPC data
+                var experienceGained = target.Data.Experience;
                 playerState.Character.GainExperience(experienceGained);
 
                 _logger.LogInformation("Player {PlayerName} gained {Exp} experience (Level {Level}, Total Exp: {TotalExp})",
