@@ -2,7 +2,17 @@
 
 > A modern C# server emulator for Endless Online, built with .NET 10 and Entity Framework Core
 
-![ai logo](docs/ai-logo.jpg)
+```
+          _          Acorn Endless-Online Server Software   
+        _/-\_ 
+    .-`-:-:-`-.
+    /-:-:-:-:-:-\
+    \:-:-:-:-:-:/ 
+     |`   ,   `|  
+     |   (     |
+     `\   `   /'
+       `-._.-'
+```
 
 ![acorn screenshot](docs/screenshot.png)
 

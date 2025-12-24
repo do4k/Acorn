@@ -33,9 +33,9 @@ Console.WriteLine($"""
     .-`-:-:-`-.   {GREEN}Author:{NORMAL} Dan Oak{GREEN}
     /-:-:-:-:-:-\ {GREEN}Version:{NORMAL} 0.0.0.1{GREEN}
     \:-:-:-:-:-:/ 
-     |`       `|
-     |         |
-     `\       /'
+     |`   ,   `|
+     |   (     |
+     `\   `   /'
        `-._.-'    {NORMAL}
 """);
 
