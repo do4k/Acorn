@@ -50,8 +50,8 @@ jobs:
     - name: Build and push Docker image
       uses: docker/build-push-action@v6
       with:
-        context: ./Acorn
-        file: ./Acorn/Dockerfile
+        context: ./src/Acorn
+        file: ./src/Acorn/Dockerfile
         push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
@@ -92,8 +92,8 @@ jobs:
     - name: Build and push to Docker Hub
       uses: docker/build-push-action@v6
       with:
-        context: ./Acorn
-        file: ./Acorn/Dockerfile
+        context: ./src/Acorn
+        file: ./src/Acorn/Dockerfile
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}

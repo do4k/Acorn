@@ -31,7 +31,7 @@
 
 ```bash
 git clone https://github.com/do4k/acorn.git
-cd acorn/Acorn
+cd acorn/src/Acorn
 dotnet run
 ```
 
@@ -71,10 +71,10 @@ docker run -p 8078:8078 -p 8079:8079 ghcr.io/do4k/acorn:latest
 
 ```bash
 # Development
-docker build -t acorn:dev ./Acorn
+docker build -t acorn:dev ./src/Acorn
 
 # Multi-platform
-docker buildx build --platform linux/amd64,linux/arm64 -t acorn:latest ./Acorn
+docker buildx build --platform linux/amd64,linux/arm64 -t acorn:latest ./src/Acorn
 ```
 
 ---
