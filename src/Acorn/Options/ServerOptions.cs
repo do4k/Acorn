@@ -19,4 +19,8 @@ public class ServerOptions
     /// Whether to enforce packet sequence validation. Disable for debugging.
     /// </summary>
     public bool EnforceSequence { get; set; } = true;
+    /// <summary>
+    /// Whether to log packet contents at debug level. Can be very verbose.
+    /// </summary>
+    public bool LogPackets { get; set; } = false;
 }

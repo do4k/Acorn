@@ -106,7 +106,10 @@ public class PlayerState : IDisposable
                 }
 
                 var decodedLength = NumberEncoder.DecodeNumber([len1, len2]);
-                _logger.LogDebug("Len1 {Len1}, Len2 {Len2}, Decoded length {DecodedLength}", len1, len2, decodedLength);
+                if (_serverOptions.LogPackets)
+                {
+                    _logger.LogDebug("Len1 {Len1}, Len2 {Len2}, Decoded length {DecodedLength}", len1, len2, decodedLength);
+                }
 
                 if (decodedLength <= 0 || decodedLength > 65535)
                 {
@@ -142,7 +145,10 @@ public class PlayerState : IDisposable
 
                 var packet = _resolver.Create(family, action);
                 packet.Deserialize(dataReader);
-                _logger.LogDebug("[Client] {Packet}", packet.ToString());
+                if (_serverOptions.LogPackets)
+                {
+                    _logger.LogDebug("[Client] {Packet}", packet.ToString());
+                }
 
                 var handlerType = typeof(IPacketHandler<>).MakeGenericType(packet.GetType());
                 var resolvedHandler = _handlers.FirstOrDefault(h => handlerType.IsInstanceOfType(h));
@@ -220,7 +226,10 @@ public class PlayerState : IDisposable
 
     public async Task Send(IPacket packet)
     {
-        _logger.LogDebug("[Server] {Packet}", packet.ToString());
+        if (_serverOptions.LogPackets)
+        {
+            _logger.LogDebug("[Server] {Packet}", packet.ToString());
+        }
         var writer = new EoWriter();
         writer.AddByte((int)packet.Action);
         writer.AddByte((int)packet.Family);
