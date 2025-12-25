@@ -85,11 +85,38 @@ public class SpawnNpcCommandHandler : ITalkHandler
         });
     }
 
-    private Task SpawnByName(PlayerState playerState, string name)
+    private async Task SpawnByName(PlayerState playerState, string name)
     {
-        var npc = _dataFiles.Enf.Npcs.FirstOrDefault(x =>
-            x.Name.Contains(name, StringComparison.CurrentCultureIgnoreCase));
+        // Try exact match first
+        var exactMatches = _dataFiles.Enf.FindByName(name);
+        if (exactMatches.Count == 1)
+        {
+            await SpawnNpc(playerState, exactMatches[0].Npc);
+            return;
+        }
 
-        return npc == null ? _notifications.SystemMessage(playerState, $"Npc {name} not found.") : SpawnNpc(playerState, npc);
+        if (exactMatches.Count > 1)
+        {
+            var ids = string.Join(", ", exactMatches.Select(x => x.Id));
+            await _notifications.SystemMessage(playerState, $"Multiple NPCs found with name \"{name}\": IDs {ids}");
+            return;
+        }
+
+        // No exact match, try partial match
+        var partialMatches = _dataFiles.Enf.SearchByName(name);
+        if (partialMatches.Count == 1)
+        {
+            await SpawnNpc(playerState, partialMatches[0].Npc);
+            return;
+        }
+
+        if (partialMatches.Count > 1)
+        {
+            var suggestions = string.Join(", ", partialMatches.Take(5).Select(x => $"{x.Npc.Name} ({x.Id})"));
+            await _notifications.SystemMessage(playerState, $"Multiple NPCs match \"{name}\": {suggestions}");
+            return;
+        }
+
+        await _notifications.SystemMessage(playerState, $"NPC \"{name}\" not found.");
     }
 }

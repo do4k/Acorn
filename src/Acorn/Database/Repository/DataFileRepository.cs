@@ -57,11 +57,67 @@ public class DataFileRepository : IDataFileRepository
     public IEnumerable<MapWithId> Maps { get; }
 }
 
+public static class EsfExtension
+{
+    public static EsfRecord? GetSkill(this Esf esf, int id)
+    {
+        return id >= esf.Skills.Count ? null : esf.Skills[id];
+    }
+
+    /// <summary>
+    /// Find skills by exact name match (case-insensitive).
+    /// </summary>
+    public static IReadOnlyList<(EsfRecord Skill, int Id)> FindByName(this Esf esf, string name)
+    {
+        return esf.Skills
+            .Select((skill, index) => (skill, id: index + 1))
+            .Where(x => !string.IsNullOrEmpty(x.skill.Name) &&
+                        x.skill.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Search skills by partial name match (case-insensitive).
+    /// </summary>
+    public static IReadOnlyList<(EsfRecord Skill, int Id)> SearchByName(this Esf esf, string name)
+    {
+        return esf.Skills
+            .Select((skill, index) => (skill, id: index + 1))
+            .Where(x => !string.IsNullOrEmpty(x.skill.Name) &&
+                        x.skill.Name.Contains(name, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
+}
+
 public static class EcfExtension
 {
     public static EcfRecord? GetClass(this Ecf ecf, int id)
     {
         return id >= ecf.Classes.Count ? null : ecf.Classes[id];
+    }
+
+    /// <summary>
+    /// Find classes by exact name match (case-insensitive).
+    /// </summary>
+    public static IReadOnlyList<(EcfRecord Class, int Id)> FindByName(this Ecf ecf, string name)
+    {
+        return ecf.Classes
+            .Select((cls, index) => (cls, id: index + 1))
+            .Where(x => !string.IsNullOrEmpty(x.cls.Name) &&
+                        x.cls.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Search classes by partial name match (case-insensitive).
+    /// </summary>
+    public static IReadOnlyList<(EcfRecord Class, int Id)> SearchByName(this Ecf ecf, string name)
+    {
+        return ecf.Classes
+            .Select((cls, index) => (cls, id: index + 1))
+            .Where(x => !string.IsNullOrEmpty(x.cls.Name) &&
+                        x.cls.Name.Contains(name, StringComparison.OrdinalIgnoreCase))
+            .ToList();
     }
 }
 
@@ -71,6 +127,30 @@ public static class EnfExtension
     {
         return id >= enf.Npcs.Count ? null : enf.Npcs[id];
     }
+
+    /// <summary>
+    /// Find NPCs by exact name match (case-insensitive).
+    /// </summary>
+    public static IReadOnlyList<(EnfRecord Npc, int Id)> FindByName(this Enf enf, string name)
+    {
+        return enf.Npcs
+            .Select((npc, index) => (npc, id: index + 1))
+            .Where(x => !string.IsNullOrEmpty(x.npc.Name) &&
+                        x.npc.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Search NPCs by partial name match (case-insensitive).
+    /// </summary>
+    public static IReadOnlyList<(EnfRecord Npc, int Id)> SearchByName(this Enf enf, string name)
+    {
+        return enf.Npcs
+            .Select((npc, index) => (npc, id: index + 1))
+            .Where(x => !string.IsNullOrEmpty(x.npc.Name) &&
+                        x.npc.Name.Contains(name, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
 }
 
 public static class EifExtension
@@ -79,13 +159,29 @@ public static class EifExtension
     {
         return id >= eif.Items.Count ? null : eif.Items[id];
     }
-}
 
-public static class EsfExtension
-{
-    public static EsfRecord? GetSkill(this Esf esf, int id)
+    /// <summary>
+    /// Find items by exact name match (case-insensitive).
+    /// </summary>
+    public static IReadOnlyList<(EifRecord Item, int Id)> FindByName(this Eif eif, string name)
     {
-        return id >= esf.Skills.Count ? null : esf.Skills[id];
+        return eif.Items
+            .Select((item, index) => (item, id: index + 1))
+            .Where(x => !string.IsNullOrEmpty(x.item.Name) &&
+                        x.item.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Search items by partial name match (case-insensitive).
+    /// </summary>
+    public static IReadOnlyList<(EifRecord Item, int Id)> SearchByName(this Eif eif, string name)
+    {
+        return eif.Items
+            .Select((item, index) => (item, id: index + 1))
+            .Where(x => !string.IsNullOrEmpty(x.item.Name) &&
+                        x.item.Name.Contains(name, StringComparison.OrdinalIgnoreCase))
+            .ToList();
     }
 }
 

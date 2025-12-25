@@ -1,8 +1,7 @@
 using Acorn.Database.Repository;
+using Acorn.Game.Services;
 using Acorn.Net.Services;
-using Acorn.World.Map;
 using Microsoft.Extensions.Logging;
-using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.Net.PacketHandlers.Player.Talk;
@@ -12,13 +11,16 @@ public class SpawnItemCommandHandler : ITalkHandler
     private readonly ILogger<SpawnItemCommandHandler> _logger;
     private readonly IDataFileRepository _dataFiles;
     private readonly INotificationService _notifications;
+    private readonly IInventoryService _inventoryService;
 
     public SpawnItemCommandHandler(IDataFileRepository dataFiles,
-        ILogger<SpawnItemCommandHandler> logger, INotificationService notifications)
+        ILogger<SpawnItemCommandHandler> logger, INotificationService notifications,
+        IInventoryService inventoryService)
     {
         _dataFiles = dataFiles;
         _logger = logger;
         _notifications = notifications;
+        _inventoryService = inventoryService;
     }
 
     public bool CanHandle(string command)
@@ -72,54 +74,43 @@ public class SpawnItemCommandHandler : ITalkHandler
             return;
         }
 
-        if (playerState.CurrentMap is null)
+        // Add item directly to inventory
+        if (!_inventoryService.TryAddItem(playerState.Character, itemId, amount))
         {
+            await _notifications.SystemMessage(playerState, "Failed to add item to inventory (full?).");
             return;
         }
 
-        var coords = new Coords
+        _logger.LogInformation("Admin {PlayerName} spawned item {ItemName} (ID: {ItemId}) x{Amount} to inventory",
+            playerState.Character.Name, itemName, itemId, amount);
+
+        await _notifications.SystemMessage(playerState, $"Added {itemName} x{amount} (ID: {itemId}) to inventory.");
+
+        // Get current amount in inventory for the packet
+        var inventoryItem = playerState.Character.Inventory.Items.FirstOrDefault(i => i.Id == itemId);
+        var currentAmount = inventoryItem?.Amount ?? amount;
+
+        // Send inventory update to player
+        await playerState.Send(new ItemObtainServerPacket
         {
-            X = playerState.Character.X,
-            Y = playerState.Character.Y
-        };
-
-        // Get next available item index
-        var itemIndex = GetNextItemIndex(playerState.CurrentMap);
-        
-        // Create the map item
-        var mapItem = new MapItem
-        {
-            Id = itemId,
-            Amount = amount,
-            Coords = coords,
-            OwnerId = 0, // No owner protection for spawned items
-            ProtectedTicks = 0
-        };
-
-        playerState.CurrentMap.Items[itemIndex] = mapItem;
-
-        _logger.LogInformation("Admin {PlayerName} spawned item {ItemName} (ID: {ItemId}) x{Amount} at ({X}, {Y})",
-            playerState.Character.Name, itemName, itemId, amount, coords.X, coords.Y);
-
-        await _notifications.SystemMessage(playerState, $"Spawned {itemName} x{amount} (ID: {itemId}).");
-
-        // Broadcast item appearance to all players on map
-        await playerState.CurrentMap.BroadcastPacket(new ItemAddServerPacket
-        {
-            ItemId = itemId,
-            ItemIndex = itemIndex,
-            ItemAmount = amount,
-            Coords = coords
+            Item = new Moffat.EndlessOnline.SDK.Protocol.Net.ThreeItem
+            {
+                Id = itemId,
+                Amount = currentAmount
+            },
+            CurrentWeight = 0 // Weight not dynamically tracked
         });
     }
 
     private async Task SpawnByName(PlayerState playerState, string name, int amount)
     {
+        _logger.LogInformation("Searching for item with name: '{Name}', EIF has {Count} items", 
+            name, _dataFiles.Eif.Items.Count);
+        
         // Find exact match first
-        var exactMatches = _dataFiles.Eif.Items
-            .Select((item, index) => (item, id: index + 1))
-            .Where(x => x.item.Name.Equals(name, StringComparison.CurrentCultureIgnoreCase))
-            .ToList();
+        var exactMatches = _dataFiles.Eif.FindByName(name);
+
+        _logger.LogInformation("Found {ExactCount} exact matches", exactMatches.Count);
 
         if (exactMatches.Count == 1)
         {
@@ -130,16 +121,15 @@ public class SpawnItemCommandHandler : ITalkHandler
 
         if (exactMatches.Count > 1)
         {
-            var ids = string.Join(", ", exactMatches.Select(x => x.id));
+            var ids = string.Join(", ", exactMatches.Select(x => x.Id));
             await _notifications.SystemMessage(playerState, $"Multiple items found with name \"{name}\": IDs {ids}");
             return;
         }
 
         // No exact match, try partial/contains match
-        var partialMatches = _dataFiles.Eif.Items
-            .Select((item, index) => (item, id: index + 1))
-            .Where(x => x.item.Name.Contains(name, StringComparison.CurrentCultureIgnoreCase))
-            .ToList();
+        var partialMatches = _dataFiles.Eif.SearchByName(name);
+
+        _logger.LogInformation("Found {PartialCount} partial matches", partialMatches.Count);
 
         if (partialMatches.Count == 1)
         {
@@ -150,18 +140,11 @@ public class SpawnItemCommandHandler : ITalkHandler
 
         if (partialMatches.Count > 1)
         {
-            var suggestions = string.Join(", ", partialMatches.Take(5).Select(x => $"{x.item.Name} ({x.id})"));
+            var suggestions = string.Join(", ", partialMatches.Take(5).Select(x => $"{x.Item.Name} ({x.Id})"));
             await _notifications.SystemMessage(playerState, $"Multiple items match \"{name}\": {suggestions}");
             return;
         }
 
         await _notifications.SystemMessage(playerState, $"Item \"{name}\" not found.");
-    }
-
-    private static int GetNextItemIndex(MapState map, int seed = 1)
-    {
-        if (map.Items.ContainsKey(seed))
-            return GetNextItemIndex(map, seed + 1);
-        return seed;
     }
 }
