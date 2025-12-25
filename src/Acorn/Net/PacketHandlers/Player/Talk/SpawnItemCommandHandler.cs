@@ -26,7 +26,8 @@ public class SpawnItemCommandHandler : ITalkHandler
     public bool CanHandle(string command)
     {
         return command.Equals("spawnitem", StringComparison.InvariantCultureIgnoreCase)
-               || command.Equals("sitem", StringComparison.InvariantCultureIgnoreCase);
+               || command.Equals("sitem", StringComparison.InvariantCultureIgnoreCase)
+               || command.Equals("si", StringComparison.InvariantCultureIgnoreCase);
     }
 
     public async Task HandleAsync(PlayerState playerState, string command, params string[] args)
