@@ -5,7 +5,6 @@ namespace Acorn.Net;
 
 /// <summary>
 /// Tracks packet processing times for rate limiting.
-/// Ported from reoserv's packet_log.rs
 /// </summary>
 public class PacketLog
 {

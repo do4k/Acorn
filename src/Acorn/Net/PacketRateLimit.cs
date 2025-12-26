@@ -4,7 +4,6 @@ namespace Acorn.Net;
 
 /// <summary>
 /// Represents a rate limit for a specific packet type.
-/// Ported from reoserv's packet_rate_limits.rs
 /// </summary>
 public record PacketRateLimit
 {
@@ -17,7 +16,6 @@ public record PacketRateLimit
 
 /// <summary>
 /// Configuration for packet rate limits to prevent spam and DoS attacks.
-/// Based on reoserv's implementation.
 /// </summary>
 public static class PacketRateLimits
 {

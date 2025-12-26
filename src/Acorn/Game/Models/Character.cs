@@ -110,7 +110,7 @@ public class Character
 
     /// <summary>
     /// Recover HP and TP based on divisor.
-    /// Uses reoserv formula: (MaxHP/divisor + 1) for HP, (MaxTP/divisor + 1) for TP.
+    /// Formula: (MaxHP/divisor + 1) for HP, (MaxTP/divisor + 1) for TP.
     /// Divisor should be 5 for standing, 10 for sitting.
     /// </summary>
     public (int Hp, int Tp) Recover(int divisor)

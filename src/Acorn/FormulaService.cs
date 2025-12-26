@@ -7,8 +7,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Pub;
 namespace Acorn;
 
 /// <summary>
-/// Formula calculations based on reoserv/eoserv implementation.
-/// See: https://github.com/sorokya/reoserv/blob/master/config/Formulas.ron
+/// Formula calculations for game mechanics.
 /// </summary>
 public class FormulaService : IFormulaService
 {
@@ -82,7 +81,7 @@ public class FormulaService : IFormulaService
         int rawDamage = _random.Next(character.MinDamage, character.MaxDamage + 1);
 
         // Critical hit if NPC is at full HP or attacking from back/side
-        bool critical = (npcData.Hp == npcData.Hp) || attackingBackOrSide; // First hit is always critical in reoserv
+        bool critical = (npcData.Hp == npcData.Hp) || attackingBackOrSide;
 
         return CalculateDamage(rawDamage, npcData.Armor, critical);
     }

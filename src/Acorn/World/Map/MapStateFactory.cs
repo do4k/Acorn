@@ -8,15 +8,12 @@ namespace Acorn.World.Map;
 
 public class MapStateFactory(
     IDataFileRepository dataRepository,
-    IFormulaService formulaService,
-    IMapTileService tileService,
     IMapBroadcastService broadcastService,
-    INpcCombatService npcCombatService,
-    IPlayerController playerController,
+    IMapController mapController,
     INpcController npcController,
     IOptions<ServerOptions> serverOptions,
     ILogger<MapState> logger)
 {
     public MapState Create(MapWithId data)
-        => new(data, dataRepository, formulaService, tileService, broadcastService, npcCombatService, playerController, npcController, serverOptions.Value.PlayerRecoverRate, logger);
+        => new(data, dataRepository, broadcastService, mapController, npcController, serverOptions.Value.PlayerRecoverRate, logger);
 }

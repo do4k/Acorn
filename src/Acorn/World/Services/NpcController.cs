@@ -9,7 +9,7 @@ namespace Acorn.World.Services;
 public class NpcController : INpcController
 {
     private readonly IMapTileService _tileService;
-    private const int CHASE_DISTANCE = 10; // Same as reoserv default
+    private const int CHASE_DISTANCE = 10;
     private const int SPAWN_VARIANCE = 2;
     private const int MAX_SPAWN_ATTEMPTS = 200;
 
@@ -65,7 +65,7 @@ public class NpcController : INpcController
                 return new NpcMoveResult(true, npc.Direction, npc.AsCoords());
             }
 
-            // Last resort: try random direction (like reoserv)
+            // Last resort: try random direction
             var randomDirection = (Direction)Random.Shared.Next(4);
             if (TryMoveInDirection(npc, randomDirection, playerList, npcList, mapData))
             {

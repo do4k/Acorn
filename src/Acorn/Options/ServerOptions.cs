@@ -8,7 +8,6 @@ public class ServerOptions
     /// <summary>
     /// How often players recover HP/TP, in ticks.
     /// With TickRate=1000 (1 second), 90 = every 90 seconds.
-    /// reoserv uses 720 ticks at 125ms = 90 seconds.
     /// </summary>
     public int PlayerRecoverRate { get; set; } = 90;
     /// <summary>

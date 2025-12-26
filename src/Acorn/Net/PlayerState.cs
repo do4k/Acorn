@@ -191,8 +191,12 @@ public class PlayerState : IDisposable
 
     private void HandleSequence(PacketFamily family, PacketAction action, ref EoReader reader)
     {
-        if (family == PacketFamily.Init && action == PacketAction.Init)
+        if (family == PacketFamily.Init)
         {
+            if (reader.Remaining > 0)
+            {
+                _ = reader.GetChar();
+            }
             PacketSequencer.NextSequence();
             return;
         }
