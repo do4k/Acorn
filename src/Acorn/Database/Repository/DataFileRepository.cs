@@ -61,7 +61,9 @@ public static class EsfExtension
 {
     public static EsfRecord? GetSkill(this Esf esf, int id)
     {
-        return id >= esf.Skills.Count ? null : esf.Skills[id];
+        // Skill IDs are 1-indexed, array is 0-indexed
+        var index = id - 1;
+        return index < 0 || index >= esf.Skills.Count ? null : esf.Skills[index];
     }
 
     /// <summary>
@@ -93,7 +95,9 @@ public static class EcfExtension
 {
     public static EcfRecord? GetClass(this Ecf ecf, int id)
     {
-        return id >= ecf.Classes.Count ? null : ecf.Classes[id];
+        // Class IDs are 1-indexed, array is 0-indexed
+        var index = id - 1;
+        return index < 0 || index >= ecf.Classes.Count ? null : ecf.Classes[index];
     }
 
     /// <summary>
@@ -125,7 +129,9 @@ public static class EnfExtension
 {
     public static EnfRecord? GetNpc(this Enf enf, int id)
     {
-        return id >= enf.Npcs.Count ? null : enf.Npcs[id];
+        // NPC IDs are 1-indexed, array is 0-indexed
+        var index = id - 1;
+        return index < 0 || index >= enf.Npcs.Count ? null : enf.Npcs[index];
     }
 
     /// <summary>
@@ -157,7 +163,9 @@ public static class EifExtension
 {
     public static EifRecord? GetItem(this Eif eif, int id)
     {
-        return id >= eif.Items.Count ? null : eif.Items[id];
+        // Item IDs are 1-indexed, array is 0-indexed
+        var index = id - 1;
+        return index < 0 || index >= eif.Items.Count ? null : eif.Items[index];
     }
 
     /// <summary>

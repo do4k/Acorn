@@ -1,4 +1,5 @@
 using Acorn.Database.Repository;
+using Acorn.Game.Mappers;
 using Acorn.Game.Services;
 using Acorn.Net.Services;
 using Microsoft.Extensions.Logging;
@@ -12,15 +13,21 @@ public class SpawnItemCommandHandler : ITalkHandler
     private readonly IDataFileRepository _dataFiles;
     private readonly INotificationService _notifications;
     private readonly IInventoryService _inventoryService;
+    private readonly IDbRepository<Database.Models.Character> _characterRepository;
+    private readonly ICharacterMapper _characterMapper;
 
     public SpawnItemCommandHandler(IDataFileRepository dataFiles,
         ILogger<SpawnItemCommandHandler> logger, INotificationService notifications,
-        IInventoryService inventoryService)
+        IInventoryService inventoryService,
+        IDbRepository<Database.Models.Character> characterRepository,
+        ICharacterMapper characterMapper)
     {
         _dataFiles = dataFiles;
         _logger = logger;
         _notifications = notifications;
         _inventoryService = inventoryService;
+        _characterRepository = characterRepository;
+        _characterMapper = characterMapper;
     }
 
     public bool CanHandle(string command)
@@ -84,6 +91,9 @@ public class SpawnItemCommandHandler : ITalkHandler
 
         _logger.LogInformation("Admin {PlayerName} spawned item {ItemName} (ID: {ItemId}) x{Amount} to inventory",
             playerState.Character.Name, itemName, itemId, amount);
+
+        // Save to database
+        await _characterRepository.UpdateAsync(_characterMapper.ToDatabase(playerState.Character));
 
         await _notifications.SystemMessage(playerState, $"Added {itemName} x{amount} (ID: {itemId}) to inventory.");
 
