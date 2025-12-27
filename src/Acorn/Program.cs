@@ -1,5 +1,4 @@
 ﻿using System.Reflection;
-using Acorn;
 using Acorn.Database;
 using Acorn.Database.Repository;
 using Acorn.Extensions;
@@ -15,7 +14,7 @@ using Acorn.Options;
 using Acorn.SLN;
 using Acorn.World;
 using Acorn.World.Map;
-using Acorn.World.Services;
+using Acorn.World.Services.Map;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -45,6 +44,10 @@ Console.WriteLine($"""
 var configuration = new ConfigurationBuilder()
     .SetBasePath(AppContext.BaseDirectory)
     .AddJsonFile("appsettings.json", false, true)
+    .AddJsonFile("appsettings.Development.json", true, true)
+    .AddJsonFile("appsettings.MySql.json", true, true)
+    .AddJsonFile("appsettings.Postgres.json", true, true)
+    .AddJsonFile("appsettings.SqlServer.json", true, true)
     .AddUserSecrets(Assembly.GetExecutingAssembly(), true)
     .Build();
 

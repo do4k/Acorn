@@ -1,10 +1,11 @@
 using Acorn.Net;
 using Acorn.World.Npc;
+using Acorn.World.Services.Map;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Map;
 using PubNpcType = Moffat.EndlessOnline.SDK.Protocol.Pub.NpcType;
 
-namespace Acorn.World.Services;
+namespace Acorn.World.Services.Npc;
 
 public class NpcController : INpcController
 {

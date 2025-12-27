@@ -2,7 +2,7 @@ using Acorn.Net;
 using Acorn.World.Map;
 using Moffat.EndlessOnline.SDK.Protocol;
 
-namespace Acorn.World.Services;
+namespace Acorn.World.Services.Map;
 
 public interface IMapController
 {

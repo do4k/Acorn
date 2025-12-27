@@ -1,13 +1,13 @@
+using Acorn.Net;
 using Acorn.World.Map;
-using Acorn.World.Npc;
+using Acorn.World.Services.Npc;
+using Acorn.World.Services.Player;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Map;
-using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using Acorn.Net;
 
-namespace Acorn.World.Services;
+namespace Acorn.World.Services.Map;
 
 public class MapController : IMapController
 {

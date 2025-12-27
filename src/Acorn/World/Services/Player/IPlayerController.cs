@@ -2,7 +2,7 @@ using Acorn.Net;
 using Acorn.World.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
-namespace Acorn.World.Services;
+namespace Acorn.World.Services.Player;
 
 /// <summary>
 /// Service for handling player actions like warping, refreshing, movement, etc.

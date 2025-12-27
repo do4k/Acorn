@@ -1,6 +1,8 @@
 using Acorn.Database.Repository;
 using Acorn.Options;
 using Acorn.World.Services;
+using Acorn.World.Services.Map;
+using Acorn.World.Services.Npc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 

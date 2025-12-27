@@ -1,9 +1,8 @@
 using Acorn.Net;
 using Acorn.World.Npc;
-using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
-namespace Acorn.World.Services;
+namespace Acorn.World.Services.Npc;
 
 /// <summary>
 /// Service for handling NPC combat logic.

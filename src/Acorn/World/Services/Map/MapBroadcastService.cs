@@ -1,9 +1,8 @@
 using Acorn.Net;
-using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
-namespace Acorn.World.Services;
+namespace Acorn.World.Services.Map;
 
 public class MapBroadcastService : IMapBroadcastService
 {

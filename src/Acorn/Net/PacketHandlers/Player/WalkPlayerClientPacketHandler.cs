@@ -1,6 +1,8 @@
 ﻿using Acorn.World;
 using Acorn.World.Map;
 using Acorn.World.Services;
+using Acorn.World.Services.Map;
+using Acorn.World.Services.Player;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Map;

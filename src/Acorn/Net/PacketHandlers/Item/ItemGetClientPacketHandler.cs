@@ -2,6 +2,7 @@ using Acorn.Database.Repository;
 using Acorn.Game.Mappers;
 using Acorn.World;
 using Acorn.World.Services;
+using Acorn.World.Services.Map;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 

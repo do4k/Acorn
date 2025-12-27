@@ -4,7 +4,7 @@ using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using SdkNpcType = Moffat.EndlessOnline.SDK.Protocol.Pub.NpcType;
 
-namespace Acorn.World.Services;
+namespace Acorn.World.Services.Npc;
 
 public class NpcCombatService : INpcCombatService
 {

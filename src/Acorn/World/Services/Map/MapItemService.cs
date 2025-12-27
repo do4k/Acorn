@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
-namespace Acorn.World.Services;
+namespace Acorn.World.Services.Map;
 
 /// <summary>
 /// Default implementation of map item operations.

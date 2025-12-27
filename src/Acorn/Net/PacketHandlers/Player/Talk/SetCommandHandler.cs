@@ -2,6 +2,7 @@
 using Acorn.World;
 using Acorn.World.Npc;
 using Acorn.World.Services;
+using Acorn.World.Services.Player;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;

@@ -4,6 +4,8 @@ using Acorn.Extensions;
 using Acorn.Net;
 using Acorn.World.Npc;
 using Acorn.World.Services;
+using Acorn.World.Services.Map;
+using Acorn.World.Services.Npc;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Map;

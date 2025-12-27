@@ -2,12 +2,13 @@ using Acorn.Net;
 using Acorn.Net.PacketHandlers.Player.Warp;
 using Acorn.Options;
 using Acorn.World.Map;
+using Acorn.World.Services.Map;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
-namespace Acorn.World.Services;
+namespace Acorn.World.Services.Player;
 
 public class PlayerController : IPlayerController
 {

@@ -1,7 +1,7 @@
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Map;
 
-namespace Acorn.World.Services;
+namespace Acorn.World.Services.Map;
 
 public class MapTileService : IMapTileService
 {

@@ -1,6 +1,7 @@
 using Acorn.Database.Repository;
 using Acorn.Net;
 using Acorn.World.Map;
+using Microsoft.Extensions.Logging;
 
 namespace Acorn.World;
 
@@ -12,11 +13,13 @@ public class WorldStateQueries : IWorldQueries
 {
     private readonly WorldState _world;
     private readonly IDataFileRepository _dataRepository;
+    private readonly ILogger<WorldStateQueries> _logger;
 
-    public WorldStateQueries(WorldState world, IDataFileRepository dataRepository)
+    public WorldStateQueries(WorldState world, IDataFileRepository dataRepository, ILogger<WorldStateQueries> logger)
     {
         _world = world;
         _dataRepository = dataRepository;
+        _logger = logger;
     }
 
     public IDataFileRepository DataRepository => _dataRepository;
@@ -43,8 +46,35 @@ public class WorldStateQueries : IWorldQueries
         => _world.Maps.Values;
 
     public IEnumerable<GlobalMessage> GetRecentGlobalMessages(int count = 10)
-        => _world.GlobalMessages.Values.OrderByDescending(x => x.CreatedAt).Take(count);
+        => _world.GlobalMessages
+            .Values
+            .OrderByDescending(x => x.CreatedAt)
+            .Take(count);
 
     public void AddGlobalMessage(GlobalMessage message)
-        => _world.GlobalMessages.TryAdd(message.Id, message);
+    {
+        var success = _world.GlobalMessages.TryAdd(message.Id, message);
+        if (!success)
+        {
+            _logger.LogWarning("Could not add global message {messageId} to WorldState", message.Id);
+        }
+
+        if (_world.GlobalMessages.Count <= 100)
+        {
+            return;
+        }
+
+        var oldestMessages = _world.GlobalMessages
+            .Values
+            .OrderBy(x => x.CreatedAt);
+
+        foreach (var oldMessage in oldestMessages.Take(_world.GlobalMessages.Count - 100))
+        {
+            var removeSuccess = _world.GlobalMessages.TryRemove(oldMessage.Id, out _);
+            if (!removeSuccess)
+            {
+                _logger.LogWarning("Could not remove old global message {messageId} from WorldState", oldMessage.Id);
+            }
+        }
+    }
 }
