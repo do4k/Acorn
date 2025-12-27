@@ -1,6 +1,8 @@
 using System.Reflection;
+using Acorn.Database;
 using Acorn.Database.Models;
 using Acorn.Database.Repository;
+using Acorn.Infrastructure.Caching;
 using Acorn.Net.PacketHandlers;
 using Acorn.Net.PacketHandlers.Account;
 using Acorn.Net.PacketHandlers.Character;
@@ -8,8 +10,10 @@ using Acorn.Net.PacketHandlers.Npc;
 using Acorn.Net.PacketHandlers.Player;
 using Acorn.Net.PacketHandlers.Player.Talk;
 using Acorn.Net.PacketHandlers.Player.Warp;
+using Acorn.Net.PacketHandlers.Range;
 using Acorn.World.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 
@@ -45,7 +49,17 @@ internal static class IocRegistrations
     {
         return services
             .AddScoped<IDbRepository<Account>, AccountRepository>()
-            .AddScoped<IDbRepository<Character>, CharacterRepository>()
+            // Register CharacterRepository with caching wrapper
+            .AddScoped<IDbRepository<Character>>(sp =>
+            {
+                var context = sp.GetRequiredService<AcornDbContext>();
+                var cache = sp.GetRequiredService<ICacheService>();
+                var logger = sp.GetRequiredService<ILogger<CharacterRepository>>();
+                var cachedLogger = sp.GetRequiredService<ILogger<CachedCharacterRepository>>();
+                
+                var inner = new CharacterRepository(context, logger);
+                return new CachedCharacterRepository(inner, cache, cachedLogger);
+            })
             .AddSingleton<IDataFileRepository, DataFileRepository>();
     }
 
@@ -90,6 +104,7 @@ internal static class IocRegistrations
         AddPacketHandler<CharacterCreateClientPacket, CharacterCreateClientPacketHandler>();
         AddPacketHandler<CharacterRequestClientPacket, CharacterRequestClientPacketHandler>();
         AddPacketHandler<NpcRangeRequestClientPacket, NpcRangeRequestClientPacketHandler>();
+        AddPacketHandler<RangeRequestClientPacket, RangeRequestClientPacketHandler>();
         AddPacketHandler<WarpAcceptClientPacket, WarpAcceptClientPacketHandler>();
         AddPacketHandler<WarpTakeClientPacket, WarpTakeClientPacketHandler>();
         AddPacketHandler<TalkAnnounceClientPacket, TalkAnnounceClientPacketHandler>();

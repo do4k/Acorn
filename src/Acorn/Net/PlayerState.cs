@@ -131,15 +131,16 @@ public class PlayerState : IDisposable
                 var action = (PacketAction)reader.GetByte();
                 var family = (PacketFamily)reader.GetByte();
 
+                // Handle sequence before rate limiting to keep client and server in sync
+                HandleSequence(family, action, ref reader);
+
                 // Rate limiting check
                 if (_packetLog.ShouldRateLimit(action, family))
                 {
                     _logger.LogDebug("Rate limited: {Action}_{Family}", action, family);
-                    // Send back a special marker to indicate rate limiting
+                    // Skip processing but sequence has already been consumed
                     continue;
                 }
-
-                HandleSequence(family, action, ref reader);
 
                 var dataReader = reader.Slice();
 
@@ -191,11 +192,19 @@ public class PlayerState : IDisposable
 
     private void HandleSequence(PacketFamily family, PacketAction action, ref EoReader reader)
     {
+        // Init.Init packets have no sequence at all
+        if (family == PacketFamily.Init && action == PacketAction.Init)
+        {
+            PacketSequencer.NextSequence();
+            return;
+        }
+        
+        // Other Init packets do have sequence bytes
         if (family == PacketFamily.Init)
         {
             if (reader.Remaining > 0)
             {
-                _ = reader.GetChar();
+                _ = reader.GetChar(); // Consume but don't validate
             }
             PacketSequencer.NextSequence();
             return;

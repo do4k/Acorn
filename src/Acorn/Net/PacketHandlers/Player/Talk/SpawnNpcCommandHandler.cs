@@ -38,9 +38,12 @@ public class SpawnNpcCommandHandler : ITalkHandler
             return;
         }
 
-        if (int.TryParse(args[0], out var npcId) is false)
+        // Join all arguments to support multi-word NPC names
+        var input = string.Join(" ", args);
+
+        if (int.TryParse(input, out var npcId) is false)
         {
-            await SpawnByName(playerState, args[0]);
+            await SpawnByName(playerState, input);
             return;
         }
 

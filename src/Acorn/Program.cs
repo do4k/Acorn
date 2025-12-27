@@ -6,6 +6,7 @@ using Acorn.Extensions;
 using Acorn.Game.Mappers;
 using Acorn.Game.Services;
 using Acorn.Infrastructure;
+using Acorn.Infrastructure.Caching;
 using Acorn.Infrastructure.Communicators;
 using Acorn.Net;
 using Acorn.Net.PacketHandlers.Player.Talk;
@@ -22,6 +23,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Refit;
+using StackExchange.Redis;
 
 var GREEN = Console.IsOutputRedirected ? "" : "\x1b[92m";
 var NORMAL = Console.IsOutputRedirected ? "" : "\x1b[39m";
@@ -53,7 +55,7 @@ var host = Host.CreateDefaultBuilder(args)
             .AddSingleton<IConfiguration>(configuration)
             .Configure<DatabaseOptions>(configuration.GetSection("Database"))
             .Configure<ServerOptions>(configuration.GetSection("Server"))
-            .Configure<SLNOptions>(configuration.GetSection("SLN"))
+            .Configure<CacheOptions>(configuration.GetSection("Cache"))
             .AddSingleton<UtcNowDelegate>(() => DateTime.UtcNow);
 
         // Configure DbContext based on database engine
@@ -85,6 +87,37 @@ var host = Host.CreateDefaultBuilder(args)
 
             options.EnableSensitiveDataLogging(false);
             options.EnableDetailedErrors(true);
+        });
+
+        // Configure Caching (Redis or In-Memory)
+        services.AddSingleton<ICacheService>(sp =>
+        {
+            var cacheOptions = sp.GetRequiredService<IOptions<CacheOptions>>().Value;
+            var logger = sp.GetRequiredService<ILogger<RedisCacheService>>();
+            
+            if (!cacheOptions.Enabled)
+            {
+                logger.LogInformation("Caching is disabled");
+                return new InMemoryCacheService();
+            }
+            
+            if (cacheOptions.UseRedis)
+            {
+                try
+                {
+                    var redis = ConnectionMultiplexer.Connect(cacheOptions.ConnectionString);
+                    logger.LogInformation("Connected to Redis at {ConnectionString}", cacheOptions.ConnectionString);
+                    return new RedisCacheService(redis);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Failed to connect to Redis, falling back to in-memory cache");
+                    return new InMemoryCacheService();
+                }
+            }
+            
+            logger.LogInformation("Using in-memory cache");
+            return new InMemoryCacheService();
         });
 
         services

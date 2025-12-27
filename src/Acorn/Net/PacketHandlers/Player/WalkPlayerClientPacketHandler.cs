@@ -15,12 +15,18 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
     private readonly ILogger<WalkPlayerClientPacketHandler> _logger;
     private readonly IWorldQueries _world;
     private readonly IPlayerController _playerController;
+    private readonly IMapTileService _mapTileService;
 
-    public WalkPlayerClientPacketHandler(ILogger<WalkPlayerClientPacketHandler> logger, IWorldQueries world, IPlayerController playerController)
+    public WalkPlayerClientPacketHandler(
+        ILogger<WalkPlayerClientPacketHandler> logger, 
+        IWorldQueries world, 
+        IPlayerController playerController,
+        IMapTileService mapTileService)
     {
         _logger = logger;
         _world = world;
         _playerController = playerController;
+        _mapTileService = mapTileService;
     }
 
     public async Task HandleAsync(PlayerState playerState,
@@ -56,6 +62,30 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
             return;
         }
 
+        // Get nearby NPCs for this player (within client range)
+        var playerCoords = playerState.Character.AsCoords();
+        var nearbyNpcIndexes = playerState.CurrentMap.Npcs
+            .Select((npc, index) => new { Npc = npc, Index = index })
+            .Where(x => _mapTileService.InClientRange(playerCoords, new Coords { X = x.Npc.X, Y = x.Npc.Y }))
+            .Select(x => x.Index)
+            .ToList();
+
+        // Get nearby players (within client range)
+        var nearbyPlayerIds = playerState.CurrentMap.Players
+            .Where(p => p.Character != null && p.SessionId != playerState.SessionId)
+            .Where(p => _mapTileService.InClientRange(playerCoords, p.Character!.AsCoords()))
+            .Select(p => p.SessionId)
+            .ToList();
+
+        // Send WalkReply to the walking player with nearby entities
+        await playerState.Send(new WalkReplyServerPacket
+        {
+            PlayerIds = nearbyPlayerIds,
+            NpcIndexes = nearbyNpcIndexes,
+            Items = new List<ItemMapInfo>() // TODO: Add nearby items when item system is implemented
+        });
+
+        // Broadcast WalkPlayer to other players on the map
         await playerState.CurrentMap.BroadcastPacket(new WalkPlayerServerPacket
         {
             Direction = playerState.Character.Direction,
