@@ -13,8 +13,11 @@ services:
     environment:
       - Database__Engine=MySQL
       - Database__ConnectionString=Server=mysql;Port=3306;Database=acorn;User=acorn;Password=acornpassword
+      - Cache__ConnectionString=redis:6379
     depends_on:
       mysql:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     restart: unless-stopped
     networks:
@@ -42,6 +45,24 @@ services:
     networks:
       - acorn-network
 
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: acorn-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - acorn-network
+
   # Acorn Server with SQLite (for profile: sqlite)
   acorn-sqlite:
     build:
@@ -57,6 +78,10 @@ services:
     environment:
       - Database__Engine=SQLite
       - Database__ConnectionString=Data Source=/app/mnt/Acorn.db;
+      - Cache__ConnectionString=redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - acorn-network
@@ -77,8 +102,11 @@ services:
     environment:
       - Database__Engine=PostgreSQL
       - Database__ConnectionString=Host=postgres;Port=5432;Database=acorn;Username=acorn;Password=acornpassword
+      - Cache__ConnectionString=redis:6379
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     restart: unless-stopped
     networks:
@@ -123,8 +151,11 @@ services:
     environment:
       - Database__Engine=SqlServer
       - Database__ConnectionString=Server=sqlserver;Database=acorn;User Id=sa;Password=AcornPassword123!;TrustServerCertificate=True
+      - Cache__ConnectionString=redis:6379
     depends_on:
       sqlserver:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     restart: unless-stopped
     networks:
@@ -159,6 +190,7 @@ volumes:
   postgres-data:
   mysql-data:
   sqlserver-data:
+  redis-data:
 
 networks:
   acorn-network:
