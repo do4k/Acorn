@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+﻿﻿using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
@@ -6,7 +6,10 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.Net.PacketHandlers.Player.Talk;
 
-internal class TalkReportClientPacketHandler(IEnumerable<ITalkHandler> talkHandlers, ILogger<TalkReportClientPacketHandler> logger)
+internal class TalkReportClientPacketHandler(
+    IEnumerable<ITalkHandler> talkHandlers,
+    WiseManTalkHandler wiseManHandler,
+    ILogger<TalkReportClientPacketHandler> logger)
     : IPacketHandler<TalkReportClientPacket>
 {
     public async Task HandleAsync(PlayerState playerState,
@@ -28,6 +31,9 @@ internal class TalkReportClientPacketHandler(IEnumerable<ITalkHandler> talkHandl
             await handler.HandleAsync(playerState, command, args[1..]);
             return;
         }
+
+        // Check if the message is directed at the Wise Man NPC
+        wiseManHandler.TryHandleMessage(playerState, packet.Message);
 
         if (playerState.CurrentMap is null)
         {

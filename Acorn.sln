@@ -1,4 +1,4 @@
-﻿
+﻿﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34322.80
@@ -6,6 +6,10 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Acorn", "src\Acorn\Acorn.csproj", "{EB20F4A7-F689-405B-933E-1C12EFA94D6A}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Acorn.Tests", "tests\Acorn.Tests\Acorn.Tests.csproj", "{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Acorn.Api", "src\Acorn.Api\Acorn.Api.csproj", "{3A61C916-03BB-489B-8E8C-E2AD7A30B284}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Acorn.Shared", "src\Acorn.Shared\Acorn.Shared.csproj", "{B5C6D7E8-F9A0-1234-5678-9ABCDEF01234}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +25,14 @@ Global
 		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3A61C916-03BB-489B-8E8C-E2AD7A30B284}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3A61C916-03BB-489B-8E8C-E2AD7A30B284}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3A61C916-03BB-489B-8E8C-E2AD7A30B284}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3A61C916-03BB-489B-8E8C-E2AD7A30B284}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B5C6D7E8-F9A0-1234-5678-9ABCDEF01234}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B5C6D7E8-F9A0-1234-5678-9ABCDEF01234}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B5C6D7E8-F9A0-1234-5678-9ABCDEF01234}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B5C6D7E8-F9A0-1234-5678-9ABCDEF01234}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

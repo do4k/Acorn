@@ -1,7 +1,4 @@
-﻿namespace Acorn.Database;
+﻿// This file is kept for backwards compatibility.
+// The actual implementation is in Acorn.Shared.Options.DatabaseOptions
+global using DatabaseOptions = Acorn.Shared.Options.DatabaseOptions;
 
-public class DatabaseOptions
-{
-    public string? ConnectionString { get; set; }
-    public string? Engine { get; set; }
-}

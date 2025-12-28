@@ -1,19 +1,21 @@
-﻿using System.Reflection;
+﻿﻿using System.Reflection;
 using Acorn.Database;
 using Acorn.Database.Repository;
 using Acorn.Extensions;
 using Acorn.Game.Mappers;
 using Acorn.Game.Services;
 using Acorn.Infrastructure;
-using Acorn.Infrastructure.Caching;
 using Acorn.Infrastructure.Communicators;
+using Acorn.Infrastructure.Gemini;
 using Acorn.Net;
 using Acorn.Net.PacketHandlers.Player.Talk;
 using Acorn.Net.Services;
 using Acorn.Options;
+using Acorn.Shared.Extensions;
 using Acorn.SLN;
 using Acorn.World;
 using Acorn.World.Map;
+using Acorn.World.Services;
 using Acorn.World.Services.Map;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -22,7 +24,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Refit;
-using StackExchange.Redis;
 
 var GREEN = Console.IsOutputRedirected ? "" : "\x1b[92m";
 var NORMAL = Console.IsOutputRedirected ? "" : "\x1b[39m";
@@ -41,13 +42,19 @@ Console.WriteLine($"""
        `-._.-'    {NORMAL}
 """);
 
-var configuration = new ConfigurationBuilder()
+var config = new ConfigurationBuilder()
     .SetBasePath(AppContext.BaseDirectory)
     .AddJsonFile("appsettings.json", false, true)
-    .AddJsonFile("appsettings.Development.json", true, true)
-    .AddJsonFile("appsettings.MySql.json", true, true)
-    .AddJsonFile("appsettings.Postgres.json", true, true)
-    .AddJsonFile("appsettings.SqlServer.json", true, true)
+    .AddJsonFile("appsettings.Development.json", true, true);
+
+var engine = config.Build()["Database:Engine"] ?? "sqlite";
+
+if (!string.IsNullOrWhiteSpace(engine))
+{
+    config.AddJsonFile($"appsettings.{engine}.json", true, true);
+}
+
+var configuration = config
     .AddUserSecrets(Assembly.GetExecutingAssembly(), true)
     .Build();
 
@@ -59,6 +66,7 @@ var host = Host.CreateDefaultBuilder(args)
             .Configure<DatabaseOptions>(configuration.GetSection("Database"))
             .Configure<ServerOptions>(configuration.GetSection("Server"))
             .Configure<CacheOptions>(configuration.GetSection("Cache"))
+            .Configure<GeminiOptions>(configuration.GetSection("Gemini"))
             .AddSingleton<UtcNowDelegate>(() => DateTime.UtcNow);
 
         // Configure DbContext based on database engine
@@ -93,35 +101,7 @@ var host = Host.CreateDefaultBuilder(args)
         });
 
         // Configure Caching (Redis or In-Memory)
-        services.AddSingleton<ICacheService>(sp =>
-        {
-            var cacheOptions = sp.GetRequiredService<IOptions<CacheOptions>>().Value;
-            var logger = sp.GetRequiredService<ILogger<RedisCacheService>>();
-            
-            if (!cacheOptions.Enabled)
-            {
-                logger.LogInformation("Caching is disabled");
-                return new InMemoryCacheService();
-            }
-            
-            if (cacheOptions.UseRedis)
-            {
-                try
-                {
-                    var redis = ConnectionMultiplexer.Connect(cacheOptions.ConnectionString);
-                    logger.LogInformation("Connected to Redis at {ConnectionString}", cacheOptions.ConnectionString);
-                    return new RedisCacheService(redis);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogWarning(ex, "Failed to connect to Redis, falling back to in-memory cache");
-                    return new InMemoryCacheService();
-                }
-            }
-            
-            logger.LogInformation("Using in-memory cache");
-            return new InMemoryCacheService();
-        });
+        services.AddCaching();
 
         services
             .AddSingleton<IStatsReporter, StatsReporter>()
@@ -139,6 +119,9 @@ var host = Host.CreateDefaultBuilder(args)
             .AddScoped<IDbInitialiser, DbInitialiser>()
             .AddHostedService<NewConnectionHostedService>()
             .AddHostedService<WorldHostedService>()
+            .AddHostedService<PubFileCacheHostedService>()
+            .AddHostedService<MapCacheHostedService>()
+            .AddHostedService<CharacterCacheHostedService>()
             .AddSingleton<WorldState>()
             .AddSingleton<IWorldQueries, WorldStateQueries>()
             .AddAllOfType<ITalkHandler>()
@@ -157,6 +140,20 @@ var host = Host.CreateDefaultBuilder(args)
                 c.BaseAddress = new Uri(slnOptions.Url);
                 c.DefaultRequestHeaders.Add("User-Agent", slnOptions.UserAgent);
             });
+
+        // Register Gemini AI services for Wise Man NPC
+        services
+            .AddSingleton<IWiseManAgent, WiseManGeminiAgent>()
+            .AddSingleton<WiseManQueueService>()
+            .AddSingleton<WiseManTalkHandler>()
+            .AddRefitClient<IGeminiClient>()
+            .ConfigureHttpClient(c =>
+            {
+                c.BaseAddress = new Uri("https://generativelanguage.googleapis.com");
+            });
+        
+        // Register WiseManQueueService as a hosted service (must use the same singleton instance)
+        services.AddHostedService<WiseManQueueService>(sp => sp.GetRequiredService<WiseManQueueService>());
     })
     .ConfigureLogging(builder =>
     {

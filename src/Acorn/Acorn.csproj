@@ -8,7 +8,12 @@
         <AssemblyVersion>0.0.0.1</AssemblyVersion>
         <FileVersion>0.0.0.1</FileVersion>
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+        <UserSecretsId>b1750c8d-a64e-4747-8d1d-379b6feee801</UserSecretsId>
     </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Acorn.Shared\Acorn.Shared.csproj" />
+    </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
@@ -20,6 +25,7 @@
         <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.0" />
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
         <PackageReference Include="MySql.EntityFrameworkCore" Version="10.0.0-rc" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.0" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
         <PackageReference Include="Moffat.EndlessOnline.SDK" Version="1.0.2" />
@@ -33,6 +39,12 @@
         <None Update="appsettings.json">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
+        <None Update="appsettings.Development.json">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+        <None Update="appsettings.*.json">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
     </ItemGroup>
 
     <ItemGroup>
@@ -42,20 +54,9 @@
         <Content Include="Data\**\*.*">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
-    </ItemGroup>
-
-    <ItemGroup>
-        <None Remove="Database\Scripts\MSSQL\Init.sql" />
-        <None Remove="Database\Scripts\SQLite\Account\Create.sql" />
-        <None Remove="Database\Scripts\SQLite\Account\Delete.sql" />
-        <None Remove="Database\Scripts\SQLite\Account\GetAll.sql" />
-        <None Remove="Database\Scripts\SQLite\Account\GetByKey.sql" />
-        <None Remove="Database\Scripts\SQLite\Account\GetCharacters.sql" />
-        <None Remove="Database\Scripts\SQLite\Account\Update.sql" />
-        <None Remove="Database\Scripts\SQLite\Character\Create.sql" />
-        <None Remove="Database\Scripts\SQLite\Character\GetByKey.sql" />
-        <None Remove="Database\Scripts\SQLite\Character\Update.sql" />
-        <None Remove="Database\Scripts\SQLite\Init.sql" />
+        <Content Include="Database\Scripts\**\*.*">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
     </ItemGroup>
 
     <ItemGroup>
@@ -65,3 +66,4 @@
     </ItemGroup>
 
 </Project>
+

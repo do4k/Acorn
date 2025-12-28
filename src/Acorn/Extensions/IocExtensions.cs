@@ -2,7 +2,7 @@ using System.Reflection;
 using Acorn.Database;
 using Acorn.Database.Models;
 using Acorn.Database.Repository;
-using Acorn.Infrastructure.Caching;
+using Acorn.Shared.Caching;
 using Acorn.Net.PacketHandlers;
 using Acorn.Net.PacketHandlers.Account;
 using Acorn.Net.PacketHandlers.Character;

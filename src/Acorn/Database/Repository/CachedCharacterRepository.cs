@@ -1,5 +1,5 @@
 using Acorn.Database.Models;
-using Acorn.Infrastructure.Caching;
+using Acorn.Shared.Caching;
 using Microsoft.Extensions.Logging;
 
 namespace Acorn.Database.Repository;

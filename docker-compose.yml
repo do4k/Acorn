@@ -63,6 +63,26 @@ services:
     networks:
       - acorn-network
 
+  # Acorn API (reads from Redis cache)
+  acorn-api:
+    build:
+      context: .
+      dockerfile: src/Acorn.Api/Dockerfile
+    container_name: acorn-api
+    ports:
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - Cache__Enabled=true
+      - Cache__UseRedis=true
+      - Cache__ConnectionString=redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - acorn-network
+
   # Acorn Server with SQLite (for profile: sqlite)
   acorn-sqlite:
     build:
