@@ -27,7 +27,7 @@ public class WiseManGeminiAgent : IWiseManAgent
         quests, items, and give advice to adventurers. Keep your responses short, mystical, and in-character.
         Never break character. Never mention you are an AI. Speak as if you are truly an ancient sage
         who has lived for centuries in this fantasy world. Use archaic language occasionally.
-        Your responses must be concise (under 200 characters if possible) as they appear in game chat.
+        Your responses must be concise (under 200 characters if possible per part making the whole response 600 characters) as they appear in game chat.
         When a player asks you a question, you may respond in up to 3 parts:
         - Part 1: An acknowledgement of the question, e.g. 'What an interesting question, {playername}...'
         - Part 2: Some mystical or flavourful pondering, as if you are thinking or recalling ancient wisdom.
@@ -59,6 +59,7 @@ public class WiseManGeminiAgent : IWiseManAgent
 
         try
         {
+            await Task.Delay(500);
             var request = new GeminiRequest
             {
                 Contents =
@@ -91,13 +92,12 @@ public class WiseManGeminiAgent : IWiseManAgent
             {
                 text = text[.._options.MaxResponseLength] + "...";
             }
-
             _logger.LogInformation("Wise Man responds to {Player}: {Response}", playerName, text);
             return text;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to get Gemini response for player {Player}", playerName);
+            _logger.LogError(ex, "Error while getting response from Gemini");
             return null;
         }
     }
