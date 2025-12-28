@@ -89,7 +89,7 @@ public class InMemoryCacheService : ICacheService
         {
             var regex = new Regex(
                 "^" + Regex.Escape(pattern).Replace("\\*", ".*") + "$");
-            
+
             var keysToRemove = _cache.Keys.Where(k => regex.IsMatch(k)).ToList();
             foreach (var key in keysToRemove)
             {

@@ -20,8 +20,8 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
     private readonly IMapTileService _mapTileService;
 
     public WalkPlayerClientPacketHandler(
-        ILogger<WalkPlayerClientPacketHandler> logger, 
-        IWorldQueries world, 
+        ILogger<WalkPlayerClientPacketHandler> logger,
+        IWorldQueries world,
         IPlayerController playerController,
         IMapTileService mapTileService)
     {

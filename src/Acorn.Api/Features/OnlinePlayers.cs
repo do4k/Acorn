@@ -70,7 +70,7 @@ public static class OnlinePlayersFeature
     }
 
     private static IResult RedisUnavailable() => Results.Json(new ServiceUnavailableError
-    { 
+    {
         Error = "Redis is not available",
         Message = "The API requires Redis to access game server data. In-memory cache cannot be shared between processes.",
         Service = "Redis"

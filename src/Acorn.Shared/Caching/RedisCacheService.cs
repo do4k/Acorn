@@ -30,7 +30,7 @@ public class RedisCacheService : ICacheService
     public async Task<T?> GetAsync<T>(string key)
     {
         var value = await _db.StringGetAsync(key);
-        
+
         if (!value.HasValue)
         {
             if (_logOperations)
@@ -58,7 +58,7 @@ public class RedisCacheService : ICacheService
     public async Task SetAsync<T>(string key, T value, TimeSpan? expiry = null)
     {
         var json = JsonSerializer.Serialize(value, _jsonOptions);
-        
+
         if (expiry.HasValue)
         {
             await _db.StringSetAsync(key, json, expiry.Value);
@@ -92,12 +92,12 @@ public class RedisCacheService : ICacheService
     {
         var server = _redis.GetServer(_redis.GetEndPoints().First());
         var keys = server.Keys(pattern: pattern).ToArray();
-        
+
         foreach (var key in keys)
         {
             await _db.KeyDeleteAsync(key);
         }
-        
+
         if (_logOperations)
             _logger?.LogDebug("[Redis] DEL pattern {Pattern} -> {Count} keys removed", pattern, keys.Length);
     }

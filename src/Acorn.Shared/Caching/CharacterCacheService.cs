@@ -8,7 +8,7 @@ namespace Acorn.Shared.Caching;
 public class CharacterCacheService : ICharacterCacheService
 {
     private readonly ICacheService _cache;
-    
+
     private const string CharacterByNameKey = "online:character:name:";
     private const string CharacterBySessionKey = "online:character:session:";
     private const string OnlineListKey = "online:characters:all";
@@ -21,11 +21,11 @@ public class CharacterCacheService : ICharacterCacheService
     public async Task CacheCharacterAsync(OnlineCharacterRecord character)
     {
         var expiry = TimeSpan.FromSeconds(30);
-        
+
         // Cache by name and session ID for quick lookups
         await _cache.SetAsync($"{CharacterByNameKey}{character.Name.ToLowerInvariant()}", character, expiry);
         await _cache.SetAsync($"{CharacterBySessionKey}{character.SessionId}", character, expiry);
-        
+
         // Update online list
         var onlineList = await _cache.GetAsync<List<string>>(OnlineListKey) ?? [];
         var nameLower = character.Name.ToLowerInvariant();
@@ -50,7 +50,7 @@ public class CharacterCacheService : ICharacterCacheService
     {
         var onlineList = await _cache.GetAsync<List<string>>(OnlineListKey) ?? [];
         var results = new List<OnlineCharacterRecord>();
-        
+
         foreach (var name in onlineList)
         {
             var character = await GetCharacterByNameAsync(name);
@@ -59,7 +59,7 @@ public class CharacterCacheService : ICharacterCacheService
                 results.Add(character);
             }
         }
-        
+
         return results;
     }
 
@@ -86,7 +86,7 @@ public class CharacterCacheService : ICharacterCacheService
         {
             await _cache.RemoveAsync($"{CharacterByNameKey}{name.ToLowerInvariant()}");
             await _cache.RemoveAsync($"{CharacterBySessionKey}{character.SessionId}");
-            
+
             var onlineList = await _cache.GetAsync<List<string>>(OnlineListKey) ?? [];
             onlineList.Remove(name.ToLowerInvariant());
             await _cache.SetAsync(OnlineListKey, onlineList);

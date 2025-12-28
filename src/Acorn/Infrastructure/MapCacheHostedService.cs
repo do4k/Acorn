@@ -123,7 +123,7 @@ public class MapCacheHostedService : BackgroundService
                 _logger.LogWarning(ex, "Failed to cache map {MapId}", mapId);
             }
         }
-        
+
         if (_cacheOptions.LogOperations)
             _logger.LogDebug("Cached {Count} maps to Redis", cachedCount);
     }

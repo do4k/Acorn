@@ -160,8 +160,8 @@ public static class PubFeature
             return RedisUnavailable();
 
         var item = await pubCache.GetItemByIdAsync(id);
-        return item is null 
-            ? Results.NotFound(new NotFoundError { Error = "Item not found", ResourceType = "Item", ResourceId = id.ToString() }) 
+        return item is null
+            ? Results.NotFound(new NotFoundError { Error = "Item not found", ResourceType = "Item", ResourceId = id.ToString() })
             : Results.Ok(item);
     }
 
@@ -171,8 +171,8 @@ public static class PubFeature
             return RedisUnavailable();
 
         var item = await pubCache.GetItemByNameAsync(name);
-        return item is null 
-            ? Results.NotFound(new NotFoundError { Error = "Item not found", ResourceType = "Item", ResourceId = name }) 
+        return item is null
+            ? Results.NotFound(new NotFoundError { Error = "Item not found", ResourceType = "Item", ResourceId = name })
             : Results.Ok(item);
     }
 
@@ -204,8 +204,8 @@ public static class PubFeature
             return RedisUnavailable();
 
         var npc = await pubCache.GetNpcByIdAsync(id);
-        return npc is null 
-            ? Results.NotFound(new NotFoundError { Error = "NPC not found", ResourceType = "NPC", ResourceId = id.ToString() }) 
+        return npc is null
+            ? Results.NotFound(new NotFoundError { Error = "NPC not found", ResourceType = "NPC", ResourceId = id.ToString() })
             : Results.Ok(npc);
     }
 
@@ -215,8 +215,8 @@ public static class PubFeature
             return RedisUnavailable();
 
         var npc = await pubCache.GetNpcByNameAsync(name);
-        return npc is null 
-            ? Results.NotFound(new NotFoundError { Error = "NPC not found", ResourceType = "NPC", ResourceId = name }) 
+        return npc is null
+            ? Results.NotFound(new NotFoundError { Error = "NPC not found", ResourceType = "NPC", ResourceId = name })
             : Results.Ok(npc);
     }
 
@@ -248,8 +248,8 @@ public static class PubFeature
             return RedisUnavailable();
 
         var spell = await pubCache.GetSpellByIdAsync(id);
-        return spell is null 
-            ? Results.NotFound(new NotFoundError { Error = "Spell not found", ResourceType = "Spell", ResourceId = id.ToString() }) 
+        return spell is null
+            ? Results.NotFound(new NotFoundError { Error = "Spell not found", ResourceType = "Spell", ResourceId = id.ToString() })
             : Results.Ok(spell);
     }
 
@@ -259,8 +259,8 @@ public static class PubFeature
             return RedisUnavailable();
 
         var spell = await pubCache.GetSpellByNameAsync(name);
-        return spell is null 
-            ? Results.NotFound(new NotFoundError { Error = "Spell not found", ResourceType = "Spell", ResourceId = name }) 
+        return spell is null
+            ? Results.NotFound(new NotFoundError { Error = "Spell not found", ResourceType = "Spell", ResourceId = name })
             : Results.Ok(spell);
     }
 
@@ -292,8 +292,8 @@ public static class PubFeature
             return RedisUnavailable();
 
         var cls = await pubCache.GetClassByIdAsync(id);
-        return cls is null 
-            ? Results.NotFound(new NotFoundError { Error = "Class not found", ResourceType = "Class", ResourceId = id.ToString() }) 
+        return cls is null
+            ? Results.NotFound(new NotFoundError { Error = "Class not found", ResourceType = "Class", ResourceId = id.ToString() })
             : Results.Ok(cls);
     }
 
@@ -303,8 +303,8 @@ public static class PubFeature
             return RedisUnavailable();
 
         var cls = await pubCache.GetClassByNameAsync(name);
-        return cls is null 
-            ? Results.NotFound(new NotFoundError { Error = "Class not found", ResourceType = "Class", ResourceId = name }) 
+        return cls is null
+            ? Results.NotFound(new NotFoundError { Error = "Class not found", ResourceType = "Class", ResourceId = name })
             : Results.Ok(cls);
     }
 
@@ -320,7 +320,7 @@ public static class PubFeature
     #endregion
 
     private static IResult RedisUnavailable() => Results.Json(new ServiceUnavailableError
-    { 
+    {
         Error = "Redis is not available",
         Message = "The API requires Redis to access game server data. In-memory cache cannot be shared between processes.",
         Service = "Redis"

@@ -24,7 +24,7 @@ public static class CharactersFeature
     {
         if (cache is InMemoryCacheService)
             return RedisUnavailable();
-        
+
         var character = await cache.GetAsync<object>($"character:name:{name.ToLower()}");
         if (character == null)
             return Results.NotFound(new NotFoundError
@@ -39,7 +39,7 @@ public static class CharactersFeature
     }
 
     private static IResult RedisUnavailable() => Results.Json(new ServiceUnavailableError
-    { 
+    {
         Error = "Redis is not available",
         Message = "The API requires Redis to access game server data. In-memory cache cannot be shared between processes.",
         Service = "Redis"

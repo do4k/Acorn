@@ -59,7 +59,7 @@ internal static class IocRegistrations
                 var cache = sp.GetRequiredService<ICacheService>();
                 var logger = sp.GetRequiredService<ILogger<CharacterRepository>>();
                 var cachedLogger = sp.GetRequiredService<ILogger<CachedCharacterRepository>>();
-                
+
                 var inner = new CharacterRepository(context, logger);
                 return new CachedCharacterRepository(inner, cache, cachedLogger);
             })

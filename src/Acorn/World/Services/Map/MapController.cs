@@ -135,7 +135,7 @@ public class MapController : IMapController
     public async Task ProcessNpcRespawnsAsync(MapState map)
     {
         var deadNpcs = map.Npcs.Where(npc => npc.IsDead && npc.DeathTime.HasValue).ToList();
-        
+
         foreach (var npc in deadNpcs)
         {
             if (npc.DeathTime.HasValue)
@@ -149,7 +149,7 @@ public class MapController : IMapController
                     npc.Hp = npc.Data.Hp;
                     npc.Opponents.Clear();
                     npc.ActTicks = 0;
-                    
+
                     // Calculate spawn position with variance for non-fixed NPCs
                     if (_npcController.ShouldUseSpawnVariance(npc))
                     {
@@ -162,7 +162,7 @@ public class MapController : IMapController
                         npc.X = npc.SpawnX;
                         npc.Y = npc.SpawnY;
                     }
-                    
+
                     // Reset direction using controller
                     npc.Direction = _npcController.GetSpawnDirection(npc);
 
@@ -231,13 +231,13 @@ public class MapController : IMapController
         if (positionUpdates.Count > 0 || attackUpdates.Count > 0)
         {
             var playersWithCharacters = map.Players.Where(p => p.Character != null).ToList();
-            
+
             // Filter position updates to only include NPCs within client range of at least one player
             var filteredPositionUpdates = positionUpdates
-                .Where(update => playersWithCharacters.Any(p => 
+                .Where(update => playersWithCharacters.Any(p =>
                     _tileService.InClientRange(p.Character!.AsCoords(), update.Coords)))
                 .ToList();
-            
+
             // Attacks should always be sent since they involve players who are by definition in range
             if (filteredPositionUpdates.Count > 0 || attackUpdates.Count > 0)
             {
@@ -252,11 +252,11 @@ public class MapController : IMapController
         // Handle player deaths from NPC attacks
         var tasks = new List<Task>();
         var attackedPlayerIds = new HashSet<int>();
-        
+
         foreach (var attack in attackUpdates)
         {
             attackedPlayerIds.Add(attack.PlayerId);
-            
+
             if (attack.Killed == PlayerKilledState.Killed)
             {
                 var deadPlayer = map.Players.FirstOrDefault(p => p.SessionId == attack.PlayerId);
@@ -268,7 +268,7 @@ public class MapController : IMapController
         }
 
         await Task.WhenAll(tasks);
-        
+
         return attackedPlayerIds;
     }
 

@@ -22,7 +22,7 @@ public static class HealthFeature
     {
         var cacheType = cache.GetType().Name;
         var isRedis = cacheType == "RedisCacheService";
-        
+
         // Test cache connectivity
         bool cacheHealthy;
         try
@@ -46,15 +46,15 @@ public static class HealthFeature
                 Type = cacheType,
                 IsRedis = isRedis,
                 Healthy = cacheHealthy,
-                Warning = !isRedis 
-                    ? "In-memory cache is active. API cannot access game server data without Redis." 
+                Warning = !isRedis
+                    ? "In-memory cache is active. API cannot access game server data without Redis."
                     : null
             },
             Timestamp = DateTime.UtcNow
         };
 
-        return cacheHealthy 
-            ? Results.Ok(response) 
+        return cacheHealthy
+            ? Results.Ok(response)
             : Results.Json(response, statusCode: StatusCodes.Status503ServiceUnavailable);
     }
 }

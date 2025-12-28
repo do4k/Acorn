@@ -36,7 +36,7 @@ public interface INpcController
     /// <param name="npcs">NPCs on the map (to avoid spawning on them)</param>
     /// <param name="mapData">The map data for tile checking</param>
     /// <returns>Valid spawn coordinates</returns>
-    (int X, int Y) FindSpawnPosition(NpcState npc, int baseX, int baseY, 
+    (int X, int Y) FindSpawnPosition(NpcState npc, int baseX, int baseY,
         IEnumerable<PlayerState> players, IEnumerable<NpcState> npcs, Emf mapData);
 
     /// <summary>

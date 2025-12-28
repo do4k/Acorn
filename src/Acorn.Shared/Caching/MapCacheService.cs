@@ -8,7 +8,7 @@ namespace Acorn.Shared.Caching;
 public class MapCacheService : IMapCacheService
 {
     private readonly ICacheService _cache;
-    
+
     private const string MapStateKey = "map:state:";
     private const string MapListKey = "maps:all";
 
@@ -20,7 +20,7 @@ public class MapCacheService : IMapCacheService
     public async Task CacheMapStateAsync(MapStateRecord mapState)
     {
         await _cache.SetAsync($"{MapStateKey}{mapState.Id}", mapState, TimeSpan.FromSeconds(30));
-        
+
         // Update map list
         var mapList = await _cache.GetAsync<List<int>>(MapListKey) ?? [];
         if (!mapList.Contains(mapState.Id))
@@ -39,7 +39,7 @@ public class MapCacheService : IMapCacheService
     {
         var mapList = await _cache.GetAsync<List<int>>(MapListKey) ?? [];
         var results = new List<MapStateRecord>();
-        
+
         foreach (var mapId in mapList)
         {
             var state = await GetMapStateAsync(mapId);
@@ -48,7 +48,7 @@ public class MapCacheService : IMapCacheService
                 results.Add(state);
             }
         }
-        
+
         return results;
     }
 

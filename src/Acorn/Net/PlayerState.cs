@@ -198,7 +198,7 @@ public class PlayerState : IDisposable
             PacketSequencer.NextSequence();
             return;
         }
-        
+
         // Other Init packets do have sequence bytes
         if (family == PacketFamily.Init)
         {

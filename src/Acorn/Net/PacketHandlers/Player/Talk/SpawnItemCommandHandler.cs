@@ -115,9 +115,9 @@ public class SpawnItemCommandHandler : ITalkHandler
 
     private async Task SpawnByName(PlayerState playerState, string name, int amount)
     {
-        _logger.LogInformation("Searching for item with name: '{Name}', EIF has {Count} items", 
+        _logger.LogInformation("Searching for item with name: '{Name}', EIF has {Count} items",
             name, _dataFiles.Eif.Items.Count);
-        
+
         // Find exact match first
         var exactMatches = _dataFiles.Eif.FindByName(name);
 

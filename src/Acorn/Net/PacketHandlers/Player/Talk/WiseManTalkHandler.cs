@@ -90,7 +90,7 @@ public class WiseManTalkHandler
                 return false;
             }
 
-            _logger.LogInformation("Player {Player} asks Wise Man: {Query}", 
+            _logger.LogInformation("Player {Player} asks Wise Man: {Query}",
                 playerState.Character.Name, query);
 
             var request = new WiseManRequest(playerState, query, wiseManNpc);

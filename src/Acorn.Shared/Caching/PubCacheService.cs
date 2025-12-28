@@ -13,15 +13,15 @@ public class PubCacheService : IPubCacheService
     private const string ItemByIdKey = "pub:item:id:";
     private const string ItemByNameKey = "pub:item:name:";
     private const string ItemsAllKey = "pub:items:all";
-    
+
     private const string NpcByIdKey = "pub:npc:id:";
     private const string NpcByNameKey = "pub:npc:name:";
     private const string NpcsAllKey = "pub:npcs:all";
-    
+
     private const string SpellByIdKey = "pub:spell:id:";
     private const string SpellByNameKey = "pub:spell:name:";
     private const string SpellsAllKey = "pub:spells:all";
-    
+
     private const string ClassByIdKey = "pub:class:id:";
     private const string ClassByNameKey = "pub:class:name:";
     private const string ClassesAllKey = "pub:classes:all";
@@ -36,10 +36,10 @@ public class PubCacheService : IPubCacheService
     public async Task CacheItemsAsync(IEnumerable<ItemRecord> items)
     {
         var itemList = items.ToList();
-        
+
         // Cache the full list
         await _cache.SetAsync(ItemsAllKey, itemList);
-        
+
         // Cache by ID and name for quick lookups
         foreach (var item in itemList)
         {
@@ -80,9 +80,9 @@ public class PubCacheService : IPubCacheService
     public async Task CacheNpcsAsync(IEnumerable<NpcRecord> npcs)
     {
         var npcList = npcs.ToList();
-        
+
         await _cache.SetAsync(NpcsAllKey, npcList);
-        
+
         foreach (var npc in npcList)
         {
             await _cache.SetAsync($"{NpcByIdKey}{npc.Id}", npc);
@@ -122,9 +122,9 @@ public class PubCacheService : IPubCacheService
     public async Task CacheSpellsAsync(IEnumerable<SpellRecord> spells)
     {
         var spellList = spells.ToList();
-        
+
         await _cache.SetAsync(SpellsAllKey, spellList);
-        
+
         foreach (var spell in spellList)
         {
             await _cache.SetAsync($"{SpellByIdKey}{spell.Id}", spell);
@@ -164,9 +164,9 @@ public class PubCacheService : IPubCacheService
     public async Task CacheClassesAsync(IEnumerable<ClassRecord> classes)
     {
         var classList = classes.ToList();
-        
+
         await _cache.SetAsync(ClassesAllKey, classList);
-        
+
         foreach (var cls in classList)
         {
             await _cache.SetAsync($"{ClassByIdKey}{cls.Id}", cls);

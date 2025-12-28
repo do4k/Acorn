@@ -18,14 +18,14 @@ public record OnlineCharacterRecord
     public int X { get; init; }
     public int Y { get; init; }
     public string Direction { get; init; } = string.Empty;
-    
+
     // Stats
     public int Hp { get; init; }
     public int MaxHp { get; init; }
     public int Tp { get; init; }
     public int MaxTp { get; init; }
     public int Exp { get; init; }
-    
+
     // Equipment
     public EquipmentRecord Equipment { get; init; } = new();
 }
