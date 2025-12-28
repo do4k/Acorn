@@ -1,6 +1,8 @@
 using Acorn.Infrastructure.Gemini;
+using Acorn.Options;
 using Acorn.World.Services;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Acorn.Net.PacketHandlers.Player.Talk;
 
@@ -12,6 +14,7 @@ public class WiseManTalkHandler
 {
     private readonly WiseManQueueService _queueService;
     private readonly ILogger<WiseManTalkHandler> _logger;
+    private readonly WiseManAgentOptions _wiseManOptions;
 
     private static readonly string[] TriggerPhrases =
     [
@@ -25,10 +28,12 @@ public class WiseManTalkHandler
 
     public WiseManTalkHandler(
         WiseManQueueService queueService,
-        ILogger<WiseManTalkHandler> logger)
+        ILogger<WiseManTalkHandler> logger,
+        IOptions<WiseManAgentOptions> wiseManOptions)
     {
         _queueService = queueService;
         _logger = logger;
+        _wiseManOptions = wiseManOptions.Value;
     }
 
     /// <summary>
@@ -37,6 +42,12 @@ public class WiseManTalkHandler
     /// <returns>True if the message was handled (directed at Wise Man)</returns>
     public bool TryHandleMessage(PlayerState playerState, string message)
     {
+        if (!_wiseManOptions.Enabled)
+        {
+            _logger.LogInformation("Wise Man agent is disabled. Ignoring Wise Man messages.");
+            return false;
+        }
+
         if (playerState.Character == null || playerState.CurrentMap == null)
             return false;
 

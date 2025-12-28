@@ -72,6 +72,11 @@ public class WiseManQueueService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        if (!_wiseManOptions.Enabled)
+        {
+            _logger.LogInformation("Wise Man agent is disabled. WiseManQueueService will shut down.");
+            return;
+        }
         _logger.LogInformation("WiseManQueueService ExecuteAsync started");
         _logger.LogInformation("Wise Man queue service started and listening for requests");
         

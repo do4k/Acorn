@@ -26,5 +26,6 @@ public class CacheOptions
     /// Whether to log cache operations (get, set, remove) for debugging.
     /// </summary>
     public bool LogOperations { get; set; } = false;
+    public static string SectionName => "Cache";
 }
 

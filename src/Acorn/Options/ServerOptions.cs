@@ -22,4 +22,6 @@ public class ServerOptions
     /// Whether to log packet contents at debug level. Can be very verbose.
     /// </summary>
     public bool LogPackets { get; set; } = false;
+
+    public static string SectionName => "Server";
 }

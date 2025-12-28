@@ -1,5 +1,6 @@
 using Acorn.Shared.Caching;
 using Acorn.Shared.Models.Maps;
+using Acorn.Shared.Options;
 using Acorn.World;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;

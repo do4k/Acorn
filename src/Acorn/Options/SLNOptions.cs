@@ -9,4 +9,6 @@ public class SLNOptions
     public required string Zone { get; set; }
     public required string ServerName { get; set; }
     public required string Site { get; set; }
+
+    public static string SectionName => "SLN";
 }

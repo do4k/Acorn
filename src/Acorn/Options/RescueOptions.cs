@@ -9,4 +9,6 @@ public class RescueOptions
     public required int Map { get; set; }
     public required int X { get; set; }
     public required int Y { get; set; }
+
+    public static string SectionName => "Rescue";
 }

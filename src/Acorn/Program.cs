@@ -12,6 +12,7 @@ using Acorn.Net.PacketHandlers.Player.Talk;
 using Acorn.Net.Services;
 using Acorn.Options;
 using Acorn.Shared.Extensions;
+using Acorn.Shared.Options;
 using Acorn.SLN;
 using Acorn.World;
 using Acorn.World.Map;
@@ -63,10 +64,10 @@ var host = Host.CreateDefaultBuilder(args)
     {
         services
             .AddSingleton<IConfiguration>(configuration)
-            .Configure<DatabaseOptions>(configuration.GetSection("Database"))
-            .Configure<ServerOptions>(configuration.GetSection("Server"))
-            .Configure<CacheOptions>(configuration.GetSection("Cache"))
-            .Configure<WiseManAgentOptions>(configuration.GetSection("Gemini"))
+            .Configure<DatabaseOptions>(configuration.GetSection(DatabaseOptions.SectionName))
+            .Configure<ServerOptions>(configuration.GetSection(ServerOptions.SectionName))
+            .Configure<CacheOptions>(configuration.GetSection(CacheOptions.SectionName))
+            .Configure<WiseManAgentOptions>(configuration.GetSection(WiseManAgentOptions.SectionName))
             .AddSingleton<UtcNowDelegate>(() => DateTime.UtcNow);
 
         // Configure DbContext based on database engine
@@ -141,21 +142,19 @@ var host = Host.CreateDefaultBuilder(args)
                 c.DefaultRequestHeaders.Add("User-Agent", slnOptions.UserAgent);
             });
 
-        // Register Gemini AI services for Wise Man NPC only if enabled
-        var geminiOptions = configuration.GetSection("Gemini").Get<WiseManAgentOptions>() ?? new WiseManAgentOptions();
-        if (geminiOptions.Enabled)
-        {
-            services
-                .AddSingleton<IWiseManAgent, WiseManGeminiAgent>()
-                .AddSingleton<WiseManQueueService>()
-                .AddHostedService(sp => sp.GetRequiredService<WiseManQueueService>())
-                .AddSingleton<WiseManTalkHandler>()
-                .AddRefitClient<IGeminiClient>()
-                .ConfigureHttpClient(c =>
-                {
-                    c.BaseAddress = new Uri("https://generativelanguage.googleapis.com");
-                });
-        }
+        // Always register WiseManTalkHandler so it is available for DI, regardless of Gemini/WiseMan feature flag
+        services.AddSingleton<WiseManTalkHandler>();
+        services.AddSingleton(provider => provider.GetRequiredService<IOptions<WiseManAgentOptions>>().Value);
+
+        services
+            .AddSingleton<IWiseManAgent, WiseManGeminiAgent>()
+            .AddSingleton<WiseManQueueService>()
+            .AddHostedService(sp => sp.GetRequiredService<WiseManQueueService>())
+            .AddRefitClient<IGeminiClient>()
+            .ConfigureHttpClient(c =>
+            {
+                c.BaseAddress = new Uri("https://generativelanguage.googleapis.com");
+            });
     })
     .ConfigureLogging(builder =>
     {

@@ -24,4 +24,9 @@ public class WiseManAgentOptions
     /// Whether the Wise Man Agent integration is enabled.
     /// </summary>
     public bool Enabled { get; set; } = false;
+
+    /// <summary>
+    /// The section name in configuration.
+    /// </summary>
+    public static string SectionName => "WiseManAgent";
 }
