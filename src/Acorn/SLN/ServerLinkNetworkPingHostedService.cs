@@ -11,12 +11,12 @@ public class ServerLinkNetworkPingHostedService(
     ILogger<ServerLinkNetworkPingHostedService> logger,
     IOptions<ServerOptions> serverOptions,
     IServerLinkNetworkClient client)
-    : IHostedService
+    : BackgroundService
 {
     private readonly SLNOptions _slnOptions = serverOptions.Value.Hosting.SLN;
     private readonly HostingOptions _hostingOptions = serverOptions.Value.Hosting;
 
-    public async Task StartAsync(CancellationToken cancellationToken)
+    protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
         if (CanStart() is false)
         {
@@ -24,39 +24,41 @@ public class ServerLinkNetworkPingHostedService(
         }
 
         logger.LogDebug("Starting ServerLinkNetworkPingHostedService");
-        var timer = new PeriodicTimer(TimeSpan.FromMinutes(_slnOptions.PingRate));
-        while (cancellationToken.IsCancellationRequested is false)
-        {
-            try
-            {
-                logger.LogDebug("Current assembly version {Version}", Assembly.GetExecutingAssembly().GetName()?.Version?.ToString());
-                var response = await client.CheckSlnAsync(
-                    "Acorn",
-                    Assembly.GetExecutingAssembly().GetName()?.Version?.ToString() ?? throw new Exception("Could not get version of current assembly"),
-                    _hostingOptions.HostName,
-                    _hostingOptions.Port,
-                    _slnOptions.ServerName,
-                    _slnOptions.Site,
-                    _slnOptions.Zone,
-                    0,
-                    2,
-                    _slnOptions.PingRate * 60
-                );
+        
+        // Initial check
+        await CheckSlnAsync();
 
-                logger.LogDebug("Response from SLN: {Response}", response);
-                await timer.WaitForNextTickAsync(cancellationToken);
-            }
-            catch (Exception e)
-            {
-                logger.LogError(e, "Error while getting sln response {Message}", e.Message);
-            }
+        var timer = new PeriodicTimer(TimeSpan.FromMinutes(_slnOptions.PingRate));
+        while (await timer.WaitForNextTickAsync(cancellationToken))
+        {
+            await CheckSlnAsync();
         }
     }
 
-    public Task StopAsync(CancellationToken cancellationToken)
+    private async Task CheckSlnAsync()
     {
-        logger.LogDebug("Stopping ServerLinkNetworkPingHostedService");
-        return Task.CompletedTask;
+        try
+        {
+            logger.LogDebug("Current assembly version {Version}", Assembly.GetExecutingAssembly().GetName()?.Version?.ToString());
+            var response = await client.CheckSlnAsync(
+                "Acorn",
+                Assembly.GetExecutingAssembly().GetName()?.Version?.ToString() ?? throw new Exception("Could not get version of current assembly"),
+                _hostingOptions.HostName,
+                _hostingOptions.Port,
+                _slnOptions.ServerName,
+                _slnOptions.Site,
+                _slnOptions.Zone,
+                0,
+                2,
+                _slnOptions.PingRate * 60
+            );
+
+            logger.LogDebug("Response from SLN: {Response}", response);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Error while getting sln response {Message}", e.Message);
+        }
     }
 
     private bool CanStart()

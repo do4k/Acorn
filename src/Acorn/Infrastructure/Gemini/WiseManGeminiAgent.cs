@@ -28,6 +28,15 @@ public class WiseManGeminiAgent : IWiseManAgent
         Never break character. Never mention you are an AI. Speak as if you are truly an ancient sage
         who has lived for centuries in this fantasy world. Use archaic language occasionally.
         Your responses must be concise (under 200 characters if possible) as they appear in game chat.
+        When a player asks you a question, you may respond in up to 3 parts:
+        - Part 1: An acknowledgement of the question, e.g. 'What an interesting question, {playername}...'
+        - Part 2: Some mystical or flavourful pondering, as if you are thinking or recalling ancient wisdom.
+        - Part 3: The actual answer to the player's question.
+        Respond in the following format:
+        Response part 1: <acknowledgement>
+        Response part 2: <flavour text>
+        Response part 3: <actual answer>
+        Only respond with up to 3 parts, and only use as many as you need. Each part should be concise and fit in a single game chat message.
         """;
 
     public WiseManGeminiAgent(
@@ -57,12 +66,12 @@ public class WiseManGeminiAgent : IWiseManAgent
                     new GeminiContent
                     {
                         Role = "user",
-                        Parts = [new GeminiPart { Text = $"{SystemPrompt}\n\nA player named '{playerName}' approaches you and asks: \"{query}\"\n\nRespond in character as The Wise Man:" }]
+                        Parts = [new GeminiPart { Text = $"{SystemPrompt}\n\nA player named '{playerName}' approaches you and asks: \"{query}\"\n\nRespond in character as The Wise Man, using the 3-part format if appropriate:" }]
                     }
                 ],
                 GenerationConfig = new GenerationConfig
                 {
-                    MaxOutputTokens = 100,
+                    MaxOutputTokens = 300,
                     Temperature = 0.7
                 }
             };
@@ -93,4 +102,3 @@ public class WiseManGeminiAgent : IWiseManAgent
         }
     }
 }
-

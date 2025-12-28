@@ -1,4 +1,4 @@
-﻿﻿using System.Reflection;
+﻿using System.Reflection;
 using Acorn.Database;
 using Acorn.Database.Repository;
 using Acorn.Extensions;
@@ -145,15 +145,13 @@ var host = Host.CreateDefaultBuilder(args)
         services
             .AddSingleton<IWiseManAgent, WiseManGeminiAgent>()
             .AddSingleton<WiseManQueueService>()
+            .AddHostedService(sp => sp.GetRequiredService<WiseManQueueService>())
             .AddSingleton<WiseManTalkHandler>()
             .AddRefitClient<IGeminiClient>()
             .ConfigureHttpClient(c =>
             {
                 c.BaseAddress = new Uri("https://generativelanguage.googleapis.com");
             });
-        
-        // Register WiseManQueueService as a hosted service (must use the same singleton instance)
-        services.AddHostedService<WiseManQueueService>(sp => sp.GetRequiredService<WiseManQueueService>());
     })
     .ConfigureLogging(builder =>
     {

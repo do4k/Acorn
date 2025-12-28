@@ -44,41 +44,55 @@ public class WiseManTalkHandler
 
         foreach (var trigger in TriggerPhrases)
         {
-            if (lowerMessage.StartsWith(trigger))
+            if (!lowerMessage.StartsWith(trigger))
             {
-                // Extract the query after the trigger phrase
-                var query = message[trigger.Length..].Trim();
-                
-                // Remove leading punctuation like comma or colon
-                if (query.StartsWith(',') || query.StartsWith(':') || query.StartsWith('!'))
-                {
-                    query = query[1..].Trim();
-                }
-
-                if (string.IsNullOrWhiteSpace(query))
-                {
-                    query = "greet me";
-                }
-
-                _logger.LogInformation("Player {Player} asks Wise Man: {Query}", 
-                    playerState.Character.Name, query);
-
-                var request = new WiseManRequest(playerState, query);
-                
-                if (_queueService.TryEnqueue(request))
-                {
-                    _logger.LogDebug("Queued Wise Man request from {Player}", playerState.Character.Name);
-                }
-                else
-                {
-                    _logger.LogWarning("Failed to queue Wise Man request - queue full");
-                }
-
-                return true;
+                continue;
             }
-        }
 
+            // Extract the query after the trigger phrase
+            var query = message[trigger.Length..].Trim();
+            // Remove leading punctuation like comma or colon
+            if (query.StartsWith(',') || query.StartsWith(':') || query.StartsWith('!'))
+            {
+                query = query[1..].Trim();
+            }
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                query = "greet me";
+            }
+
+            // Find Wise Man NPC on the map
+            var map = playerState.CurrentMap;
+            var wiseManNpc = map.Npcs.FirstOrDefault(n => n.Data.Name.Contains("Wise Man", StringComparison.OrdinalIgnoreCase));
+            if (wiseManNpc == null)
+            {
+                _logger.LogWarning("No Wise Man NPC found on map for player {Player}", playerState.Character.Name);
+                return false;
+            }
+            // Check proximity (within 5 tiles)
+            var dx = Math.Abs(playerState.Character.X - wiseManNpc.X);
+            var dy = Math.Abs(playerState.Character.Y - wiseManNpc.Y);
+            const int maxDistance = 5;
+            if (dx > maxDistance || dy > maxDistance)
+            {
+                _logger.LogWarning("Player {Player} is not in range of Wise Man NPC", playerState.Character.Name);
+                return false;
+            }
+
+            _logger.LogInformation("Player {Player} asks Wise Man: {Query}", 
+                playerState.Character.Name, query);
+
+            var request = new WiseManRequest(playerState, query, wiseManNpc);
+            if (_queueService.TryEnqueue(request))
+            {
+                _logger.LogDebug("Queued Wise Man request from {Player}", playerState.Character.Name);
+            }
+            else
+            {
+                _logger.LogWarning("Failed to queue Wise Man request - queue full or could not find wise man");
+            }
+            return true;
+        }
         return false;
     }
 }
-

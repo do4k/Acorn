@@ -32,8 +32,8 @@ public class NotificationService : INotificationService
         => player.Send(new TalkServerServerPacket { Message = message });
 
     public Task SystemMessage(PlayerState player, string message)
-        => player.Send(new TalkMsgServerPacket { Message = message });
+        => player.Send(new TalkMsgServerPacket { Message = message, PlayerName = "System" });
 
     public Task AdminMessage(PlayerState player, string message)
-        => player.Send(new TalkAdminServerPacket { Message = message });
+        => player.Send(new TalkAdminServerPacket { Message = message, PlayerName = player.Character?.Name ?? "System" });
 }

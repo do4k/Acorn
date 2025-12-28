@@ -1,6 +1,7 @@
 using System.Threading.Channels;
 using Acorn.Infrastructure.Gemini;
 using Acorn.Net;
+using Acorn.World.Npc;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
@@ -10,18 +11,16 @@ namespace Acorn.World.Services;
 /// <summary>
 /// Request to get a response from the Wise Man.
 /// </summary>
-public record WiseManRequest(PlayerState Player, string Query);
+public record WiseManRequest(PlayerState Player, string Query, NpcState WiseManNpc);
 
 /// <summary>
 /// Hosted service that processes Wise Man requests from a queue.
 /// </summary>
-public class WiseManQueueService : IHostedService, IDisposable
+public class WiseManQueueService : BackgroundService
 {
     private readonly Channel<WiseManRequest> _channel;
     private readonly IWiseManAgent _wiseManAgent;
     private readonly ILogger<WiseManQueueService> _logger;
-    private Task? _executingTask;
-    private CancellationTokenSource? _stoppingCts;
 
     public WiseManQueueService(
         IWiseManAgent wiseManAgent,
@@ -41,7 +40,19 @@ public class WiseManQueueService : IHostedService, IDisposable
     /// </summary>
     public bool TryEnqueue(WiseManRequest request)
     {
-        var success = _channel.Writer.TryWrite(request);
+        // Only enqueue if player is in range of a Wise Man NPC
+        var map = request.Player.CurrentMap;
+        if (map == null)
+            return false;
+
+        // Find Wise Man NPC on the map
+        var wiseManNpc = map.Npcs.FirstOrDefault(n => n.Data.Name.Contains("Wise Man", StringComparison.OrdinalIgnoreCase));
+        if (wiseManNpc == null)
+            return false;
+
+        // Create a new WiseManRequest with the NPC reference
+        var queuedRequest = request with { WiseManNpc = wiseManNpc };
+        var success = _channel.Writer.TryWrite(queuedRequest);
         if (success)
         {
             _logger.LogInformation("Queued Wise Man request from {Player}: {Query}", 
@@ -54,75 +65,55 @@ public class WiseManQueueService : IHostedService, IDisposable
         return success;
     }
 
-    public Task StartAsync(CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("WiseManQueueService StartAsync called");
-        
-        _stoppingCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        
-        // Start the background processing task
-        _executingTask = Task.Run(() => ExecuteAsync(_stoppingCts.Token), _stoppingCts.Token);
-        
-        _logger.LogInformation("WiseManQueueService background task started");
-        
-        return Task.CompletedTask;
-    }
-
-    public async Task StopAsync(CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("WiseManQueueService StopAsync called");
-        
-        if (_executingTask == null)
-            return;
-
-        try
-        {
-            _stoppingCts?.Cancel();
-        }
-        finally
-        {
-            await Task.WhenAny(_executingTask, Task.Delay(Timeout.Infinite, cancellationToken));
-        }
-    }
-
-    private async Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("WiseManQueueService ExecuteAsync started");
         _logger.LogInformation("Wise Man queue service started and listening for requests");
         
-        try
+        while (!stoppingToken.IsCancellationRequested)
         {
-            await foreach (var request in _channel.Reader.ReadAllAsync(stoppingToken))
+            try
             {
-                try
+                // Wait for data to be available
+                if (!await _channel.Reader.WaitToReadAsync(stoppingToken))
                 {
-                    _logger.LogDebug("Processing Wise Man request from {Player}",
-                        request.Player.Character?.Name ?? "Unknown");
-
-                    await ProcessRequestAsync(request);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error processing Wise Man request");
+                    continue;
                 }
 
-                // Small delay to avoid rate limiting
-                await Task.Delay(500, stoppingToken);
+                // Process available data
+                while (_channel.Reader.TryRead(out var request))
+                {
+                    try
+                    {
+                        _logger.LogDebug("Processing Wise Man request from {Player}",
+                            request.Player.Character?.Name ?? "Unknown");
+
+                        await ProcessRequestAsync(request);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error processing Wise Man request");
+                    }
+
+                    // Small delay to avoid rate limiting
+                    await Task.Delay(500, stoppingToken);
+                }
             }
-        }
-        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-        {
-            _logger.LogInformation("Wise Man queue service stopping");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Wise Man queue service encountered an error");
+            catch (OperationCanceledException)
+            {
+                _logger.LogInformation("Wise Man queue service stopping");
+                break;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Wise Man queue service encountered an error");
+            }
         }
     }
 
-    private async Task ProcessRequestAsync(WiseManRequest request)
+    private async Task ProcessRequestAsync(WiseManRequest? request)
     {
-        if (request.Player.Character == null || request.Player.CurrentMap == null)
+        if (request == null || request.Player.Character == null || request.Player.CurrentMap == null || request.WiseManNpc == null)
             return;
 
         var playerName = request.Player.Character.Name ?? "Adventurer";
@@ -134,38 +125,49 @@ public class WiseManQueueService : IHostedService, IDisposable
         }
 
         // Send the response as an NPC message to nearby players
-        await SendWiseManMessageAsync(request.Player, response);
+        await SendWiseManMessageAsync(request.Player, response, request.WiseManNpc);
     }
 
-    private async Task SendWiseManMessageAsync(PlayerState player, string message)
+    private async Task SendWiseManMessageAsync(PlayerState player, string message, NpcState wiseManNpc)
     {
         if (player.CurrentMap == null)
             return;
 
-        var packet = new TalkMsgServerPacket
-        {
-            PlayerName = "Wise Man",
-            Message = message
-        };
+        // Split Gemini response into up to 3 parts
+        var parts = message.Split("Response part ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(p => p.Trim(':', ' ', '1', '2', '3')).ToList();
+        if (parts.Count == 0)
+            parts.Add(message); // fallback if not formatted
 
-        // Broadcast to all players on the map
-        foreach (var mapPlayer in player.CurrentMap.Players)
+        foreach (var part in parts)
         {
-            try
+            // Broadcast to chat log/history as if "Wise Man" is a player
+            var chatLogPacket = new TalkMsgServerPacket
             {
-                await mapPlayer.Send(packet);
-            }
-            catch (Exception ex)
+                PlayerName = "Wise Man",
+                Message = part
+            };
+            foreach (var mapPlayer in player.CurrentMap.Players)
             {
-                _logger.LogWarning(ex, "Failed to send Wise Man message to player");
+                try { await mapPlayer.Send(chatLogPacket); } catch (Exception ex) { _logger.LogWarning(ex, "Failed to send Wise Man chat log message to player"); }
             }
+
+            var npcIndex = player.CurrentMap.Npcs.ToList().IndexOf(wiseManNpc);
+            var chatUpdate = new NpcUpdateChat
+            {
+                NpcIndex = npcIndex,
+                Message = part
+            };
+            var npcPacket = new NpcPlayerServerPacket
+            {
+                Chats = [chatUpdate]
+            };
+            foreach (var mapPlayer in player.CurrentMap.Players)
+            {
+                try { await mapPlayer.Send(npcPacket); } catch (Exception ex) { _logger.LogWarning(ex, "Failed to send Wise Man NPC message to player"); }
+            }
+
+            await Task.Delay(3000);
         }
     }
-
-    public void Dispose()
-    {
-        _stoppingCts?.Cancel();
-        _stoppingCts?.Dispose();
-    }
 }
-
