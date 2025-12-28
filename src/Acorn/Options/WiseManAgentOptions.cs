@@ -1,9 +1,9 @@
 namespace Acorn.Options;
 
 /// <summary>
-/// Configuration options for Gemini AI integration.
+/// Configuration options for Wise Man Agent (Gemini AI integration).
 /// </summary>
-public class GeminiOptions
+public class WiseManAgentOptions
 {
     /// <summary>
     /// The Gemini API key. Store this in user secrets.
@@ -18,11 +18,10 @@ public class GeminiOptions
     /// <summary>
     /// Maximum characters for the response.
     /// </summary>
-    public int MaxResponseLength { get; set; } = 200;
+    public int MaxResponseLength { get; set; } = 600;
     
     /// <summary>
-    /// Whether the Gemini integration is enabled.
+    /// Whether the Wise Man Agent integration is enabled.
     /// </summary>
-    public bool Enabled { get; set; } = true;
+    public bool Enabled { get; set; } = false;
 }
-

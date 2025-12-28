@@ -1,9 +1,11 @@
 using System.Threading.Channels;
 using Acorn.Infrastructure.Gemini;
 using Acorn.Net;
+using Acorn.Options;
 using Acorn.World.Npc;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.World.Services;
@@ -21,13 +23,16 @@ public class WiseManQueueService : BackgroundService
     private readonly Channel<WiseManRequest> _channel;
     private readonly IWiseManAgent _wiseManAgent;
     private readonly ILogger<WiseManQueueService> _logger;
+    private readonly WiseManAgentOptions _wiseManOptions;
 
     public WiseManQueueService(
         IWiseManAgent wiseManAgent,
-        ILogger<WiseManQueueService> logger)
+        ILogger<WiseManQueueService> logger,
+        IOptions<WiseManAgentOptions> wiseManOptions)
     {
         _wiseManAgent = wiseManAgent;
         _logger = logger;
+        _wiseManOptions = wiseManOptions.Value;
         _channel = Channel.CreateBounded<WiseManRequest>(new BoundedChannelOptions(100)
         {
             FullMode = BoundedChannelFullMode.DropOldest
@@ -141,11 +146,16 @@ public class WiseManQueueService : BackgroundService
 
         foreach (var part in parts)
         {
+            // Clamp the message part to the max response length
+            var clampedPart = part;
+            if (clampedPart.Length > _wiseManOptions.MaxResponseLength)
+                clampedPart = clampedPart.Substring(0, _wiseManOptions.MaxResponseLength) + "...";
+
             // Broadcast to chat log/history as if "Wise Man" is a player
             var chatLogPacket = new TalkMsgServerPacket
             {
                 PlayerName = "Wise Man",
-                Message = part
+                Message = clampedPart
             };
             foreach (var mapPlayer in player.CurrentMap.Players)
             {
@@ -156,7 +166,7 @@ public class WiseManQueueService : BackgroundService
             var chatUpdate = new NpcUpdateChat
             {
                 NpcIndex = npcIndex,
-                Message = part
+                Message = clampedPart
             };
             var npcPacket = new NpcPlayerServerPacket
             {

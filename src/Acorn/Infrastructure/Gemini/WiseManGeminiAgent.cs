@@ -18,7 +18,7 @@ public interface IWiseManAgent
 public class WiseManGeminiAgent : IWiseManAgent
 {
     private readonly IGeminiClient _geminiClient;
-    private readonly GeminiOptions _options;
+    private readonly WiseManAgentOptions _options;
     private readonly ILogger<WiseManGeminiAgent> _logger;
 
     private const string SystemPrompt = """
@@ -41,7 +41,7 @@ public class WiseManGeminiAgent : IWiseManAgent
 
     public WiseManGeminiAgent(
         IGeminiClient geminiClient,
-        IOptions<GeminiOptions> options,
+        IOptions<WiseManAgentOptions> options,
         ILogger<WiseManGeminiAgent> logger)
     {
         _geminiClient = geminiClient;

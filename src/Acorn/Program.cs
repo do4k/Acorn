@@ -66,7 +66,7 @@ var host = Host.CreateDefaultBuilder(args)
             .Configure<DatabaseOptions>(configuration.GetSection("Database"))
             .Configure<ServerOptions>(configuration.GetSection("Server"))
             .Configure<CacheOptions>(configuration.GetSection("Cache"))
-            .Configure<GeminiOptions>(configuration.GetSection("Gemini"))
+            .Configure<WiseManAgentOptions>(configuration.GetSection("Gemini"))
             .AddSingleton<UtcNowDelegate>(() => DateTime.UtcNow);
 
         // Configure DbContext based on database engine
@@ -141,17 +141,21 @@ var host = Host.CreateDefaultBuilder(args)
                 c.DefaultRequestHeaders.Add("User-Agent", slnOptions.UserAgent);
             });
 
-        // Register Gemini AI services for Wise Man NPC
-        services
-            .AddSingleton<IWiseManAgent, WiseManGeminiAgent>()
-            .AddSingleton<WiseManQueueService>()
-            .AddHostedService(sp => sp.GetRequiredService<WiseManQueueService>())
-            .AddSingleton<WiseManTalkHandler>()
-            .AddRefitClient<IGeminiClient>()
-            .ConfigureHttpClient(c =>
-            {
-                c.BaseAddress = new Uri("https://generativelanguage.googleapis.com");
-            });
+        // Register Gemini AI services for Wise Man NPC only if enabled
+        var geminiOptions = configuration.GetSection("Gemini").Get<WiseManAgentOptions>() ?? new WiseManAgentOptions();
+        if (geminiOptions.Enabled)
+        {
+            services
+                .AddSingleton<IWiseManAgent, WiseManGeminiAgent>()
+                .AddSingleton<WiseManQueueService>()
+                .AddHostedService(sp => sp.GetRequiredService<WiseManQueueService>())
+                .AddSingleton<WiseManTalkHandler>()
+                .AddRefitClient<IGeminiClient>()
+                .ConfigureHttpClient(c =>
+                {
+                    c.BaseAddress = new Uri("https://generativelanguage.googleapis.com");
+                });
+        }
     })
     .ConfigureLogging(builder =>
     {
