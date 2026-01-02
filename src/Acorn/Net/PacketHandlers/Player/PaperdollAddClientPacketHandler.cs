@@ -31,7 +31,25 @@ public class PaperdollAddClientPacketHandler : IPacketHandler<PaperdollAddClient
         }
 
         // Get the current item in the target slot to check for swaps
-        var targetSlotValue = PaperdollUtilities.GetSlotValue(character.Paperdoll, packet.SubLoc);
+        var targetSlotValue = packet.SubLoc switch
+        {
+            1 => character.Paperdoll.Hat,
+            2 => character.Paperdoll.Necklace,
+            3 => character.Paperdoll.Armor,
+            4 => character.Paperdoll.Belt,
+            5 => character.Paperdoll.Boots,
+            6 => character.Paperdoll.Gloves,
+            7 => character.Paperdoll.Weapon,
+            8 => character.Paperdoll.Shield,
+            9 => character.Paperdoll.Accessory,
+            10 => character.Paperdoll.Ring1,
+            11 => character.Paperdoll.Ring2,
+            12 => character.Paperdoll.Bracer1,
+            13 => character.Paperdoll.Bracer2,
+            14 => character.Paperdoll.Armlet1,
+            15 => character.Paperdoll.Armlet2,
+            _ => 0
+        };
 
         // If equipping to an empty slot
         if (targetSlotValue == 0)
@@ -67,7 +85,54 @@ public class PaperdollAddClientPacketHandler : IPacketHandler<PaperdollAddClient
 
     private void EquipItemToSlot(Acorn.Game.Models.Character character, int itemId, int subLoc)
     {
-        PaperdollUtilities.SetSlotValue(character.Paperdoll, subLoc, itemId);
+        switch (subLoc)
+        {
+            case 1:
+                character.Paperdoll.Hat = itemId;
+                break;
+            case 2:
+                character.Paperdoll.Necklace = itemId;
+                break;
+            case 3:
+                character.Paperdoll.Armor = itemId;
+                break;
+            case 4:
+                character.Paperdoll.Belt = itemId;
+                break;
+            case 5:
+                character.Paperdoll.Boots = itemId;
+                break;
+            case 6:
+                character.Paperdoll.Gloves = itemId;
+                break;
+            case 7:
+                character.Paperdoll.Weapon = itemId;
+                break;
+            case 8:
+                character.Paperdoll.Shield = itemId;
+                break;
+            case 9:
+                character.Paperdoll.Accessory = itemId;
+                break;
+            case 10:
+                character.Paperdoll.Ring1 = itemId;
+                break;
+            case 11:
+                character.Paperdoll.Ring2 = itemId;
+                break;
+            case 12:
+                character.Paperdoll.Bracer1 = itemId;
+                break;
+            case 13:
+                character.Paperdoll.Bracer2 = itemId;
+                break;
+            case 14:
+                character.Paperdoll.Armlet1 = itemId;
+                break;
+            case 15:
+                character.Paperdoll.Armlet2 = itemId;
+                break;
+        }
     }
 
     public Task HandleAsync(PlayerState playerState, IPacket packet)
