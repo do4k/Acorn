@@ -4,30 +4,44 @@ using Acorn.Game.Services;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+using Microsoft.Extensions.Logging;
 
 namespace Acorn.Net.PacketHandlers.Player;
 
 public class PaperdollAddClientPacketHandler : IPacketHandler<PaperdollAddClientPacket>
 {
     private readonly IInventoryService _inventoryService;
+    private readonly ILogger<PaperdollAddClientPacketHandler> _logger;
 
-    public PaperdollAddClientPacketHandler(IInventoryService inventoryService)
+    public PaperdollAddClientPacketHandler(IInventoryService inventoryService, ILogger<PaperdollAddClientPacketHandler> logger)
     {
         _inventoryService = inventoryService;
+        _logger = logger;
     }
 
     public async Task HandleAsync(PlayerState playerState, PaperdollAddClientPacket packet)
     {
+        _logger.LogDebug("PaperdollAdd received - ItemId: {ItemId}, SubLoc: {SubLoc}, Player: {Player}", 
+            packet.ItemId, packet.SubLoc, playerState.Account?.Username);
+        
         if (playerState.Character is null || playerState.CurrentMap is null)
         {
+            _logger.LogWarning("PaperdollAdd failed - Character is null: {CharIsNull}, CurrentMap is null: {MapIsNull}", 
+                playerState.Character is null, playerState.CurrentMap is null);
             return;
         }
 
         var character = playerState.Character;
 
         // Check if the player has the item
-        if (!_inventoryService.HasItem(character, packet.ItemId))
+        var hasItem = _inventoryService.HasItem(character, packet.ItemId);
+        _logger.LogDebug("Player {Player} has item {ItemId}: {HasItem}", 
+            character.Name, packet.ItemId, hasItem);
+        
+        if (!hasItem)
         {
+            _logger.LogWarning("Player {Player} attempted to equip item {ItemId} which they don't have", 
+                character.Name, packet.ItemId);
             return;
         }
 
@@ -46,26 +60,32 @@ public class PaperdollAddClientPacketHandler : IPacketHandler<PaperdollAddClient
             10 => character.Paperdoll.Ring1,
             11 => character.Paperdoll.Ring2,
             12 => character.Paperdoll.Bracer1,
-            13 => character.Paperdoll.Bracer2,
-            14 => character.Paperdoll.Armlet1,
-            15 => character.Paperdoll.Armlet2,
-            _ => 0
-        };
+        _logger.LogDebug("Target slot {SubLoc} current value: {CurrentItemId}", packet.SubLoc, targetSlotValue);
 
         // If equipping to an empty slot
         if (targetSlotValue == 0)
         {
+            _logger.LogInformation("Equipping item {ItemId} to empty slot {SubLoc} for player {Player}", 
+                packet.ItemId, packet.SubLoc, character.Name);
+            
             // Equip the item
             EquipItemToSlot(character, packet.ItemId, packet.SubLoc);
+            _logger.LogDebug("Item {ItemId} equipped to slot {SubLoc}", packet.ItemId, packet.SubLoc);
             
             // Remove the item from inventory
-            _inventoryService.TryRemoveItem(character, packet.ItemId, 1);
+            var removeSuccess = _inventoryService.TryRemoveItem(character, packet.ItemId, 1);
+            _logger.LogDebug("Removed item {ItemId} from inventory: {Success}", packet.ItemId, removeSuccess);
+
+            var remainingAmount = _inventoryService.GetItemAmount(character, packet.ItemId);
+            _logger.LogDebug("Remaining amount of item {ItemId}: {Amount}", packet.ItemId, remainingAmount);
 
             // Send success response to player
+            _logger.LogDebug("Sending PaperdollAgreeServerPacket for item {ItemId}, remaining: {Remaining}", 
+                packet.ItemId, remainingAmount);
             await playerState.Send(new PaperdollAgreeServerPacket
             {
                 ItemId = packet.ItemId,
-                RemainingAmount = _inventoryService.GetItemAmount(character, packet.ItemId),
+                RemainingAmount = remainingAmount,
                 SubLoc = packet.SubLoc
             });
 
@@ -73,6 +93,8 @@ public class PaperdollAddClientPacketHandler : IPacketHandler<PaperdollAddClient
             var nearbyPlayers = playerState.CurrentMap.Players
                 .Where(p => p.SessionId != playerState.SessionId)
                 .ToList();
+
+            _logger.LogDebug("Broadcasting equipment change to {NearbyPlayerCount} nearby players", nearbyPlayers.Count);
 
             if (nearbyPlayers.Count > 0)
             {
@@ -89,6 +111,15 @@ public class PaperdollAddClientPacketHandler : IPacketHandler<PaperdollAddClient
                     }
                 };
                 
+                var broadcastTasks = nearbyPlayers.Select(p => p.Send(avatarChangePacket)).ToList();
+                await Task.WhenAll(broadcastTasks);
+                _logger.LogDebug("Equipment broadcast complete");
+            }
+        }
+        else
+        {
+            _logger.LogWarning("Player {Player} attempted to equip to occupied slot {SubLoc} (current item: {CurrentItemId}) - swap not implemented", 
+                character.Name, packet.SubLoc, targetSlotValue);       
                 var broadcastTasks = nearbyPlayers.Select(p => p.Send(avatarChangePacket)).ToList();
                 await Task.WhenAll(broadcastTasks);
             }
