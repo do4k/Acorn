@@ -35,14 +35,13 @@ public class NewConnectionHostedService(
         await statsReporter.Report();
         _listener.Start();
 
-        // Start WebSocket listener
-        // Note: Using localhost instead of * to avoid requiring admin privileges on Windows
-        // Change to http://+: or http://*: if you need external access and have reserved the URL
+        // Start WebSocket listener on all interfaces
         _wsListener = new HttpListener();
-        _wsListener.Prefixes.Add($"http://localhost:{_serverOptions.Hosting.WebSocketPort}/");
+        _wsListener.Prefixes.Add($"http://0.0.0.0:{_serverOptions.Hosting.WebSocketPort}/");
+        _wsListener.Prefixes.Add($"http://+:{_serverOptions.Hosting.WebSocketPort}/");
         _wsListener.Start();
 
-        logger.LogInformation("Waiting for TCP on {Endpoint} and WebSocket on ws://localhost:{Port}...",
+        logger.LogInformation("Waiting for TCP on {Endpoint} and WebSocket on ws://0.0.0.0:{Port}...",
             _listener.LocalEndpoint, _serverOptions.Hosting.WebSocketPort);
 
         while (!cancellationToken.IsCancellationRequested)
