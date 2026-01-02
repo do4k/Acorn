@@ -37,11 +37,10 @@ public class NewConnectionHostedService(
 
         // Start WebSocket listener on all interfaces
         _wsListener = new HttpListener();
-        _wsListener.Prefixes.Add($"http://0.0.0.0:{_serverOptions.Hosting.WebSocketPort}/");
         _wsListener.Prefixes.Add($"http://+:{_serverOptions.Hosting.WebSocketPort}/");
         _wsListener.Start();
 
-        logger.LogInformation("Waiting for TCP on {Endpoint} and WebSocket on ws://0.0.0.0:{Port}...",
+        logger.LogInformation("Waiting for TCP on {Endpoint} and WebSocket on ws://+:{Port}...",
             _listener.LocalEndpoint, _serverOptions.Hosting.WebSocketPort);
 
         while (!cancellationToken.IsCancellationRequested)
