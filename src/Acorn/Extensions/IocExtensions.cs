@@ -121,6 +121,8 @@ internal static class IocRegistrations
         AddPacketHandler<GlobalOpenClientPacket, GlobalOpenClientPacketHandler>();
         AddPacketHandler<InitInitClientPacket, InitInitClientPacketHandler>();
         AddPacketHandler<PaperdollRequestClientPacket, PaperdollRequestClientPacketHandler>();
+        AddPacketHandler<PaperdollAddClientPacket, PaperdollAddClientPacketHandler>();
+        AddPacketHandler<PaperdollRemoveClientPacket, PaperdollRemoveClientPacketHandler>();
         AddPacketHandler<PlayerRangeRequestClientPacket, PlayerRangeRequestClientPacketHandler>();
         AddPacketHandler<PlayersRequestClientPacket, PlayersRequestClientPacketHandler>();
         AddPacketHandler<RefreshRequestClientPacket, RefreshRequestClientPacketHandler>();
