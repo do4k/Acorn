@@ -1,4 +1,5 @@
 using Acorn.Game.Models;
+using Acorn.Game.Services;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
@@ -7,6 +8,12 @@ namespace Acorn.Net.PacketHandlers.Player;
 
 public class PaperdollRemoveClientPacketHandler : IPacketHandler<PaperdollRemoveClientPacket>
 {
+    private readonly IInventoryService _inventoryService;
+
+    public PaperdollRemoveClientPacketHandler(IInventoryService inventoryService)
+    {
+        _inventoryService = inventoryService;
+    }
     public async Task HandleAsync(PlayerState playerState, PaperdollRemoveClientPacket packet)
     {
         if (playerState.Character is null || playerState.CurrentMap is null)
@@ -45,6 +52,9 @@ public class PaperdollRemoveClientPacketHandler : IPacketHandler<PaperdollRemove
 
         // Unequip the item
         UnequipItemFromSlot(character, packet.SubLoc);
+        
+        // Return the item to inventory
+        _inventoryService.TryAddItem(character, packet.ItemId, 1);
 
         // Send remove response to player
         await playerState.Send(new PaperdollRemoveServerPacket
@@ -53,15 +63,20 @@ public class PaperdollRemoveClientPacketHandler : IPacketHandler<PaperdollRemove
             SubLoc = packet.SubLoc
         });
 
-        // Broadcast avatar change to nearby players
+        // Broadcast avatar change to nearby players (including self)
         var nearbyPlayers = playerState.CurrentMap.Players
             .Where(p => p.SessionId != playerState.SessionId)
             .ToList();
 
         if (nearbyPlayers.Count > 0)
         {
-            // TODO: Broadcast avatar/equipment change to nearby players
-            // This would include sending updated equipment visibility data
+            var avatarChangePacket = new AvatarAgreeServerPacket();
+            // Note: AvatarAgreeServerPacket structure needs to be populated with:
+            // - PlayerId of the unequipping character
+            // - Updated equipment data showing the removed item
+            
+            var broadcastTasks = nearbyPlayers.Select(p => p.Send(avatarChangePacket)).ToList();
+            await Task.WhenAll(broadcastTasks);
         }
     }
 

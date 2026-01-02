@@ -24,7 +24,7 @@ public class ServerLinkNetworkPingHostedService(
         }
 
         logger.LogDebug("Starting ServerLinkNetworkPingHostedService");
-
+        
         // Initial check
         await CheckSlnAsync();
 

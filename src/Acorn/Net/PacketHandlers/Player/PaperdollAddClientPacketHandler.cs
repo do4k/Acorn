@@ -1,3 +1,4 @@
+using Acorn.Extensions;
 using Acorn.Game.Models;
 using Acorn.Game.Services;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
@@ -56,6 +57,9 @@ public class PaperdollAddClientPacketHandler : IPacketHandler<PaperdollAddClient
         {
             // Equip the item
             EquipItemToSlot(character, packet.ItemId, packet.SubLoc);
+            
+            // Remove the item from inventory
+            _inventoryService.TryRemoveItem(character, packet.ItemId, 1);
 
             // Send success response to player
             await playerState.Send(new PaperdollAgreeServerPacket
@@ -65,15 +69,28 @@ public class PaperdollAddClientPacketHandler : IPacketHandler<PaperdollAddClient
                 SubLoc = packet.SubLoc
             });
 
-            // Broadcast avatar change to nearby players
+            // Broadcast avatar change to nearby players (including self)
             var nearbyPlayers = playerState.CurrentMap.Players
                 .Where(p => p.SessionId != playerState.SessionId)
                 .ToList();
 
             if (nearbyPlayers.Count > 0)
             {
-                // TODO: Broadcast avatar/equipment change to nearby players
-                // This would include sending updated equipment visibility data
+                var avatarChangePacket = new AvatarAgreeServerPacket
+                {
+                    Change = new AvatarChange
+                    {
+                        PlayerId = playerState.SessionId,
+                        ChangeType = AvatarChangeType.Equipment,
+                        ChangeTypeData = new AvatarChange.ChangeTypeDataEquipment
+                        {
+                            Equipment = character.Equipment().AsEquipmentChange()
+                        }
+                    }
+                };
+                
+                var broadcastTasks = nearbyPlayers.Select(p => p.Send(avatarChangePacket)).ToList();
+                await Task.WhenAll(broadcastTasks);
             }
         }
         else

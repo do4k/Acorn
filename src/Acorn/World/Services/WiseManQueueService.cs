@@ -60,7 +60,7 @@ public class WiseManQueueService : BackgroundService
         var success = _channel.Writer.TryWrite(queuedRequest);
         if (success)
         {
-            _logger.LogInformation("Queued Wise Man request from {Player}: {Query}",
+            _logger.LogInformation("Queued Wise Man request from {Player}: {Query}", 
                 request.Player.Character?.Name ?? "Unknown", request.Query);
         }
         else
@@ -79,7 +79,7 @@ public class WiseManQueueService : BackgroundService
         }
         _logger.LogInformation("WiseManQueueService ExecuteAsync started");
         _logger.LogInformation("Wise Man queue service started and listening for requests");
-
+        
         while (!stoppingToken.IsCancellationRequested)
         {
             try

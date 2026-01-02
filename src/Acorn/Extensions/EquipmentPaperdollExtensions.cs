@@ -22,4 +22,16 @@ public static class EquipmentPaperdollExtensions
             Weapon = paperdoll.Weapon
         };
     }
+    
+    public static EquipmentChange AsEquipmentChange(this EquipmentPaperdoll paperdoll)
+    {
+        return new EquipmentChange
+        {
+            Armor = paperdoll.Armor,
+            Boots = paperdoll.Boots,
+            Hat = paperdoll.Hat,
+            Shield = paperdoll.Shield,
+            Weapon = paperdoll.Weapon
+        };
+    }
 }
