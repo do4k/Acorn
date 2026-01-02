@@ -60,6 +60,12 @@ public class PaperdollAddClientPacketHandler : IPacketHandler<PaperdollAddClient
             10 => character.Paperdoll.Ring1,
             11 => character.Paperdoll.Ring2,
             12 => character.Paperdoll.Bracer1,
+            13 => character.Paperdoll.Bracer2,
+            14 => character.Paperdoll.Armlet1,
+            15 => character.Paperdoll.Armlet2,
+            _ => 0
+        };
+
         _logger.LogDebug("Target slot {SubLoc} current value: {CurrentItemId}", packet.SubLoc, targetSlotValue);
 
         // If equipping to an empty slot
@@ -119,13 +125,7 @@ public class PaperdollAddClientPacketHandler : IPacketHandler<PaperdollAddClient
         else
         {
             _logger.LogWarning("Player {Player} attempted to equip to occupied slot {SubLoc} (current item: {CurrentItemId}) - swap not implemented", 
-                character.Name, packet.SubLoc, targetSlotValue);       
-                var broadcastTasks = nearbyPlayers.Select(p => p.Send(avatarChangePacket)).ToList();
-                await Task.WhenAll(broadcastTasks);
-            }
-        }
-        else
-        {
+                character.Name, packet.SubLoc, targetSlotValue);
             // TODO: Implement swap logic - unequip the current item and equip the new one
             // This would involve sending PaperdollSwapServerPacket with the swapped item details
         }
