@@ -98,13 +98,6 @@ public class PlayerState : IDisposable
                 var len1 = (byte)stream.ReadByte();
                 var len2 = (byte)stream.ReadByte();
 
-                if (len1 == 255 && len2 == 255)
-                {
-                    // End of stream or invalid packet
-                    CloseWithReason("Invalid packet received");
-                    break;
-                }
-
                 var decodedLength = NumberEncoder.DecodeNumber([len1, len2]);
                 if (_serverOptions.LogPackets)
                 {
@@ -132,13 +125,32 @@ public class PlayerState : IDisposable
                 var family = (PacketFamily)reader.GetByte();
 
                 // Handle sequence before rate limiting to keep client and server in sync
-                HandleSequence(family, action, ref reader);
+                var serverSequence = HandleSequence(family, action, ref reader);
 
                 // Rate limiting check
                 if (_packetLog.ShouldRateLimit(action, family))
                 {
                     _logger.LogDebug("Rate limited: {Action}_{Family}", action, family);
-                    // Skip processing but sequence has already been consumed
+                    // Send rate-limit response packet: 0xfe 0xfe <sequence>
+                    var rateLimitResponse = new byte[3];
+                    rateLimitResponse[0] = 0xfe;
+                    rateLimitResponse[1] = 0xfe;
+                    
+                    // Encode the server sequence as a single byte or short depending on value
+                    if (serverSequence < 256)
+                    {
+                        rateLimitResponse[2] = (byte)serverSequence;
+                    }
+                    else
+                    {
+                        // If sequence is >= 256, we need to handle it differently
+                        // For now, use the low byte as reoserv does
+                        rateLimitResponse[2] = (byte)(serverSequence & 0xFF);
+                    }
+                    
+                    var encodedLength = NumberEncoder.EncodeNumber(rateLimitResponse.Length);
+                    var fullBytes = encodedLength[..2].Concat(rateLimitResponse);
+                    await Communicator.Send(fullBytes);
                     continue;
                 }
 
@@ -190,24 +202,21 @@ public class PlayerState : IDisposable
         Dispose();
     }
 
-    private void HandleSequence(PacketFamily family, PacketAction action, ref EoReader reader)
+    private int HandleSequence(PacketFamily family, PacketAction action, ref EoReader reader)
     {
         // Init.Init packets have no sequence at all
         if (family == PacketFamily.Init && action == PacketAction.Init)
         {
             PacketSequencer.NextSequence();
-            return;
+            return 0;
         }
 
-        // Other Init packets do have sequence bytes
+        // Other Init packets do have sequence bytes - always consume them
         if (family == PacketFamily.Init)
         {
-            if (reader.Remaining > 0)
-            {
-                _ = reader.GetChar(); // Consume but don't validate
-            }
-            PacketSequencer.NextSequence();
-            return;
+            _ = reader.GetChar(); // Consume sequence byte
+            var seq = PacketSequencer.NextSequence();
+            return seq;
         }
 
         if (family == PacketFamily.Connection && action == PacketAction.Ping)
@@ -229,6 +238,8 @@ public class PlayerState : IDisposable
             CloseWithReason(message);
             throw new InvalidOperationException(message);
         }
+
+        return serverSequence;
     }
 
     private void CloseWithReason(string reason)

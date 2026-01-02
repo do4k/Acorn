@@ -63,7 +63,7 @@ public class PaperdollRemoveClientPacketHandler : IPacketHandler<PaperdollRemove
             SubLoc = packet.SubLoc
         });
 
-        // Broadcast avatar change to nearby players (including self)
+        // Broadcast avatar change to nearby players
         var nearbyPlayers = playerState.CurrentMap.Players
             .Where(p => p.SessionId != playerState.SessionId)
             .ToList();
