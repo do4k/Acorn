@@ -18,8 +18,8 @@ public class WiseManAgentOptions
     /// <summary>
     /// Maximum characters for the response.
     /// </summary>
-    public int MaxResponseLength { get; set; } = 600;
-
+    public int MaxResponseLength { get; set; } = 200;
+    
     /// <summary>
     /// Whether the Wise Man Agent integration is enabled.
     /// </summary>

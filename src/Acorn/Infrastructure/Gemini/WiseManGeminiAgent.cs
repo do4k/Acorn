@@ -87,11 +87,7 @@ public class WiseManGeminiAgent : IWiseManAgent
                 return null;
             }
 
-            // Truncate if too long for game chat
-            if (text.Length > _options.MaxResponseLength)
-            {
-                text = text[.._options.MaxResponseLength] + "...";
-            }
+            // Remove clamping here; let the queue service handle per-part clamping
             _logger.LogInformation("Wise Man responds to {Player}: {Response}", playerName, text);
             return text;
         }

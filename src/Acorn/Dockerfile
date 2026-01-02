@@ -1,4 +1,4 @@
-﻿﻿# Stage 1: Base runtime image
+# Stage 1: Base runtime image
 FROM mcr.microsoft.com/dotnet/runtime:10.0-alpine AS base
 WORKDIR /app
 EXPOSE 8078 8079
