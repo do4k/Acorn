@@ -92,10 +92,10 @@ public class DbInitialiser : IDbInitialiser
                 Partner = "",
                 Admin = AdminLevel.HighGameMaster,
                 Class = 1,
-                Gender = Gender.Male,
+                Gender = Gender.Male + 1,
                 Race = 1,
-                HairStyle = 1,
-                HairColor = 1,
+                HairStyle = 7,
+                HairColor = 8,
                 Map = 192,
                 X = 6,
                 Y = 6,
@@ -108,13 +108,13 @@ public class DbInitialiser : IDbInitialiser
                 Tp = 100,
                 MaxSp = 100,
                 Sp = 100,
-                Str = 10,
-                Wis = 10,
-                Agi = 10,
-                Con = 10,
-                Cha = 10,
-                MinDamage = 1,
-                MaxDamage = 2,
+                Str = 100,
+                Wis = 100,
+                Agi = 100,
+                Con = 100,
+                Cha = 100,
+                MinDamage = 100,
+                MaxDamage = 200,
                 MaxWeight = 100,
                 StatPoints = 0,
                 SkillPoints = 0,
@@ -128,7 +128,12 @@ public class DbInitialiser : IDbInitialiser
                 Items = new List<CharacterItem>(),
                 Paperdoll = new CharacterPaperdoll
                 {
-                    CharacterName = "acorn"
+                    CharacterName = "acorn",
+                    Hat = 0,
+                    Armor = 45,
+                    Weapon = 37,
+                    Shield = 10,
+                    Boots = 15
                 }
             };
 

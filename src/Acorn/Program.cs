@@ -31,6 +31,26 @@ var NORMAL = Console.IsOutputRedirected ? "" : "\x1b[39m";
 var BOLD = Console.IsOutputRedirected ? "" : "\x1b[1m";
 var NOBOLD = Console.IsOutputRedirected ? "" : "\x1b[22m";
 
+// Helper function to mask sensitive connection string information
+static string MaskConnectionString(string? connectionString)
+{
+    if (string.IsNullOrEmpty(connectionString))
+        return "[empty]";
+    
+    // For simple display, just show if it contains a password and mask the password value
+    if (connectionString.Contains("Password", StringComparison.OrdinalIgnoreCase) || 
+        connectionString.Contains("pwd", StringComparison.OrdinalIgnoreCase))
+    {
+        return System.Text.RegularExpressions.Regex.Replace(
+            connectionString, 
+            @"Password\s*=\s*[^;]*", 
+            "Password=***", 
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+    }
+    
+    return connectionString;
+}
+
 Console.WriteLine($"""
 {GREEN}          _       {BOLD}Acorn Endless-Online Server Software{NOBOLD}
         _/-\_     ------------------------------------
@@ -59,6 +79,8 @@ var configuration = config
     .AddUserSecrets(Assembly.GetExecutingAssembly(), true)
     .Build();
 
+Console.WriteLine($"{GREEN}Database Engine:{NORMAL} {engine.ToUpper()}");
+
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices(services =>
     {
@@ -75,24 +97,32 @@ var host = Host.CreateDefaultBuilder(args)
         {
             var dbOptions = sp.GetRequiredService<IOptions<DatabaseOptions>>().Value;
             var connectionString = dbOptions.ConnectionString;
-            var engine = dbOptions.Engine?.ToLower() ?? "sqlite";
+            var dbEngine = dbOptions.Engine?.ToLower() ?? "sqlite";
+            var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger("Database");
 
-            switch (engine)
+            logger.LogInformation("Configuring database context - Engine: {Engine}, ConnectionString: {ConnectionString}", 
+                dbEngine, MaskConnectionString(connectionString));
+
+            switch (dbEngine)
             {
                 case "postgresql":
                 case "postgres":
+                    logger.LogInformation("Using PostgreSQL database provider");
                     options.UseNpgsql(connectionString);
                     break;
                 case "mysql":
                 case "mariadb":
+                    logger.LogInformation("Using MySQL database provider");
                     options.UseMySQL(connectionString!);
                     break;
                 case "sqlserver":
                 case "mssql":
+                    logger.LogInformation("Using SQL Server database provider");
                     options.UseSqlServer(connectionString);
                     break;
                 case "sqlite":
                 default:
+                    logger.LogInformation("Using SQLite database provider");
                     options.UseSqlite(connectionString);
                     break;
             }
