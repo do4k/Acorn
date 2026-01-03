@@ -66,7 +66,8 @@ Console.WriteLine($"""
 var config = new ConfigurationBuilder()
     .SetBasePath(AppContext.BaseDirectory)
     .AddJsonFile("appsettings.json", false, true)
-    .AddJsonFile("appsettings.Development.json", true, true);
+    .AddJsonFile("appsettings.Development.json", true, true)
+    .AddEnvironmentVariables();
 
 var engine = config.Build()["Database:Engine"] ?? "sqlite";
 
