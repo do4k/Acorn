@@ -13,6 +13,8 @@ services:
     environment:
       - Database__Engine=MySQL
       - Database__ConnectionString=Server=mysql;Port=3306;Database=acorn;User=acorn;Password=acornpassword
+      - Cache__Enabled=true
+      - Cache__UseRedis=true
       - Cache__ConnectionString=redis:6379
     depends_on:
       mysql:
