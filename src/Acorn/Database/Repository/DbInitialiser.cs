@@ -23,9 +23,27 @@ public class DbInitialiser : IDbInitialiser
         try
         {
             _logger.LogInformation("Ensuring database is created...");
+            
+            // Check if we can connect to the database
+            var canConnect = await _context.Database.CanConnectAsync();
+            if (!canConnect)
+            {
+                _logger.LogError("Cannot connect to the database");
+                throw new InvalidOperationException("Cannot connect to the database");
+            }
+            
             // EnsureCreatedAsync creates the database schema if it doesn't exist
             // Note: This won't apply migrations, use MigrateAsync() if you add EF migrations
-            await _context.Database.EnsureCreatedAsync();
+            var created = await _context.Database.EnsureCreatedAsync();
+            if (created)
+            {
+                _logger.LogInformation("Database schema created successfully");
+            }
+            else
+            {
+                _logger.LogInformation("Database schema already exists");
+            }
+            
             _logger.LogInformation("Database initialized successfully");
 
             // Seed default account and character if they don't exist
@@ -40,10 +58,40 @@ public class DbInitialiser : IDbInitialiser
 
     private async Task SeedDefaultDataAsync()
     {
-        // Check if acorn account exists
-        var acornAccount = await _context.Accounts
-            .Include(a => a.Characters)
-            .FirstOrDefaultAsync(a => a.Username == "acorn");
+        // Verify tables exist before attempting to seed data
+        Account? acornAccount = null;
+        try
+        {
+            // Check if acorn account exists
+            acornAccount = await _context.Accounts
+                .Include(a => a.Characters)
+                .FirstOrDefaultAsync(a => a.Username == "acorn");
+        }
+        catch (Exception ex) when (ex.Message.Contains("doesn't exist") || ex.Message.Contains("does not exist"))
+        {
+            _logger.LogWarning("Tables don't exist yet. Creating schema...");
+            
+            // If tables don't exist, create them explicitly using the generated script
+            try
+            {
+                var sqlScript = _context.Database.GenerateCreateScript();
+                if (!string.IsNullOrEmpty(sqlScript))
+                {
+                    await _context.Database.ExecuteSqlRawAsync(sqlScript);
+                    _logger.LogInformation("Database schema created successfully using SQL script");
+                }
+            }
+            catch (Exception createEx)
+            {
+                _logger.LogError(createEx, "Failed to create database schema");
+                throw;
+            }
+            
+            // Retry the query after creating tables
+            acornAccount = await _context.Accounts
+                .Include(a => a.Characters)
+                .FirstOrDefaultAsync(a => a.Username == "acorn");
+        }
 
         if (acornAccount == null)
         {
