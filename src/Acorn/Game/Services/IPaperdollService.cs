@@ -28,4 +28,10 @@ public interface IPaperdollService
     /// Used for paperdoll window display.
     /// </summary>
     EquipmentPaperdoll ToEquipmentPaperdoll(EquipmentPaperdoll paperdoll);
+
+    /// <summary>
+    /// Gets the graphic ID (spec1) for an item ID.
+    /// Returns 0 if item not found or itemId is 0.
+    /// </summary>
+    int GetGraphicId(int itemId);
 }

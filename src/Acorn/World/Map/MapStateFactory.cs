@@ -1,4 +1,5 @@
 using Acorn.Database.Repository;
+using Acorn.Game.Services;
 using Acorn.Options;
 using Acorn.World.Services;
 using Acorn.World.Services.Map;
@@ -13,9 +14,10 @@ public class MapStateFactory(
     IMapBroadcastService broadcastService,
     IMapController mapController,
     INpcController npcController,
+    IPaperdollService paperdollService,
     IOptions<ServerOptions> serverOptions,
     ILogger<MapState> logger)
 {
     public MapState Create(MapWithId data)
-        => new(data, dataRepository, broadcastService, mapController, npcController, serverOptions.Value.PlayerRecoverRate, logger);
+        => new(data, dataRepository, broadcastService, mapController, npcController, paperdollService, serverOptions.Value.PlayerRecoverRate, logger);
 }

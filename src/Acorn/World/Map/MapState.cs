@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using Acorn.Database.Repository;
 using Acorn.Extensions;
+using Acorn.Game.Services;
 using Acorn.Net;
 using Acorn.World.Npc;
 using Acorn.World.Services;
@@ -34,6 +35,7 @@ public class MapState
     private readonly IMapBroadcastService _broadcastService;
     private readonly IMapController _mapController;
     private readonly INpcController _npcController;
+    private readonly IPaperdollService _paperdollService;
     private readonly int _playerRecoverRate;
 
     // Tick counters for periodic events
@@ -45,6 +47,7 @@ public class MapState
         IMapBroadcastService broadcastService,
         IMapController mapController,
         INpcController npcController,
+        IPaperdollService paperdollService,
         int playerRecoverRate,
         ILogger<MapState> logger)
     {
@@ -55,6 +58,7 @@ public class MapState
         _broadcastService = broadcastService;
         _mapController = mapController;
         _npcController = npcController;
+        _paperdollService = paperdollService;
         _playerRecoverRate = playerRecoverRate;
 
         var mapNpcs = data.Map.Npcs.SelectMany(mapNpc => Enumerable.Range(0, mapNpc.Amount).Select(_ => mapNpc));
@@ -118,7 +122,7 @@ public class MapState
             Characters = Players
                 .Where(x => x.Character is not null)
                 .Where(x => except == null || x != except)
-                .Select(x => x.Character?.AsCharacterMapInfo(x.SessionId, warpEffect))
+                .Select(x => x.Character?.AsCharacterMapInfo(x.SessionId, warpEffect, _paperdollService))
                 .ToList(),
             Items = Items.Select(kvp => new ItemMapInfo
             {
