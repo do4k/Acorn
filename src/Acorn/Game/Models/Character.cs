@@ -138,6 +138,36 @@ public class Character
     {
         Exp += amount;
     }
+
+    /// <summary>
+    /// Get character stats for equipment change response.
+    /// Returns current stat values including equipment bonuses.
+    /// </summary>
+    public CharacterStatsEquipmentChange GetCharacterStatsEquipmentChange()
+    {
+        return new CharacterStatsEquipmentChange
+        {
+            MaxHp = MaxHp,
+            MaxTp = MaxTp,
+            BaseStats = new CharacterBaseStats
+            {
+                Str = Str,
+                Intl = Int,
+                Wis = Wis,
+                Agi = Agi,
+                Con = Con,
+                Cha = Cha
+            },
+            SecondaryStats = new CharacterSecondaryStats
+            {
+                MinDamage = MinDamage,
+                MaxDamage = MaxDamage,
+                Accuracy = Accuracy,
+                Evade = Evade,
+                Armor = Armor
+            }
+        };
+    }
 }
 
 public record Bank(ConcurrentBag<ItemWithAmount> Items);

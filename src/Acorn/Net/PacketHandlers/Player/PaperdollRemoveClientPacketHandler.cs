@@ -36,6 +36,7 @@ public class PaperdollRemoveClientPacketHandler : IPacketHandler<PaperdollRemove
         var character = playerState.Character;
 
         // Use PlayerController to handle unequipping (includes stat recalculation)
+        // SubLoc is only used for multi-slot items (Ring, Armlet, Bracer) as array index
         var unequipSuccess = await _playerController.UnequipItemAsync(playerState, packet.ItemId, packet.SubLoc);
 
         if (!unequipSuccess)
@@ -45,39 +46,29 @@ public class PaperdollRemoveClientPacketHandler : IPacketHandler<PaperdollRemove
             return;
         }
 
-        // Send remove response to player
+        // Create avatar change for the response
+        var avatarChange = new AvatarChange
+        {
+            PlayerId = playerState.SessionId,
+            ChangeType = AvatarChangeType.Equipment,
+            ChangeTypeData = new AvatarChange.ChangeTypeDataEquipment
+            {
+                Equipment = character.Equipment().AsEquipmentChange(_paperdollService)
+            }
+        };
+
+        // Send remove response to player with stats and avatar change
         await playerState.Send(new PaperdollRemoveServerPacket
         {
+            Change = avatarChange,
             ItemId = packet.ItemId,
-            SubLoc = packet.SubLoc
+            SubLoc = packet.SubLoc,
+            Stats = character.GetCharacterStatsEquipmentChange()
         });
 
         // Broadcast avatar change to nearby players
-        var nearbyPlayers = playerState.CurrentMap.Players
-            .Where(p => p.SessionId != playerState.SessionId)
-            .ToList();
-
-        _logger.LogDebug("Broadcasting unequip change to {NearbyPlayerCount} nearby players", nearbyPlayers.Count);
-
-        if (nearbyPlayers.Count > 0)
-        {
-            var avatarChangePacket = new AvatarAgreeServerPacket
-            {
-                Change = new AvatarChange
-                {
-                    PlayerId = playerState.SessionId,
-                    ChangeType = AvatarChangeType.Equipment,
-                    ChangeTypeData = new AvatarChange.ChangeTypeDataEquipment
-                    {
-                        Equipment = character.Equipment().AsEquipmentChange(_paperdollService)
-                    }
-                }
-            };
-            
-            var broadcastTasks = nearbyPlayers.Select(p => p.Send(avatarChangePacket)).ToList();
-            await Task.WhenAll(broadcastTasks);
-            _logger.LogDebug("Unequip broadcast complete");
-        }
+        var broadcastPacket = new AvatarAgreeServerPacket { Change = avatarChange };
+        await playerState.CurrentMap.BroadcastPacket(broadcastPacket, except: playerState);
     }
 
     public Task HandleAsync(PlayerState playerState, IPacket packet)

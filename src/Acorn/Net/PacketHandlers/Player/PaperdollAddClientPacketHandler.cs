@@ -30,9 +30,6 @@ public class PaperdollAddClientPacketHandler : IPacketHandler<PaperdollAddClient
 
     public async Task HandleAsync(PlayerState playerState, PaperdollAddClientPacket packet)
     {
-        _logger.LogDebug("PaperdollAdd received - ItemId: {ItemId}, SubLoc: {SubLoc}, Player: {Player}", 
-            packet.ItemId, packet.SubLoc, playerState.Account?.Username);
-        
         if (playerState.Character is null || playerState.CurrentMap is null)
         {
             _logger.LogWarning("PaperdollAdd failed - Character is null: {CharIsNull}, CurrentMap is null: {MapIsNull}", 
@@ -55,6 +52,7 @@ public class PaperdollAddClientPacketHandler : IPacketHandler<PaperdollAddClient
         }
 
         // Use PlayerController to handle equipping (includes stat recalculation)
+        // SubLoc is only used for multi-slot items (Ring, Armlet, Bracer) as array index
         var equipSuccess = await _playerController.EquipItemAsync(playerState, packet.ItemId, packet.SubLoc);
 
         if (!equipSuccess)
@@ -68,42 +66,32 @@ public class PaperdollAddClientPacketHandler : IPacketHandler<PaperdollAddClient
         var remainingAmount = _inventoryService.GetItemAmount(character, packet.ItemId);
         _logger.LogDebug("Remaining amount of item {ItemId}: {Amount}", packet.ItemId, remainingAmount);
 
-        // Send success response to player
+        // Create avatar change for the response
+        var avatarChange = new AvatarChange
+        {
+            PlayerId = playerState.SessionId,
+            ChangeType = AvatarChangeType.Equipment,
+            ChangeTypeData = new AvatarChange.ChangeTypeDataEquipment
+            {
+                Equipment = character.Equipment().AsEquipmentChange(_paperdollService)
+            }
+        };
+
+        // Send success response to player with stats and avatar change
         _logger.LogDebug("Sending PaperdollAgreeServerPacket for item {ItemId}, remaining: {Remaining}", 
             packet.ItemId, remainingAmount);
         await playerState.Send(new PaperdollAgreeServerPacket
         {
+            Change = avatarChange,
             ItemId = packet.ItemId,
             RemainingAmount = remainingAmount,
-            SubLoc = packet.SubLoc
+            SubLoc = packet.SubLoc,
+            Stats = character.GetCharacterStatsEquipmentChange()
         });
 
         // Broadcast avatar change to nearby players
-        var nearbyPlayers = playerState.CurrentMap.Players
-            .Where(p => p.SessionId != playerState.SessionId)
-            .ToList();
-
-        _logger.LogDebug("Broadcasting equipment change to {NearbyPlayerCount} nearby players", nearbyPlayers.Count);
-
-        if (nearbyPlayers.Count > 0)
-        {
-            var avatarChangePacket = new AvatarAgreeServerPacket
-            {
-                Change = new AvatarChange
-                {
-                    PlayerId = playerState.SessionId,
-                    ChangeType = AvatarChangeType.Equipment,
-                    ChangeTypeData = new AvatarChange.ChangeTypeDataEquipment
-                    {
-                        Equipment = character.Equipment().AsEquipmentChange(_paperdollService)
-                    }
-                }
-            };
-            
-            var broadcastTasks = nearbyPlayers.Select(p => p.Send(avatarChangePacket)).ToList();
-            await Task.WhenAll(broadcastTasks);
-            _logger.LogDebug("Equipment broadcast complete");
-        }
+        var broadcastPacket = new AvatarAgreeServerPacket { Change = avatarChange };
+        await playerState.CurrentMap.BroadcastPacket(broadcastPacket, except: playerState);
     }
 
     public Task HandleAsync(PlayerState playerState, IPacket packet)

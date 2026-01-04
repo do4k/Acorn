@@ -2,29 +2,18 @@ using System.Collections.Concurrent;
 using System.Linq;
 using Acorn.Database.Models;
 using Acorn.Database.Repository;
+using Moffat.EndlessOnline.SDK.Protocol.Pub;
 
 namespace Acorn.Game.Models;
 
 /// <summary>
 /// Extension methods for Character equipment management.
-/// Implements equip/unequip logic similar to reoserv.
+/// Implements equip/unequip logic matching reoserv implementation.
 /// 
-/// Equipment slots use SubLoc 1-15:
-/// 1 = Hat
-/// 2 = Necklace
-/// 3 = Armor
-/// 4 = Belt
-/// 5 = Boots
-/// 6 = Gloves
-/// 7 = Weapon
-/// 8 = Shield
-/// 9 = Accessory
-/// 10 = Ring1
-/// 11 = Ring2
-/// 12 = Bracer1
-/// 13 = Bracer2
-/// 14 = Armlet1
-/// 15 = Armlet2
+/// NOTE: subLoc is NOT a slot number. It's an array index for multi-slot items:
+/// - For single-slot items (Weapon, Shield, Armor, Hat, Boots, Gloves, Accessory, Belt, Necklace):
+///   subLoc must be 0 and is ignored
+/// - For multi-slot items (Ring, Armlet, Bracer): subLoc is 0 or 1 (array index)
 /// </summary>
 public static class CharacterEquipmentExtensions
 {
@@ -33,35 +22,24 @@ public static class CharacterEquipmentExtensions
     /// </summary>
     public enum EquipResult
     {
-        /// <summary>
-        /// Item was successfully equipped
-        /// </summary>
         Equipped,
-
-        /// <summary>
-        /// Item was swapped with existing equipment
-        /// </summary>
         Swapped,
-
-        /// <summary>
-        /// Equip operation failed
-        /// </summary>
         Failed
     }
 
     /// <summary>
-    /// Attempt to equip an item from inventory to a specific paperdoll slot.
-    /// Handles item swapping when equipping over existing equipment.
+    /// Attempt to equip an item from inventory.
+    /// The target slot is determined by the item's type from the database.
     /// </summary>
     /// <param name="character">Character attempting to equip</param>
     /// <param name="itemId">ID of item to equip</param>
-    /// <param name="subLoc">Paperdoll slot (1-15) where item should be equipped</param>
+    /// <param name="subLoc">Array index for multi-slot items (Ring, Armlet, Bracer), must be 0 for single-slot items</param>
     /// <param name="itemDb">Item database for retrieving item data</param>
     /// <returns>Result of equip operation</returns>
     public static EquipResult Equip(this Character character, int itemId, int subLoc, IDataFileRepository itemDb)
     {
-        // Validate sub-location is a valid paperdoll slot
-        if (subLoc < 1 || subLoc > 15)
+        // Validate sub_loc is 0 or 1 (array index for multi-slot items)
+        if (subLoc < 0 || subLoc > 1)
             return EquipResult.Failed;
 
         // Get item record from database
@@ -94,18 +72,18 @@ public static class CharacterEquipmentExtensions
         var result = EquipResult.Equipped;
         int? oldItemId = null;
 
-        // Get current item in this slot
-        var currentSlotValue = GetSlotValue(character, subLoc);
+        // Get the appropriate equipment slot based on item type
+        int currentItemId = GetEquippedItem(character, itemRecord.Type, subLoc);
 
         // If there's an existing item, we'll swap it
-        if (currentSlotValue != 0)
+        if (currentItemId != 0)
         {
-            oldItemId = currentSlotValue;
+            oldItemId = currentItemId;
             result = EquipResult.Swapped;
         }
 
-        // Set the item in the slot
-        SetSlotValue(character, subLoc, itemId);
+        // Set the item in the appropriate slot
+        SetEquippedItem(character, itemRecord.Type, subLoc, itemId);
 
         // Remove the item from inventory
         var inventoryItem = character.Inventory.Items.FirstOrDefault(i => i.Id == itemId);
@@ -139,25 +117,27 @@ public static class CharacterEquipmentExtensions
     }
 
     /// <summary>
-    /// Unequip an item from a paperdoll slot back to inventory.
+    /// Unequip an item from paperdoll back to inventory.
     /// </summary>
     /// <param name="character">Character unequipping item</param>
     /// <param name="itemId">ID of item to unequip (for verification)</param>
-    /// <param name="subLoc">Paperdoll slot (1-15) to unequip from</param>
+    /// <param name="subLoc">Array index for multi-slot items, ignored for single-slot items</param>
     /// <returns>True if unequip succeeded, false otherwise</returns>
     public static bool Unequip(this Character character, int itemId, int subLoc)
     {
-        // Validate sub-location
-        if (subLoc < 1 || subLoc > 15)
+        // Validate sub_loc is 0 or 1
+        if (subLoc < 0 || subLoc > 1)
             return false;
 
-        // Verify the item is actually in this slot
-        var slotValue = GetSlotValue(character, subLoc);
-        if (slotValue != itemId)
+        // We need the item database to determine the item type
+        // For now, we'll find the item by checking all slots
+        // This is a fallback approach - ideally we'd have access to itemDb here
+        var foundSlot = FindEquippedItemSlot(character, itemId);
+        if (foundSlot == null)
             return false;
 
         // Clear the slot
-        SetSlotValue(character, subLoc, 0);
+        ClearEquippedItem(character, foundSlot.Value.itemType, foundSlot.Value.slotIndex);
 
         // Add item back to inventory
         var existingItem = character.Inventory.Items.FirstOrDefault(i => i.Id == itemId);
@@ -174,83 +154,112 @@ public static class CharacterEquipmentExtensions
     }
 
     /// <summary>
-    /// Get the item ID in a paperdoll slot
+    /// Find where an item is equipped. Returns null if not equipped.
     /// </summary>
-    private static int GetSlotValue(Character character, int subLoc)
+    private static (ItemType itemType, int slotIndex)? FindEquippedItemSlot(Character character, int itemId)
     {
-        return subLoc switch
+        if (character.Paperdoll.Hat == itemId) return (ItemType.Hat, 0);
+        if (character.Paperdoll.Necklace == itemId) return (ItemType.Necklace, 0);
+        if (character.Paperdoll.Armor == itemId) return (ItemType.Armor, 0);
+        if (character.Paperdoll.Belt == itemId) return (ItemType.Belt, 0);
+        if (character.Paperdoll.Boots == itemId) return (ItemType.Boots, 0);
+        if (character.Paperdoll.Gloves == itemId) return (ItemType.Gloves, 0);
+        if (character.Paperdoll.Weapon == itemId) return (ItemType.Weapon, 0);
+        if (character.Paperdoll.Shield == itemId) return (ItemType.Shield, 0);
+        if (character.Paperdoll.Accessory == itemId) return (ItemType.Accessory, 0);
+        if (character.Paperdoll.Ring1 == itemId) return (ItemType.Ring, 0);
+        if (character.Paperdoll.Ring2 == itemId) return (ItemType.Ring, 1);
+        if (character.Paperdoll.Bracer1 == itemId) return (ItemType.Bracer, 0);
+        if (character.Paperdoll.Bracer2 == itemId) return (ItemType.Bracer, 1);
+        if (character.Paperdoll.Armlet1 == itemId) return (ItemType.Armlet, 0);
+        if (character.Paperdoll.Armlet2 == itemId) return (ItemType.Armlet, 1);
+        
+        return null;
+    }
+
+    /// <summary>
+    /// Get the item ID currently equipped in a slot.
+    /// </summary>
+    private static int GetEquippedItem(Character character, ItemType itemType, int slotIndex)
+    {
+        return itemType switch
         {
-            1 => character.Paperdoll.Hat,
-            2 => character.Paperdoll.Necklace,
-            3 => character.Paperdoll.Armor,
-            4 => character.Paperdoll.Belt,
-            5 => character.Paperdoll.Boots,
-            6 => character.Paperdoll.Gloves,
-            7 => character.Paperdoll.Weapon,
-            8 => character.Paperdoll.Shield,
-            9 => character.Paperdoll.Accessory,
-            10 => character.Paperdoll.Ring1,
-            11 => character.Paperdoll.Ring2,
-            12 => character.Paperdoll.Bracer1,
-            13 => character.Paperdoll.Bracer2,
-            14 => character.Paperdoll.Armlet1,
-            15 => character.Paperdoll.Armlet2,
+            ItemType.Weapon => character.Paperdoll.Weapon,
+            ItemType.Shield => character.Paperdoll.Shield,
+            ItemType.Armor => character.Paperdoll.Armor,
+            ItemType.Hat => character.Paperdoll.Hat,
+            ItemType.Boots => character.Paperdoll.Boots,
+            ItemType.Gloves => character.Paperdoll.Gloves,
+            ItemType.Accessory => character.Paperdoll.Accessory,
+            ItemType.Belt => character.Paperdoll.Belt,
+            ItemType.Necklace => character.Paperdoll.Necklace,
+            ItemType.Ring => slotIndex == 0 ? character.Paperdoll.Ring1 : character.Paperdoll.Ring2,
+            ItemType.Armlet => slotIndex == 0 ? character.Paperdoll.Armlet1 : character.Paperdoll.Armlet2,
+            ItemType.Bracer => slotIndex == 0 ? character.Paperdoll.Bracer1 : character.Paperdoll.Bracer2,
             _ => 0
         };
     }
 
     /// <summary>
-    /// Set the item ID in a paperdoll slot
+    /// Set the item ID in an equipment slot.
     /// </summary>
-    private static void SetSlotValue(Character character, int subLoc, int itemId)
+    private static void SetEquippedItem(Character character, ItemType itemType, int slotIndex, int itemId)
     {
-        switch (subLoc)
+        switch (itemType)
         {
-            case 1:
-                character.Paperdoll.Hat = itemId;
-                break;
-            case 2:
-                character.Paperdoll.Necklace = itemId;
-                break;
-            case 3:
-                character.Paperdoll.Armor = itemId;
-                break;
-            case 4:
-                character.Paperdoll.Belt = itemId;
-                break;
-            case 5:
-                character.Paperdoll.Boots = itemId;
-                break;
-            case 6:
-                character.Paperdoll.Gloves = itemId;
-                break;
-            case 7:
+            case ItemType.Weapon:
                 character.Paperdoll.Weapon = itemId;
                 break;
-            case 8:
+            case ItemType.Shield:
                 character.Paperdoll.Shield = itemId;
                 break;
-            case 9:
+            case ItemType.Armor:
+                character.Paperdoll.Armor = itemId;
+                break;
+            case ItemType.Hat:
+                character.Paperdoll.Hat = itemId;
+                break;
+            case ItemType.Boots:
+                character.Paperdoll.Boots = itemId;
+                break;
+            case ItemType.Gloves:
+                character.Paperdoll.Gloves = itemId;
+                break;
+            case ItemType.Accessory:
                 character.Paperdoll.Accessory = itemId;
                 break;
-            case 10:
-                character.Paperdoll.Ring1 = itemId;
+            case ItemType.Belt:
+                character.Paperdoll.Belt = itemId;
                 break;
-            case 11:
-                character.Paperdoll.Ring2 = itemId;
+            case ItemType.Necklace:
+                character.Paperdoll.Necklace = itemId;
                 break;
-            case 12:
-                character.Paperdoll.Bracer1 = itemId;
+            case ItemType.Ring:
+                if (slotIndex == 0)
+                    character.Paperdoll.Ring1 = itemId;
+                else
+                    character.Paperdoll.Ring2 = itemId;
                 break;
-            case 13:
-                character.Paperdoll.Bracer2 = itemId;
+            case ItemType.Armlet:
+                if (slotIndex == 0)
+                    character.Paperdoll.Armlet1 = itemId;
+                else
+                    character.Paperdoll.Armlet2 = itemId;
                 break;
-            case 14:
-                character.Paperdoll.Armlet1 = itemId;
-                break;
-            case 15:
-                character.Paperdoll.Armlet2 = itemId;
+            case ItemType.Bracer:
+                if (slotIndex == 0)
+                    character.Paperdoll.Bracer1 = itemId;
+                else
+                    character.Paperdoll.Bracer2 = itemId;
                 break;
         }
+    }
+
+    /// <summary>
+    /// Clear an equipment slot (set to 0).
+    /// </summary>
+    private static void ClearEquippedItem(Character character, ItemType itemType, int slotIndex)
+    {
+        SetEquippedItem(character, itemType, slotIndex, 0);
     }
 }
