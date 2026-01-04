@@ -51,34 +51,21 @@ public class PaperdollService : IPaperdollService
     {
         return new EquipmentCharacterSelect
         {
-            Armor = character.Paperdoll.Armor,
-            Boots = character.Paperdoll.Boots,
-            Weapon = character.Paperdoll.Weapon,
-            Shield = character.Paperdoll.Shield,
-            Hat = character.Paperdoll.Hat
+            Armor = GetGraphicId(character.Paperdoll.Armor),
+            Boots = GetGraphicId(character.Paperdoll.Boots),
+            Weapon = GetGraphicId(character.Paperdoll.Weapon),
+            Shield = GetGraphicId(character.Paperdoll.Shield),
+            Hat = GetGraphicId(character.Paperdoll.Hat)
         };
     }
 
     public EquipmentPaperdoll ToEquipmentPaperdoll(EquipmentPaperdoll paperdoll)
     {
-        return new EquipmentPaperdoll
-        {
-            Hat = GetGraphicId(paperdoll.Hat),
-            Necklace = GetGraphicId(paperdoll.Necklace),
-            Armor = GetGraphicId(paperdoll.Armor),
-            Belt = GetGraphicId(paperdoll.Belt),
-            Boots = GetGraphicId(paperdoll.Boots),
-            Gloves = GetGraphicId(paperdoll.Gloves),
-            Weapon = GetGraphicId(paperdoll.Weapon),
-            Shield = GetGraphicId(paperdoll.Shield),
-            Accessory = GetGraphicId(paperdoll.Accessory),
-            Ring = [GetGraphicId(paperdoll.Ring[0]), GetGraphicId(paperdoll.Ring[1])],
-            Bracer = [GetGraphicId(paperdoll.Bracer[0]), GetGraphicId(paperdoll.Bracer[1])],
-            Armlet = [GetGraphicId(paperdoll.Armlet[0]), GetGraphicId(paperdoll.Armlet[1])]
-        };
+        // Paperdoll uses item IDs directly, not graphic IDs
+        return paperdoll;
     }
 
-    private int GetGraphicId(int itemId)
+    public int GetGraphicId(int itemId)
     {
         if (itemId == 0) return 0;
         

@@ -172,7 +172,7 @@ public class DbInitialiser : IDbInitialiser
             {
                 CharacterName = "acorn",
                 Hat = 0,
-                Armor = 45,
+                Armor = 428,
                 Weapon = 37,
                 Shield = 10,
                 Boots = 15,

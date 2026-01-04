@@ -1,6 +1,7 @@
 using Acorn.Extensions;
 using Acorn.Game.Services;
 using Acorn.World;
+using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
@@ -11,11 +12,13 @@ public class PaperdollRequestClientPacketHandler : IPacketHandler<PaperdollReque
 {
     private readonly IWorldQueries _world;
     private readonly IPaperdollService _paperdollService;
+    private readonly ILogger<PaperdollRequestClientPacketHandler> _logger;
 
-    public PaperdollRequestClientPacketHandler(IWorldQueries world, IPaperdollService paperdollService)
+    public PaperdollRequestClientPacketHandler(IWorldQueries world, IPaperdollService paperdollService, ILogger<PaperdollRequestClientPacketHandler> logger)
     {
         _world = world;
         _paperdollService = paperdollService;
+        _logger = logger;
     }
 
     public async Task HandleAsync(PlayerState playerState, PaperdollRequestClientPacket packet)
@@ -29,6 +32,13 @@ public class PaperdollRequestClientPacketHandler : IPacketHandler<PaperdollReque
         }
 
         var character = targetPlayer.Character;
+
+        var equipment = _paperdollService.ToEquipmentPaperdoll(character.Equipment());
+        
+        _logger.LogInformation("Paperdoll request for {CharacterName} - Equipment: Hat={Hat}, Armor={Armor}, Weapon={Weapon}, Shield={Shield}, Boots={Boots}, Accessory={Accessory}, Necklace={Necklace}, Belt={Belt}, Gloves={Gloves}, Ring=[{Ring1},{Ring2}], Bracer=[{Bracer1},{Bracer2}], Armlet=[{Armlet1},{Armlet2}]",
+            character.Name, equipment.Hat, equipment.Armor, equipment.Weapon, equipment.Shield, equipment.Boots,
+            equipment.Accessory, equipment.Necklace, equipment.Belt, equipment.Gloves,
+            equipment.Ring[0], equipment.Ring[1], equipment.Bracer[0], equipment.Bracer[1], equipment.Armlet[0], equipment.Armlet[1]);
 
         // Send the paperdoll reply with target player's details and equipment
         await playerState.Send(new PaperdollReplyServerPacket
@@ -46,7 +56,7 @@ public class PaperdollRequestClientPacketHandler : IPacketHandler<PaperdollReque
                 ClassId = character.Class,
                 Gender = character.Gender,
             },
-            Equipment = _paperdollService.ToEquipmentPaperdoll(character.Equipment())
+            Equipment = equipment
         });
     }
 

@@ -23,7 +23,7 @@ public static class CharacterExtensions
         };
     }
 
-    public static CharacterMapInfo AsCharacterMapInfo(this Character c, int playerId, WarpEffect wapEffect)
+    public static CharacterMapInfo AsCharacterMapInfo(this Character c, int playerId, WarpEffect wapEffect, IPaperdollService paperdollService)
     {
         return new CharacterMapInfo
         {
@@ -32,11 +32,11 @@ public static class CharacterExtensions
             Coords = new BigCoords { X = c.X, Y = c.Y },
             Equipment = new EquipmentMapInfo
             {
-                Armor = c.Paperdoll.Armor,
-                Boots = c.Paperdoll.Boots,
-                Weapon = c.Paperdoll.Weapon,
-                Shield = c.Paperdoll.Shield,
-                Hat = c.Paperdoll.Hat
+                Armor = paperdollService.GetGraphicId(c.Paperdoll.Armor),
+                Boots = paperdollService.GetGraphicId(c.Paperdoll.Boots),
+                Weapon = paperdollService.GetGraphicId(c.Paperdoll.Weapon),
+                Shield = paperdollService.GetGraphicId(c.Paperdoll.Shield),
+                Hat = paperdollService.GetGraphicId(c.Paperdoll.Hat)
             },
             WarpEffect = wapEffect,
             Gender = c.Gender,
