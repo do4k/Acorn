@@ -205,4 +205,14 @@ using (var scope = host.Services.CreateScope())
     await initialiser.InitialiseAsync();
 }
 
+// Load NPC drop tables from EDF file
+using (var scope = host.Services.CreateScope())
+{
+    var lootService = scope.ServiceProvider.GetRequiredService<ILootService>();
+    var loggerFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
+    var logger = loggerFactory.CreateLogger<Program>();
+    var dropLoader = new DropFileLoader(logger);
+    dropLoader.LoadDrops(lootService, "Data/Pub/dtd001.edf");
+}
+
 await host.RunAsync();

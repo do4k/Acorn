@@ -177,7 +177,7 @@ public class MapState
             || Npcs.Any(n => n.X == coords.X && n.Y == coords.Y);
     }
 
-    private int GetNextItemIndex(int seed = 1)
+    public int GetNextItemIndex(int seed = 1)
     {
         if (Items.ContainsKey(seed))
             return GetNextItemIndex(seed + 1);

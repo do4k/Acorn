@@ -1,6 +1,9 @@
 ﻿using Acorn.Database.Repository;
 using Acorn.Extensions;
+using Acorn.Game.Services;
+using Acorn.Options;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
@@ -16,13 +19,17 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
     private readonly ILogger<AttackUseClientPacketHandler> _logger;
     private readonly IFormulaService _formulaService;
     private readonly IDataFileRepository _dataFiles;
+    private readonly ILootService _lootService;
+    private readonly int _dropProtectionTicks;
 
-    public AttackUseClientPacketHandler(UtcNowDelegate now, ILogger<AttackUseClientPacketHandler> logger, IFormulaService formulaService, IDataFileRepository dataFiles)
+    public AttackUseClientPacketHandler(UtcNowDelegate now, ILogger<AttackUseClientPacketHandler> logger, IFormulaService formulaService, IDataFileRepository dataFiles, ILootService lootService, IOptions<ServerOptions> serverOptions)
     {
         _now = now;
         _logger = logger;
         _formulaService = formulaService;
         _dataFiles = dataFiles;
+        _lootService = lootService;
+        _dropProtectionTicks = serverOptions.Value.DropProtectionTicks;
     }
 
     public async Task HandleAsync(PlayerState playerState, AttackUseClientPacket packet)
@@ -101,14 +108,43 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
                         playerState.Character.Name, newLevel);
                 }
 
+                // Roll for item drop
+                var dropItem = _lootService.RollDrop(target.Id);
+                int dropId = 0;
+                int dropAmount = 0;
+                int dropIndex = 0;
+
+                if (dropItem != null)
+                {
+                    dropAmount = _lootService.RollDropAmount(dropItem);
+                    dropId = dropItem.ItemId;
+
+                    // Create map item with killer's protection
+                    var itemIndex = playerState.CurrentMap.GetNextItemIndex();
+                    var mapItem = new Acorn.World.Map.MapItem
+                    {
+                        Id = dropId,
+                        Amount = dropAmount,
+                        Coords = new Coords { X = target.X, Y = target.Y },
+                        OwnerId = playerState.SessionId,
+                        ProtectedTicks = _dropProtectionTicks
+                    };
+
+                    playerState.CurrentMap.Items.TryAdd(itemIndex, mapItem);
+                    dropIndex = itemIndex;
+
+                    _logger.LogInformation("Item drop spawned: ItemId={ItemId}, Amount={Amount}, Location=({X},{Y}), Owner={OwnerId}",
+                        dropId, dropAmount, target.X, target.Y, playerState.SessionId);
+                }
+
                 var npcKilledData = new NpcKilledData
                 {
                     KillerId = playerState.SessionId,
                     KillerDirection = playerState.Character.Direction,
                     NpcIndex = npcIndex,
-                    DropIndex = 0, // TODO: Handle item drops
-                    DropId = 0,
-                    DropAmount = 0,
+                    DropIndex = dropIndex,
+                    DropId = dropId,
+                    DropAmount = dropAmount,
                     Damage = damage
                 };
 

@@ -11,6 +11,11 @@ public class ServerOptions
     /// </summary>
     public int PlayerRecoverRate { get; set; } = 90;
     /// <summary>
+    /// How long items remain protected for the killer, in ticks.
+    /// With TickRate=1000 (1 second), 60 = 60 seconds of protection.
+    /// </summary>
+    public int DropProtectionTicks { get; set; } = 60;
+    /// <summary>
     /// Player respawn location when they die. Falls back to NewCharacter location if not set.
     /// </summary>
     public RescueOptions? Rescue { get; set; }

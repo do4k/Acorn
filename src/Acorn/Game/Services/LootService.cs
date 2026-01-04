@@ -50,11 +50,11 @@ public class LootService : ILootService
     public LootDrop? RollDrop(int npcId)
     {
         var lootTable = GetNpcLootTable(npcId);
-        if (lootTable?.Drops.Count == 0)
+        if (lootTable == null || lootTable.Drops.Count == 0)
             return null;
 
         // Sort drops by rate for proper probability weighting
-        var sortedDrops = lootTable!.Drops
+        var sortedDrops = lootTable.Drops
             .OrderBy(d => d.RatePercent)
             .ToList();
 

@@ -2,6 +2,7 @@ using System.Reflection;
 using Acorn.Database;
 using Acorn.Database.Models;
 using Acorn.Database.Repository;
+using Acorn.Game.Services;
 using Acorn.Shared.Caching;
 using Acorn.Net.PacketHandlers;
 using Acorn.Net.PacketHandlers.Account;
@@ -70,6 +71,7 @@ internal static class IocRegistrations
     {
         return services
             .AddSingleton<IFormulaService, FormulaService>()
+            .AddSingleton<ILootService, LootService>()
             .AddSingleton<IMapTileService, MapTileService>()
             .AddSingleton<IMapBroadcastService, MapBroadcastService>()
             .AddSingleton<INpcCombatService, NpcCombatService>()
