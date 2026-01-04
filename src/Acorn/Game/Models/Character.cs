@@ -40,6 +40,7 @@ public class Character
     public int MaxSp { get; set; }
     public int Sp { get; set; }
     public int Str { get; set; }
+    public int Int { get; set; }
     public int Wis { get; set; }
     public int Agi { get; set; }
     public int Con { get; set; }

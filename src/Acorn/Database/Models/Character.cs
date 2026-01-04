@@ -35,6 +35,7 @@ public class Character
     public int MaxSp { get; set; }
     public int Sp { get; set; }
     public int Str { get; set; }
+    public int Int { get; set; }
     public int Wis { get; set; }
     public int Agi { get; set; }
     public int Con { get; set; }
@@ -88,6 +89,7 @@ public class Character
             Race = Race,
             Agi = Agi,
             Str = Str,
+            Int = Int,
             Wis = Wis,
             Cha = Cha,
             Con = Con,
