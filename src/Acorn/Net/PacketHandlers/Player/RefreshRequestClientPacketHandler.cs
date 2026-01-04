@@ -17,7 +17,6 @@ public class RefreshRequestClientPacketHandler : IPacketHandler<RefreshRequestCl
                 _ => new NearbyInfo()
             }
         });
-
     }
 
     public Task HandleAsync(PlayerState playerState, IPacket packet)

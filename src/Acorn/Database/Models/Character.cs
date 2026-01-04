@@ -10,8 +10,8 @@ public class Character
 {
     public required string Accounts_Username { get; set; }
 
-    [Key]
-    public string? Name { get; set; }
+    [Key] public string? Name { get; set; }
+
     public string? Title { get; set; }
     public string? Home { get; set; }
     public string? Fiance { get; set; }
@@ -117,25 +117,27 @@ public class Character
             NoInteract = NoInteract,
             Bank = new Bank(GetItemsFromDb(1)),
             Inventory = new Inventory(GetItemsFromDb(0)),
-            Paperdoll = Paperdoll == null ? new Paperdoll() : new Paperdoll
-            {
-                Hat = Paperdoll.Hat,
-                Necklace = Paperdoll.Necklace,
-                Armor = Paperdoll.Armor,
-                Belt = Paperdoll.Belt,
-                Boots = Paperdoll.Boots,
-                Gloves = Paperdoll.Gloves,
-                Weapon = Paperdoll.Weapon,
-                Shield = Paperdoll.Shield,
-                Accessory = Paperdoll.Accessory,
-                Ring1 = Paperdoll.Ring1,
-                Ring2 = Paperdoll.Ring2,
-                Bracer1 = Paperdoll.Bracer1,
-                Bracer2 = Paperdoll.Bracer2,
-                Armlet1 = Paperdoll.Armlet1,
-                Armlet2 = Paperdoll.Armlet2
-            },
-            Usage = Usage,
+            Paperdoll = Paperdoll == null
+                ? new Paperdoll()
+                : new Paperdoll
+                {
+                    Hat = Paperdoll.Hat,
+                    Necklace = Paperdoll.Necklace,
+                    Armor = Paperdoll.Armor,
+                    Belt = Paperdoll.Belt,
+                    Boots = Paperdoll.Boots,
+                    Gloves = Paperdoll.Gloves,
+                    Weapon = Paperdoll.Weapon,
+                    Shield = Paperdoll.Shield,
+                    Accessory = Paperdoll.Accessory,
+                    Ring1 = Paperdoll.Ring1,
+                    Ring2 = Paperdoll.Ring2,
+                    Bracer1 = Paperdoll.Bracer1,
+                    Bracer2 = Paperdoll.Bracer2,
+                    Armlet1 = Paperdoll.Armlet1,
+                    Armlet2 = Paperdoll.Armlet2
+                },
+            Usage = Usage
         };
     }
 }

@@ -61,14 +61,17 @@ public class PaperdollService : IPaperdollService
 
     public int GetGraphicId(int itemId)
     {
-        if (itemId == 0) return 0;
-        
+        if (itemId == 0)
+        {
+            return 0;
+        }
+
         var item = _dataFiles.Eif.GetItem(itemId);
         var graphicId = item?.Spec1 ?? 0;
-        
-        _logger.LogDebug("GetGraphicId: ItemId={ItemId} -> GraphicId={GraphicId} (Item={ItemName})", 
+
+        _logger.LogDebug("GetGraphicId: ItemId={ItemId} -> GraphicId={GraphicId} (Item={ItemName})",
             itemId, graphicId, item?.Name ?? "NOT FOUND");
-        
+
         return graphicId;
     }
 }

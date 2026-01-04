@@ -2,18 +2,16 @@
 using Acorn.Database.Repository;
 using Acorn.Net;
 using Acorn.World.Map;
-using Acorn.World.Npc;
 using Microsoft.Extensions.Logging;
-using Moffat.EndlessOnline.SDK.Protocol;
 
 namespace Acorn.World;
 
 public class WorldState
 {
+    private readonly ILogger<WorldState> _logger;
     public ConcurrentDictionary<Guid, GlobalMessage> GlobalMessages = [];
     public ConcurrentDictionary<int, MapState> Maps = [];
     public ConcurrentDictionary<int, PlayerState> Players = [];
-    private readonly ILogger<WorldState> _logger;
 
     public WorldState(
         IDataFileRepository dataRepository,
@@ -44,5 +42,8 @@ public class WorldState
     }
 
     public bool LoggedIn(string username)
-        => Players.Values.Any(x => x.Account?.Username.Equals(username, StringComparison.InvariantCultureIgnoreCase) ?? false);
+    {
+        return Players.Values.Any(x =>
+            x.Account?.Username.Equals(username, StringComparison.InvariantCultureIgnoreCase) ?? false);
+    }
 }

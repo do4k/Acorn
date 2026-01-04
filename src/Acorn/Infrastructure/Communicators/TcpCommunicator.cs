@@ -12,7 +12,9 @@ public class TcpCommunicator(TcpClient client) : ICommunicator
         try
         {
             if (!IsConnected)
+            {
                 throw new InvalidOperationException("Cannot send data - client is not connected");
+            }
 
             await client.GetStream().WriteAsync(bytes.AsReadOnly());
         }
@@ -26,7 +28,9 @@ public class TcpCommunicator(TcpClient client) : ICommunicator
     public Stream Receive()
     {
         if (!IsConnected)
+        {
             throw new InvalidOperationException("Cannot receive data - client is not connected");
+        }
 
         return client.GetStream();
     }
@@ -34,7 +38,9 @@ public class TcpCommunicator(TcpClient client) : ICommunicator
     public async Task CloseAsync(CancellationToken cancellationToken = default)
     {
         if (_disposed)
+        {
             return;
+        }
 
         _disposed = true;
 
@@ -56,7 +62,9 @@ public class TcpCommunicator(TcpClient client) : ICommunicator
     }
 
     public string GetConnectionOrigin()
-        => client.Client.RemoteEndPoint?.ToString() ?? "Unknown";
+    {
+        return client.Client.RemoteEndPoint?.ToString() ?? "Unknown";
+    }
 
     public bool IsConnected => !_disposed && client.Connected && client.Client.Connected;
 }

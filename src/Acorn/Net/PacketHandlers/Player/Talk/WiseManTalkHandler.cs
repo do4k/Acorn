@@ -1,4 +1,3 @@
-using Acorn.Infrastructure.Gemini;
 using Acorn.Options;
 using Acorn.World.Services;
 using Microsoft.Extensions.Logging;
@@ -7,15 +6,11 @@ using Microsoft.Extensions.Options;
 namespace Acorn.Net.PacketHandlers.Player.Talk;
 
 /// <summary>
-/// Handler for messages directed at the Wise Man NPC.
-/// Triggers AI-generated responses when players say "Hey Wise Man {query}".
+///     Handler for messages directed at the Wise Man NPC.
+///     Triggers AI-generated responses when players say "Hey Wise Man {query}".
 /// </summary>
 public class WiseManTalkHandler
 {
-    private readonly WiseManQueueService _queueService;
-    private readonly ILogger<WiseManTalkHandler> _logger;
-    private readonly WiseManAgentOptions _wiseManOptions;
-
     private static readonly string[] TriggerPhrases =
     [
         "hey wise man",
@@ -25,6 +20,10 @@ public class WiseManTalkHandler
         "dear wise man",
         "oh wise man"
     ];
+
+    private readonly ILogger<WiseManTalkHandler> _logger;
+    private readonly WiseManQueueService _queueService;
+    private readonly WiseManAgentOptions _wiseManOptions;
 
     public WiseManTalkHandler(
         WiseManQueueService queueService,
@@ -37,7 +36,7 @@ public class WiseManTalkHandler
     }
 
     /// <summary>
-    /// Check if a message is directed at the Wise Man and queue a response if so.
+    ///     Check if a message is directed at the Wise Man and queue a response if so.
     /// </summary>
     /// <returns>True if the message was handled (directed at Wise Man)</returns>
     public bool TryHandleMessage(PlayerState playerState, string message)
@@ -49,7 +48,9 @@ public class WiseManTalkHandler
         }
 
         if (playerState.Character == null || playerState.CurrentMap == null)
+        {
             return false;
+        }
 
         var lowerMessage = message.ToLowerInvariant().Trim();
 
@@ -67,6 +68,7 @@ public class WiseManTalkHandler
             {
                 query = query[1..].Trim();
             }
+
             if (string.IsNullOrWhiteSpace(query))
             {
                 query = "greet me";
@@ -74,12 +76,14 @@ public class WiseManTalkHandler
 
             // Find Wise Man NPC on the map
             var map = playerState.CurrentMap;
-            var wiseManNpc = map.Npcs.FirstOrDefault(n => n.Data.Name.Contains("Wise Man", StringComparison.OrdinalIgnoreCase));
+            var wiseManNpc =
+                map.Npcs.FirstOrDefault(n => n.Data.Name.Contains("Wise Man", StringComparison.OrdinalIgnoreCase));
             if (wiseManNpc == null)
             {
                 _logger.LogWarning("No Wise Man NPC found on map for player {Player}", playerState.Character.Name);
                 return false;
             }
+
             // Check proximity (within 5 tiles)
             var dx = Math.Abs(playerState.Character.X - wiseManNpc.X);
             var dy = Math.Abs(playerState.Character.Y - wiseManNpc.Y);
@@ -102,8 +106,10 @@ public class WiseManTalkHandler
             {
                 _logger.LogWarning("Failed to queue Wise Man request - queue full or could not find wise man");
             }
+
             return true;
         }
+
         return false;
     }
 }

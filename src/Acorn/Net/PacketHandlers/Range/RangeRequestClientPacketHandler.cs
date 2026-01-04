@@ -1,12 +1,15 @@
 using Acorn.Extensions;
 using Acorn.World;
 using Microsoft.Extensions.Logging;
+using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.Net.PacketHandlers.Range;
 
-public class RangeRequestClientPacketHandler(ILogger<RangeRequestClientPacketHandler> logger, IWorldQueries worldQueries)
+public class RangeRequestClientPacketHandler(
+    ILogger<RangeRequestClientPacketHandler> logger,
+    IWorldQueries worldQueries)
     : IPacketHandler<RangeRequestClientPacket>
 {
     public async Task HandleAsync(PlayerState player, RangeRequestClientPacket packet)
@@ -49,9 +52,8 @@ public class RangeRequestClientPacketHandler(ILogger<RangeRequestClientPacketHan
         }
     }
 
-    public Task HandleAsync(PlayerState playerState, Moffat.EndlessOnline.SDK.Protocol.Net.IPacket packet)
+    public Task HandleAsync(PlayerState playerState, IPacket packet)
     {
         return HandleAsync(playerState, (RangeRequestClientPacket)packet);
     }
 }
-

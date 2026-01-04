@@ -12,21 +12,22 @@ using Moffat.EndlessOnline.SDK.Packet;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+using Character = Acorn.Game.Models.Character;
 
 namespace Acorn.Net;
 
 public class PlayerState : IDisposable
 {
-    private readonly Action<PlayerState> _onDispose;
-    private readonly PacketResolver _resolver = new("Moffat.EndlessOnline.SDK.Protocol.Net.Client");
-    private PingSequenceStart _upcomingSequence;
-    private readonly ILogger<PlayerState> _logger;
-    private readonly CancellationTokenSource _tokenSource = new();
     private readonly CancellationToken _cancellationToken;
     private readonly IEnumerable<IPacketHandler> _handlers;
+    private readonly ILogger<PlayerState> _logger;
+    private readonly Action<PlayerState> _onDispose;
     private readonly PacketLog _packetLog = new();
+    private readonly PacketResolver _resolver = new("Moffat.EndlessOnline.SDK.Protocol.Net.Client");
     private readonly ServerOptions _serverOptions;
+    private readonly CancellationTokenSource _tokenSource = new();
     private string? _disconnectReason;
+    private PingSequenceStart _upcomingSequence;
 
     public PlayerState(
         IEnumerable<IPacketHandler> handlers,
@@ -65,18 +66,9 @@ public class PlayerState : IDisposable
     public int SessionId { get; set; }
     public WarpSession? WarpSession { get; set; }
 
-    public Game.Models.Character? Character { get; set; }
+    public Character? Character { get; set; }
 
     public MapState? CurrentMap { get; set; }
-
-    /// <summary>
-    /// Updates the upcoming ping sequence. This should be called before sending a CONNECTION_PLAYER ping.
-    /// The sequencer will be updated when the client responds with CONNECTION_PING.
-    /// </summary>
-    public void SetUpcomingPingSequence(PingSequenceStart newSequence)
-    {
-        _upcomingSequence = newSequence;
-    }
 
     public void Dispose()
     {
@@ -88,6 +80,15 @@ public class PlayerState : IDisposable
         _onDispose(this);
         // Fire and forget close - we're already in synchronous Dispose
         _ = Communicator.CloseAsync(_cancellationToken);
+    }
+
+    /// <summary>
+    ///     Updates the upcoming ping sequence. This should be called before sending a CONNECTION_PLAYER ping.
+    ///     The sequencer will be updated when the client responds with CONNECTION_PING.
+    /// </summary>
+    public void SetUpcomingPingSequence(PingSequenceStart newSequence)
+    {
+        _upcomingSequence = newSequence;
     }
 
     public async Task Listen()
@@ -110,7 +111,8 @@ public class PlayerState : IDisposable
                 var decodedLength = NumberEncoder.DecodeNumber([len1, len2]);
                 if (_serverOptions.LogPackets)
                 {
-                    _logger.LogDebug("Len1 {Len1}, Len2 {Len2}, Decoded length {DecodedLength}", len1, len2, decodedLength);
+                    _logger.LogDebug("Len1 {Len1}, Len2 {Len2}, Decoded length {DecodedLength}", len1, len2,
+                        decodedLength);
                 }
 
                 if (decodedLength <= 0 || decodedLength > 65535)
@@ -144,7 +146,7 @@ public class PlayerState : IDisposable
                     var rateLimitResponse = new byte[3];
                     rateLimitResponse[0] = 0xfe;
                     rateLimitResponse[1] = 0xfe;
-                    
+
                     // Encode the server sequence as a single byte or short depending on value
                     if (serverSequence < 256)
                     {
@@ -156,7 +158,7 @@ public class PlayerState : IDisposable
                         // For now, use the low byte as reoserv does
                         rateLimitResponse[2] = (byte)(serverSequence & 0xFF);
                     }
-                    
+
                     var encodedLength = NumberEncoder.EncodeNumber(rateLimitResponse.Length);
                     var fullBytes = encodedLength[..2].Concat(rateLimitResponse);
                     await Communicator.Send(fullBytes);
@@ -176,7 +178,8 @@ public class PlayerState : IDisposable
                 var resolvedHandler = _handlers.FirstOrDefault(h => handlerType.IsInstanceOfType(h));
                 if (resolvedHandler is null)
                 {
-                    _logger.LogError("Handler not registered for packet of type {PacketType} Skipping...", packet.GetType());
+                    _logger.LogError("Handler not registered for packet of type {PacketType} Skipping...",
+                        packet.GetType());
                     continue;
                 }
 
@@ -207,6 +210,7 @@ public class PlayerState : IDisposable
                 break;
             }
         }
+
         Disconnect();
         Dispose();
     }
@@ -263,6 +267,7 @@ public class PlayerState : IDisposable
         {
             _logger.LogDebug("[Server] {Packet}", packet.ToString());
         }
+
         var writer = new EoWriter();
         writer.AddByte((int)packet.Action);
         writer.AddByte((int)packet.Family);
@@ -270,7 +275,8 @@ public class PlayerState : IDisposable
         var bytes = packet switch
         {
             InitInitServerPacket _ => writer.ToByteArray(),
-            _ => DataEncrypter.FlipMSB(DataEncrypter.Interleave(DataEncrypter.SwapMultiples(writer.ToByteArray(), ServerEncryptionMulti)))
+            _ => DataEncrypter.FlipMSB(
+                DataEncrypter.Interleave(DataEncrypter.SwapMultiples(writer.ToByteArray(), ServerEncryptionMulti)))
         };
 
         var encodedLength = NumberEncoder.EncodeNumber(bytes.Length);

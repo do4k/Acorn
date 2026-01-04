@@ -18,7 +18,7 @@ public class DataFileRepository : IDataFileRepository
     public DataFileRepository(ILogger<DataFileRepository> logger)
     {
         _logger = logger;
-        
+
         if (File.Exists(_ecfFile))
         {
             Ecf.Deserialize(new EoReader(File.ReadAllBytes(_ecfFile)));
@@ -60,30 +60,36 @@ public class DataFileRepository : IDataFileRepository
         }
     }
 
+    public Ecf Ecf { get; } = new();
+    public Eif Eif { get; } = new();
+    public Enf Enf { get; } = new();
+    public Esf Esf { get; } = new();
+    public IEnumerable<MapWithId> Maps { get; }
+
     /// <summary>
-    /// Manually encode a uint32 value as 4 EO-encoded bytes.
-    /// This is needed because EoWriter.AddInt validates that values are positive,
-    /// but CRC32 can produce values > int.MaxValue.
+    ///     Manually encode a uint32 value as 4 EO-encoded bytes.
+    ///     This is needed because EoWriter.AddInt validates that values are positive,
+    ///     but CRC32 can produce values > int.MaxValue.
     /// </summary>
     private static byte[] EncodeEoInt(uint value)
     {
         var bytes = new byte[4];
-        bytes[0] = (byte)((value % 253) + 1);
-        bytes[1] = (byte)((value / 253) % 253 + 1);
-        bytes[2] = (byte)((value / 64009) % 253 + 1);
-        bytes[3] = (byte)((value / 16194277) % 253 + 1);
+        bytes[0] = (byte)(value % 253 + 1);
+        bytes[1] = (byte)(value / 253 % 253 + 1);
+        bytes[2] = (byte)(value / 64009 % 253 + 1);
+        bytes[3] = (byte)(value / 16194277 % 253 + 1);
         return bytes;
     }
 
     /// <summary>
-    /// Recalculates the RID (CRC32 checksum) for an EIF pub file.
-    /// This matches reoserv's behavior where the checksum is calculated from the file content
-    /// starting at byte 7 (after the header).
+    ///     Recalculates the RID (CRC32 checksum) for an EIF pub file.
+    ///     This matches reoserv's behavior where the checksum is calculated from the file content
+    ///     starting at byte 7 (after the header).
     /// </summary>
     private void RecalculateRid(Eif eif)
     {
         var oldRid = eif.Rid.ToArray();
-        
+
         var writer = new EoWriter();
         eif.Serialize(writer);
         var bytes = writer.ToByteArray();
@@ -101,13 +107,13 @@ public class DataFileRepository : IDataFileRepository
         var ridReader2 = new EoReader(encoded.AsSpan(2, 2).ToArray());
 
         eif.Rid = [ridReader1.GetShort(), ridReader2.GetShort()];
-        
-        _logger.LogInformation("EIF RID: Old={OldRid}, Calculated={NewRid}, CRC32={Crc32}", 
+
+        _logger.LogInformation("EIF RID: Old={OldRid}, Calculated={NewRid}, CRC32={Crc32}",
             string.Join(",", oldRid), string.Join(",", eif.Rid), checksumValue);
     }
 
     /// <summary>
-    /// Recalculates the RID (CRC32 checksum) for an ENF pub file.
+    ///     Recalculates the RID (CRC32 checksum) for an ENF pub file.
     /// </summary>
     private void RecalculateRid(Enf enf)
     {
@@ -127,7 +133,7 @@ public class DataFileRepository : IDataFileRepository
     }
 
     /// <summary>
-    /// Recalculates the RID (CRC32 checksum) for an ESF pub file.
+    ///     Recalculates the RID (CRC32 checksum) for an ESF pub file.
     /// </summary>
     private void RecalculateRid(Esf esf)
     {
@@ -147,7 +153,7 @@ public class DataFileRepository : IDataFileRepository
     }
 
     /// <summary>
-    /// Recalculates the RID (CRC32 checksum) for an ECF pub file.
+    ///     Recalculates the RID (CRC32 checksum) for an ECF pub file.
     /// </summary>
     private void RecalculateRid(Ecf ecf)
     {
@@ -167,7 +173,7 @@ public class DataFileRepository : IDataFileRepository
     }
 
     /// <summary>
-    /// Recalculates the RID (CRC32 checksum) for an EMF map file.
+    ///     Recalculates the RID (CRC32 checksum) for an EMF map file.
     /// </summary>
     private void RecalculateRid(Emf emf)
     {
@@ -185,12 +191,6 @@ public class DataFileRepository : IDataFileRepository
 
         emf.Rid = [ridReader1.GetChar(), ridReader2.GetChar()];
     }
-
-    public Ecf Ecf { get; } = new();
-    public Eif Eif { get; } = new();
-    public Enf Enf { get; } = new();
-    public Esf Esf { get; } = new();
-    public IEnumerable<MapWithId> Maps { get; }
 }
 
 public static class EsfExtension
@@ -203,7 +203,7 @@ public static class EsfExtension
     }
 
     /// <summary>
-    /// Find skills by exact name match (case-insensitive).
+    ///     Find skills by exact name match (case-insensitive).
     /// </summary>
     public static IReadOnlyList<(EsfRecord Skill, int Id)> FindByName(this Esf esf, string name)
     {
@@ -215,7 +215,7 @@ public static class EsfExtension
     }
 
     /// <summary>
-    /// Search skills by partial name match (case-insensitive).
+    ///     Search skills by partial name match (case-insensitive).
     /// </summary>
     public static IReadOnlyList<(EsfRecord Skill, int Id)> SearchByName(this Esf esf, string name)
     {
@@ -237,7 +237,7 @@ public static class EcfExtension
     }
 
     /// <summary>
-    /// Find classes by exact name match (case-insensitive).
+    ///     Find classes by exact name match (case-insensitive).
     /// </summary>
     public static IReadOnlyList<(EcfRecord Class, int Id)> FindByName(this Ecf ecf, string name)
     {
@@ -249,7 +249,7 @@ public static class EcfExtension
     }
 
     /// <summary>
-    /// Search classes by partial name match (case-insensitive).
+    ///     Search classes by partial name match (case-insensitive).
     /// </summary>
     public static IReadOnlyList<(EcfRecord Class, int Id)> SearchByName(this Ecf ecf, string name)
     {
@@ -271,7 +271,7 @@ public static class EnfExtension
     }
 
     /// <summary>
-    /// Find NPCs by exact name match (case-insensitive).
+    ///     Find NPCs by exact name match (case-insensitive).
     /// </summary>
     public static IReadOnlyList<(EnfRecord Npc, int Id)> FindByName(this Enf enf, string name)
     {
@@ -283,7 +283,7 @@ public static class EnfExtension
     }
 
     /// <summary>
-    /// Search NPCs by partial name match (case-insensitive).
+    ///     Search NPCs by partial name match (case-insensitive).
     /// </summary>
     public static IReadOnlyList<(EnfRecord Npc, int Id)> SearchByName(this Enf enf, string name)
     {
@@ -305,7 +305,7 @@ public static class EifExtension
     }
 
     /// <summary>
-    /// Find items by exact name match (case-insensitive).
+    ///     Find items by exact name match (case-insensitive).
     /// </summary>
     public static IReadOnlyList<(EifRecord Item, int Id)> FindByName(this Eif eif, string name)
     {
@@ -317,7 +317,7 @@ public static class EifExtension
     }
 
     /// <summary>
-    /// Search items by partial name match (case-insensitive).
+    ///     Search items by partial name match (case-insensitive).
     /// </summary>
     public static IReadOnlyList<(EifRecord Item, int Id)> SearchByName(this Eif eif, string name)
     {

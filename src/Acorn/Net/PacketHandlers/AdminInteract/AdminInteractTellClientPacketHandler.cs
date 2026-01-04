@@ -1,10 +1,13 @@
 using Acorn.World;
 using Microsoft.Extensions.Logging;
+using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 
 namespace Acorn.Net.PacketHandlers.AdminInteract;
 
-public class AdminInteractTellClientPacketHandler(ILogger<AdminInteractTellClientPacketHandler> logger, IWorldQueries worldQueries)
+public class AdminInteractTellClientPacketHandler(
+    ILogger<AdminInteractTellClientPacketHandler> logger,
+    IWorldQueries worldQueries)
     : IPacketHandler<AdminInteractTellClientPacket>
 {
     public async Task HandleAsync(PlayerState player, AdminInteractTellClientPacket packet)
@@ -23,7 +26,7 @@ public class AdminInteractTellClientPacketHandler(ILogger<AdminInteractTellClien
         await Task.CompletedTask;
     }
 
-    public Task HandleAsync(PlayerState playerState, Moffat.EndlessOnline.SDK.Protocol.Net.IPacket packet)
+    public Task HandleAsync(PlayerState playerState, IPacket packet)
     {
         return HandleAsync(playerState, (AdminInteractTellClientPacket)packet);
     }

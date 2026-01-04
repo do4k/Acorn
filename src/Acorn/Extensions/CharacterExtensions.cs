@@ -1,13 +1,13 @@
 ﻿using Acorn.Game.Models;
 using Acorn.Game.Services;
-using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.Extensions;
 
 public static class CharacterExtensions
 {
-    public static CharacterSelectionListEntry AsCharacterListEntry(this Character c, int id, IPaperdollService paperdollService)
+    public static CharacterSelectionListEntry AsCharacterListEntry(this Character c, int id,
+        IPaperdollService paperdollService)
     {
         return new CharacterSelectionListEntry
         {
@@ -23,7 +23,8 @@ public static class CharacterExtensions
         };
     }
 
-    public static CharacterMapInfo AsCharacterMapInfo(this Character c, int playerId, WarpEffect wapEffect, IPaperdollService paperdollService)
+    public static CharacterMapInfo AsCharacterMapInfo(this Character c, int playerId, WarpEffect wapEffect,
+        IPaperdollService paperdollService)
     {
         return new CharacterMapInfo
         {
@@ -98,7 +99,7 @@ public static class CharacterExtensions
             Con = c.Con,
             Str = c.Str,
             Wis = c.Wis,
-            Intl = c.Int,
+            Intl = c.Int
         };
     }
 

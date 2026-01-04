@@ -26,8 +26,8 @@ public class NewConnectionHostedService(
     PlayerStateFactory playerStateFactory
 ) : BackgroundService
 {
-    private readonly ServerOptions _serverOptions = serverOptions.Value;
     private readonly TcpListener _listener = new(IPAddress.Any, serverOptions.Value.Hosting.Port);
+    private readonly ServerOptions _serverOptions = serverOptions.Value;
     private HttpListener? _wsListener;
 
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
@@ -52,7 +52,7 @@ public class NewConnectionHostedService(
                     var tcpAcceptTask = _listener.AcceptTcpClientAsync(cancellationToken).AsTask();
                     var wsAcceptTask = _wsListener.GetContextAsync();
                     var completed = await Task.WhenAny(tcpAcceptTask, wsAcceptTask);
-                    
+
                     // Check if cancellation was requested
                     if (cancellationToken.IsCancellationRequested)
                     {
@@ -62,17 +62,19 @@ public class NewConnectionHostedService(
                     ICommunicator communicator = completed switch
                     {
                         Task<TcpClient> tcp when tcp == tcpAcceptTask => tcpCommunicatorFactory.Initialise(tcp.Result),
-                        Task<HttpListenerContext> ws when ws == wsAcceptTask => await webSocketCommunicatorFactory.InitialiseAsync(ws.Result, cancellationToken),
+                        Task<HttpListenerContext> ws when ws == wsAcceptTask => await webSocketCommunicatorFactory
+                            .InitialiseAsync(ws.Result, cancellationToken),
                         _ => throw new InvalidOperationException("Unexpected task completion")
                     };
 
                     var sessionId = sessionGenerator.Generate();
 
                     var playerState = playerStateFactory.CreatePlayerState(communicator, sessionId,
-                        async (player) => await OnClientDisposed(player, sessionId));
+                        async player => await OnClientDisposed(player, sessionId));
 
                     var added = worldState.Players.TryAdd(sessionId, playerState);
-                    logger.LogInformation("Connection accepted. {PlayersConnected} players connected", worldState.Players.Count);
+                    logger.LogInformation("Connection accepted. {PlayersConnected} players connected",
+                        worldState.Players.Count);
                     UpdateConnectedCount();
                 }
                 catch (OperationCanceledException)

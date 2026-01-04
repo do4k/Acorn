@@ -9,15 +9,15 @@ using Microsoft.Extensions.Options;
 namespace Acorn.Infrastructure;
 
 /// <summary>
-/// Hosted service that periodically caches online character data to Redis.
+///     Hosted service that periodically caches online character data to Redis.
 /// </summary>
 public class CharacterCacheHostedService : BackgroundService
 {
-    private readonly WorldState _worldState;
+    private readonly CacheOptions _cacheOptions;
     private readonly ICharacterCacheService _characterCache;
     private readonly ILogger<CharacterCacheHostedService> _logger;
-    private readonly CacheOptions _cacheOptions;
     private readonly TimeSpan _updateInterval = TimeSpan.FromSeconds(5);
+    private readonly WorldState _worldState;
 
     public CharacterCacheHostedService(
         WorldState worldState,
@@ -33,7 +33,8 @@ public class CharacterCacheHostedService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("Character cache service started, updating every {Interval} seconds", _updateInterval.TotalSeconds);
+        _logger.LogInformation("Character cache service started, updating every {Interval} seconds",
+            _updateInterval.TotalSeconds);
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -59,7 +60,9 @@ public class CharacterCacheHostedService : BackgroundService
             try
             {
                 if (playerState.Character == null)
+                {
                     continue;
+                }
 
                 var character = playerState.Character;
                 var equipment = new EquipmentRecord
@@ -113,7 +116,8 @@ public class CharacterCacheHostedService : BackgroundService
         }
 
         if (_cacheOptions.LogOperations)
+        {
             _logger.LogDebug("Cached {Count} online characters to Redis", cachedCount);
+        }
     }
 }
-

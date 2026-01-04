@@ -6,20 +6,25 @@ using Bank = Acorn.Game.Models.Bank;
 namespace Acorn.Game.Services;
 
 /// <summary>
-/// Default implementation of bank management.
+///     Default implementation of bank management.
 /// </summary>
 public class BankService : IBankService
 {
     public bool TryAddItem(Character character, int itemId, int amount = 1)
     {
-        if (amount <= 0) return false;
+        if (amount <= 0)
+        {
+            return false;
+        }
 
         // Check bank capacity
         if (character.Bank.Items.Count >= character.BankMax)
         {
             var existingItem = character.Bank.Items.FirstOrDefault(i => i.Id == itemId);
             if (existingItem == null)
+            {
                 return false; // Bank full and no existing stack
+            }
 
             existingItem.Amount += amount;
             return true;
@@ -40,11 +45,16 @@ public class BankService : IBankService
 
     public bool TryRemoveItem(Character character, int itemId, int amount = 1)
     {
-        if (amount <= 0) return false;
+        if (amount <= 0)
+        {
+            return false;
+        }
 
         var item = character.Bank.Items.FirstOrDefault(i => i.Id == itemId);
         if (item == null || item.Amount < amount)
+        {
             return false;
+        }
 
         item.Amount -= amount;
 

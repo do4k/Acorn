@@ -3,7 +3,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Net;
 namespace Acorn.Net;
 
 /// <summary>
-/// Represents a rate limit for a specific packet type.
+///     Represents a rate limit for a specific packet type.
 /// </summary>
 public record PacketRateLimit
 {
@@ -11,17 +11,20 @@ public record PacketRateLimit
     public required PacketFamily Family { get; init; }
     public required int LimitMs { get; init; }
 
-    public override string ToString() => $"{Action}_{Family} ({LimitMs}ms)";
+    public override string ToString()
+    {
+        return $"{Action}_{Family} ({LimitMs}ms)";
+    }
 }
 
 /// <summary>
-/// Configuration for packet rate limits to prevent spam and DoS attacks.
+///     Configuration for packet rate limits to prevent spam and DoS attacks.
 /// </summary>
 public static class PacketRateLimits
 {
     /// <summary>
-    /// Default rate limits for common packet types that are prone to spam.
-    /// Values are in milliseconds between allowed packets.
+    ///     Default rate limits for common packet types that are prone to spam.
+    ///     Values are in milliseconds between allowed packets.
     /// </summary>
     public static readonly List<PacketRateLimit> DefaultLimits =
     [
@@ -62,6 +65,6 @@ public static class PacketRateLimits
 
         // Sit/stand
         new() { Action = PacketAction.Request, Family = PacketFamily.Sit, LimitMs = 500 },
-        new() { Action = PacketAction.Close, Family = PacketFamily.Sit, LimitMs = 500 },
+        new() { Action = PacketAction.Close, Family = PacketFamily.Sit, LimitMs = 500 }
     ];
 }

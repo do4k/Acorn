@@ -1,6 +1,5 @@
 ﻿using Acorn.Net.Services;
 using Acorn.World;
-using Acorn.World.Services;
 using Acorn.World.Services.Player;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
@@ -8,11 +7,12 @@ namespace Acorn.Net.PacketHandlers.Player.Talk;
 
 internal class WarpCommandHandler : ITalkHandler
 {
-    private readonly IWorldQueries _world;
     private readonly INotificationService _notifications;
     private readonly IPlayerController _playerController;
+    private readonly IWorldQueries _world;
 
-    public WarpCommandHandler(IWorldQueries world, INotificationService notifications, IPlayerController playerController)
+    public WarpCommandHandler(IWorldQueries world, INotificationService notifications,
+        IPlayerController playerController)
     {
         _world = world;
         _notifications = notifications;
@@ -44,6 +44,7 @@ internal class WarpCommandHandler : ITalkHandler
         {
             return;
         }
+
         await _playerController.WarpAsync(playerState, map, x, y, WarpEffect.Admin);
     }
 }

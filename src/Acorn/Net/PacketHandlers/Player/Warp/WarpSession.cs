@@ -1,19 +1,10 @@
 ﻿using Acorn.World.Map;
-using Acorn.World.Npc;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.Net.PacketHandlers.Player.Warp;
 
 public class WarpSession
 {
-    public WarpEffect WarpEffect { get; }
-    public int MapId { get; }
-    public int X { get; }
-    public int Y { get; }
-    public PlayerState Player { get; }
-    public MapState TargetMap { get; }
-    public bool IsLocal { get; }
-
     public WarpSession(int x, int y, PlayerState player, MapState targetMap, WarpEffect warpEffect = WarpEffect.None)
     {
         MapId = targetMap.Id;
@@ -24,6 +15,14 @@ public class WarpSession
         TargetMap = targetMap;
         IsLocal = player.CurrentMap?.Id == MapId;
     }
+
+    public WarpEffect WarpEffect { get; }
+    public int MapId { get; }
+    public int X { get; }
+    public int Y { get; }
+    public PlayerState Player { get; }
+    public MapState TargetMap { get; }
+    public bool IsLocal { get; }
 
     public async Task Execute()
     {

@@ -2,7 +2,7 @@ using Acorn.Database.Repository;
 using Acorn.Game.Services;
 using Acorn.World;
 using Microsoft.Extensions.Logging;
-using Moffat.EndlessOnline.SDK.Protocol;
+using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
 
@@ -41,7 +41,7 @@ public class ItemUseClientPacketHandler(
         logger.LogInformation("Player {Character} using item {ItemId} ({ItemName}) type {Type}",
             player.Character.Name, packet.ItemId, itemData.Name, itemData.Type);
 
-        bool consumed = true;
+        var consumed = true;
 
         switch (itemData.Type)
         {
@@ -70,19 +70,27 @@ public class ItemUseClientPacketHandler(
         // Remove item from inventory if consumed
         if (consumed)
         {
-            inventoryService.TryRemoveItem(player.Character, packet.ItemId, 1);
+            inventoryService.TryRemoveItem(player.Character, packet.ItemId);
             // TODO: Send updated inventory packet
         }
 
         await Task.CompletedTask;
     }
 
+    public Task HandleAsync(PlayerState playerState, IPacket packet)
+    {
+        return HandleAsync(playerState, (ItemUseClientPacket)packet);
+    }
+
     private async Task HandleHealItem(PlayerState player, EifRecord item)
     {
-        if (player.Character == null) return;
+        if (player.Character == null)
+        {
+            return;
+        }
 
-        int hpBefore = player.Character.Hp;
-        int tpBefore = player.Character.Tp;
+        var hpBefore = player.Character.Hp;
+        var tpBefore = player.Character.Tp;
 
         // Heal HP
         if (item.Hp > 0)
@@ -96,8 +104,8 @@ public class ItemUseClientPacketHandler(
             player.Character.Tp = Math.Min(player.Character.Tp + item.Tp, player.Character.MaxTp);
         }
 
-        int hpGain = player.Character.Hp - hpBefore;
-        int tpGain = player.Character.Tp - tpBefore;
+        var hpGain = player.Character.Hp - hpBefore;
+        var tpGain = player.Character.Tp - tpBefore;
 
         logger.LogInformation("Player {Character} healed {HpGain} HP and {TpGain} TP",
             player.Character.Name, hpGain, tpGain);
@@ -108,7 +116,10 @@ public class ItemUseClientPacketHandler(
 
     private async Task HandleTeleportItem(PlayerState player, EifRecord item)
     {
-        if (player.Character == null) return;
+        if (player.Character == null)
+        {
+            return;
+        }
 
         // Check if map allows scrolling
         // TODO: Add CanScroll property to map data
@@ -144,7 +155,10 @@ public class ItemUseClientPacketHandler(
 
     private async Task HandleHairDye(PlayerState player, EifRecord item)
     {
-        if (player.Character == null) return;
+        if (player.Character == null)
+        {
+            return;
+        }
 
         player.Character.HairColor = item.Spec1;
 
@@ -157,9 +171,12 @@ public class ItemUseClientPacketHandler(
 
     private async Task HandleExpReward(PlayerState player, EifRecord item)
     {
-        if (player.Character == null) return;
+        if (player.Character == null)
+        {
+            return;
+        }
 
-        int expGain = item.Spec1;
+        var expGain = item.Spec1;
         player.Character.Exp += expGain;
 
         logger.LogInformation("Player {Character} gained {Exp} experience from item",
@@ -169,10 +186,5 @@ public class ItemUseClientPacketHandler(
         // TODO: Send experience update packet
 
         await Task.CompletedTask;
-    }
-
-    public Task HandleAsync(PlayerState playerState, Moffat.EndlessOnline.SDK.Protocol.Net.IPacket packet)
-    {
-        return HandleAsync(playerState, (ItemUseClientPacket)packet);
     }
 }

@@ -3,18 +3,19 @@ using Acorn.Game.Mappers;
 using Acorn.Game.Services;
 using Acorn.Net.Services;
 using Microsoft.Extensions.Logging;
+using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.Net.PacketHandlers.Player.Talk;
 
 public class SpawnItemCommandHandler : ITalkHandler
 {
-    private readonly ILogger<SpawnItemCommandHandler> _logger;
-    private readonly IDataFileRepository _dataFiles;
-    private readonly INotificationService _notifications;
-    private readonly IInventoryService _inventoryService;
-    private readonly IDbRepository<Database.Models.Character> _characterRepository;
     private readonly ICharacterMapper _characterMapper;
+    private readonly IDbRepository<Database.Models.Character> _characterRepository;
+    private readonly IDataFileRepository _dataFiles;
+    private readonly IInventoryService _inventoryService;
+    private readonly ILogger<SpawnItemCommandHandler> _logger;
+    private readonly INotificationService _notifications;
 
     public SpawnItemCommandHandler(IDataFileRepository dataFiles,
         ILogger<SpawnItemCommandHandler> logger, INotificationService notifications,
@@ -41,13 +42,14 @@ public class SpawnItemCommandHandler : ITalkHandler
     {
         if (args.Length < 1)
         {
-            await _notifications.ServerAnnouncement(playerState, "Usage: $[spawnitem | sitem] <item_id|item_name> [amount]");
+            await _notifications.ServerAnnouncement(playerState,
+                "Usage: $[spawnitem | sitem] <item_id|item_name> [amount]");
             return;
         }
 
         // Parse amount if provided (last arg that's a number)
-        int amount = 1;
-        string[] nameArgs = args;
+        var amount = 1;
+        var nameArgs = args;
 
         if (args.Length > 1 && int.TryParse(args[^1], out var parsedAmount))
         {
@@ -95,7 +97,8 @@ public class SpawnItemCommandHandler : ITalkHandler
         // Save to database
         await _characterRepository.UpdateAsync(_characterMapper.ToDatabase(playerState.Character));
 
-        await _notifications.ServerAnnouncement(playerState, $"Added {itemName} x{amount} (ID: {itemId}) to inventory.");
+        await _notifications.ServerAnnouncement(playerState,
+            $"Added {itemName} x{amount} (ID: {itemId}) to inventory.");
 
         // Get current amount in inventory for the packet
         var inventoryItem = playerState.Character.Inventory.Items.FirstOrDefault(i => i.Id == itemId);
@@ -104,7 +107,7 @@ public class SpawnItemCommandHandler : ITalkHandler
         // Send inventory update to player
         await playerState.Send(new ItemObtainServerPacket
         {
-            Item = new Moffat.EndlessOnline.SDK.Protocol.Net.ThreeItem
+            Item = new ThreeItem
             {
                 Id = itemId,
                 Amount = currentAmount
@@ -133,7 +136,8 @@ public class SpawnItemCommandHandler : ITalkHandler
         if (exactMatches.Count > 1)
         {
             var ids = string.Join(", ", exactMatches.Select(x => x.Id));
-            await _notifications.ServerAnnouncement(playerState, $"Multiple items found with name \"{name}\": IDs {ids}");
+            await _notifications.ServerAnnouncement(playerState,
+                $"Multiple items found with name \"{name}\": IDs {ids}");
             return;
         }
 

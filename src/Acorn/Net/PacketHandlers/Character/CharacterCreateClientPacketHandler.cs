@@ -1,4 +1,5 @@
-﻿using Acorn.Database.Repository;
+﻿using Acorn.Database.Models;
+using Acorn.Database.Repository;
 using Acorn.Extensions;
 using Acorn.Game.Services;
 using Acorn.Options;
@@ -56,8 +57,8 @@ internal class CharacterCreateClientPacketHandler(
             HairColor = packet.HairColor,
             HairStyle = packet.HairStyle,
             Gender = packet.Gender,
-            Items = new List<Database.Models.CharacterItem>(),
-            Paperdoll = new Database.Models.CharacterPaperdoll
+            Items = new List<CharacterItem>(),
+            Paperdoll = new CharacterPaperdoll
             {
                 CharacterName = packet.Name
             }
@@ -73,7 +74,8 @@ internal class CharacterCreateClientPacketHandler(
             ReplyCode = CharacterReply.Ok,
             ReplyCodeData = new CharacterReplyServerPacket.ReplyCodeDataOk
             {
-                Characters = playerState.Account.Characters.Select((c, id) => c.AsGameModel().AsCharacterListEntry(id, _paperdollService)).ToList()
+                Characters = playerState.Account.Characters
+                    .Select((c, id) => c.AsGameModel().AsCharacterListEntry(id, _paperdollService)).ToList()
             }
         });
     }

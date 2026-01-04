@@ -4,9 +4,7 @@ namespace Acorn.Database.Models;
 
 public class CharacterPaperdoll
 {
-    [Key]
-    [MaxLength(16)]
-    public required string CharacterName { get; set; }
+    [Key] [MaxLength(16)] public required string CharacterName { get; set; }
 
     public int Hat { get; set; }
     public int Necklace { get; set; }

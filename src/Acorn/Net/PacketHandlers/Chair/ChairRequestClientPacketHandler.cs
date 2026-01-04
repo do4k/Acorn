@@ -1,18 +1,21 @@
 using Acorn.World;
 using Microsoft.Extensions.Logging;
-using Moffat.EndlessOnline.SDK.Protocol;
+using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 
 namespace Acorn.Net.PacketHandlers.Chair;
 
-public class ChairRequestClientPacketHandler(ILogger<ChairRequestClientPacketHandler> logger, IWorldQueries worldQueries)
+public class ChairRequestClientPacketHandler(
+    ILogger<ChairRequestClientPacketHandler> logger,
+    IWorldQueries worldQueries)
     : IPacketHandler<ChairRequestClientPacket>
 {
     public async Task HandleAsync(PlayerState player, ChairRequestClientPacket packet)
     {
         if (player.Character == null || player.CurrentMap == null)
         {
-            logger.LogWarning("Player {SessionId} attempted to sit in chair without character or map", player.SessionId);
+            logger.LogWarning("Player {SessionId} attempted to sit in chair without character or map",
+                player.SessionId);
             return;
         }
 
@@ -27,6 +30,7 @@ public class ChairRequestClientPacketHandler(ILogger<ChairRequestClientPacketHan
                 {
                     await player.CurrentMap.SitInChair(player, sitData.Coords);
                 }
+
                 break;
 
             case SitAction.Stand:
@@ -35,7 +39,7 @@ public class ChairRequestClientPacketHandler(ILogger<ChairRequestClientPacketHan
         }
     }
 
-    public Task HandleAsync(PlayerState playerState, Moffat.EndlessOnline.SDK.Protocol.Net.IPacket packet)
+    public Task HandleAsync(PlayerState playerState, IPacket packet)
     {
         return HandleAsync(playerState, (ChairRequestClientPacket)packet);
     }

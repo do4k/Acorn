@@ -3,34 +3,34 @@ using Acorn.Game.Models;
 namespace Acorn.Game.Services;
 
 /// <summary>
-/// Service for managing NPC loot tables and calculating drops
+///     Service for managing NPC loot tables and calculating drops
 /// </summary>
 public interface ILootService
 {
     /// <summary>
-    /// Get the loot table for an NPC, or null if none configured
+    ///     Get the loot table for an NPC, or null if none configured
     /// </summary>
     NpcLootTable? GetNpcLootTable(int npcId);
 
     /// <summary>
-    /// Register or update loot table for an NPC
+    ///     Register or update loot table for an NPC
     /// </summary>
     void RegisterNpcLootTable(NpcLootTable lootTable);
 
     /// <summary>
-    /// Calculate a drop for an NPC kill (returns null if no drop occurs)
-    /// Uses probability-based random selection with weighted rates
+    ///     Calculate a drop for an NPC kill (returns null if no drop occurs)
+    ///     Uses probability-based random selection with weighted rates
     /// </summary>
     LootDrop? RollDrop(int npcId);
 
     /// <summary>
-    /// Get the amount for a drop (random between min and max)
+    ///     Get the amount for a drop (random between min and max)
     /// </summary>
     int RollDropAmount(LootDrop drop);
 }
 
 /// <summary>
-/// Default implementation of loot service
+///     Default implementation of loot service
 /// </summary>
 public class LootService : ILootService
 {
@@ -51,7 +51,9 @@ public class LootService : ILootService
     {
         var lootTable = GetNpcLootTable(npcId);
         if (lootTable == null || lootTable.Drops.Count == 0)
+        {
             return null;
+        }
 
         // Sort drops by rate for proper probability weighting
         var sortedDrops = lootTable.Drops
@@ -62,7 +64,7 @@ public class LootService : ILootService
         foreach (var drop in sortedDrops)
         {
             // Generate random value from 0-64000 (matching reoserv's system)
-            var roll = _random.Next(0, 64001);
+            var roll = _random.Next(0, 100);
             var internalRate = drop.GetInternalRate();
 
             if (roll <= internalRate)

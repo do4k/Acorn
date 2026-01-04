@@ -18,9 +18,8 @@ public class LoginRequestClientPacketHandler(
     IWorldQueries world
 ) : IPacketHandler<LoginRequestClientPacket>
 {
-    private readonly ILogger<LoginRequestClientPacketHandler> _logger = logger;
-    private readonly IDbRepository<Database.Models.Account> _repository = repository;
     private readonly IPaperdollService _paperdollService = paperdollService;
+    private readonly IDbRepository<Database.Models.Account> _repository = repository;
     private readonly IWorldQueries _world = world;
 
     public async Task HandleAsync(PlayerState playerState,

@@ -1,4 +1,3 @@
-using Acorn.Extensions;
 using Acorn.Game.Services;
 using Acorn.World;
 using Microsoft.Extensions.Logging;
@@ -11,14 +10,11 @@ namespace Acorn.Net.PacketHandlers.Player;
 public class PaperdollRequestClientPacketHandler : IPacketHandler<PaperdollRequestClientPacket>
 {
     private readonly IWorldQueries _world;
-    private readonly IPaperdollService _paperdollService;
-    private readonly ILogger<PaperdollRequestClientPacketHandler> _logger;
 
-    public PaperdollRequestClientPacketHandler(IWorldQueries world, IPaperdollService paperdollService, ILogger<PaperdollRequestClientPacketHandler> logger)
+    public PaperdollRequestClientPacketHandler(IWorldQueries world, IPaperdollService paperdollService,
+        ILogger<PaperdollRequestClientPacketHandler> logger)
     {
         _world = world;
-        _paperdollService = paperdollService;
-        _logger = logger;
     }
 
     public async Task HandleAsync(PlayerState playerState, PaperdollRequestClientPacket packet)
@@ -47,12 +43,14 @@ public class PaperdollRequestClientPacketHandler : IPacketHandler<PaperdollReque
                 GuildRank = "", // TODO: Implement guilds
                 PlayerId = packet.PlayerId,
                 ClassId = character.Class,
-                Gender = character.Gender,
+                Gender = character.Gender
             },
             Equipment = character.Equipment()
         });
     }
 
     public Task HandleAsync(PlayerState playerState, IPacket packet)
-        => HandleAsync(playerState, (PaperdollRequestClientPacket)packet);
+    {
+        return HandleAsync(playerState, (PaperdollRequestClientPacket)packet);
+    }
 }

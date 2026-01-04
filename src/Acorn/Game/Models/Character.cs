@@ -8,10 +8,10 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 namespace Acorn.Game.Models;
 
 /// <summary>
-/// Represents an in-game character. This is a pure data model.
-/// For operations like inventory management, use IInventoryService.
-/// For stat calculations, use IStatCalculator.
-/// For database mapping, use ICharacterMapper.
+///     Represents an in-game character. This is a pure data model.
+///     For operations like inventory management, use IInventoryService.
+///     For stat calculations, use IStatCalculator.
+///     For database mapping, use ICharacterMapper.
 /// </summary>
 public class Character
 {
@@ -107,24 +107,27 @@ public class Character
         };
     }
 
-    public Coords NextCoords() => AsCoords().NextCoords(Direction);
+    public Coords NextCoords()
+    {
+        return AsCoords().NextCoords(Direction);
+    }
 
     /// <summary>
-    /// Recover HP and TP based on divisor.
-    /// Formula: (MaxHP/divisor + 1) for HP, (MaxTP/divisor + 1) for TP.
-    /// Divisor should be 5 for standing, 10 for sitting.
+    ///     Recover HP and TP based on divisor.
+    ///     Formula: (MaxHP/divisor + 1) for HP, (MaxTP/divisor + 1) for TP.
+    ///     Divisor should be 5 for standing, 10 for sitting.
     /// </summary>
     public (int Hp, int Tp) Recover(int divisor)
     {
         if (Hp < MaxHp)
         {
-            var hpGain = (MaxHp / divisor) + 1;
+            var hpGain = MaxHp / divisor + 1;
             Hp = Math.Min(Hp + hpGain, MaxHp);
         }
 
         if (Tp < MaxTp)
         {
-            var tpGain = (MaxTp / divisor) + 1;
+            var tpGain = MaxTp / divisor + 1;
             Tp = Math.Min(Tp + tpGain, MaxTp);
         }
 
@@ -132,7 +135,7 @@ public class Character
     }
 
     /// <summary>
-    /// Add experience to the character.
+    ///     Add experience to the character.
     /// </summary>
     public void GainExperience(int amount)
     {
@@ -140,8 +143,8 @@ public class Character
     }
 
     /// <summary>
-    /// Get character stats for equipment change response.
-    /// Returns current stat values including equipment bonuses.
+    ///     Get character stats for equipment change response.
+    ///     Returns current stat values including equipment bonuses.
     /// </summary>
     public CharacterStatsEquipmentChange GetCharacterStatsEquipmentChange()
     {

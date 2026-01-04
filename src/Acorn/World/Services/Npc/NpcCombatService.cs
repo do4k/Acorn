@@ -19,29 +19,36 @@ public class NpcCombatService : INpcCombatService
         npc.DropBoredOpponents(boredThreshold);
     }
 
-    public int GetActRate(int spawnType) => spawnType switch
+    public int GetActRate(int spawnType)
     {
-        0 => 4,  // Fastest
-        1 => 8,
-        2 => 12,
-        3 => 16,
-        4 => 24,
-        5 => 32,
-        6 => 48, // Slowest
-        7 => 0,  // Stationary - never acts
-        _ => 16
-    };
+        return spawnType switch
+        {
+            0 => 4, // Fastest
+            1 => 8,
+            2 => 12,
+            3 => 16,
+            4 => 24,
+            5 => 32,
+            6 => 48, // Slowest
+            7 => 0, // Stationary - never acts
+            _ => 16
+        };
+    }
 
     public NpcUpdateAttack? TryAttack(NpcState npc, int npcIndex, IEnumerable<PlayerState> players,
         IFormulaService formulaService)
     {
         // Only aggressive/passive NPCs can attack
         if (npc.Data.Type != SdkNpcType.Aggressive && npc.Data.Type != SdkNpcType.Passive)
+        {
             return null;
+        }
 
         // Passive NPCs only attack if they have opponents
         if (npc.Data.Type == SdkNpcType.Passive && npc.Opponents.Count == 0)
+        {
             return null;
+        }
 
         // Find adjacent tiles
 
@@ -51,7 +58,7 @@ public class NpcCombatService : INpcCombatService
             new Coords { X = npc.X, Y = npc.Y - 1 }, // Up
             new Coords { X = npc.X, Y = npc.Y + 1 }, // Down  
             new Coords { X = npc.X - 1, Y = npc.Y }, // Left
-            new Coords { X = npc.X + 1, Y = npc.Y }  // Right
+            new Coords { X = npc.X + 1, Y = npc.Y } // Right
         };
 
         // Find players on adjacent tiles
@@ -62,7 +69,9 @@ public class NpcCombatService : INpcCombatService
             .ToList();
 
         if (adjacentPlayers.Count == 0)
+        {
             return null;
+        }
 
         // Prioritize opponents who have attacked this NPC
         PlayerState? target = null;
@@ -84,7 +93,9 @@ public class NpcCombatService : INpcCombatService
         }
 
         if (target?.Character == null)
+        {
             return null;
+        }
 
         // Calculate direction to face target
         var xDiff = npc.X - target.Character.X;

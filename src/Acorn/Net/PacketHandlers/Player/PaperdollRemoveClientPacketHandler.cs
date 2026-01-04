@@ -1,5 +1,4 @@
 using Acorn.Extensions;
-using Acorn.Game.Models;
 using Acorn.Game.Services;
 using Acorn.World.Services.Player;
 using Microsoft.Extensions.Logging;
@@ -11,9 +10,9 @@ namespace Acorn.Net.PacketHandlers.Player;
 
 public class PaperdollRemoveClientPacketHandler : IPacketHandler<PaperdollRemoveClientPacket>
 {
-    private readonly IPlayerController _playerController;
-    private readonly IPaperdollService _paperdollService;
     private readonly ILogger<PaperdollRemoveClientPacketHandler> _logger;
+    private readonly IPaperdollService _paperdollService;
+    private readonly IPlayerController _playerController;
 
     public PaperdollRemoveClientPacketHandler(
         IPlayerController playerController,
@@ -24,11 +23,13 @@ public class PaperdollRemoveClientPacketHandler : IPacketHandler<PaperdollRemove
         _paperdollService = paperdollService;
         _logger = logger;
     }
+
     public async Task HandleAsync(PlayerState playerState, PaperdollRemoveClientPacket packet)
     {
         if (playerState.Character is null || playerState.CurrentMap is null)
         {
-            _logger.LogWarning("PaperdollRemove failed - Character is null: {CharIsNull}, CurrentMap is null: {MapIsNull}", 
+            _logger.LogWarning(
+                "PaperdollRemove failed - Character is null: {CharIsNull}, CurrentMap is null: {MapIsNull}",
                 playerState.Character is null, playerState.CurrentMap is null);
             return;
         }
@@ -41,7 +42,7 @@ public class PaperdollRemoveClientPacketHandler : IPacketHandler<PaperdollRemove
 
         if (!unequipSuccess)
         {
-            _logger.LogWarning("Player {Player} failed to unequip item {ItemId} from slot {SubLoc}", 
+            _logger.LogWarning("Player {Player} failed to unequip item {ItemId} from slot {SubLoc}",
                 character.Name, packet.ItemId, packet.SubLoc);
             return;
         }
@@ -68,10 +69,11 @@ public class PaperdollRemoveClientPacketHandler : IPacketHandler<PaperdollRemove
 
         // Broadcast avatar change to nearby players
         var broadcastPacket = new AvatarAgreeServerPacket { Change = avatarChange };
-        await playerState.CurrentMap.BroadcastPacket(broadcastPacket, except: playerState);
+        await playerState.CurrentMap.BroadcastPacket(broadcastPacket, playerState);
     }
 
     public Task HandleAsync(PlayerState playerState, IPacket packet)
-        => HandleAsync(playerState, (PaperdollRemoveClientPacket)packet);
+    {
+        return HandleAsync(playerState, (PaperdollRemoveClientPacket)packet);
+    }
 }
-

@@ -11,7 +11,6 @@ internal class CharacterRequestClientPacketHandler : IPacketHandler<CharacterReq
     {
         if (string.Equals(packet.RequestString, "new", StringComparison.OrdinalIgnoreCase) is false)
         {
-
         }
 
         if (playerState.Account?.Characters.Count() >= 3)

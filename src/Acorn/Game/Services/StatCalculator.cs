@@ -5,7 +5,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Pub;
 namespace Acorn.Game.Services;
 
 /// <summary>
-/// Default implementation of stat calculation based on EOSERV formulas.
+///     Default implementation of stat calculation based on EOSERV formulas.
 /// </summary>
 public class StatCalculator : IStatCalculator
 {
@@ -25,49 +25,49 @@ public class StatCalculator : IStatCalculator
         }
 
         // Calculate adjusted stats: base stats + class bonuses + equipment bonuses
-        int adjStr = character.Str + @class.Str;
-        int adjIntl = character.Int + @class.Intl;
-        int adjWis = character.Wis + @class.Wis;
-        int adjAgi = character.Agi + @class.Agi;
-        int adjCon = character.Con + @class.Con;
-        int adjCha = character.Cha + @class.Cha;
+        var adjStr = character.Str + @class.Str;
+        var adjIntl = character.Int + @class.Intl;
+        var adjWis = character.Wis + @class.Wis;
+        var adjAgi = character.Agi + @class.Agi;
+        var adjCon = character.Con + @class.Con;
+        var adjCha = character.Cha + @class.Cha;
 
         // Add equipment bonuses
         AddEquipmentBonuses(character, ref adjStr, ref adjIntl, ref adjWis, ref adjAgi, ref adjCon, ref adjCha);
 
         // Base MaxHP: (level * con / 20) + (level * class_con / 10) + base
         // EOSERV default: Level / 2 + 10 + (Con * 5) + (Class.Con * Level / 10)
-        character.MaxHp = (character.Level / 2) + 10 + (adjCon * 5) + (@class.Con * character.Level / 10);
+        character.MaxHp = character.Level / 2 + 10 + adjCon * 5 + @class.Con * character.Level / 10;
         character.MaxHp = Math.Min(character.MaxHp, 32767); // Short max value
 
         // Base MaxTP: (level * int / 20) + (level * class_int / 10) + base
         // EOSERV default: Level + (Intl * 2) + (Class.Wis * Level / 10)
-        character.MaxTp = character.Level + (adjIntl * 2) + (@class.Wis * character.Level / 10);
+        character.MaxTp = character.Level + adjIntl * 2 + @class.Wis * character.Level / 10;
         character.MaxTp = Math.Min(character.MaxTp, 32767);
 
         // Base MaxSP: (level * agi / 20) + (level * class_agi / 10) + base  
         // EOSERV default: Level / 4 + 50 + (Agi * 2) + (Class.Agi * Level / 10)
-        character.MaxSp = (character.Level / 4) + 50 + (adjAgi * 2) + (@class.Agi * character.Level / 10);
+        character.MaxSp = character.Level / 4 + 50 + adjAgi * 2 + @class.Agi * character.Level / 10;
         character.MaxSp = Math.Min(character.MaxSp, 32767);
 
         // Calculate MaxWeight
         // EOSERV: 70 + (Str * 5) + (Class.Str * Level / 10)
-        character.MaxWeight = 70 + (adjStr * 5) + (@class.Str * character.Level / 10);
+        character.MaxWeight = 70 + adjStr * 5 + @class.Str * character.Level / 10;
         character.MaxWeight = Math.Min(character.MaxWeight, 250);
 
         // Calculate base damage (Str/Int based on class stat group)
         // Formulas copied from eoserv: https://github.com/eoserv/mainclone-eoserv/blob/main/data/formulas.ini
-        int baseDam = @class.StatGroup switch
+        var baseDam = @class.StatGroup switch
         {
-            0 => adjStr / 3,        // Melee (Str)
-            1 => adjStr / 5,        // Rogue (Str) 
-            2 => adjIntl / 3,       // Caster (Int)
-            3 => adjStr / 6,        // Archer (Str)
-            _ => 0                  // Peasant/Other
+            0 => adjStr / 3, // Melee (Str)
+            1 => adjStr / 5, // Rogue (Str) 
+            2 => adjIntl / 3, // Caster (Int)
+            3 => adjStr / 6, // Archer (Str)
+            _ => 0 // Peasant/Other
         };
 
-        int minDamage = Math.Max(1, baseDam);
-        int maxDamage = Math.Max(1, baseDam + (character.Level / 10));
+        var minDamage = Math.Max(1, baseDam);
+        var maxDamage = Math.Max(1, baseDam + character.Level / 10);
 
         // Add equipment damage bonuses (from weapon, etc.)
         AddEquipmentDamageBonuses(character, ref minDamage, ref maxDamage);
@@ -77,45 +77,45 @@ public class StatCalculator : IStatCalculator
 
         // Calculate Accuracy (based on class stat group)
         // Formulas: Melee=agi/3, Rogue=agi/3, Caster=wis/3, Archer=agi/5
-        int baseAccuracy = @class.StatGroup switch
+        var baseAccuracy = @class.StatGroup switch
         {
-            0 => adjAgi / 3,        // Melee (Agi)
-            1 => adjAgi / 3,        // Rogue (Agi)
-            2 => adjWis / 3,        // Caster (Wis)
-            3 => adjAgi / 5,        // Archer (Agi)
-            _ => 0                  // Peasant/Other
+            0 => adjAgi / 3, // Melee (Agi)
+            1 => adjAgi / 3, // Rogue (Agi)
+            2 => adjWis / 3, // Caster (Wis)
+            3 => adjAgi / 5, // Archer (Agi)
+            _ => 0 // Peasant/Other
         };
-        int accuracy = baseAccuracy;
+        var accuracy = baseAccuracy;
         // Add weapon accuracy bonus
         AddEquipmentAccuracyBonus(character, ref accuracy);
         character.Accuracy = Math.Min(accuracy, 32767);
 
         // Calculate Evade (based on class stat group)
         // Formulas: Melee=agi/5, Rogue=agi/3, Caster=agi/4, Archer=agi/4
-        int baseEvade = @class.StatGroup switch
+        var baseEvade = @class.StatGroup switch
         {
-            0 => adjAgi / 5,        // Melee (Agi)
-            1 => adjAgi / 3,        // Rogue (Agi)
-            2 => adjAgi / 4,        // Caster (Agi)
-            3 => adjAgi / 4,        // Archer (Agi)
-            _ => 0                  // Peasant/Other
+            0 => adjAgi / 5, // Melee (Agi)
+            1 => adjAgi / 3, // Rogue (Agi)
+            2 => adjAgi / 4, // Caster (Agi)
+            3 => adjAgi / 4, // Archer (Agi)
+            _ => 0 // Peasant/Other
         };
-        int evade = baseEvade;
+        var evade = baseEvade;
         // Add armor evade bonus
         AddEquipmentEvadeBonus(character, ref evade);
         character.Evade = Math.Min(evade, 32767);
 
         // Calculate Armor (based on class stat group)
         // Formulas: Melee=con/4, Rogue=con/4, Caster=con/5, Archer=con/5
-        int baseArmor = @class.StatGroup switch
+        var baseArmor = @class.StatGroup switch
         {
-            0 => adjCon / 4,        // Melee (Con)
-            1 => adjCon / 4,        // Rogue (Con)
-            2 => adjCon / 5,        // Caster (Con)
-            3 => adjCon / 5,        // Archer (Con)
-            _ => 0                  // Peasant/Other
+            0 => adjCon / 4, // Melee (Con)
+            1 => adjCon / 4, // Rogue (Con)
+            2 => adjCon / 5, // Caster (Con)
+            3 => adjCon / 5, // Archer (Con)
+            _ => 0 // Peasant/Other
         };
-        int armor = baseArmor;
+        var armor = baseArmor;
         // Add equipment armor bonuses
         AddEquipmentArmorBonus(character, ref armor);
         character.Armor = Math.Min(armor, 32767);
@@ -153,10 +153,16 @@ public class StatCalculator : IStatCalculator
 
         foreach (var itemId in equipment)
         {
-            if (itemId == 0) continue;
+            if (itemId == 0)
+            {
+                continue;
+            }
 
             var item = eif.GetItem(itemId);
-            if (item is null) continue;
+            if (item is null)
+            {
+                continue;
+            }
 
             adjStr += item.Str;
             adjIntl += item.Intl;
@@ -189,10 +195,16 @@ public class StatCalculator : IStatCalculator
 
         foreach (var itemId in equipment)
         {
-            if (itemId == 0) continue;
+            if (itemId == 0)
+            {
+                continue;
+            }
 
             var item = eif.GetItem(itemId);
-            if (item is null) continue;
+            if (item is null)
+            {
+                continue;
+            }
 
             minDamage += item.MinDamage;
             maxDamage += item.MaxDamage;
@@ -204,7 +216,10 @@ public class StatCalculator : IStatCalculator
         var eif = _dataFileRepository.Eif;
         var weapon = character.Paperdoll.Weapon;
 
-        if (weapon == 0) return;
+        if (weapon == 0)
+        {
+            return;
+        }
 
         var item = eif.GetItem(weapon);
         if (item is not null)
@@ -218,7 +233,10 @@ public class StatCalculator : IStatCalculator
         var eif = _dataFileRepository.Eif;
         var armor = character.Paperdoll.Armor;
 
-        if (armor == 0) return;
+        if (armor == 0)
+        {
+            return;
+        }
 
         var item = eif.GetItem(armor);
         if (item is not null)
@@ -241,10 +259,16 @@ public class StatCalculator : IStatCalculator
 
         foreach (var itemId in equipment)
         {
-            if (itemId == 0) continue;
+            if (itemId == 0)
+            {
+                continue;
+            }
 
             var item = eif.GetItem(itemId);
-            if (item is null) continue;
+            if (item is null)
+            {
+                continue;
+            }
 
             armor += item.Armor;
         }

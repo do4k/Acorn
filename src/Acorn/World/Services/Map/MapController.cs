@@ -11,16 +11,14 @@ namespace Acorn.World.Services.Map;
 
 public class MapController : IMapController
 {
+    private const int NPC_ACT_RATE = 2;
+    private const int NPC_BORED_THRESHOLD = 60;
+    private readonly IFormulaService _formulaService;
     private readonly ILogger<MapController> _logger;
-    private readonly IMapTileService _tileService;
-    private readonly IMapBroadcastService _broadcastService;
     private readonly INpcCombatService _npcCombatService;
     private readonly INpcController _npcController;
     private readonly IPlayerController _playerController;
-    private readonly IFormulaService _formulaService;
-
-    private const int NPC_ACT_RATE = 2;
-    private const int NPC_BORED_THRESHOLD = 60;
+    private readonly IMapTileService _tileService;
 
     public MapController(
         IMapTileService tileService,
@@ -32,7 +30,6 @@ public class MapController : IMapController
         ILogger<MapController> logger)
     {
         _tileService = tileService;
-        _broadcastService = broadcastService;
         _npcCombatService = npcCombatService;
         _npcController = npcController;
         _playerController = playerController;
@@ -42,7 +39,10 @@ public class MapController : IMapController
 
     public async Task<bool> SitInChairAsync(PlayerState player, Coords coords, MapState map)
     {
-        if (player.Character == null) return false;
+        if (player.Character == null)
+        {
+            return false;
+        }
 
         // Check if player is standing
         if (player.Character.SitState != SitState.Stand)
@@ -69,19 +69,21 @@ public class MapController : IMapController
         // Check if tile is a chair
         var tile = _tileService.GetTile(map.Data, coords);
         if (tile == null)
+        {
             return false;
+        }
 
-        Direction? sitDirection = tile switch
+        var sitDirection = tile switch
         {
             MapTileSpec.ChairDown when playerCoords.Y == coords.Y + 1 && playerCoords.X == coords.X => Direction.Down,
             MapTileSpec.ChairUp when playerCoords.Y == coords.Y - 1 && playerCoords.X == coords.X => Direction.Up,
             MapTileSpec.ChairLeft when playerCoords.X == coords.X + 1 && playerCoords.Y == coords.Y => Direction.Left,
             MapTileSpec.ChairRight when playerCoords.X == coords.X - 1 && playerCoords.Y == coords.Y => Direction.Right,
             MapTileSpec.ChairAll => playerCoords.Y == coords.Y + 1 ? Direction.Down
-                                  : playerCoords.Y == coords.Y - 1 ? Direction.Up
-                                  : playerCoords.X == coords.X + 1 ? Direction.Left
-                                  : playerCoords.X == coords.X - 1 ? Direction.Right
-                                  : (Direction?)null,
+                : playerCoords.Y == coords.Y - 1 ? Direction.Up
+                : playerCoords.X == coords.X + 1 ? Direction.Left
+                : playerCoords.X == coords.X - 1 ? Direction.Right
+                : (Direction?)null,
             _ => null
         };
 
@@ -113,10 +115,15 @@ public class MapController : IMapController
 
     public async Task<bool> StandFromChairAsync(PlayerState player, MapState map)
     {
-        if (player.Character == null) return false;
+        if (player.Character == null)
+        {
+            return false;
+        }
 
         if (player.Character.SitState != SitState.Chair)
+        {
             return false;
+        }
 
         player.Character.SitState = SitState.Stand;
 
@@ -155,7 +162,8 @@ public class MapController : IMapController
                     // Calculate spawn position with variance for non-fixed NPCs
                     if (_npcController.ShouldUseSpawnVariance(npc))
                     {
-                        var (spawnX, spawnY) = _npcController.FindSpawnPosition(npc, npc.SpawnX, npc.SpawnY, map.Players, map.Npcs, map.Data);
+                        var (spawnX, spawnY) = _npcController.FindSpawnPosition(npc, npc.SpawnX, npc.SpawnY,
+                            map.Players, map.Npcs, map.Data);
                         npc.X = spawnX;
                         npc.Y = spawnY;
                     }
@@ -202,7 +210,9 @@ public class MapController : IMapController
             // Only act if enough time has passed based on spawn type speed
             var actRate = _npcCombatService.GetActRate(npc.SpawnType);
             if (actRate == 0 || npc.ActTicks < actRate)
+            {
                 continue;
+            }
 
             // Try to attack first
             var attackResult = _npcCombatService.TryAttack(npc, npcList.IndexOf(npc), map.Players, _formulaService);
@@ -296,7 +306,8 @@ public class MapController : IMapController
     {
         if (player.Character is null)
         {
-            _logger.LogWarning("Player {PlayerId} has no character associated with them, skipping recovery.", player.SessionId);
+            _logger.LogWarning("Player {PlayerId} has no character associated with them, skipping recovery.",
+                player.SessionId);
             return Task.CompletedTask;
         }
 
@@ -307,7 +318,7 @@ public class MapController : IMapController
         return player.Send(new RecoverPlayerServerPacket
         {
             Hp = hp,
-            Tp = tp,
+            Tp = tp
         });
     }
 }

@@ -1,17 +1,21 @@
 using Acorn.World;
 using Microsoft.Extensions.Logging;
+using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 
 namespace Acorn.Net.PacketHandlers.Guild;
 
-public class GuildRequestClientPacketHandler(ILogger<GuildRequestClientPacketHandler> logger, IWorldQueries worldQueries)
+public class GuildRequestClientPacketHandler(
+    ILogger<GuildRequestClientPacketHandler> logger,
+    IWorldQueries worldQueries)
     : IPacketHandler<GuildRequestClientPacket>
 {
     public async Task HandleAsync(PlayerState player, GuildRequestClientPacket packet)
     {
         if (player.Character == null || player.CurrentMap == null)
         {
-            logger.LogWarning("Player {SessionId} attempted to guild action without character or map", player.SessionId);
+            logger.LogWarning("Player {SessionId} attempted to guild action without character or map",
+                player.SessionId);
             return;
         }
 
@@ -22,7 +26,7 @@ public class GuildRequestClientPacketHandler(ILogger<GuildRequestClientPacketHan
         await Task.CompletedTask;
     }
 
-    public Task HandleAsync(PlayerState playerState, Moffat.EndlessOnline.SDK.Protocol.Net.IPacket packet)
+    public Task HandleAsync(PlayerState playerState, IPacket packet)
     {
         return HandleAsync(playerState, (GuildRequestClientPacket)packet);
     }

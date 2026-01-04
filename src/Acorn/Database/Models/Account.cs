@@ -4,8 +4,8 @@ namespace Acorn.Database.Models;
 
 public class Account
 {
-    [Key]
-    public required string Username { get; set; }
+    [Key] public required string Username { get; set; }
+
     public required string Password { get; set; }
     public required string Salt { get; set; }
     public required string FullName { get; set; }

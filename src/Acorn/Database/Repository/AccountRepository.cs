@@ -52,9 +52,9 @@ public class AccountRepository : IDbRepository<Account>
         {
             var account = await _context.Accounts
                 .Include(a => a.Characters)
-                    .ThenInclude(c => c.Paperdoll)
+                .ThenInclude(c => c.Paperdoll)
                 .Include(a => a.Characters)
-                    .ThenInclude(c => c.Items)
+                .ThenInclude(c => c.Items)
                 .FirstOrDefaultAsync(a => a.Username == username);
 
             if (account is null)

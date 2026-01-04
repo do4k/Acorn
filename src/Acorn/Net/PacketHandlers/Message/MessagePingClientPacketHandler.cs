@@ -1,5 +1,6 @@
 using Acorn.World;
 using Microsoft.Extensions.Logging;
+using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 
 namespace Acorn.Net.PacketHandlers.Message;
@@ -22,9 +23,8 @@ public class MessagePingClientPacketHandler(ILogger<MessagePingClientPacketHandl
         await Task.CompletedTask;
     }
 
-    public Task HandleAsync(PlayerState playerState, Moffat.EndlessOnline.SDK.Protocol.Net.IPacket packet)
+    public Task HandleAsync(PlayerState playerState, IPacket packet)
     {
         return HandleAsync(playerState, (MessagePingClientPacket)packet);
     }
 }
-

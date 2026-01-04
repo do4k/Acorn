@@ -1,10 +1,13 @@
 using Acorn.World;
 using Microsoft.Extensions.Logging;
+using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 
 namespace Acorn.Net.PacketHandlers.Trade;
 
-public class TradeRequestClientPacketHandler(ILogger<TradeRequestClientPacketHandler> logger, IWorldQueries worldQueries)
+public class TradeRequestClientPacketHandler(
+    ILogger<TradeRequestClientPacketHandler> logger,
+    IWorldQueries worldQueries)
     : IPacketHandler<TradeRequestClientPacket>
 {
     public async Task HandleAsync(PlayerState player, TradeRequestClientPacket packet)
@@ -22,7 +25,7 @@ public class TradeRequestClientPacketHandler(ILogger<TradeRequestClientPacketHan
         await Task.CompletedTask;
     }
 
-    public Task HandleAsync(PlayerState playerState, Moffat.EndlessOnline.SDK.Protocol.Net.IPacket packet)
+    public Task HandleAsync(PlayerState playerState, IPacket packet)
     {
         return HandleAsync(playerState, (TradeRequestClientPacket)packet);
     }

@@ -29,7 +29,8 @@ internal class WarpTakeClientPacketHandler : IPacketHandler<WarpTakeClientPacket
         var map = _world.FindMap(packet.MapId);
         if (map is null)
         {
-            _logger.LogError("Map with ID {MapId} not found for player {Player}", packet.MapId, playerState.Account?.Username);
+            _logger.LogError("Map with ID {MapId} not found for player {Player}", packet.MapId,
+                playerState.Account?.Username);
             return;
         }
 

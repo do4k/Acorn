@@ -1,5 +1,4 @@
 ﻿using Acorn.World;
-using Acorn.World.Npc;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
@@ -17,7 +16,8 @@ internal class TalkMsgClientPacketHandler : IPacketHandler<TalkMsgClientPacket>
 
     public async Task HandleAsync(PlayerState playerState, TalkMsgClientPacket packet)
     {
-        var message = new GlobalMessage(Guid.NewGuid(), packet.Message, playerState.Character?.Name ?? "Unknown", DateTime.UtcNow);
+        var message = new GlobalMessage(Guid.NewGuid(), packet.Message, playerState.Character?.Name ?? "Unknown",
+            DateTime.UtcNow);
         _world.AddGlobalMessage(message);
 
         var broadcast = _world.GetGlobalChatListeners()
@@ -29,7 +29,6 @@ internal class TalkMsgClientPacketHandler : IPacketHandler<TalkMsgClientPacket>
             }));
 
         await Task.WhenAll(broadcast);
-
     }
 
     public Task HandleAsync(PlayerState playerState, IPacket packet)

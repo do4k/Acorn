@@ -1,8 +1,8 @@
 using Acorn.Database.Repository;
 using Acorn.Game.Mappers;
 using Acorn.Game.Services;
-using Acorn.World;
 using Microsoft.Extensions.Logging;
+using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 
 namespace Acorn.Net.PacketHandlers.Item;
@@ -44,7 +44,7 @@ public class ItemJunkClientPacketHandler(
         }
     }
 
-    public Task HandleAsync(PlayerState playerState, Moffat.EndlessOnline.SDK.Protocol.Net.IPacket packet)
+    public Task HandleAsync(PlayerState playerState, IPacket packet)
     {
         return HandleAsync(playerState, (ItemJunkClientPacket)packet);
     }

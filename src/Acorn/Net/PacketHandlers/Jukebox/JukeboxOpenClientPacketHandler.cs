@@ -1,5 +1,6 @@
 using Acorn.World;
 using Microsoft.Extensions.Logging;
+using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 
 namespace Acorn.Net.PacketHandlers.Jukebox;
@@ -11,7 +12,8 @@ public class JukeboxOpenClientPacketHandler(ILogger<JukeboxOpenClientPacketHandl
     {
         if (player.Character == null || player.CurrentMap == null)
         {
-            logger.LogWarning("Player {SessionId} attempted to open jukebox without character or map", player.SessionId);
+            logger.LogWarning("Player {SessionId} attempted to open jukebox without character or map",
+                player.SessionId);
             return;
         }
 
@@ -23,9 +25,8 @@ public class JukeboxOpenClientPacketHandler(ILogger<JukeboxOpenClientPacketHandl
         await Task.CompletedTask;
     }
 
-    public Task HandleAsync(PlayerState playerState, Moffat.EndlessOnline.SDK.Protocol.Net.IPacket packet)
+    public Task HandleAsync(PlayerState playerState, IPacket packet)
     {
         return HandleAsync(playerState, (JukeboxOpenClientPacket)packet);
     }
 }
-

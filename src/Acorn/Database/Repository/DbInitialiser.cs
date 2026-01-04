@@ -23,7 +23,7 @@ public class DbInitialiser : IDbInitialiser
         try
         {
             _logger.LogInformation("Ensuring database is created...");
-            
+
             // EnsureCreatedAsync creates the database schema if it doesn't exist
             // Note: This won't apply migrations, use MigrateAsync() if you add EF migrations
             var created = await _context.Database.EnsureCreatedAsync();
@@ -35,7 +35,7 @@ public class DbInitialiser : IDbInitialiser
             {
                 _logger.LogInformation("Database schema already exists");
             }
-            
+
             _logger.LogInformation("Database initialized successfully");
 
             // Seed default account and character if they don't exist
@@ -62,7 +62,7 @@ public class DbInitialiser : IDbInitialiser
         catch (Exception ex) when (ex.Message.Contains("doesn't exist") || ex.Message.Contains("does not exist"))
         {
             _logger.LogWarning("Tables don't exist yet. Creating schema...");
-            
+
             // If tables don't exist, create them explicitly using the generated script
             try
             {
@@ -78,7 +78,7 @@ public class DbInitialiser : IDbInitialiser
                 _logger.LogError(createEx, "Failed to create database schema");
                 throw;
             }
-            
+
             // Retry the query after creating tables
             acornAccount = await _context.Accounts
                 .Include(a => a.Characters)
@@ -166,7 +166,7 @@ public class DbInitialiser : IDbInitialiser
                 BankMax = 100,
                 GoldBank = 0,
                 Usage = 0,
-                Items = new List<CharacterItem>(),
+                Items = new List<CharacterItem>()
             };
 
             var paperdoll = new CharacterPaperdoll
@@ -190,15 +190,15 @@ public class DbInitialiser : IDbInitialiser
             };
 
             character.Paperdoll = paperdoll;
-            
+
             _context.Characters.Add(character);
             _context.CharacterPaperdolls.Add(paperdoll);
-            
+
             await _context.SaveChangesAsync();
-            
+
             // DEBUG: Re-read from database to verify
             var saved = await _context.Characters.FindAsync("acorn");
-            
+
             _logger.LogInformation("Default 'acorn' character created");
         }
     }

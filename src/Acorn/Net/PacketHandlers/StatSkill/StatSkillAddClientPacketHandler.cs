@@ -1,10 +1,13 @@
 using Acorn.World;
 using Microsoft.Extensions.Logging;
+using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 
 namespace Acorn.Net.PacketHandlers.StatSkill;
 
-public class StatSkillAddClientPacketHandler(ILogger<StatSkillAddClientPacketHandler> logger, IWorldQueries worldQueries)
+public class StatSkillAddClientPacketHandler(
+    ILogger<StatSkillAddClientPacketHandler> logger,
+    IWorldQueries worldQueries)
     : IPacketHandler<StatSkillAddClientPacket>
 {
     public async Task HandleAsync(PlayerState player, StatSkillAddClientPacket packet)
@@ -22,7 +25,7 @@ public class StatSkillAddClientPacketHandler(ILogger<StatSkillAddClientPacketHan
         await Task.CompletedTask;
     }
 
-    public Task HandleAsync(PlayerState playerState, Moffat.EndlessOnline.SDK.Protocol.Net.IPacket packet)
+    public Task HandleAsync(PlayerState playerState, IPacket packet)
     {
         return HandleAsync(playerState, (StatSkillAddClientPacket)packet);
     }

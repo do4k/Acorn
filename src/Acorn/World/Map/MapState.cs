@@ -4,7 +4,6 @@ using Acorn.Extensions;
 using Acorn.Game.Services;
 using Acorn.Net;
 using Acorn.World.Npc;
-using Acorn.World.Services;
 using Acorn.World.Services.Map;
 using Acorn.World.Services.Npc;
 using Microsoft.Extensions.Logging;
@@ -12,12 +11,11 @@ using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using Moffat.EndlessOnline.SDK.Protocol.Pub;
 
 namespace Acorn.World.Map;
 
 /// <summary>
-/// Represents an item on the map with protection timer
+///     Represents an item on the map with protection timer
 /// </summary>
 public class MapItem
 {
@@ -30,11 +28,8 @@ public class MapItem
 
 public class MapState
 {
-    private readonly ILogger<MapState> _logger;
-    private readonly IDataFileRepository _dataRepository;
     private readonly IMapBroadcastService _broadcastService;
     private readonly IMapController _mapController;
-    private readonly INpcController _npcController;
     private readonly IPaperdollService _paperdollService;
     private readonly int _playerRecoverRate;
 
@@ -53,11 +48,8 @@ public class MapState
     {
         Id = data.Id;
         Data = data.Map;
-        _logger = logger;
-        _dataRepository = dataRepository;
         _broadcastService = broadcastService;
         _mapController = mapController;
-        _npcController = npcController;
         _paperdollService = paperdollService;
         _playerRecoverRate = playerRecoverRate;
 
@@ -109,7 +101,9 @@ public class MapState
     }
 
     public IEnumerable<PlayerState> PlayersExcept(PlayerState? except)
-        => Players.Where(x => except is null || x != except);
+    {
+        return Players.Where(x => except is null || x != except);
+    }
 
     public async Task BroadcastPacket(IPacket packet, PlayerState? except = null)
     {
@@ -117,7 +111,8 @@ public class MapState
     }
 
     public NearbyInfo AsNearbyInfo(PlayerState? except = null, WarpEffect warpEffect = WarpEffect.None)
-        => new()
+    {
+        return new NearbyInfo
         {
             Characters = Players
                 .Where(x => x.Character is not null)
@@ -133,13 +128,16 @@ public class MapState
             }).ToList(),
             Npcs = AsNpcMapInfo()
         };
+    }
 
     public List<NpcMapInfo> AsNpcMapInfo()
-        => Npcs.Select((x, i) => (npc: x, index: i))
+    {
+        return Npcs.Select((x, i) => (npc: x, index: i))
             .Where(t => !t.npc.IsDead)
             .Select(t => t.npc.AsNpcMapInfo(t.index))
             .Take(252) // EO Protocol limit: NpcMapInfo uses byte field, max 252 NPCs
             .ToList();
+    }
 
     public async Task NotifyEnter(PlayerState player, WarpEffect warpEffect = WarpEffect.None)
     {
@@ -174,13 +172,16 @@ public class MapState
     {
         return Players.Any(p => p.Character != null && !p.Character.Hidden &&
                                 p.Character.X == coords.X && p.Character.Y == coords.Y)
-            || Npcs.Any(n => n.X == coords.X && n.Y == coords.Y);
+               || Npcs.Any(n => n.X == coords.X && n.Y == coords.Y);
     }
 
     public int GetNextItemIndex(int seed = 1)
     {
         if (Items.ContainsKey(seed))
+        {
             return GetNextItemIndex(seed + 1);
+        }
+
         return seed;
     }
 
@@ -197,7 +198,9 @@ public class MapState
     public async Task Tick()
     {
         if (Players.Any() is false)
+        {
             return;
+        }
 
         // Process item protection timers
         _mapController.ProcessItemProtection(this);

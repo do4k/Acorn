@@ -1,18 +1,15 @@
 using Acorn.Database.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Protocol;
 
 namespace Acorn.Database;
 
 public class AcornDbContext : DbContext
 {
-    private readonly DatabaseOptions _options;
 
-    public AcornDbContext(DbContextOptions<AcornDbContext> options, IOptions<DatabaseOptions> dbOptions)
+    public AcornDbContext(DbContextOptions<AcornDbContext> options)
         : base(options)
     {
-        _options = dbOptions.Value;
     }
 
     public DbSet<Account> Accounts { get; set; }
@@ -75,6 +72,14 @@ public class AcornDbContext : DbContext
                     v => (Direction)v
                 );
 
+            // Configure stat properties - "Int" is a reserved keyword in SQLite, use quoted name
+            entity.Property(e => e.Str).IsRequired();
+            entity.Property(e => e.Int).IsRequired().HasColumnName("\"Int\"");
+            entity.Property(e => e.Wis).IsRequired();
+            entity.Property(e => e.Agi).IsRequired();
+            entity.Property(e => e.Con).IsRequired();
+            entity.Property(e => e.Cha).IsRequired();
+
             // Configure relationships
             entity.HasMany(e => e.Items)
                 .WithOne(i => i.Character)
@@ -132,7 +137,7 @@ public class AcornDbContext : DbContext
                 LastUsed = new DateTime(2024, 8, 31, 0, 0, 0, DateTimeKind.Utc)
             }
         );
-        
+
         // Note: Do NOT seed Character data here - HasConversion doesn't work with HasData
         // Character seeding is done in DbInitialiser after the database is created
     }

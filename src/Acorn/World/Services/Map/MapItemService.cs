@@ -9,18 +9,17 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 namespace Acorn.World.Services.Map;
 
 /// <summary>
-/// Default implementation of map item operations.
+///     Default implementation of map item operations.
 /// </summary>
 public class MapItemService : IMapItemService
 {
-    private readonly IInventoryService _inventoryService;
-    private readonly IWeightCalculator _weightCalculator;
-    private readonly IDataFileRepository _dataRepository;
-    private readonly IMapTileService _tileService;
-    private readonly ILogger<MapItemService> _logger;
-
     private const int DropDistance = 2;
     private const int DropProtectTicks = 300; // ~3 seconds at 10 ticks/sec
+    private readonly IDataFileRepository _dataRepository;
+    private readonly IInventoryService _inventoryService;
+    private readonly ILogger<MapItemService> _logger;
+    private readonly IMapTileService _tileService;
+    private readonly IWeightCalculator _weightCalculator;
 
     public MapItemService(
         IInventoryService inventoryService,
@@ -36,10 +35,13 @@ public class MapItemService : IMapItemService
         _logger = logger;
     }
 
-    public async Task<ItemDropResult> TryDropItem(PlayerState player, MapState map, int itemId, int amount, Coords coords)
+    public async Task<ItemDropResult> TryDropItem(PlayerState player, MapState map, int itemId, int amount,
+        Coords coords)
     {
         if (player.Character == null)
+        {
             return new ItemDropResult(false, ErrorMessage: "No character");
+        }
 
         // Validate distance
         var playerCoords = player.Character.AsCoords();
@@ -66,7 +68,9 @@ public class MapItemService : IMapItemService
 
         // Remove from player inventory
         if (!_inventoryService.TryRemoveItem(player.Character, itemId, amount))
+        {
             return new ItemDropResult(false, ErrorMessage: "Failed to remove from inventory");
+        }
 
         // Add to map
         var itemIndex = GetNextItemIndex(map);
@@ -90,7 +94,9 @@ public class MapItemService : IMapItemService
     public async Task<ItemPickupResult> TryPickupItem(PlayerState player, MapState map, int itemIndex)
     {
         if (player.Character == null)
+        {
             return new ItemPickupResult(false, ErrorMessage: "No character");
+        }
 
         // Check if item exists
         if (!map.Items.TryGetValue(itemIndex, out var mapItem))
@@ -158,7 +164,10 @@ public class MapItemService : IMapItemService
     private static int GetNextItemIndex(MapState map, int seed = 1)
     {
         if (map.Items.ContainsKey(seed))
+        {
             return GetNextItemIndex(map, seed + 1);
+        }
+
         return seed;
     }
 }

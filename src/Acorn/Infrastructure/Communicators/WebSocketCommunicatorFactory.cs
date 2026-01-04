@@ -5,6 +5,9 @@ namespace Acorn.Infrastructure.Communicators;
 
 public class WebSocketCommunicatorFactory(ILogger<WebSocketCommunicator> logger)
 {
-    public Task<WebSocketCommunicator> InitialiseAsync(HttpListenerContext client, CancellationToken cancellationToken = default)
-        => WebSocketCommunicator.CreateAsync(client, logger, cancellationToken);
+    public Task<WebSocketCommunicator> InitialiseAsync(HttpListenerContext client,
+        CancellationToken cancellationToken = default)
+    {
+        return WebSocketCommunicator.CreateAsync(client, logger, cancellationToken);
+    }
 }

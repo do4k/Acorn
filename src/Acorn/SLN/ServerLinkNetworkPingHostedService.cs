@@ -13,8 +13,8 @@ public class ServerLinkNetworkPingHostedService(
     IServerLinkNetworkClient client)
     : BackgroundService
 {
-    private readonly SLNOptions _slnOptions = serverOptions.Value.Hosting.SLN;
     private readonly HostingOptions _hostingOptions = serverOptions.Value.Hosting;
+    private readonly SLNOptions _slnOptions = serverOptions.Value.Hosting.SLN;
 
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
@@ -24,7 +24,7 @@ public class ServerLinkNetworkPingHostedService(
         }
 
         logger.LogDebug("Starting ServerLinkNetworkPingHostedService");
-        
+
         // Initial check
         await CheckSlnAsync();
 
@@ -39,10 +39,12 @@ public class ServerLinkNetworkPingHostedService(
     {
         try
         {
-            logger.LogDebug("Current assembly version {Version}", Assembly.GetExecutingAssembly().GetName()?.Version?.ToString());
+            logger.LogDebug("Current assembly version {Version}",
+                Assembly.GetExecutingAssembly().GetName()?.Version?.ToString());
             var response = await client.CheckSlnAsync(
                 "Acorn",
-                Assembly.GetExecutingAssembly().GetName()?.Version?.ToString() ?? throw new Exception("Could not get version of current assembly"),
+                Assembly.GetExecutingAssembly().GetName()?.Version?.ToString() ??
+                throw new Exception("Could not get version of current assembly"),
                 _hostingOptions.HostName,
                 _hostingOptions.Port,
                 _slnOptions.ServerName,
@@ -65,11 +67,13 @@ public class ServerLinkNetworkPingHostedService(
     {
         if (_slnOptions.PingRate <= 0)
         {
-            logger.LogInformation("SLN PingRate is set to {PingRate}, not starting SLN ping service", _slnOptions.PingRate);
+            logger.LogInformation("SLN PingRate is set to {PingRate}, not starting SLN ping service",
+                _slnOptions.PingRate);
             return false;
         }
 
-        if (string.IsNullOrEmpty(_slnOptions.ServerName) || string.IsNullOrEmpty(_slnOptions.Site) || string.IsNullOrEmpty(_slnOptions.Zone))
+        if (string.IsNullOrEmpty(_slnOptions.ServerName) || string.IsNullOrEmpty(_slnOptions.Site) ||
+            string.IsNullOrEmpty(_slnOptions.Zone))
         {
             logger.LogInformation("SLN ServerName, Site or Zone is not set, not starting SLN ping service");
             return false;

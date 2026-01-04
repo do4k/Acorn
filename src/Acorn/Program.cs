@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using System.Text.RegularExpressions;
 using Acorn.Database;
 using Acorn.Database.Repository;
 using Acorn.Extensions;
@@ -35,33 +36,35 @@ var NOBOLD = Console.IsOutputRedirected ? "" : "\x1b[22m";
 static string MaskConnectionString(string? connectionString)
 {
     if (string.IsNullOrEmpty(connectionString))
+    {
         return "[empty]";
-    
+    }
+
     // For simple display, just show if it contains a password and mask the password value
-    if (connectionString.Contains("Password", StringComparison.OrdinalIgnoreCase) || 
+    if (connectionString.Contains("Password", StringComparison.OrdinalIgnoreCase) ||
         connectionString.Contains("pwd", StringComparison.OrdinalIgnoreCase))
     {
-        return System.Text.RegularExpressions.Regex.Replace(
-            connectionString, 
-            @"Password\s*=\s*[^;]*", 
-            "Password=***", 
-            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        return Regex.Replace(
+            connectionString,
+            @"Password\s*=\s*[^;]*",
+            "Password=***",
+            RegexOptions.IgnoreCase);
     }
-    
+
     return connectionString;
 }
 
 Console.WriteLine($"""
-{GREEN}          _       {BOLD}Acorn Endless-Online Server Software{NOBOLD}
-        _/-\_     ------------------------------------
-    .-`-:-:-`-.   {GREEN}Author:{NORMAL} Dan Oak{GREEN}
-    /-:-:-:-:-:-\ {GREEN}Version:{NORMAL} 0.0.0.1{GREEN}
-    \:-:-:-:-:-:/ 
-     |`   ,   `|
-     |   (     |
-     `\   `   /'
-       `-._.-'    {NORMAL}
-""");
+                   {GREEN}          _       {BOLD}Acorn Endless-Online Server Software{NOBOLD}
+                           _/-\_     ------------------------------------
+                       .-`-:-:-`-.   {GREEN}Author:{NORMAL} Dan Oak{GREEN}
+                       /-:-:-:-:-:-\ {GREEN}Version:{NORMAL} 0.0.0.1{GREEN}
+                       \:-:-:-:-:-:/ 
+                        |`   ,   `|
+                        |   (     |
+                        `\   `   /'
+                          `-._.-'    {NORMAL}
+                   """);
 
 var config = new ConfigurationBuilder()
     .SetBasePath(AppContext.BaseDirectory)
@@ -101,7 +104,8 @@ var host = Host.CreateDefaultBuilder(args)
             var dbEngine = dbOptions.Engine?.ToLower() ?? "sqlite";
             var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger("Database");
 
-            logger.LogInformation("Configuring database context - Engine: {Engine}, ConnectionString: {ConnectionString}", 
+            logger.LogInformation(
+                "Configuring database context - Engine: {Engine}, ConnectionString: {ConnectionString}",
                 dbEngine, MaskConnectionString(connectionString));
 
             switch (dbEngine)
@@ -128,8 +132,8 @@ var host = Host.CreateDefaultBuilder(args)
                     break;
             }
 
-            options.EnableSensitiveDataLogging(true);
-            options.EnableDetailedErrors(true);
+            options.EnableSensitiveDataLogging();
+            options.EnableDetailedErrors();
         });
 
         // Configure Caching (Redis or In-Memory)
@@ -140,16 +144,19 @@ var host = Host.CreateDefaultBuilder(args)
             .AddSingleton<ISessionGenerator, SessionGenerator>()
             // Game services
             .AddSingleton<IStatCalculator, StatCalculator>()
+            .AddSingleton<ILootService, LootService>()
             .AddSingleton<IInventoryService, InventoryService>()
             .AddSingleton<IBankService, BankService>()
             .AddSingleton<IPaperdollService, PaperdollService>()
             .AddSingleton<IWeightCalculator, WeightCalculator>()
             .AddSingleton<ICharacterMapper, CharacterMapper>()
+            .AddSingleton<DropFileTextLoader>()
             // World services
             .AddSingleton<IMapItemService, MapItemService>()
             // Notification services
             .AddSingleton<INotificationService, NotificationService>()
             .AddScoped<IDbInitialiser, DbInitialiser>()
+            .AddHostedService<DropTableHostedService>()
             .AddHostedService<NewConnectionHostedService>()
             .AddHostedService<WorldHostedService>()
             .AddHostedService<PubFileCacheHostedService>()
@@ -184,10 +191,7 @@ var host = Host.CreateDefaultBuilder(args)
             .AddSingleton<WiseManQueueService>()
             .AddHostedService(sp => sp.GetRequiredService<WiseManQueueService>())
             .AddRefitClient<IGeminiClient>()
-            .ConfigureHttpClient(c =>
-            {
-                c.BaseAddress = new Uri("https://generativelanguage.googleapis.com");
-            });
+            .ConfigureHttpClient(c => { c.BaseAddress = new Uri("https://generativelanguage.googleapis.com"); });
     })
     .ConfigureLogging(builder =>
     {
@@ -203,16 +207,6 @@ using (var scope = host.Services.CreateScope())
 {
     var initialiser = scope.ServiceProvider.GetRequiredService<IDbInitialiser>();
     await initialiser.InitialiseAsync();
-}
-
-// Load NPC drop tables from EDF file
-using (var scope = host.Services.CreateScope())
-{
-    var lootService = scope.ServiceProvider.GetRequiredService<ILootService>();
-    var loggerFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
-    var logger = loggerFactory.CreateLogger<Program>();
-    var dropLoader = new DropFileLoader(logger);
-    dropLoader.LoadDrops(lootService, "Data/Pub/dtd001.edf");
 }
 
 await host.RunAsync();

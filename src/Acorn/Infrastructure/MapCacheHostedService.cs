@@ -9,15 +9,15 @@ using Microsoft.Extensions.Options;
 namespace Acorn.Infrastructure;
 
 /// <summary>
-/// Hosted service that periodically caches map state to Redis.
+///     Hosted service that periodically caches map state to Redis.
 /// </summary>
 public class MapCacheHostedService : BackgroundService
 {
-    private readonly WorldState _worldState;
-    private readonly IMapCacheService _mapCache;
-    private readonly ILogger<MapCacheHostedService> _logger;
     private readonly CacheOptions _cacheOptions;
+    private readonly ILogger<MapCacheHostedService> _logger;
+    private readonly IMapCacheService _mapCache;
     private readonly TimeSpan _updateInterval = TimeSpan.FromSeconds(5);
+    private readonly WorldState _worldState;
 
     public MapCacheHostedService(
         WorldState worldState,
@@ -33,7 +33,8 @@ public class MapCacheHostedService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("Map cache service started, updating every {Interval} seconds", _updateInterval.TotalSeconds);
+        _logger.LogInformation("Map cache service started, updating every {Interval} seconds",
+            _updateInterval.TotalSeconds);
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -125,7 +126,8 @@ public class MapCacheHostedService : BackgroundService
         }
 
         if (_cacheOptions.LogOperations)
+        {
             _logger.LogDebug("Cached {Count} maps to Redis", cachedCount);
+        }
     }
 }
-

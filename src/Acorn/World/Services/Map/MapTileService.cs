@@ -40,20 +40,30 @@ public class MapTileService : IMapTileService
     }
 
     public bool IsNpcWalkable(MapTileSpec tileSpec)
-        => !NonWalkableTiles.Contains(tileSpec);
+    {
+        return !NonWalkableTiles.Contains(tileSpec);
+    }
 
     public bool IsTileWalkable(Emf map, Coords coords)
     {
         var tile = GetTile(map, coords);
-        if (tile == null) return true;
+        if (tile == null)
+        {
+            return true;
+        }
+
         return IsNpcWalkable(tile.Value);
     }
 
     public int GetDistance(Coords a, Coords b)
-        => Math.Abs(a.X - b.X) + Math.Abs(a.Y - b.Y);
+    {
+        return Math.Abs(a.X - b.X) + Math.Abs(a.Y - b.Y);
+    }
 
     public bool InClientRange(Coords a, Coords b)
-        => GetDistance(a, b) <= CLIENT_RANGE;
+    {
+        return GetDistance(a, b) <= CLIENT_RANGE;
+    }
 
     public bool PlayerInRangeOfTile(Emf map, Coords playerCoords, MapTileSpec tileSpec)
     {
@@ -63,7 +73,9 @@ public class MapTileService : IMapTileService
             {
                 var tileCoords = new Coords { X = tile.X, Y = row.Y };
                 if (InClientRange(playerCoords, tileCoords))
+                {
                     return true;
+                }
             }
         }
 

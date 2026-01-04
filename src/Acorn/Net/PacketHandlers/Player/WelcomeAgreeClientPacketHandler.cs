@@ -26,8 +26,7 @@ public class WelcomeAgreeClientPacketHandler(IDataFileRepository dataRepository)
                               $"Could not find map {playerState.Character?.Map} for character {playerState.Character?.Name}");
 
                 map.Serialize(eoWriter);
-            }
-            ,
+            },
             _ => throw new InvalidOperationException($"Unknown file type {packet.FileType}")
         };
         serialise();

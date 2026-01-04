@@ -1,7 +1,5 @@
 ﻿using Acorn.Net.Services;
 using Acorn.World;
-using Acorn.World.Npc;
-using Acorn.World.Services;
 using Acorn.World.Services.Player;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol;
@@ -13,11 +11,12 @@ public class SetCommandHandler : ITalkHandler
 {
     private const string Usage = "Usage: $set <player> <attribute> <value>";
     private readonly ILogger<SetCommandHandler> _logger;
-    private readonly IWorldQueries _world;
     private readonly INotificationService _notifications;
     private readonly IPlayerController _playerController;
+    private readonly IWorldQueries _world;
 
-    public SetCommandHandler(IWorldQueries world, ILogger<SetCommandHandler> logger, INotificationService notifications, IPlayerController playerController)
+    public SetCommandHandler(IWorldQueries world, ILogger<SetCommandHandler> logger, INotificationService notifications,
+        IPlayerController playerController)
     {
         _world = world;
         _logger = logger;
@@ -108,7 +107,6 @@ public class SetCommandHandler : ITalkHandler
         {
             await _notifications.SystemMessage(playerState, $"{args[1]} is not a recognised attribute. {Usage}");
             _logger.LogError(ex, "Failed to set attribute {Attribute} for player {Player}", args[1], args[0]);
-            return;
         }
     }
 }

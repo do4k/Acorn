@@ -1,7 +1,6 @@
 ﻿using Acorn.Database.Repository;
 using Acorn.Extensions;
 using Acorn.Game.Services;
-using Acorn.Infrastructure;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
@@ -13,9 +12,9 @@ namespace Acorn.Net.PacketHandlers.Player;
 internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequestClientPacket>
 {
     private readonly IDataFileRepository _dataRepository;
-    private readonly IStatCalculator _statCalculator;
-    private readonly IPaperdollService _paperdollService;
     private readonly ILogger<WelcomeRequestClientPacketHandler> _logger;
+    private readonly IPaperdollService _paperdollService;
+    private readonly IStatCalculator _statCalculator;
 
     public WelcomeRequestClientPacketHandler(
         IDataFileRepository dataRepository,
@@ -87,7 +86,7 @@ internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequest
                         Con = playerState.Character.Con,
                         Str = playerState.Character.Str,
                         Wis = playerState.Character.Wis,
-                        Intl = playerState.Character.Int,
+                        Intl = playerState.Character.Int
                     },
                     Secondary = new CharacterSecondaryStats
                     {

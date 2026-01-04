@@ -1,6 +1,5 @@
 ﻿using Acorn.World;
 using Acorn.World.Map;
-using Acorn.World.Services;
 using Acorn.World.Services.Map;
 using Acorn.World.Services.Player;
 using Microsoft.Extensions.Logging;
@@ -15,9 +14,9 @@ namespace Acorn.Net.PacketHandlers.Player;
 internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPacket>
 {
     private readonly ILogger<WalkPlayerClientPacketHandler> _logger;
-    private readonly IWorldQueries _world;
-    private readonly IPlayerController _playerController;
     private readonly IMapTileService _mapTileService;
+    private readonly IPlayerController _playerController;
+    private readonly IWorldQueries _world;
 
     public WalkPlayerClientPacketHandler(
         ILogger<WalkPlayerClientPacketHandler> logger,
@@ -59,7 +58,8 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
 
         if (playerState.CurrentMap is null)
         {
-            _logger.LogError("Tried to handle walk player packet, but the map for the player connection was not found. MapId: {MapId}, PlayerId: {PlayerId}",
+            _logger.LogError(
+                "Tried to handle walk player packet, but the map for the player connection was not found. MapId: {MapId}, PlayerId: {PlayerId}",
                 playerState.Character.Map, playerState.SessionId);
             return;
         }
@@ -97,7 +97,7 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
                 X = playerState.Character.X,
                 Y = playerState.Character.Y
             }
-        }, except: playerState);
+        }, playerState);
 
         var hasWarp = TryGetWarpTile(playerState.CurrentMap, playerState.Character, out var warpTile);
         if (hasWarp is false || warpTile is null)
@@ -118,6 +118,11 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
             warpTile.Warp.DestinationCoords.Y);
     }
 
+    public Task HandleAsync(PlayerState playerState, IPacket packet)
+    {
+        return HandleAsync(playerState, (WalkPlayerClientPacket)packet);
+    }
+
     private bool TryGetWarpTile(MapState map, Game.Models.Character character, out MapWarpRowTile? tile)
     {
         var possibleY = map.Data.WarpRows.Where(wr => wr.Y == character.Y);
@@ -127,6 +132,7 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
             tile = null;
             return false;
         }
+
         var possibleX = mapWarpRows.SelectMany(wr => wr.Tiles.Where(tile => tile.X == character.X));
         var mapWarpRowTiles = possibleX as MapWarpRowTile[] ?? possibleX.ToArray();
         if (mapWarpRowTiles.Any() is false)
@@ -138,10 +144,5 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
         var warpTile = mapWarpRowTiles.FirstOrDefault();
         tile = warpTile;
         return warpTile is not null;
-    }
-
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (WalkPlayerClientPacket)packet);
     }
 }

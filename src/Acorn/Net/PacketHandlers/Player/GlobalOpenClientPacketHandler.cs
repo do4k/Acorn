@@ -1,5 +1,4 @@
 ﻿using Acorn.World;
-using Acorn.World.Npc;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
@@ -19,7 +18,7 @@ public class GlobalOpenClientPacketHandler : IPacketHandler<GlobalOpenClientPack
     {
         playerState.IsListeningToGlobal = true;
         var messages = new[] { GlobalMessage.Welcome() }
-            .Concat(_world.GetRecentGlobalMessages(10));
+            .Concat(_world.GetRecentGlobalMessages());
 
         foreach (var message in messages)
         {

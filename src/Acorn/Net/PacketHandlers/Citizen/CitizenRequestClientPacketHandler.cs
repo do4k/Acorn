@@ -1,17 +1,21 @@
 using Acorn.World;
 using Microsoft.Extensions.Logging;
+using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 
 namespace Acorn.Net.PacketHandlers.Citizen;
 
-public class CitizenRequestClientPacketHandler(ILogger<CitizenRequestClientPacketHandler> logger, IWorldQueries worldQueries)
+public class CitizenRequestClientPacketHandler(
+    ILogger<CitizenRequestClientPacketHandler> logger,
+    IWorldQueries worldQueries)
     : IPacketHandler<CitizenRequestClientPacket>
 {
     public async Task HandleAsync(PlayerState player, CitizenRequestClientPacket packet)
     {
         if (player.Character == null || player.CurrentMap == null)
         {
-            logger.LogWarning("Player {SessionId} attempted citizen request without character or map", player.SessionId);
+            logger.LogWarning("Player {SessionId} attempted citizen request without character or map",
+                player.SessionId);
             return;
         }
 
@@ -23,9 +27,8 @@ public class CitizenRequestClientPacketHandler(ILogger<CitizenRequestClientPacke
         await Task.CompletedTask;
     }
 
-    public Task HandleAsync(PlayerState playerState, Moffat.EndlessOnline.SDK.Protocol.Net.IPacket packet)
+    public Task HandleAsync(PlayerState playerState, IPacket packet)
     {
         return HandleAsync(playerState, (CitizenRequestClientPacket)packet);
     }
 }
-

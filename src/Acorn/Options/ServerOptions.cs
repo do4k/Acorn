@@ -5,26 +5,31 @@ public class ServerOptions
     public required NewCharacterOptions NewCharacter { get; set; }
     public required HostingOptions Hosting { get; set; }
     public required int TickRate { get; set; }
+
     /// <summary>
-    /// How often players recover HP/TP, in ticks.
-    /// With TickRate=1000 (1 second), 90 = every 90 seconds.
+    ///     How often players recover HP/TP, in ticks.
+    ///     With TickRate=1000 (1 second), 90 = every 90 seconds.
     /// </summary>
     public int PlayerRecoverRate { get; set; } = 90;
+
     /// <summary>
-    /// How long items remain protected for the killer, in ticks.
-    /// With TickRate=1000 (1 second), 60 = 60 seconds of protection.
+    ///     How long items remain protected for the killer, in ticks.
+    ///     With TickRate=1000 (1 second), 60 = 60 seconds of protection.
     /// </summary>
     public int DropProtectionTicks { get; set; } = 60;
+
     /// <summary>
-    /// Player respawn location when they die. Falls back to NewCharacter location if not set.
+    ///     Player respawn location when they die. Falls back to NewCharacter location if not set.
     /// </summary>
     public RescueOptions? Rescue { get; set; }
+
     /// <summary>
-    /// Whether to enforce packet sequence validation. Disable for debugging.
+    ///     Whether to enforce packet sequence validation. Disable for debugging.
     /// </summary>
     public bool EnforceSequence { get; set; } = true;
+
     /// <summary>
-    /// Whether to log packet contents at debug level. Can be very verbose.
+    ///     Whether to log packet contents at debug level. Can be very verbose.
     /// </summary>
     public bool LogPackets { get; set; } = false;
 

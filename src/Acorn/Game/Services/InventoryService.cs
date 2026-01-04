@@ -6,13 +6,16 @@ using Inventory = Acorn.Game.Models.Inventory;
 namespace Acorn.Game.Services;
 
 /// <summary>
-/// Default implementation of inventory management.
+///     Default implementation of inventory management.
 /// </summary>
 public class InventoryService : IInventoryService
 {
     public bool TryAddItem(Character character, int itemId, int amount = 1)
     {
-        if (amount <= 0) return false;
+        if (amount <= 0)
+        {
+            return false;
+        }
 
         // Try to find existing stack of this item
         var existingItem = character.Inventory.Items.FirstOrDefault(i => i.Id == itemId);
@@ -31,11 +34,16 @@ public class InventoryService : IInventoryService
 
     public bool TryRemoveItem(Character character, int itemId, int amount = 1)
     {
-        if (amount <= 0) return false;
+        if (amount <= 0)
+        {
+            return false;
+        }
 
         var item = character.Inventory.Items.FirstOrDefault(i => i.Id == itemId);
         if (item == null || item.Amount < amount)
+        {
             return false;
+        }
 
         item.Amount -= amount;
 

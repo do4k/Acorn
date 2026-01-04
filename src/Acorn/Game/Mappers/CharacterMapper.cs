@@ -7,7 +7,7 @@ using Bank = Acorn.Game.Models.Bank;
 namespace Acorn.Game.Mappers;
 
 /// <summary>
-/// Default implementation for mapping between game and database character models.
+///     Default implementation for mapping between game and database character models.
 /// </summary>
 public class CharacterMapper : ICharacterMapper
 {
@@ -65,13 +65,13 @@ public class CharacterMapper : ICharacterMapper
                 CharacterName = character.Name!,
                 ItemId = i.Id,
                 Amount = i.Amount,
-                Slot = 0  // Inventory
+                Slot = 0 // Inventory
             }).Concat(character.Bank.Items.Select(i => new CharacterItem
             {
                 CharacterName = character.Name!,
                 ItemId = i.Id,
                 Amount = i.Amount,
-                Slot = 1  // Bank
+                Slot = 1 // Bank
             })).ToList(),
             Paperdoll = new CharacterPaperdoll
             {
@@ -95,17 +95,17 @@ public class CharacterMapper : ICharacterMapper
         };
     }
 
-    public GameCharacter FromDatabase(Database.Models.Character dbCharacter)
+    public GameCharacter FromDatabase(Character dbCharacter)
     {
         var inventoryItems = dbCharacter.Items?
-            .Where(i => i.Slot == 0)
-            .Select(i => new ItemWithAmount { Id = i.ItemId, Amount = i.Amount })
-            ?? Enumerable.Empty<ItemWithAmount>();
+                                 .Where(i => i.Slot == 0)
+                                 .Select(i => new ItemWithAmount { Id = i.ItemId, Amount = i.Amount })
+                             ?? Enumerable.Empty<ItemWithAmount>();
 
         var bankItems = dbCharacter.Items?
-            .Where(i => i.Slot == 1)
-            .Select(i => new ItemWithAmount { Id = i.ItemId, Amount = i.Amount })
-            ?? Enumerable.Empty<ItemWithAmount>();
+                            .Where(i => i.Slot == 1)
+                            .Select(i => new ItemWithAmount { Id = i.ItemId, Amount = i.Amount })
+                        ?? Enumerable.Empty<ItemWithAmount>();
 
         return new GameCharacter
         {

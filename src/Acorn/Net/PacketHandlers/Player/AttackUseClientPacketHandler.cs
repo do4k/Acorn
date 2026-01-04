@@ -2,6 +2,7 @@
 using Acorn.Extensions;
 using Acorn.Game.Services;
 using Acorn.Options;
+using Acorn.World.Map;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Protocol;
@@ -14,15 +15,17 @@ namespace Acorn.Net.PacketHandlers.Player;
 
 internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPacket>
 {
+    private readonly IDataFileRepository _dataFiles;
+    private readonly int _dropProtectionTicks;
+    private readonly IFormulaService _formulaService;
+    private readonly ILogger<AttackUseClientPacketHandler> _logger;
+    private readonly ILootService _lootService;
     private readonly UtcNowDelegate _now;
     private DateTime _timeSinceLastAttack;
-    private readonly ILogger<AttackUseClientPacketHandler> _logger;
-    private readonly IFormulaService _formulaService;
-    private readonly IDataFileRepository _dataFiles;
-    private readonly ILootService _lootService;
-    private readonly int _dropProtectionTicks;
 
-    public AttackUseClientPacketHandler(UtcNowDelegate now, ILogger<AttackUseClientPacketHandler> logger, IFormulaService formulaService, IDataFileRepository dataFiles, ILootService lootService, IOptions<ServerOptions> serverOptions)
+    public AttackUseClientPacketHandler(UtcNowDelegate now, ILogger<AttackUseClientPacketHandler> logger,
+        IFormulaService formulaService, IDataFileRepository dataFiles, ILootService lootService,
+        IOptions<ServerOptions> serverOptions)
     {
         _now = now;
         _logger = logger;
@@ -77,7 +80,7 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
                 NpcIndex = npcIndex,
                 Damage = damage,
                 HpPercentage = hpPercentage,
-                KillStealProtection = NpcKillStealProtectionState.Unprotected,
+                KillStealProtection = NpcKillStealProtectionState.Unprotected
             });
 
             // Handle NPC death
@@ -94,11 +97,13 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
                 var experienceGained = target.Data.Experience;
                 playerState.Character.GainExperience(experienceGained);
 
-                _logger.LogInformation("Player {PlayerName} gained {Exp} experience (Level {Level}, Total Exp: {TotalExp})",
-                    playerState.Character.Name, experienceGained, playerState.Character.Level, playerState.Character.Exp);
+                _logger.LogInformation(
+                    "Player {PlayerName} gained {Exp} experience (Level {Level}, Total Exp: {TotalExp})",
+                    playerState.Character.Name, experienceGained, playerState.Character.Level,
+                    playerState.Character.Exp);
 
                 // Check for level up(s)
-                int levelsGained = 0;
+                var levelsGained = 0;
                 while (_formulaService.CanLevelUp(playerState.Character))
                 {
                     var newLevel = _formulaService.LevelUp(playerState.Character, _dataFiles.Ecf);
@@ -110,9 +115,9 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
 
                 // Roll for item drop
                 var dropItem = _lootService.RollDrop(target.Id);
-                int dropId = 0;
-                int dropAmount = 0;
-                int dropIndex = 0;
+                var dropId = 0;
+                var dropAmount = 0;
+                var dropIndex = 0;
 
                 if (dropItem != null)
                 {
@@ -121,7 +126,7 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
 
                     // Create map item with killer's protection
                     var itemIndex = playerState.CurrentMap.GetNextItemIndex();
-                    var mapItem = new Acorn.World.Map.MapItem
+                    var mapItem = new MapItem
                     {
                         Id = dropId,
                         Amount = dropAmount,
@@ -133,7 +138,8 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
                     playerState.CurrentMap.Items.TryAdd(itemIndex, mapItem);
                     dropIndex = itemIndex;
 
-                    _logger.LogInformation("Item drop spawned: ItemId={ItemId}, Amount={Amount}, Location=({X},{Y}), Owner={OwnerId}",
+                    _logger.LogInformation(
+                        "Item drop spawned: ItemId={ItemId}, Amount={Amount}, Location=({X},{Y}), Owner={OwnerId}",
                         dropId, dropAmount, target.X, target.Y, playerState.SessionId);
                 }
 
@@ -170,7 +176,7 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
                     await playerState.CurrentMap.BroadcastPacket(new NpcSpecServerPacket
                     {
                         NpcKilledData = npcKilledData
-                    }, except: playerState);
+                    }, playerState);
                 }
                 else
                 {
@@ -185,7 +191,7 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
                     await playerState.CurrentMap.BroadcastPacket(new NpcSpecServerPacket
                     {
                         NpcKilledData = npcKilledData
-                    }, except: playerState);
+                    }, playerState);
                 }
 
                 // TODO: Handle NPC drops (items, gold)
@@ -196,7 +202,7 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
         {
             Direction = playerState.Character?.Direction ?? Direction.Down,
             PlayerId = playerState.SessionId
-        }, except: playerState);
+        }, playerState);
 
         _timeSinceLastAttack = DateTime.UtcNow;
     }

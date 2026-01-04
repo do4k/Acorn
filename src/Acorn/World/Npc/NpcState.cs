@@ -5,7 +5,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Pub;
 namespace Acorn.World.Npc;
 
 /// <summary>
-/// Tracks a player who has attacked an NPC
+///     Tracks a player who has attacked an NPC
 /// </summary>
 public class NpcOpponent
 {
@@ -15,8 +15,8 @@ public class NpcOpponent
 }
 
 /// <summary>
-/// Represents the state of an NPC in the game world.
-/// This is a pure data model - for control logic, use INpcController.
+///     Represents the state of an NPC in the game world.
+///     This is a pure data model - for control logic, use INpcController.
 /// </summary>
 public class NpcState
 {
@@ -46,30 +46,30 @@ public class NpcState
     public int SpawnY { get; set; }
 
     /// <summary>
-    /// Spawn type from EMF file.
-    /// Type 7 = fixed position/direction (stationary NPCs like shopkeepers).
-    /// Other values allow variable spawn positions for aggressive/passive NPCs.
+    ///     Spawn type from EMF file.
+    ///     Type 7 = fixed position/direction (stationary NPCs like shopkeepers).
+    ///     Other values allow variable spawn positions for aggressive/passive NPCs.
     /// </summary>
     public int SpawnType { get; set; }
 
     /// <summary>
-    /// Respawn time in seconds from EMF file.
-    /// For SpawnType 7, the lower 2 bits encode the fixed direction.
+    ///     Respawn time in seconds from EMF file.
+    ///     For SpawnType 7, the lower 2 bits encode the fixed direction.
     /// </summary>
     public int SpawnTime { get; set; } = 60;
 
     /// <summary>
-    /// Whether this NPC was spawned by an admin command.
-    /// Admin-spawned NPCs should not respawn after being killed.
+    ///     Whether this NPC was spawned by an admin command.
+    ///     Admin-spawned NPCs should not respawn after being killed.
     /// </summary>
     public bool IsAdminSpawned { get; set; }
 
     /// <summary>
-    /// Gets the respawn time in seconds.
-    /// For SpawnType 7, respawn is typically instant (0) since they're fixed NPCs.
-    /// Admin-spawned NPCs never respawn.
+    ///     Gets the respawn time in seconds.
+    ///     For SpawnType 7, respawn is typically instant (0) since they're fixed NPCs.
+    ///     Admin-spawned NPCs never respawn.
     /// </summary>
-    public int RespawnTimeSeconds => IsAdminSpawned ? -1 : (SpawnType == 7 ? 0 : SpawnTime);
+    public int RespawnTimeSeconds => IsAdminSpawned ? -1 : SpawnType == 7 ? 0 : SpawnTime;
 
     // Death state
     public bool IsDead { get; set; }
@@ -77,20 +77,20 @@ public class NpcState
 
     // Combat/aggro tracking
     /// <summary>
-    /// List of players who have attacked this NPC.
-    /// Used for aggro targeting and damage tracking.
+    ///     List of players who have attacked this NPC.
+    ///     Used for aggro targeting and damage tracking.
     /// </summary>
     public List<NpcOpponent> Opponents { get; set; } = new();
 
     /// <summary>
-    /// Ticks since last action (attack/move).
+    ///     Ticks since last action (attack/move).
     /// </summary>
     public int ActTicks { get; set; }
 
     #region Simple Data Operations
 
     /// <summary>
-    /// Add or update an opponent when they attack this NPC.
+    ///     Add or update an opponent when they attack this NPC.
     /// </summary>
     public void AddOpponent(int playerId, int damage)
     {
@@ -112,7 +112,7 @@ public class NpcState
     }
 
     /// <summary>
-    /// Remove opponents who have been "bored" (not attacked) for too long.
+    ///     Remove opponents who have been "bored" (not attacked) for too long.
     /// </summary>
     public void DropBoredOpponents(int boredThreshold)
     {
@@ -120,7 +120,7 @@ public class NpcState
     }
 
     /// <summary>
-    /// Increment bored ticks for all opponents.
+    ///     Increment bored ticks for all opponents.
     /// </summary>
     public void IncrementBoredTicks(int amount)
     {

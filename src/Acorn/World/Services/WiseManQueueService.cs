@@ -11,18 +11,18 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 namespace Acorn.World.Services;
 
 /// <summary>
-/// Request to get a response from the Wise Man.
+///     Request to get a response from the Wise Man.
 /// </summary>
 public record WiseManRequest(PlayerState Player, string Query, NpcState WiseManNpc);
 
 /// <summary>
-/// Hosted service that processes Wise Man requests from a queue.
+///     Hosted service that processes Wise Man requests from a queue.
 /// </summary>
 public class WiseManQueueService : BackgroundService
 {
     private readonly Channel<WiseManRequest> _channel;
-    private readonly IWiseManAgent _wiseManAgent;
     private readonly ILogger<WiseManQueueService> _logger;
+    private readonly IWiseManAgent _wiseManAgent;
     private readonly WiseManAgentOptions _wiseManOptions;
 
     public WiseManQueueService(
@@ -41,32 +41,38 @@ public class WiseManQueueService : BackgroundService
     }
 
     /// <summary>
-    /// Queue a request for the Wise Man to respond to.
+    ///     Queue a request for the Wise Man to respond to.
     /// </summary>
     public bool TryEnqueue(WiseManRequest request)
     {
         // Only enqueue if player is in range of a Wise Man NPC
         var map = request.Player.CurrentMap;
         if (map == null)
+        {
             return false;
+        }
 
         // Find Wise Man NPC on the map
-        var wiseManNpc = map.Npcs.FirstOrDefault(n => n.Data.Name.Contains("Wise Man", StringComparison.OrdinalIgnoreCase));
+        var wiseManNpc =
+            map.Npcs.FirstOrDefault(n => n.Data.Name.Contains("Wise Man", StringComparison.OrdinalIgnoreCase));
         if (wiseManNpc == null)
+        {
             return false;
+        }
 
         // Create a new WiseManRequest with the NPC reference
         var queuedRequest = request with { WiseManNpc = wiseManNpc };
         var success = _channel.Writer.TryWrite(queuedRequest);
         if (success)
         {
-            _logger.LogInformation("Queued Wise Man request from {Player}: {Query}", 
+            _logger.LogInformation("Queued Wise Man request from {Player}: {Query}",
                 request.Player.Character?.Name ?? "Unknown", request.Query);
         }
         else
         {
             _logger.LogWarning("Failed to queue Wise Man request - channel full");
         }
+
         return success;
     }
 
@@ -77,9 +83,10 @@ public class WiseManQueueService : BackgroundService
             _logger.LogInformation("Wise Man agent is disabled. WiseManQueueService will shut down.");
             return;
         }
+
         _logger.LogInformation("WiseManQueueService ExecuteAsync started");
         _logger.LogInformation("Wise Man queue service started and listening for requests");
-        
+
         while (!stoppingToken.IsCancellationRequested)
         {
             try
@@ -123,8 +130,11 @@ public class WiseManQueueService : BackgroundService
 
     private async Task ProcessRequestAsync(WiseManRequest? request)
     {
-        if (request == null || request.Player.Character == null || request.Player.CurrentMap == null || request.WiseManNpc == null)
+        if (request == null || request.Player.Character == null || request.Player.CurrentMap == null ||
+            request.WiseManNpc == null)
+        {
             return;
+        }
 
         var playerName = request.Player.Character.Name ?? "Adventurer";
         var response = await _wiseManAgent.GetWiseManResponseAsync(playerName, request.Query);
@@ -141,20 +151,27 @@ public class WiseManQueueService : BackgroundService
     private async Task SendWiseManMessageAsync(PlayerState player, string message, NpcState wiseManNpc)
     {
         if (player.CurrentMap == null)
+        {
             return;
+        }
 
         // Split Gemini response into up to 3 parts
-        var parts = message.Split("Response part ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        var parts = message.Split("Response part ",
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Select(p => p.Trim(':', ' ', '1', '2', '3')).ToList();
         if (parts.Count == 0)
+        {
             parts.Add(message); // fallback if not formatted
+        }
 
         foreach (var part in parts)
         {
             // Clamp the message part to the max response length
             var clampedPart = part;
             if (clampedPart.Length > _wiseManOptions.MaxResponseLength)
+            {
                 clampedPart = clampedPart.Substring(0, _wiseManOptions.MaxResponseLength) + "...";
+            }
 
             // Broadcast to chat log/history as if "Wise Man" is a player
             var chatLogPacket = new TalkMsgServerPacket
@@ -164,7 +181,14 @@ public class WiseManQueueService : BackgroundService
             };
             foreach (var mapPlayer in player.CurrentMap.Players)
             {
-                try { await mapPlayer.Send(chatLogPacket); } catch (Exception ex) { _logger.LogWarning(ex, "Failed to send Wise Man chat log message to player"); }
+                try
+                {
+                    await mapPlayer.Send(chatLogPacket);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to send Wise Man chat log message to player");
+                }
             }
 
             var npcIndex = player.CurrentMap.Npcs.ToList().IndexOf(wiseManNpc);
@@ -179,7 +203,14 @@ public class WiseManQueueService : BackgroundService
             };
             foreach (var mapPlayer in player.CurrentMap.Players)
             {
-                try { await mapPlayer.Send(npcPacket); } catch (Exception ex) { _logger.LogWarning(ex, "Failed to send Wise Man NPC message to player"); }
+                try
+                {
+                    await mapPlayer.Send(npcPacket);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to send Wise Man NPC message to player");
+                }
             }
 
             await Task.Delay(3000);

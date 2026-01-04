@@ -3,7 +3,7 @@ using Refit;
 namespace Acorn.Infrastructure.Gemini;
 
 /// <summary>
-/// Refit client for the Gemini API.
+///     Refit client for the Gemini API.
 /// </summary>
 public interface IGeminiClient
 {
@@ -51,4 +51,3 @@ public class GeminiCandidate
 }
 
 #endregion
-

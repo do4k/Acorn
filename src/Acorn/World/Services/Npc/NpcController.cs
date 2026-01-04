@@ -9,17 +9,18 @@ namespace Acorn.World.Services.Npc;
 
 public class NpcController : INpcController
 {
-    private readonly IMapTileService _tileService;
     private const int CHASE_DISTANCE = 10;
     private const int SPAWN_VARIANCE = 2;
     private const int MAX_SPAWN_ATTEMPTS = 200;
+    private readonly IMapTileService _tileService;
 
     public NpcController(IMapTileService tileService)
     {
         _tileService = tileService;
     }
 
-    public NpcMoveResult TryMove(NpcState npc, IEnumerable<PlayerState> players, IEnumerable<NpcState> npcs, Emf mapData)
+    public NpcMoveResult TryMove(NpcState npc, IEnumerable<PlayerState> players, IEnumerable<NpcState> npcs,
+        Emf mapData)
     {
         var playerList = players.ToList();
         var npcList = npcs.ToList();
@@ -32,7 +33,7 @@ public class NpcController : INpcController
 
         // Check if this NPC should chase a target
         var targetCoords = GetChaseTarget(npc, playerList);
-        bool isChasing = targetCoords != null;
+        var isChasing = targetCoords != null;
 
         Direction newDirection;
 
@@ -48,6 +49,7 @@ public class NpcController : INpcController
             {
                 return new NpcMoveResult(false, npc.Direction, npc.AsCoords());
             }
+
             newDirection = GetIdleDirection(npc);
         }
 
@@ -83,7 +85,7 @@ public class NpcController : INpcController
         var playerList = players.ToList();
         var npcList = npcs.ToList();
 
-        for (int attempt = 0; attempt < MAX_SPAWN_ATTEMPTS; attempt++)
+        for (var attempt = 0; attempt < MAX_SPAWN_ATTEMPTS; attempt++)
         {
             var x = Math.Clamp(baseX + Random.Shared.Next(-SPAWN_VARIANCE, SPAWN_VARIANCE + 1), 0, mapData.Width);
             var y = Math.Clamp(baseY + Random.Shared.Next(-SPAWN_VARIANCE, SPAWN_VARIANCE + 1), 0, mapData.Height);
@@ -169,7 +171,11 @@ public class NpcController : INpcController
                 .Where(o =>
                 {
                     var player = players.FirstOrDefault(p => p.SessionId == o.PlayerId);
-                    if (player?.Character == null) return false;
+                    if (player?.Character == null)
+                    {
+                        return false;
+                    }
+
                     var distance = Math.Abs(npc.X - player.Character.X) + Math.Abs(npc.Y - player.Character.Y);
                     return distance <= CHASE_DISTANCE;
                 })
@@ -187,7 +193,8 @@ public class NpcController : INpcController
         {
             var closestPlayer = players
                 .Where(p => p.Character != null)
-                .Select(p => new { Player = p, Distance = Math.Abs(npc.X - p.Character!.X) + Math.Abs(npc.Y - p.Character.Y) })
+                .Select(p => new
+                    { Player = p, Distance = Math.Abs(npc.X - p.Character!.X) + Math.Abs(npc.Y - p.Character.Y) })
                 .Where(x => x.Distance <= CHASE_DISTANCE)
                 .MinBy(x => x.Distance);
 
@@ -207,10 +214,8 @@ public class NpcController : INpcController
         {
             return xDelta < 0 ? Direction.Right : Direction.Left;
         }
-        else
-        {
-            return yDelta < 0 ? Direction.Down : Direction.Up;
-        }
+
+        return yDelta < 0 ? Direction.Down : Direction.Up;
     }
 
     private static Direction GetAlternativeChaseDirection(NpcState npc, Coords targetCoords, Direction blockedDirection)
@@ -224,10 +229,8 @@ public class NpcController : INpcController
             return xDelta < 0 ? Direction.Right : Direction.Left;
         }
         // If horizontal was blocked, try vertical
-        else
-        {
-            return yDelta < 0 ? Direction.Down : Direction.Up;
-        }
+
+        return yDelta < 0 ? Direction.Down : Direction.Up;
     }
 
     #endregion
@@ -242,7 +245,7 @@ public class NpcController : INpcController
             NpcBehaviorType.Wander => Random.Shared.Next(100) < 40,
             NpcBehaviorType.Patrol => Random.Shared.Next(100) < 60,
             NpcBehaviorType.Circle => Random.Shared.Next(100) < 50,
-            _ => Random.Shared.Next(100) < 30,
+            _ => Random.Shared.Next(100) < 30
         };
     }
 
@@ -260,9 +263,13 @@ public class NpcController : INpcController
                 {
                     npc.LastDirectionChange = DateTime.UtcNow;
                     if (Random.Shared.Next(100) < 30)
+                    {
                         return npc.Direction;
+                    }
+
                     return GetRandomDirection();
                 }
+
                 return npc.Direction;
 
             case NpcBehaviorType.Patrol:
@@ -272,11 +279,13 @@ public class NpcController : INpcController
                     npc.LastDirectionChange = DateTime.UtcNow;
                     return GetOppositeDirection(npc.Direction);
                 }
+
                 if (timeSinceLastChange.TotalSeconds > Random.Shared.Next(3, 8))
                 {
                     npc.LastDirectionChange = DateTime.UtcNow;
                     return GetRandomDirection();
                 }
+
                 return npc.Direction;
 
             case NpcBehaviorType.Circle:
@@ -285,6 +294,7 @@ public class NpcController : INpcController
                     npc.LastDirectionChange = DateTime.UtcNow;
                     return RotateDirectionClockwise(npc.Direction);
                 }
+
                 return npc.Direction;
 
             default:

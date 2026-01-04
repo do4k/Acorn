@@ -11,5 +11,7 @@ public class EmoteReportClientPacketHandler : IPacketHandler<EmoteReportClientPa
     }
 
     public Task HandleAsync(PlayerState playerState, IPacket packet)
-        => HandleAsync(playerState, (EmoteReportClientPacket)packet);
+    {
+        return HandleAsync(playerState, (EmoteReportClientPacket)packet);
+    }
 }

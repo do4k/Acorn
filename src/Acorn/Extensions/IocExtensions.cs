@@ -3,7 +3,6 @@ using Acorn.Database;
 using Acorn.Database.Models;
 using Acorn.Database.Repository;
 using Acorn.Game.Services;
-using Acorn.Shared.Caching;
 using Acorn.Net.PacketHandlers;
 using Acorn.Net.PacketHandlers.Account;
 using Acorn.Net.PacketHandlers.Character;
@@ -12,7 +11,6 @@ using Acorn.Net.PacketHandlers.Player;
 using Acorn.Net.PacketHandlers.Player.Talk;
 using Acorn.Net.PacketHandlers.Player.Warp;
 using Acorn.Net.PacketHandlers.Range;
-using Acorn.World.Services;
 using Acorn.World.Services.Map;
 using Acorn.World.Services.Npc;
 using Acorn.World.Services.Player;
@@ -82,17 +80,6 @@ internal static class IocRegistrations
             .AddTransient(typeof(Lazy<>), typeof(LazyServiceProvider<>));
     }
 
-    /// <summary>
-    /// Helper class for Lazy&lt;T&gt; resolution to break circular dependencies
-    /// </summary>
-    private class LazyServiceProvider<T> : Lazy<T> where T : class
-    {
-        public LazyServiceProvider(IServiceProvider serviceProvider)
-            : base(() => serviceProvider.GetRequiredService<T>())
-        {
-        }
-    }
-
     public static IServiceCollection AddPacketHandlers(this IServiceCollection services)
     {
         void AddPacketHandler<TPacket, THandler>()
@@ -100,7 +87,8 @@ internal static class IocRegistrations
             where THandler : class, IPacketHandler<TPacket>, IPacketHandler
         {
             services.AddTransient<IPacketHandler<TPacket>, THandler>();
-            services.AddTransient<IPacketHandler, THandler>(sp => (THandler)sp.GetRequiredService<IPacketHandler<TPacket>>());
+            services.AddTransient<IPacketHandler, THandler>(sp =>
+                (THandler)sp.GetRequiredService<IPacketHandler<TPacket>>());
         }
 
         AddPacketHandler<AccountCreateClientPacket, AccountCreateClientPacketHandler>();
@@ -135,6 +123,17 @@ internal static class IocRegistrations
         AddPacketHandler<WelcomeRequestClientPacket, WelcomeRequestClientPacketHandler>();
         AddPacketHandler<FacePlayerClientPacket, FacePlayerClientPacketHandler>();
         return services;
+    }
+
+    /// <summary>
+    ///     Helper class for Lazy&lt;T&gt; resolution to break circular dependencies
+    /// </summary>
+    private class LazyServiceProvider<T> : Lazy<T> where T : class
+    {
+        public LazyServiceProvider(IServiceProvider serviceProvider)
+            : base(() => serviceProvider.GetRequiredService<T>())
+        {
+        }
     }
 }
 

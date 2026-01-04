@@ -7,11 +7,8 @@ namespace Acorn.Net.PacketHandlers.Player;
 
 public class DoorOpenClientPacketHandler : IPacketHandler<DoorOpenClientPacket>
 {
-    private readonly IWorldQueries _world;
-
     public DoorOpenClientPacketHandler(IWorldQueries world)
     {
-        _world = world;
     }
 
     public async Task HandleAsync(PlayerState playerState, DoorOpenClientPacket packet)
@@ -28,5 +25,7 @@ public class DoorOpenClientPacketHandler : IPacketHandler<DoorOpenClientPacket>
     }
 
     public Task HandleAsync(PlayerState playerState, IPacket packet)
-        => HandleAsync(playerState, (DoorOpenClientPacket)packet);
+    {
+        return HandleAsync(playerState, (DoorOpenClientPacket)packet);
+    }
 }

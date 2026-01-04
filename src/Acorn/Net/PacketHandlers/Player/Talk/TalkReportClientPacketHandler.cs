@@ -45,7 +45,7 @@ internal class TalkReportClientPacketHandler(
         {
             Message = packet.Message,
             PlayerId = playerState.SessionId
-        }, except: playerState);
+        }, playerState);
     }
 
     public Task HandleAsync(PlayerState playerState, IPacket packet)

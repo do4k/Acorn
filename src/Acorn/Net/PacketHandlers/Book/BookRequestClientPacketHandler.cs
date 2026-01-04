@@ -1,5 +1,6 @@
 using Acorn.World;
 using Microsoft.Extensions.Logging;
+using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 
 namespace Acorn.Net.PacketHandlers.Book;
@@ -11,7 +12,8 @@ public class BookRequestClientPacketHandler(ILogger<BookRequestClientPacketHandl
     {
         if (player.Character == null || player.CurrentMap == null)
         {
-            logger.LogWarning("Player {SessionId} attempted to request book without character or map", player.SessionId);
+            logger.LogWarning("Player {SessionId} attempted to request book without character or map",
+                player.SessionId);
             return;
         }
 
@@ -22,7 +24,7 @@ public class BookRequestClientPacketHandler(ILogger<BookRequestClientPacketHandl
         await Task.CompletedTask;
     }
 
-    public Task HandleAsync(PlayerState playerState, Moffat.EndlessOnline.SDK.Protocol.Net.IPacket packet)
+    public Task HandleAsync(PlayerState playerState, IPacket packet)
     {
         return HandleAsync(playerState, (BookRequestClientPacket)packet);
     }

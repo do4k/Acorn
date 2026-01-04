@@ -4,7 +4,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Net;
 namespace Acorn.Net;
 
 /// <summary>
-/// Tracks packet processing times for rate limiting.
+///     Tracks packet processing times for rate limiting.
 /// </summary>
 public class PacketLog
 {
@@ -17,7 +17,7 @@ public class PacketLog
     }
 
     /// <summary>
-    /// Records that a packet was processed at the current time.
+    ///     Records that a packet was processed at the current time.
     /// </summary>
     public void RecordPacket(PacketAction action, PacketFamily family)
     {
@@ -26,8 +26,8 @@ public class PacketLog
     }
 
     /// <summary>
-    /// Checks if a packet should be rate limited based on when it was last processed.
-    /// Returns true if the packet should be blocked (rate limit exceeded).
+    ///     Checks if a packet should be rate limited based on when it was last processed.
+    ///     Returns true if the packet should be blocked (rate limit exceeded).
     /// </summary>
     public bool ShouldRateLimit(PacketAction action, PacketFamily family)
     {
@@ -35,19 +35,23 @@ public class PacketLog
             l.Action == action && l.Family == family);
 
         if (rateLimit == null)
+        {
             return false; // No rate limit for this packet type
+        }
 
         var key = new PacketKey(action, family);
 
         if (!_lastProcessed.TryGetValue(key, out var lastProcessed))
+        {
             return false; // First time seeing this packet
+        }
 
         var elapsed = DateTime.UtcNow - lastProcessed;
         return elapsed.TotalMilliseconds < rateLimit.LimitMs;
     }
 
     /// <summary>
-    /// Gets the time when a packet was last processed, if available.
+    ///     Gets the time when a packet was last processed, if available.
     /// </summary>
     public DateTime? GetLastProcessedTime(PacketAction action, PacketFamily family)
     {
@@ -56,7 +60,7 @@ public class PacketLog
     }
 
     /// <summary>
-    /// Clears all recorded packet times. Useful for resetting state.
+    ///     Clears all recorded packet times. Useful for resetting state.
     /// </summary>
     public void Clear()
     {

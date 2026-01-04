@@ -1,17 +1,14 @@
 using System.Net;
 using System.Net.WebSockets;
 using Microsoft.Extensions.Logging;
-using Moffat.EndlessOnline.SDK.Data;
-using Moffat.EndlessOnline.SDK.Protocol.Net;
-using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.Infrastructure.Communicators;
 
 public class WebSocketCommunicator : ICommunicator
 {
-    private readonly HttpListenerWebSocketContext _wsContext;
-    private readonly WebSocket _webSocket;
     private readonly ILogger<WebSocketCommunicator> _logger;
+    private readonly WebSocket _webSocket;
+    private readonly HttpListenerWebSocketContext _wsContext;
     private bool _disposed;
 
     private WebSocketCommunicator(HttpListenerWebSocketContext wsContext, ILogger<WebSocketCommunicator> logger)
@@ -21,18 +18,14 @@ public class WebSocketCommunicator : ICommunicator
         _logger = logger;
     }
 
-    public static async Task<WebSocketCommunicator> CreateAsync(HttpListenerContext context, ILogger<WebSocketCommunicator> logger, CancellationToken cancellationToken = default)
-    {
-        var wsContext = await context.AcceptWebSocketAsync(null);
-        return new WebSocketCommunicator(wsContext, logger);
-    }
-
     public async Task Send(IEnumerable<byte> bytes)
     {
         try
         {
             if (!IsConnected)
+            {
                 throw new InvalidOperationException("Cannot send data - WebSocket is not connected");
+            }
 
             await _webSocket.SendAsync(
                 new ArraySegment<byte>(bytes.ToArray()),
@@ -50,7 +43,9 @@ public class WebSocketCommunicator : ICommunicator
     public Stream Receive()
     {
         if (!IsConnected)
+        {
             throw new InvalidOperationException("Cannot receive data - WebSocket is not connected");
+        }
 
         return new WebSocketStream(_webSocket);
     }
@@ -58,7 +53,9 @@ public class WebSocketCommunicator : ICommunicator
     public async Task CloseAsync(CancellationToken cancellationToken = default)
     {
         if (_disposed)
+        {
             return;
+        }
 
         _disposed = true;
 
@@ -79,17 +76,27 @@ public class WebSocketCommunicator : ICommunicator
         }
     }
 
-    public string GetConnectionOrigin() => _wsContext.Origin;
+    public string GetConnectionOrigin()
+    {
+        return _wsContext.Origin;
+    }
 
     public bool IsConnected => !_disposed && _webSocket.State == WebSocketState.Open;
+
+    public static async Task<WebSocketCommunicator> CreateAsync(HttpListenerContext context,
+        ILogger<WebSocketCommunicator> logger, CancellationToken cancellationToken = default)
+    {
+        var wsContext = await context.AcceptWebSocketAsync(null);
+        return new WebSocketCommunicator(wsContext, logger);
+    }
 }
 
 // Helper stream to read from WebSocket
 public class WebSocketStream : Stream
 {
-    private readonly WebSocket _webSocket;
     private readonly MemoryStream _buffer = new();
     private readonly byte[] _receiveBuffer = new byte[8192]; // Match TCP buffer size
+    private readonly WebSocket _webSocket;
 
     public WebSocketStream(WebSocket webSocket)
     {
@@ -144,10 +151,25 @@ public class WebSocketStream : Stream
         }
     }
 
-    public override void Flush() => throw new NotSupportedException();
-    public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
-    public override void SetLength(long value) => throw new NotSupportedException();
-    public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    public override void Flush()
+    {
+        throw new NotSupportedException();
+    }
+
+    public override long Seek(long offset, SeekOrigin origin)
+    {
+        throw new NotSupportedException();
+    }
+
+    public override void SetLength(long value)
+    {
+        throw new NotSupportedException();
+    }
+
+    public override void Write(byte[] buffer, int offset, int count)
+    {
+        throw new NotSupportedException();
+    }
 
     protected override void Dispose(bool disposing)
     {
@@ -155,6 +177,7 @@ public class WebSocketStream : Stream
         {
             _buffer.Dispose();
         }
+
         base.Dispose(disposing);
     }
 }

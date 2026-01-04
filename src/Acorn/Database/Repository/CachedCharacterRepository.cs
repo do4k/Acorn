@@ -1,19 +1,18 @@
 using Acorn.Database.Models;
-using Acorn.Shared.Caching;
 using Microsoft.Extensions.Logging;
 
 namespace Acorn.Database.Repository;
 
 /// <summary>
-/// Cached wrapper for CharacterRepository to improve read performance.
-/// Implements write-through caching strategy.
+///     Cached wrapper for CharacterRepository to improve read performance.
+///     Implements write-through caching strategy.
 /// </summary>
 public class CachedCharacterRepository : IDbRepository<Character>
 {
-    private readonly IDbRepository<Character> _inner;
-    private readonly ICacheService _cache;
-    private readonly ILogger<CachedCharacterRepository> _logger;
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
+    private readonly ICacheService _cache;
+    private readonly IDbRepository<Character> _inner;
+    private readonly ILogger<CachedCharacterRepository> _logger;
 
     public CachedCharacterRepository(
         IDbRepository<Character> inner,
@@ -94,4 +93,3 @@ public class CachedCharacterRepository : IDbRepository<Character>
         _logger.LogDebug("Deleted and invalidated cache for character {CharacterName}", entity.Name);
     }
 }
-

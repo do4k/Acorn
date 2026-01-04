@@ -9,11 +9,9 @@ namespace Acorn.Net.PacketHandlers.Player.Warp;
 public class WarpAcceptClientPacketHandler : IPacketHandler<WarpAcceptClientPacket>
 {
     private readonly ILogger<WarpAcceptClientPacketHandler> _logger;
-    private readonly IWorldQueries _world;
 
     public WarpAcceptClientPacketHandler(IWorldQueries world, ILogger<WarpAcceptClientPacketHandler> logger)
     {
-        _world = world;
         _logger = logger;
     }
 

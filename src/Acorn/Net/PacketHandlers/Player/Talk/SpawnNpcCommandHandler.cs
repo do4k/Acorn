@@ -11,20 +11,19 @@ namespace Acorn.Net.PacketHandlers.Player.Talk;
 public class SpawnNpcCommandHandler : ITalkHandler
 {
     /// <summary>
-    /// EO Protocol limit: NpcMapInfo uses a single byte to store count, max value is 252.
-    /// The SDK caps it at 252 for safety to prevent "Value 253 exceeds maximum of 252" errors.
+    ///     EO Protocol limit: NpcMapInfo uses a single byte to store count, max value is 252.
+    ///     The SDK caps it at 252 for safety to prevent "Value 253 exceeds maximum of 252" errors.
     /// </summary>
     private const int MaxNpcsPerMap = 252;
 
-    private readonly ILogger<SpawnNpcCommandHandler> _logger;
     private readonly IDataFileRepository _dataFiles;
-    private readonly IWorldQueries _world;
+
+    private readonly ILogger<SpawnNpcCommandHandler> _logger;
     private readonly INotificationService _notifications;
 
     public SpawnNpcCommandHandler(IWorldQueries world, IDataFileRepository dataFiles,
         ILogger<SpawnNpcCommandHandler> logger, INotificationService notifications)
     {
-        _world = world;
         _dataFiles = dataFiles;
         _logger = logger;
         _notifications = notifications;
@@ -45,7 +44,7 @@ public class SpawnNpcCommandHandler : ITalkHandler
         }
 
         var count = 1;
-        string[] inputArgs = args;
+        var inputArgs = args;
 
         // Check if the last argument is a number (spawn count)
         if (args.Length > 1 && int.TryParse(args[^1], out var parsedCount))
@@ -87,11 +86,11 @@ public class SpawnNpcCommandHandler : ITalkHandler
         }
 
         // Validate NPC count doesn't exceed protocol limit
-        int currentNpcCount = playerState.CurrentMap.Npcs.Count;
+        var currentNpcCount = playerState.CurrentMap.Npcs.Count;
         if (currentNpcCount + count > MaxNpcsPerMap)
         {
-            int canSpawn = Math.Max(0, MaxNpcsPerMap - currentNpcCount);
-            await _notifications.ServerAnnouncement(playerState, 
+            var canSpawn = Math.Max(0, MaxNpcsPerMap - currentNpcCount);
+            await _notifications.ServerAnnouncement(playerState,
                 $"Cannot spawn {count} {enf.Name}s: Map has {currentNpcCount} NPCs. " +
                 $"Protocol limit is {MaxNpcsPerMap}. Can only spawn {canSpawn} more.");
             return;
@@ -99,7 +98,7 @@ public class SpawnNpcCommandHandler : ITalkHandler
 
         var npcId = _dataFiles.Enf.Npcs.FindIndex(x => enf.GetHashCode() == x.GetHashCode());
 
-        for (int i = 0; i < count; i++)
+        for (var i = 0; i < count; i++)
         {
             var npc = new NpcState(enf)
             {
@@ -114,9 +113,9 @@ public class SpawnNpcCommandHandler : ITalkHandler
             playerState.CurrentMap.Npcs.Add(npc);
         }
 
-        await _notifications.ServerAnnouncement(playerState, 
-            count == 1 
-                ? $"Spawned {enf.Name} ({npcId})." 
+        await _notifications.ServerAnnouncement(playerState,
+            count == 1
+                ? $"Spawned {enf.Name} ({npcId})."
                 : $"Spawned {count} {enf.Name}s ({npcId}).");
 
         await playerState.CurrentMap.BroadcastPacket(new NpcAgreeServerPacket
@@ -138,7 +137,8 @@ public class SpawnNpcCommandHandler : ITalkHandler
         if (exactMatches.Count > 1)
         {
             var ids = string.Join(", ", exactMatches.Select(x => x.Id));
-            await _notifications.ServerAnnouncement(playerState, $"Multiple NPCs found with name \"{name}\": IDs {ids}");
+            await _notifications.ServerAnnouncement(playerState,
+                $"Multiple NPCs found with name \"{name}\": IDs {ids}");
             return;
         }
 

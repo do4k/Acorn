@@ -7,13 +7,13 @@ using Microsoft.Extensions.Logging;
 namespace Acorn.Infrastructure;
 
 /// <summary>
-/// Hosted service that caches pub file data to Redis on startup.
+///     Hosted service that caches pub file data to Redis on startup.
 /// </summary>
 public class PubFileCacheHostedService : IHostedService
 {
     private readonly IDataFileRepository _dataFiles;
-    private readonly IPubCacheService _pubCache;
     private readonly ILogger<PubFileCacheHostedService> _logger;
+    private readonly IPubCacheService _pubCache;
 
     public PubFileCacheHostedService(
         IDataFileRepository dataFiles,
@@ -142,6 +142,8 @@ public class PubFileCacheHostedService : IHostedService
         }
     }
 
-    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        return Task.CompletedTask;
+    }
 }
-

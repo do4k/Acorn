@@ -6,18 +6,18 @@ using Moffat.EndlessOnline.SDK.Protocol.Map;
 namespace Acorn.World.Services.Npc;
 
 /// <summary>
-/// Result of an NPC movement attempt.
+///     Result of an NPC movement attempt.
 /// </summary>
 public record NpcMoveResult(bool Moved, Direction Direction, Coords NewCoords);
 
 /// <summary>
-/// Service for controlling NPC behavior including movement, chase logic, and spawning.
-/// Separates control logic from NPC state data.
+///     Service for controlling NPC behavior including movement, chase logic, and spawning.
+///     Separates control logic from NPC state data.
 /// </summary>
 public interface INpcController
 {
     /// <summary>
-    /// Attempt to move an NPC. Handles chase logic if the NPC has opponents or is aggressive.
+    ///     Attempt to move an NPC. Handles chase logic if the NPC has opponents or is aggressive.
     /// </summary>
     /// <param name="npc">The NPC to move</param>
     /// <param name="players">Players on the current map</param>
@@ -27,7 +27,7 @@ public interface INpcController
     NpcMoveResult TryMove(NpcState npc, IEnumerable<PlayerState> players, IEnumerable<NpcState> npcs, Emf mapData);
 
     /// <summary>
-    /// Find a valid spawn position with variance for an NPC.
+    ///     Find a valid spawn position with variance for an NPC.
     /// </summary>
     /// <param name="npc">The NPC being spawned</param>
     /// <param name="baseX">Base spawn X coordinate</param>
@@ -40,17 +40,17 @@ public interface INpcController
         IEnumerable<PlayerState> players, IEnumerable<NpcState> npcs, Emf mapData);
 
     /// <summary>
-    /// Determine if spawn variance should be used for this NPC.
+    ///     Determine if spawn variance should be used for this NPC.
     /// </summary>
     bool ShouldUseSpawnVariance(NpcState npc);
 
     /// <summary>
-    /// Get a random direction for the NPC to spawn facing.
+    ///     Get a random direction for the NPC to spawn facing.
     /// </summary>
     Direction GetSpawnDirection(NpcState npc);
 
     /// <summary>
-    /// Determine behavior type for a newly created NPC.
+    ///     Determine behavior type for a newly created NPC.
     /// </summary>
     NpcBehaviorType DetermineBehaviorType(NpcState npc);
 }

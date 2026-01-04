@@ -1,33 +1,11 @@
 namespace Acorn.Game.Models;
 
 /// <summary>
-/// Represents a single drop entry in an NPC's loot table.
-/// Uses a rate-based probability system (0-64000 range for granular control).
+///     Represents a single drop entry in an NPC's loot table.
+///     Uses a rate-based probability system (0-64000 range for granular control).
 /// </summary>
 public class LootDrop
 {
-    /// <summary>
-    /// ID of the item to drop
-    /// </summary>
-    public int ItemId { get; set; }
-
-    /// <summary>
-    /// Minimum amount to drop (0-16777215, 3-byte max)
-    /// </summary>
-    public int MinAmount { get; set; }
-
-    /// <summary>
-    /// Maximum amount to drop (0-16777215, 3-byte max)
-    /// </summary>
-    public int MaxAmount { get; set; }
-
-    /// <summary>
-    /// Drop rate as a percentage (0-100).
-    /// Internally converted to 0-64000 range for more granular probability calculation.
-    /// Example: 25% = 16000 chance out of 64000
-    /// </summary>
-    public int RatePercent { get; set; }
-
     public LootDrop()
     {
     }
@@ -41,23 +19,48 @@ public class LootDrop
     }
 
     /// <summary>
-    /// Converts percentage (0-100) to internal rate value (0-64000)
+    ///     ID of the item to drop
     /// </summary>
-    public int GetInternalRate() => (RatePercent * 640) / 100;
+    public int ItemId { get; set; }
+
+    /// <summary>
+    ///     Minimum amount to drop (0-16777215, 3-byte max)
+    /// </summary>
+    public int MinAmount { get; set; }
+
+    /// <summary>
+    ///     Maximum amount to drop (0-16777215, 3-byte max)
+    /// </summary>
+    public int MaxAmount { get; set; }
+
+    /// <summary>
+    ///     Drop rate as a percentage (0-100).
+    ///     Internally converted to 0-64000 range for more granular probability calculation.
+    ///     Example: 25% = 16000 chance out of 64000
+    /// </summary>
+    public int RatePercent { get; set; }
+
+    /// <summary>
+    ///     Converts percentage (0-100) to internal rate value (0-64000)
+    /// </summary>
+    public int GetInternalRate()
+    {
+        return RatePercent * 640 / 100;
+    }
 }
 
 /// <summary>
-/// Represents the complete loot table for an NPC
+///     Represents the complete loot table for an NPC
 /// </summary>
 public class NpcLootTable
 {
     /// <summary>
-    /// NPC ID this loot table belongs to
+    ///     NPC ID this loot table belongs to
     /// </summary>
     public int NpcId { get; set; }
 
     /// <summary>
-    /// List of possible drops for this NPC
+    ///     List of possible drops for this NPC
     /// </summary>
     public List<LootDrop> Drops { get; set; } = new();
 }

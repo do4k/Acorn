@@ -6,50 +6,65 @@ using Microsoft.Extensions.Logging;
 namespace Acorn.World;
 
 /// <summary>
-/// Implementation of IWorldQueries that wraps WorldState singleton.
-/// Provides a cleaner interface for querying world state without exposing internal collections.
+///     Implementation of IWorldQueries that wraps WorldState singleton.
+///     Provides a cleaner interface for querying world state without exposing internal collections.
 /// </summary>
 public class WorldStateQueries : IWorldQueries
 {
-    private readonly WorldState _world;
-    private readonly IDataFileRepository _dataRepository;
     private readonly ILogger<WorldStateQueries> _logger;
+    private readonly WorldState _world;
 
     public WorldStateQueries(WorldState world, IDataFileRepository dataRepository, ILogger<WorldStateQueries> logger)
     {
         _world = world;
-        _dataRepository = dataRepository;
+        DataRepository = dataRepository;
         _logger = logger;
     }
 
-    public IDataFileRepository DataRepository => _dataRepository;
+    public IDataFileRepository DataRepository { get; }
 
     public MapState? FindMap(int mapId)
-        => _world.MapForId(mapId);
+    {
+        return _world.MapForId(mapId);
+    }
 
     public IEnumerable<PlayerState> GetPlayersInMap(int mapId)
-        => _world.Players.Values.Where(p => p.Character?.Map == mapId);
+    {
+        return _world.Players.Values.Where(p => p.Character?.Map == mapId);
+    }
 
     public IEnumerable<PlayerState> GetAllPlayers()
-        => _world.Players.Values;
+    {
+        return _world.Players.Values;
+    }
 
     public IEnumerable<PlayerState> GetGlobalChatListeners()
-        => _world.Players.Values.Where(p => p.IsListeningToGlobal);
+    {
+        return _world.Players.Values.Where(p => p.IsListeningToGlobal);
+    }
 
     public bool IsPlayerOnline(string username)
-        => _world.LoggedIn(username);
+    {
+        return _world.LoggedIn(username);
+    }
 
     public PlayerState? GetPlayer(int sessionId)
-        => _world.Players.TryGetValue(sessionId, out var player) ? player : null;
+    {
+        return _world.Players.TryGetValue(sessionId, out var player) ? player : null;
+    }
 
     public IEnumerable<MapState> GetAllMaps()
-        => _world.Maps.Values;
+    {
+        return _world.Maps.Values;
+    }
 
     public IEnumerable<GlobalMessage> GetRecentGlobalMessages(int count = 10)
-        => _world.GlobalMessages
+    {
+        return _world.GlobalMessages
             .Values
             .OrderByDescending(x => x.CreatedAt)
             .Take(count);
+    }
 
     public void AddGlobalMessage(GlobalMessage message)
     {

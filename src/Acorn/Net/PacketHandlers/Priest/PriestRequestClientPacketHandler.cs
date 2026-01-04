@@ -5,14 +5,17 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 
 namespace Acorn.Net.PacketHandlers.Priest;
 
-public class PriestRequestClientPacketHandler(ILogger<PriestRequestClientPacketHandler> logger, IWorldQueries worldQueries)
+public class PriestRequestClientPacketHandler(
+    ILogger<PriestRequestClientPacketHandler> logger,
+    IWorldQueries worldQueries)
     : IPacketHandler<PriestRequestClientPacket>
 {
     public async Task HandleAsync(PlayerState player, PriestRequestClientPacket packet)
     {
         if (player.Character == null || player.CurrentMap == null)
         {
-            logger.LogWarning("Player {SessionId} attempted to priest action without character or map", player.SessionId);
+            logger.LogWarning("Player {SessionId} attempted to priest action without character or map",
+                player.SessionId);
             return;
         }
 

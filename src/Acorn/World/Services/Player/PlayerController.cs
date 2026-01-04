@@ -14,11 +14,11 @@ namespace Acorn.World.Services.Player;
 
 public class PlayerController : IPlayerController
 {
-    private readonly ILogger<PlayerController> _logger;
     private readonly IMapBroadcastService _broadcastService;
-    private readonly Lazy<IWorldQueries> _worldQueries;
-    private readonly IStatCalculator _statCalculator;
+    private readonly ILogger<PlayerController> _logger;
     private readonly ServerOptions _serverOptions;
+    private readonly IStatCalculator _statCalculator;
+    private readonly Lazy<IWorldQueries> _worldQueries;
 
     public PlayerController(
         ILogger<PlayerController> logger,
@@ -34,7 +34,8 @@ public class PlayerController : IPlayerController
         _serverOptions = serverOptions.Value;
     }
 
-    public async Task WarpAsync(PlayerState player, MapState targetMap, int x, int y, WarpEffect warpEffect = WarpEffect.None)
+    public async Task WarpAsync(PlayerState player, MapState targetMap, int x, int y,
+        WarpEffect warpEffect = WarpEffect.None)
     {
         if (player.Character == null)
         {
@@ -185,7 +186,7 @@ public class PlayerController : IPlayerController
         player.Character.Hp = player.Character.MaxHp;
 
         // Warp to rescue location
-        await WarpAsync(player, rescueMap, rescue.X, rescue.Y, WarpEffect.None);
+        await WarpAsync(player, rescueMap, rescue.X, rescue.Y);
 
         _logger.LogDebug("Player {CharacterName} respawned at map {MapId} ({X}, {Y})",
             player.Character.Name, rescue.Map, rescue.X, rescue.Y);

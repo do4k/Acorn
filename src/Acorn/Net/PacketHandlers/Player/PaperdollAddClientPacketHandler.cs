@@ -1,20 +1,19 @@
 using Acorn.Extensions;
-using Acorn.Game.Models;
 using Acorn.Game.Services;
 using Acorn.World.Services.Player;
+using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using Microsoft.Extensions.Logging;
 
 namespace Acorn.Net.PacketHandlers.Player;
 
 public class PaperdollAddClientPacketHandler : IPacketHandler<PaperdollAddClientPacket>
 {
-    private readonly IPlayerController _playerController;
     private readonly IInventoryService _inventoryService;
-    private readonly IPaperdollService _paperdollService;
     private readonly ILogger<PaperdollAddClientPacketHandler> _logger;
+    private readonly IPaperdollService _paperdollService;
+    private readonly IPlayerController _playerController;
 
     public PaperdollAddClientPacketHandler(
         IPlayerController playerController,
@@ -32,7 +31,7 @@ public class PaperdollAddClientPacketHandler : IPacketHandler<PaperdollAddClient
     {
         if (playerState.Character is null || playerState.CurrentMap is null)
         {
-            _logger.LogWarning("PaperdollAdd failed - Character is null: {CharIsNull}, CurrentMap is null: {MapIsNull}", 
+            _logger.LogWarning("PaperdollAdd failed - Character is null: {CharIsNull}, CurrentMap is null: {MapIsNull}",
                 playerState.Character is null, playerState.CurrentMap is null);
             return;
         }
@@ -41,12 +40,12 @@ public class PaperdollAddClientPacketHandler : IPacketHandler<PaperdollAddClient
 
         // Check if the player has the item
         var hasItem = _inventoryService.HasItem(character, packet.ItemId);
-        _logger.LogDebug("Player {Player} has item {ItemId}: {HasItem}", 
+        _logger.LogDebug("Player {Player} has item {ItemId}: {HasItem}",
             character.Name, packet.ItemId, hasItem);
-        
+
         if (!hasItem)
         {
-            _logger.LogWarning("Player {Player} attempted to equip item {ItemId} which they don't have", 
+            _logger.LogWarning("Player {Player} attempted to equip item {ItemId} which they don't have",
                 character.Name, packet.ItemId);
             return;
         }
@@ -57,7 +56,7 @@ public class PaperdollAddClientPacketHandler : IPacketHandler<PaperdollAddClient
 
         if (!equipSuccess)
         {
-            _logger.LogWarning("Player {Player} failed to equip item {ItemId} to slot {SubLoc}", 
+            _logger.LogWarning("Player {Player} failed to equip item {ItemId} to slot {SubLoc}",
                 character.Name, packet.ItemId, packet.SubLoc);
             return;
         }
@@ -78,7 +77,7 @@ public class PaperdollAddClientPacketHandler : IPacketHandler<PaperdollAddClient
         };
 
         // Send success response to player with stats and avatar change
-        _logger.LogDebug("Sending PaperdollAgreeServerPacket for item {ItemId}, remaining: {Remaining}", 
+        _logger.LogDebug("Sending PaperdollAgreeServerPacket for item {ItemId}, remaining: {Remaining}",
             packet.ItemId, remainingAmount);
         await playerState.Send(new PaperdollAgreeServerPacket
         {
@@ -91,10 +90,11 @@ public class PaperdollAddClientPacketHandler : IPacketHandler<PaperdollAddClient
 
         // Broadcast avatar change to nearby players
         var broadcastPacket = new AvatarAgreeServerPacket { Change = avatarChange };
-        await playerState.CurrentMap.BroadcastPacket(broadcastPacket, except: playerState);
+        await playerState.CurrentMap.BroadcastPacket(broadcastPacket, playerState);
     }
 
     public Task HandleAsync(PlayerState playerState, IPacket packet)
-        => HandleAsync(playerState, (PaperdollAddClientPacket)packet);
+    {
+        return HandleAsync(playerState, (PaperdollAddClientPacket)packet);
+    }
 }
-
