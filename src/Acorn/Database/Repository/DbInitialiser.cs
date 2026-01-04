@@ -24,14 +24,6 @@ public class DbInitialiser : IDbInitialiser
         {
             _logger.LogInformation("Ensuring database is created...");
             
-            // Check if we can connect to the database
-            var canConnect = await _context.Database.CanConnectAsync();
-            if (!canConnect)
-            {
-                _logger.LogError("Cannot connect to the database");
-                throw new InvalidOperationException("Cannot connect to the database");
-            }
-            
             // EnsureCreatedAsync creates the database schema if it doesn't exist
             // Note: This won't apply migrations, use MigrateAsync() if you add EF migrations
             var created = await _context.Database.EnsureCreatedAsync();
@@ -140,9 +132,9 @@ public class DbInitialiser : IDbInitialiser
                 Partner = "",
                 Admin = AdminLevel.HighGameMaster,
                 Class = 1,
-                Gender = Gender.Male + 1,
+                Gender = Gender.Male,
                 Race = 1,
-                HairStyle = 7,
+                HairStyle = 3,
                 HairColor = 8,
                 Map = 192,
                 X = 6,
@@ -174,19 +166,44 @@ public class DbInitialiser : IDbInitialiser
                 GoldBank = 0,
                 Usage = 0,
                 Items = new List<CharacterItem>(),
-                Paperdoll = new CharacterPaperdoll
-                {
-                    CharacterName = "acorn",
-                    Hat = 0,
-                    Armor = 45,
-                    Weapon = 37,
-                    Shield = 10,
-                    Boots = 15
-                }
             };
 
+            var paperdoll = new CharacterPaperdoll
+            {
+                CharacterName = "acorn",
+                Hat = 0,
+                Armor = 45,
+                Weapon = 37,
+                Shield = 10,
+                Boots = 15,
+                Necklace = 0,
+                Belt = 0,
+                Gloves = 0,
+                Accessory = 0,
+                Ring1 = 0,
+                Ring2 = 0,
+                Bracer1 = 0,
+                Bracer2 = 0,
+                Armlet1 = 0,
+                Armlet2 = 0
+            };
+
+            character.Paperdoll = paperdoll;
+            
             _context.Characters.Add(character);
+            _context.CharacterPaperdolls.Add(paperdoll);
+            
+            // DEBUG: Log the Gender value before saving
+            _logger.LogInformation("DEBUG: About to save character with Gender = {Gender} ({GenderInt})", 
+                character.Gender, (int)character.Gender);
+            
             await _context.SaveChangesAsync();
+            
+            // DEBUG: Re-read from database to verify
+            var saved = await _context.Characters.FindAsync("acorn");
+            _logger.LogInformation("DEBUG: After save, database has Gender = {Gender} ({GenderInt})", 
+                saved?.Gender, (int)(saved?.Gender ?? 0));
+            
             _logger.LogInformation("Default 'acorn' character created");
         }
     }

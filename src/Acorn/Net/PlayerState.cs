@@ -19,7 +19,7 @@ public class PlayerState : IDisposable
 {
     private readonly Action<PlayerState> _onDispose;
     private readonly PacketResolver _resolver = new("Moffat.EndlessOnline.SDK.Protocol.Net.Client");
-    private readonly PingSequenceStart _upcomingSequence;
+    private PingSequenceStart _upcomingSequence;
     private readonly ILogger<PlayerState> _logger;
     private readonly CancellationTokenSource _tokenSource = new();
     private readonly CancellationToken _cancellationToken;
@@ -68,6 +68,15 @@ public class PlayerState : IDisposable
     public Game.Models.Character? Character { get; set; }
 
     public MapState? CurrentMap { get; set; }
+
+    /// <summary>
+    /// Updates the upcoming ping sequence. This should be called before sending a CONNECTION_PLAYER ping.
+    /// The sequencer will be updated when the client responds with CONNECTION_PING.
+    /// </summary>
+    public void SetUpcomingPingSequence(PingSequenceStart newSequence)
+    {
+        _upcomingSequence = newSequence;
+    }
 
     public void Dispose()
     {

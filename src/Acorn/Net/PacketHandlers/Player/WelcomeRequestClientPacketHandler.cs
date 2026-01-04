@@ -14,16 +14,19 @@ internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequest
 {
     private readonly IDataFileRepository _dataRepository;
     private readonly IStatCalculator _statCalculator;
+    private readonly IPaperdollService _paperdollService;
     private readonly ILogger<WelcomeRequestClientPacketHandler> _logger;
 
     public WelcomeRequestClientPacketHandler(
         IDataFileRepository dataRepository,
         IStatCalculator statCalculator,
+        IPaperdollService paperdollService,
         ILogger<WelcomeRequestClientPacketHandler> logger
     )
     {
         _dataRepository = dataRepository;
         _statCalculator = statCalculator;
+        _paperdollService = paperdollService;
         _logger = logger;
     }
 
@@ -49,6 +52,10 @@ internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequest
         var equipmentResult = playerState.Character.Equipment();
         _statCalculator.RecalculateStats(playerState.Character, _dataRepository.Ecf);
 
+        _logger.LogInformation("Sending WelcomeReply with RIDs - ECF:{EcfRid} EIF:{EifRid} ENF:{EnfRid} ESF:{EsfRid} Map:{MapRid}",
+            _dataRepository.Ecf.Rid, _dataRepository.Eif.Rid, _dataRepository.Enf.Rid, 
+            _dataRepository.Esf.Rid, map.Rid);
+
         await playerState.Send(new WelcomeReplyServerPacket
         {
             WelcomeCode = WelcomeCode.SelectCharacter,
@@ -57,14 +64,14 @@ internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequest
                 Admin = playerState.Character.Admin,
                 CharacterId = packet.CharacterId,
                 ClassId = playerState.Character.Class,
-                EcfLength = _dataRepository.Ecf.ByteSize,
+                EcfLength = _dataRepository.Ecf.Classes.Count,
                 EcfRid = _dataRepository.Ecf.Rid,
-                EifLength = _dataRepository.Eif.ByteSize,
+                EifLength = _dataRepository.Eif.Items.Count,
                 EifRid = _dataRepository.Eif.Rid,
-                EnfLength = _dataRepository.Enf.ByteSize,
+                EnfLength = _dataRepository.Enf.Npcs.Count,
                 EnfRid = _dataRepository.Enf.Rid,
-                Equipment = equipmentResult.AsEquipmentWelcome(),
-                EsfLength = _dataRepository.Esf.ByteSize,
+                Equipment = equipmentResult.AsEquipmentWelcome(_paperdollService),
+                EsfLength = _dataRepository.Esf.Skills.Count,
                 EsfRid = _dataRepository.Esf.Rid,
                 Experience = playerState.Character.Exp,
                 GuildName = "DansArmy",

@@ -1,37 +1,13 @@
-﻿using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+﻿using Acorn.Game.Services;
+using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.Extensions;
 
 public static class EquipmentPaperdollExtensions
 {
-    public static EquipmentWelcome AsEquipmentWelcome(this EquipmentPaperdoll paperdoll)
-    {
-        return new EquipmentWelcome
-        {
-            Accessory = paperdoll.Accessory,
-            Armlet = paperdoll.Armlet,
-            Armor = paperdoll.Armor,
-            Belt = paperdoll.Belt,
-            Boots = paperdoll.Boots,
-            Bracer = paperdoll.Bracer,
-            Gloves = paperdoll.Gloves,
-            Hat = paperdoll.Hat,
-            Necklace = paperdoll.Necklace,
-            Ring = paperdoll.Ring,
-            Shield = paperdoll.Shield,
-            Weapon = paperdoll.Weapon
-        };
-    }
+    public static EquipmentWelcome AsEquipmentWelcome(this EquipmentPaperdoll paperdoll, IPaperdollService paperdollService)
+        => paperdollService.ToEquipmentWelcome(paperdoll);
     
-    public static EquipmentChange AsEquipmentChange(this EquipmentPaperdoll paperdoll)
-    {
-        return new EquipmentChange
-        {
-            Armor = paperdoll.Armor,
-            Boots = paperdoll.Boots,
-            Hat = paperdoll.Hat,
-            Shield = paperdoll.Shield,
-            Weapon = paperdoll.Weapon
-        };
-    }
+    public static EquipmentChange AsEquipmentChange(this EquipmentPaperdoll paperdoll, IPaperdollService paperdollService)
+        => paperdollService.ToEquipmentChange(paperdoll);
 }

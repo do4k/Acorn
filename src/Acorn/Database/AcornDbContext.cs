@@ -1,6 +1,7 @@
 using Acorn.Database.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Moffat.EndlessOnline.SDK.Protocol;
 
 namespace Acorn.Database;
 
@@ -55,10 +56,24 @@ public class AcornDbContext : DbContext
             entity.Property(e => e.Home).HasMaxLength(100);
             entity.Property(e => e.Fiance).HasMaxLength(16);
             entity.Property(e => e.Partner).HasMaxLength(16);
-            entity.Property(e => e.Admin).IsRequired();
+            entity.Property(e => e.Admin).IsRequired()
+                .HasConversion(
+                    v => (int)v,
+                    v => (AdminLevel)v
+                );
             entity.Property(e => e.Class).IsRequired();
-            entity.Property(e => e.Gender).IsRequired();
+            entity.Property(e => e.Gender).IsRequired()
+                .HasConversion(
+                    v => (int)v,
+                    v => (Gender)v
+                )
+                .HasColumnType("INTEGER");
             entity.Property(e => e.Race).IsRequired();
+            entity.Property(e => e.Direction)
+                .HasConversion(
+                    v => (int)v,
+                    v => (Direction)v
+                );
 
             // Configure relationships
             entity.HasMany(e => e.Items)
@@ -117,5 +132,8 @@ public class AcornDbContext : DbContext
                 LastUsed = new DateTime(2024, 8, 31, 0, 0, 0, DateTimeKind.Utc)
             }
         );
+        
+        // Note: Do NOT seed Character data here - HasConversion doesn't work with HasData
+        // Character seeding is done in DbInitialiser after the database is created
     }
 }

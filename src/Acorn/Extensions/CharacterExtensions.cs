@@ -1,23 +1,18 @@
 ﻿using Acorn.Game.Models;
+using Acorn.Game.Services;
+using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.Extensions;
 
 public static class CharacterExtensions
 {
-    public static CharacterSelectionListEntry AsCharacterListEntry(this Character c, int id)
+    public static CharacterSelectionListEntry AsCharacterListEntry(this Character c, int id, IPaperdollService paperdollService)
     {
         return new CharacterSelectionListEntry
         {
             Admin = c.Admin,
-            Equipment = new EquipmentCharacterSelect
-            {
-                Armor = c.Paperdoll.Armor,
-                Boots = c.Paperdoll.Boots,
-                Weapon = c.Paperdoll.Weapon,
-                Shield = c.Paperdoll.Shield,
-                Hat = c.Paperdoll.Hat
-            },
+            Equipment = paperdollService.ToEquipmentCharacterSelect(c),
             Gender = c.Gender,
             HairColor = c.HairColor,
             HairStyle = c.HairStyle,

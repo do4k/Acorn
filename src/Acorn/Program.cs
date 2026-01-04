@@ -128,7 +128,7 @@ var host = Host.CreateDefaultBuilder(args)
                     break;
             }
 
-            options.EnableSensitiveDataLogging(false);
+            options.EnableSensitiveDataLogging(true);
             options.EnableDetailedErrors(true);
         });
 
@@ -142,6 +142,7 @@ var host = Host.CreateDefaultBuilder(args)
             .AddSingleton<IStatCalculator, StatCalculator>()
             .AddSingleton<IInventoryService, InventoryService>()
             .AddSingleton<IBankService, BankService>()
+            .AddSingleton<IPaperdollService, PaperdollService>()
             .AddSingleton<IWeightCalculator, WeightCalculator>()
             .AddSingleton<ICharacterMapper, CharacterMapper>()
             // World services
@@ -164,6 +165,7 @@ var host = Host.CreateDefaultBuilder(args)
             .AddSingleton<TcpCommunicatorFactory>()
             .AddSingleton<MapStateFactory>()
             .AddSingleton<PlayerStateFactory>()
+            .AddHostedService<PlayerPingHostedService>()
             .AddHostedService<ServerLinkNetworkPingHostedService>()
             .AddRefitClient<IServerLinkNetworkClient>()
             .ConfigureHttpClient((svc, c) =>

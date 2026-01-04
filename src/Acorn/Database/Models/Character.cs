@@ -77,6 +77,7 @@ public class Character
             Level = Level,
             Exp = Exp,
             Class = Class,
+            Gender = Gender,
             Name = Name,
             Map = Map,
             X = X,

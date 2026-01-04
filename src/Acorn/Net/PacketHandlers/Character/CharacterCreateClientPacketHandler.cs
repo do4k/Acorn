@@ -1,5 +1,6 @@
 ﻿using Acorn.Database.Repository;
 using Acorn.Extensions;
+using Acorn.Game.Services;
 using Acorn.Options;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -12,10 +13,12 @@ namespace Acorn.Net.PacketHandlers.Character;
 
 internal class CharacterCreateClientPacketHandler(
     IDbRepository<Database.Models.Character> repository,
+    IPaperdollService paperdollService,
     ILogger<CharacterCreateClientPacketHandler> logger,
     IOptions<ServerOptions> serverOptions)
     : IPacketHandler<CharacterCreateClientPacket>
 {
+    private readonly IPaperdollService _paperdollService = paperdollService;
     private readonly ServerOptions _serverOptions = serverOptions.Value;
 
     public async Task HandleAsync(PlayerState playerState,
@@ -70,7 +73,7 @@ internal class CharacterCreateClientPacketHandler(
             ReplyCode = CharacterReply.Ok,
             ReplyCodeData = new CharacterReplyServerPacket.ReplyCodeDataOk
             {
-                Characters = playerState.Account.Characters.Select((c, id) => c.AsGameModel().AsCharacterListEntry(id)).ToList()
+                Characters = playerState.Account.Characters.Select((c, id) => c.AsGameModel().AsCharacterListEntry(id, _paperdollService)).ToList()
             }
         });
     }

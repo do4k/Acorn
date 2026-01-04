@@ -34,7 +34,7 @@ public class SpawnNpcCommandHandler : ITalkHandler
     {
         if (args.Length < 1)
         {
-            await _notifications.SystemMessage(playerState, "Usage: $[spawnnpc | snpc] <npc_id|npc_name>");
+            await _notifications.ServerAnnouncement(playerState, "Usage: $[spawnnpc | snpc] <npc_id|npc_name>");
             return;
         }
 
@@ -72,7 +72,8 @@ public class SpawnNpcCommandHandler : ITalkHandler
             X = playerState.Character.X,
             Y = playerState.Character.Y,
             Hp = enf.Hp,
-            Id = npcId + 1
+            Id = npcId + 1,
+            IsAdminSpawned = true
         };
 
         if (playerState.CurrentMap is null)
@@ -81,7 +82,7 @@ public class SpawnNpcCommandHandler : ITalkHandler
         }
 
         playerState.CurrentMap.Npcs.Add(npc);
-        await _notifications.SystemMessage(playerState, $"Spawned Npc {enf.Name} ({npcId}).");
+        await _notifications.ServerAnnouncement(playerState, $"Spawned Npc {enf.Name} ({npcId}).");
         await playerState.CurrentMap.BroadcastPacket(new NpcAgreeServerPacket
         {
             Npcs = playerState.CurrentMap.AsNpcMapInfo()
@@ -101,7 +102,7 @@ public class SpawnNpcCommandHandler : ITalkHandler
         if (exactMatches.Count > 1)
         {
             var ids = string.Join(", ", exactMatches.Select(x => x.Id));
-            await _notifications.SystemMessage(playerState, $"Multiple NPCs found with name \"{name}\": IDs {ids}");
+            await _notifications.ServerAnnouncement(playerState, $"Multiple NPCs found with name \"{name}\": IDs {ids}");
             return;
         }
 
@@ -116,10 +117,10 @@ public class SpawnNpcCommandHandler : ITalkHandler
         if (partialMatches.Count > 1)
         {
             var suggestions = string.Join(", ", partialMatches.Take(5).Select(x => $"{x.Npc.Name} ({x.Id})"));
-            await _notifications.SystemMessage(playerState, $"Multiple NPCs match \"{name}\": {suggestions}");
+            await _notifications.ServerAnnouncement(playerState, $"Multiple NPCs match \"{name}\": {suggestions}");
             return;
         }
 
-        await _notifications.SystemMessage(playerState, $"NPC \"{name}\" not found.");
+        await _notifications.ServerAnnouncement(playerState, $"NPC \"{name}\" not found.");
     }
 }

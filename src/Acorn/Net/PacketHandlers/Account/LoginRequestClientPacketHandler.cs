@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using Acorn.Database.Repository;
 using Acorn.Extensions;
+using Acorn.Game.Services;
 using Acorn.Infrastructure.Security;
 using Acorn.World;
 using Microsoft.Extensions.Logging;
@@ -13,11 +14,13 @@ namespace Acorn.Net.PacketHandlers.Account;
 public class LoginRequestClientPacketHandler(
     ILogger<LoginRequestClientPacketHandler> logger,
     IDbRepository<Database.Models.Account> repository,
+    IPaperdollService paperdollService,
     IWorldQueries world
 ) : IPacketHandler<LoginRequestClientPacket>
 {
     private readonly ILogger<LoginRequestClientPacketHandler> _logger = logger;
     private readonly IDbRepository<Database.Models.Account> _repository = repository;
+    private readonly IPaperdollService _paperdollService = paperdollService;
     private readonly IWorldQueries _world = world;
 
     public async Task HandleAsync(PlayerState playerState,
@@ -64,7 +67,7 @@ public class LoginRequestClientPacketHandler(
             ReplyCodeData = new LoginReplyServerPacket.ReplyCodeDataOk
             {
                 Characters = playerState.Account.Characters
-                    .Select((x, id) => x.AsGameModel().AsCharacterListEntry(id)).ToList()
+                    .Select((x, id) => x.AsGameModel().AsCharacterListEntry(id, _paperdollService)).ToList()
             }
         });
     }

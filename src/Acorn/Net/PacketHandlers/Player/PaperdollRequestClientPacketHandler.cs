@@ -1,4 +1,5 @@
 using Acorn.Extensions;
+using Acorn.Game.Services;
 using Acorn.World;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
@@ -9,10 +10,12 @@ namespace Acorn.Net.PacketHandlers.Player;
 public class PaperdollRequestClientPacketHandler : IPacketHandler<PaperdollRequestClientPacket>
 {
     private readonly IWorldQueries _world;
+    private readonly IPaperdollService _paperdollService;
 
-    public PaperdollRequestClientPacketHandler(IWorldQueries world)
+    public PaperdollRequestClientPacketHandler(IWorldQueries world, IPaperdollService paperdollService)
     {
         _world = world;
+        _paperdollService = paperdollService;
     }
 
     public async Task HandleAsync(PlayerState playerState, PaperdollRequestClientPacket packet)
@@ -43,7 +46,7 @@ public class PaperdollRequestClientPacketHandler : IPacketHandler<PaperdollReque
                 ClassId = character.Class,
                 Gender = character.Gender,
             },
-            Equipment = character.Equipment()
+            Equipment = _paperdollService.ToEquipmentPaperdoll(character.Equipment())
         });
     }
 

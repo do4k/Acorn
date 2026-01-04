@@ -41,7 +41,7 @@ public class SpawnItemCommandHandler : ITalkHandler
     {
         if (args.Length < 1)
         {
-            await _notifications.SystemMessage(playerState, "Usage: $[spawnitem | sitem] <item_id|item_name> [amount]");
+            await _notifications.ServerAnnouncement(playerState, "Usage: $[spawnitem | sitem] <item_id|item_name> [amount]");
             return;
         }
 
@@ -61,7 +61,7 @@ public class SpawnItemCommandHandler : ITalkHandler
             var item = _dataFiles.Eif.GetItem(itemId);
             if (item is null)
             {
-                await _notifications.SystemMessage(playerState, $"Item with ID {itemId} not found.");
+                await _notifications.ServerAnnouncement(playerState, $"Item with ID {itemId} not found.");
                 return;
             }
 
@@ -85,7 +85,7 @@ public class SpawnItemCommandHandler : ITalkHandler
         // Add item directly to inventory
         if (!_inventoryService.TryAddItem(playerState.Character, itemId, amount))
         {
-            await _notifications.SystemMessage(playerState, "Failed to add item to inventory (full?).");
+            await _notifications.ServerAnnouncement(playerState, "Failed to add item to inventory (full?).");
             return;
         }
 
@@ -95,7 +95,7 @@ public class SpawnItemCommandHandler : ITalkHandler
         // Save to database
         await _characterRepository.UpdateAsync(_characterMapper.ToDatabase(playerState.Character));
 
-        await _notifications.SystemMessage(playerState, $"Added {itemName} x{amount} (ID: {itemId}) to inventory.");
+        await _notifications.ServerAnnouncement(playerState, $"Added {itemName} x{amount} (ID: {itemId}) to inventory.");
 
         // Get current amount in inventory for the packet
         var inventoryItem = playerState.Character.Inventory.Items.FirstOrDefault(i => i.Id == itemId);
@@ -133,7 +133,7 @@ public class SpawnItemCommandHandler : ITalkHandler
         if (exactMatches.Count > 1)
         {
             var ids = string.Join(", ", exactMatches.Select(x => x.Id));
-            await _notifications.SystemMessage(playerState, $"Multiple items found with name \"{name}\": IDs {ids}");
+            await _notifications.ServerAnnouncement(playerState, $"Multiple items found with name \"{name}\": IDs {ids}");
             return;
         }
 
@@ -152,10 +152,10 @@ public class SpawnItemCommandHandler : ITalkHandler
         if (partialMatches.Count > 1)
         {
             var suggestions = string.Join(", ", partialMatches.Take(5).Select(x => $"{x.Item.Name} ({x.Id})"));
-            await _notifications.SystemMessage(playerState, $"Multiple items match \"{name}\": {suggestions}");
+            await _notifications.ServerAnnouncement(playerState, $"Multiple items match \"{name}\": {suggestions}");
             return;
         }
 
-        await _notifications.SystemMessage(playerState, $"Item \"{name}\" not found.");
+        await _notifications.ServerAnnouncement(playerState, $"Item \"{name}\" not found.");
     }
 }

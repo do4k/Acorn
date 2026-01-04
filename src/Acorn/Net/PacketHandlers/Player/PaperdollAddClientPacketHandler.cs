@@ -11,11 +11,13 @@ namespace Acorn.Net.PacketHandlers.Player;
 public class PaperdollAddClientPacketHandler : IPacketHandler<PaperdollAddClientPacket>
 {
     private readonly IInventoryService _inventoryService;
+    private readonly IPaperdollService _paperdollService;
     private readonly ILogger<PaperdollAddClientPacketHandler> _logger;
 
-    public PaperdollAddClientPacketHandler(IInventoryService inventoryService, ILogger<PaperdollAddClientPacketHandler> logger)
+    public PaperdollAddClientPacketHandler(IInventoryService inventoryService, IPaperdollService paperdollService, ILogger<PaperdollAddClientPacketHandler> logger)
     {
         _inventoryService = inventoryService;
+        _paperdollService = paperdollService;
         _logger = logger;
     }
 
@@ -112,7 +114,7 @@ public class PaperdollAddClientPacketHandler : IPacketHandler<PaperdollAddClient
                         ChangeType = AvatarChangeType.Equipment,
                         ChangeTypeData = new AvatarChange.ChangeTypeDataEquipment
                         {
-                            Equipment = character.Equipment().AsEquipmentChange()
+                            Equipment = character.Equipment().AsEquipmentChange(_paperdollService)
                         }
                     }
                 };

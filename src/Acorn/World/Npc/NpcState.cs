@@ -59,10 +59,17 @@ public class NpcState
     public int SpawnTime { get; set; } = 60;
 
     /// <summary>
+    /// Whether this NPC was spawned by an admin command.
+    /// Admin-spawned NPCs should not respawn after being killed.
+    /// </summary>
+    public bool IsAdminSpawned { get; set; }
+
+    /// <summary>
     /// Gets the respawn time in seconds.
     /// For SpawnType 7, respawn is typically instant (0) since they're fixed NPCs.
+    /// Admin-spawned NPCs never respawn.
     /// </summary>
-    public int RespawnTimeSeconds => SpawnType == 7 ? 0 : SpawnTime;
+    public int RespawnTimeSeconds => IsAdminSpawned ? -1 : (SpawnType == 7 ? 0 : SpawnTime);
 
     // Death state
     public bool IsDead { get; set; }

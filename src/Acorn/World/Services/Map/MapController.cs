@@ -134,7 +134,9 @@ public class MapController : IMapController
 
     public async Task ProcessNpcRespawnsAsync(MapState map)
     {
-        var deadNpcs = map.Npcs.Where(npc => npc.IsDead && npc.DeathTime.HasValue).ToList();
+        var deadNpcs = map.Npcs
+            .Where(npc => npc.IsDead && npc.DeathTime.HasValue && !npc.IsAdminSpawned)
+            .ToList();
 
         foreach (var npc in deadNpcs)
         {
