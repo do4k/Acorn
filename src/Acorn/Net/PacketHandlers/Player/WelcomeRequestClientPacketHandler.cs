@@ -52,10 +52,6 @@ internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequest
         var equipmentResult = playerState.Character.Equipment();
         _statCalculator.RecalculateStats(playerState.Character, _dataRepository.Ecf);
 
-        _logger.LogInformation("Sending WelcomeReply with RIDs - ECF:{EcfRid} EIF:{EifRid} ENF:{EnfRid} ESF:{EsfRid} Map:{MapRid}",
-            _dataRepository.Ecf.Rid, _dataRepository.Eif.Rid, _dataRepository.Enf.Rid, 
-            _dataRepository.Esf.Rid, map.Rid);
-
         await playerState.Send(new WelcomeReplyServerPacket
         {
             WelcomeCode = WelcomeCode.SelectCharacter,
@@ -90,15 +86,16 @@ internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequest
                         Cha = playerState.Character.Cha,
                         Con = playerState.Character.Con,
                         Str = playerState.Character.Str,
-                        Wis = playerState.Character.Wis
+                        Wis = playerState.Character.Wis,
+                        Intl = playerState.Character.Int,
                     },
                     Secondary = new CharacterSecondaryStats
                     {
-                        Accuracy = 10,
-                        Armor = 10,
-                        Evade = 10,
-                        MaxDamage = 150,
-                        MinDamage = 100
+                        Accuracy = playerState.Character.Accuracy,
+                        Armor = playerState.Character.Armor,
+                        Evade = playerState.Character.Evade,
+                        MaxDamage = playerState.Character.MaxDamage,
+                        MinDamage = playerState.Character.MinDamage
                     },
                     Karma = playerState.Character.Karma,
                     MaxSp = playerState.Character.MaxSp,

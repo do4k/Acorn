@@ -34,29 +34,40 @@ public class SpawnNpcCommandHandler : ITalkHandler
     {
         if (args.Length < 1)
         {
-            await _notifications.ServerAnnouncement(playerState, "Usage: $[spawnnpc | snpc] <npc_id|npc_name>");
+            await _notifications.ServerAnnouncement(playerState, "Usage: $[spawnnpc | snpc] <npc_id|npc_name> [count]");
             return;
+        }
+
+        var count = 1;
+        string[] inputArgs = args;
+
+        // Check if the last argument is a number (spawn count)
+        if (args.Length > 1 && int.TryParse(args[^1], out var parsedCount))
+        {
+            count = parsedCount;
+            inputArgs = args[..^1]; // Remove the last argument
         }
 
         // Join all arguments to support multi-word NPC names
-        var input = string.Join(" ", args);
+        var input = string.Join(" ", inputArgs);
 
-        if (int.TryParse(input, out var npcId) is false)
+        if (int.TryParse(input, out var npcId))
         {
-            await SpawnByName(playerState, input);
+            var npc = _dataFiles.Enf.GetNpc(npcId);
+            if (npc is null)
+            {
+                await _notifications.ServerAnnouncement(playerState, $"NPC with ID {npcId} not found.");
+                return;
+            }
+
+            await SpawnNpc(playerState, npc, count);
             return;
         }
 
-        var npc = _dataFiles.Enf.GetNpc(npcId);
-        if (npc is null)
-        {
-            return;
-        }
-
-        await SpawnNpc(playerState, npc);
+        await SpawnByName(playerState, input, count);
     }
 
-    private async Task SpawnNpc(PlayerState playerState, EnfRecord enf)
+    private async Task SpawnNpc(PlayerState playerState, EnfRecord enf, int count = 1)
     {
         if (playerState.Character is null)
         {
@@ -64,38 +75,46 @@ public class SpawnNpcCommandHandler : ITalkHandler
             return;
         }
 
-        var npcId = _dataFiles.Enf.Npcs.FindIndex(x => enf.GetHashCode() == x.GetHashCode());
-
-        var npc = new NpcState(enf)
-        {
-            Direction = playerState.Character.Direction,
-            X = playerState.Character.X,
-            Y = playerState.Character.Y,
-            Hp = enf.Hp,
-            Id = npcId + 1,
-            IsAdminSpawned = true
-        };
-
         if (playerState.CurrentMap is null)
         {
             return;
         }
 
-        playerState.CurrentMap.Npcs.Add(npc);
-        await _notifications.ServerAnnouncement(playerState, $"Spawned Npc {enf.Name} ({npcId}).");
+        var npcId = _dataFiles.Enf.Npcs.FindIndex(x => enf.GetHashCode() == x.GetHashCode());
+
+        for (int i = 0; i < count; i++)
+        {
+            var npc = new NpcState(enf)
+            {
+                Direction = playerState.Character.Direction,
+                X = playerState.Character.X,
+                Y = playerState.Character.Y,
+                Hp = enf.Hp,
+                Id = npcId + 1,
+                IsAdminSpawned = true
+            };
+
+            playerState.CurrentMap.Npcs.Add(npc);
+        }
+
+        await _notifications.ServerAnnouncement(playerState, 
+            count == 1 
+                ? $"Spawned {enf.Name} ({npcId})." 
+                : $"Spawned {count} {enf.Name}s ({npcId}).");
+
         await playerState.CurrentMap.BroadcastPacket(new NpcAgreeServerPacket
         {
             Npcs = playerState.CurrentMap.AsNpcMapInfo()
         });
     }
 
-    private async Task SpawnByName(PlayerState playerState, string name)
+    private async Task SpawnByName(PlayerState playerState, string name, int count = 1)
     {
         // Try exact match first
         var exactMatches = _dataFiles.Enf.FindByName(name);
         if (exactMatches.Count == 1)
         {
-            await SpawnNpc(playerState, exactMatches[0].Npc);
+            await SpawnNpc(playerState, exactMatches[0].Npc, count);
             return;
         }
 
@@ -110,7 +129,7 @@ public class SpawnNpcCommandHandler : ITalkHandler
         var partialMatches = _dataFiles.Enf.SearchByName(name);
         if (partialMatches.Count == 1)
         {
-            await SpawnNpc(playerState, partialMatches[0].Npc);
+            await SpawnNpc(playerState, partialMatches[0].Npc, count);
             return;
         }
 

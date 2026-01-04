@@ -20,7 +20,7 @@ public class StatCalculator : IStatCalculator
         // Calculate adjusted stats from equipment bonuses
         // TODO: Add equipment stat bonuses when paperdoll items have stats
         int adjStr = character.Str;
-        int adjIntl = character.Wis; // Note: SDK uses Wis for Int
+        int adjIntl = character.Int;
         int adjWis = character.Wis;
         int adjAgi = character.Agi;
         int adjCon = character.Con;
@@ -56,6 +56,8 @@ public class StatCalculator : IStatCalculator
             4 => adjAgi / 5,        // Archers (Agi)
             _ => (adjStr + adjAgi + adjIntl) / 15  // Balanced
         };
+        
+        System.Console.WriteLine($"StatCalculator: baseDam calculation: StatGroup={@class.StatGroup}, adjStr={adjStr}, baseDam={baseDam}");
 
         character.MinDamage = 1 + baseDam;
         character.MaxDamage = 2 + baseDam + (character.Level / 10);

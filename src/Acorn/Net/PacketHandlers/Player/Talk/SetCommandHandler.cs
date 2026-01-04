@@ -74,6 +74,7 @@ public class SetCommandHandler : ITalkHandler
             "sp" => () => target.Character.Sp = value,
             "str" => () => target.Character.Str = value,
             "wis" => () => target.Character.Wis = value,
+            "int" => () => target.Character.Int = value,
             "agi" => () => target.Character.Agi = value,
             "con" => () => target.Character.Con = value,
             "cha" => () => target.Character.Cha = value,

@@ -97,7 +97,8 @@ public static class CharacterExtensions
             Cha = c.Cha,
             Con = c.Con,
             Str = c.Str,
-            Wis = c.Wis
+            Wis = c.Wis,
+            Intl = c.Int,
         };
     }
 
