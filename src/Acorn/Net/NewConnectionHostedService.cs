@@ -40,10 +40,38 @@ public class NewConnectionHostedService(
             // Start WebSocket listener on all interfaces
             _wsListener = new HttpListener();
             _wsListener.Prefixes.Add($"http://+:{_serverOptions.Hosting.WebSocketPort}/");
-            _wsListener.Start();
-
-            logger.LogInformation("Waiting for TCP on {Endpoint} and WebSocket on ws://+:{Port}...",
-                _listener.LocalEndpoint, _serverOptions.Hosting.WebSocketPort);
+            
+            try
+            {
+                _wsListener.Start();
+                logger.LogInformation("Waiting for TCP on {Endpoint} and WebSocket on ws://+:{Port}...",
+                    _listener.LocalEndpoint, _serverOptions.Hosting.WebSocketPort);
+            }
+            catch (HttpListenerException ex)
+            {
+                logger.LogError(ex, "Failed to start WebSocket listener on port {Port}. " +
+                    "On Windows, you may need to run as administrator or use netsh to reserve the URL. " +
+                    "Command: netsh http add urlacl url=http://+:{Port}/ user=Everyone",
+                    _serverOptions.Hosting.WebSocketPort);
+                
+                // Try to start with localhost binding as fallback
+                _wsListener.Prefixes.Clear();
+                _wsListener.Prefixes.Add($"http://localhost:{_serverOptions.Hosting.WebSocketPort}/");
+                _wsListener.Prefixes.Add($"http://127.0.0.1:{_serverOptions.Hosting.WebSocketPort}/");
+                
+                try
+                {
+                    _wsListener.Start();
+                    logger.LogWarning("WebSocket listener started on localhost only (port {Port}). " +
+                        "External connections will not work. Run as administrator for full functionality.",
+                        _serverOptions.Hosting.WebSocketPort);
+                }
+                catch (Exception fallbackEx)
+                {
+                    logger.LogError(fallbackEx, "Failed to start WebSocket listener even on localhost");
+                    throw;
+                }
+            }
 
             while (!cancellationToken.IsCancellationRequested)
             {
@@ -61,9 +89,10 @@ public class NewConnectionHostedService(
 
                     ICommunicator communicator = completed switch
                     {
-                        Task<TcpClient> tcp when tcp == tcpAcceptTask => tcpCommunicatorFactory.Initialise(tcp.Result),
-                        Task<HttpListenerContext> ws when ws == wsAcceptTask => await webSocketCommunicatorFactory
-                            .InitialiseAsync(ws.Result, cancellationToken),
+                        Task<TcpClient> tcp when tcp == tcpAcceptTask => 
+                            tcpCommunicatorFactory.Initialise(tcp.Result),
+                        Task<HttpListenerContext> ws when ws == wsAcceptTask => 
+                            await HandleWebSocketConnection(ws.Result, cancellationToken),
                         _ => throw new InvalidOperationException("Unexpected task completion")
                     };
 
@@ -132,6 +161,23 @@ public class NewConnectionHostedService(
         worldState.Players.TryRemove(sessionId, out _);
         logger.LogInformation("Player disconnected");
         UpdateConnectedCount();
+    }
+
+    private async Task<ICommunicator> HandleWebSocketConnection(HttpListenerContext context, CancellationToken cancellationToken)
+    {
+        logger.LogInformation("WebSocket connection attempt from {RemoteEndpoint}", context.Request.RemoteEndPoint);
+
+        if (!context.Request.IsWebSocketRequest)
+        {
+            logger.LogWarning("Received non-WebSocket HTTP request to WebSocket endpoint from {RemoteEndpoint}", 
+                context.Request.RemoteEndPoint);
+            context.Response.StatusCode = 400;
+            context.Response.Close();
+            throw new InvalidOperationException("Not a WebSocket request");
+        }
+
+        logger.LogInformation("Accepting WebSocket connection from {RemoteEndpoint}", context.Request.RemoteEndPoint);
+        return await webSocketCommunicatorFactory.InitialiseAsync(context, cancellationToken);
     }
 
     public override void Dispose()

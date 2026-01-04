@@ -29,6 +29,7 @@ internal class AccountCreateClientPacketHandler(
                     ReplyCode = AccountReply.Exists,
                     ReplyCodeData = new AccountReplyServerPacket.ReplyCodeDataExists()
                 });
+            return;
         }
 
         var newAccount = packet.AsNewAccount(nowDelegate());
