@@ -131,7 +131,7 @@ public class DbInitialiser : IDbInitialiser
                 Fiance = "",
                 Partner = "",
                 Admin = AdminLevel.HighGameMaster,
-                Class = 2,
+                Class = 6,
                 Gender = Gender.Male,
                 Race = 1,
                 HairStyle = 3,
@@ -194,16 +194,10 @@ public class DbInitialiser : IDbInitialiser
             _context.Characters.Add(character);
             _context.CharacterPaperdolls.Add(paperdoll);
             
-            // DEBUG: Log the Gender value before saving
-            _logger.LogInformation("DEBUG: About to save character with Gender = {Gender} ({GenderInt})", 
-                character.Gender, (int)character.Gender);
-            
             await _context.SaveChangesAsync();
             
             // DEBUG: Re-read from database to verify
             var saved = await _context.Characters.FindAsync("acorn");
-            _logger.LogInformation("DEBUG: After save, database has Gender = {Gender} ({GenderInt})", 
-                saved?.Gender, (int)(saved?.Gender ?? 0));
             
             _logger.LogInformation("Default 'acorn' character created");
         }
