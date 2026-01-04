@@ -250,13 +250,15 @@ public class FormulaService : IFormulaService
     }
 
     /// <summary>
-    /// Calculate the experience required to reach the next level.
-    /// EOSERV formula: (level^3 * 133) / 100
+    /// Calculate the CUMULATIVE experience required to reach a level.
+    /// Formula: (level^3 * 133.1).Round() - to match reoserv exactly
+    /// This is the total experience from level 0, NOT the difference between levels.
     /// </summary>
-    public int GetExperienceToNextLevel(int level)
+    public int GetCumulativeExperienceForLevel(int level)
     {
+        if (level <= 0) return 0;
         if (level >= 250) return int.MaxValue; // Max level cap
-        return (int)Math.Pow(level, 3) * 133 / 100;
+        return (int)Math.Round(Math.Pow(level, 3) * 133.1);
     }
 
     /// <summary>
@@ -265,8 +267,8 @@ public class FormulaService : IFormulaService
     public bool CanLevelUp(Game.Models.Character character)
     {
         if (character.Level >= 250) return false;
-        int requiredExp = GetExperienceToNextLevel(character.Level);
-        return character.Exp >= requiredExp;
+        int nextLevelThreshold = GetCumulativeExperienceForLevel(character.Level + 1);
+        return character.Exp >= nextLevelThreshold;
     }
 
     /// <summary>
@@ -281,10 +283,6 @@ public class FormulaService : IFormulaService
 
         // Increment level
         character.Level++;
-
-        // Deduct experience for this level
-        int requiredExp = GetExperienceToNextLevel(character.Level - 1);
-        character.Exp -= requiredExp;
 
         // Three stat points per level
         character.StatPoints += 3;

@@ -32,37 +32,79 @@ public class NewConnectionHostedService(
 
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
-        await statsReporter.Report();
-        _listener.Start();
-
-        // Start WebSocket listener on all interfaces
-        _wsListener = new HttpListener();
-        _wsListener.Prefixes.Add($"http://+:{_serverOptions.Hosting.WebSocketPort}/");
-        _wsListener.Start();
-
-        logger.LogInformation("Waiting for TCP on {Endpoint} and WebSocket on ws://+:{Port}...",
-            _listener.LocalEndpoint, _serverOptions.Hosting.WebSocketPort);
-
-        while (!cancellationToken.IsCancellationRequested)
+        try
         {
-            var tcpAcceptTask = _listener.AcceptTcpClientAsync(cancellationToken).AsTask();
-            var wsAcceptTask = _wsListener.GetContextAsync();
-            var completed = await Task.WhenAny(tcpAcceptTask, wsAcceptTask);
-            ICommunicator communicator = completed switch
+            await statsReporter.Report();
+            _listener.Start();
+
+            // Start WebSocket listener on all interfaces
+            _wsListener = new HttpListener();
+            _wsListener.Prefixes.Add($"http://+:{_serverOptions.Hosting.WebSocketPort}/");
+            _wsListener.Start();
+
+            logger.LogInformation("Waiting for TCP on {Endpoint} and WebSocket on ws://+:{Port}...",
+                _listener.LocalEndpoint, _serverOptions.Hosting.WebSocketPort);
+
+            while (!cancellationToken.IsCancellationRequested)
             {
-                Task<TcpClient> tcp when tcp == tcpAcceptTask => tcpCommunicatorFactory.Initialise(tcp.Result),
-                Task<HttpListenerContext> ws when ws == wsAcceptTask => await webSocketCommunicatorFactory.InitialiseAsync(ws.Result, cancellationToken),
-                _ => throw new InvalidOperationException("Unexpected task completion")
-            };
+                try
+                {
+                    var tcpAcceptTask = _listener.AcceptTcpClientAsync(cancellationToken).AsTask();
+                    var wsAcceptTask = _wsListener.GetContextAsync();
+                    var completed = await Task.WhenAny(tcpAcceptTask, wsAcceptTask);
+                    
+                    // Check if cancellation was requested
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        break;
+                    }
 
-            var sessionId = sessionGenerator.Generate();
+                    ICommunicator communicator = completed switch
+                    {
+                        Task<TcpClient> tcp when tcp == tcpAcceptTask => tcpCommunicatorFactory.Initialise(tcp.Result),
+                        Task<HttpListenerContext> ws when ws == wsAcceptTask => await webSocketCommunicatorFactory.InitialiseAsync(ws.Result, cancellationToken),
+                        _ => throw new InvalidOperationException("Unexpected task completion")
+                    };
 
-            var playerState = playerStateFactory.CreatePlayerState(communicator, sessionId,
-                async (player) => await OnClientDisposed(player, sessionId));
+                    var sessionId = sessionGenerator.Generate();
 
-            var added = worldState.Players.TryAdd(sessionId, playerState);
-            logger.LogInformation("Connection accepted. {PlayersConnected} players connected", worldState.Players.Count);
-            UpdateConnectedCount();
+                    var playerState = playerStateFactory.CreatePlayerState(communicator, sessionId,
+                        async (player) => await OnClientDisposed(player, sessionId));
+
+                    var added = worldState.Players.TryAdd(sessionId, playerState);
+                    logger.LogInformation("Connection accepted. {PlayersConnected} players connected", worldState.Players.Count);
+                    UpdateConnectedCount();
+                }
+                catch (OperationCanceledException)
+                {
+                    // Expected during shutdown
+                    logger.LogDebug("Accept operation cancelled during shutdown");
+                    break;
+                }
+                catch (ObjectDisposedException)
+                {
+                    // HttpListener was disposed during shutdown, this is expected
+                    logger.LogDebug("Listener disposed during shutdown");
+                    break;
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            logger.LogDebug("Listener service cancellation requested");
+        }
+        catch (ObjectDisposedException)
+        {
+            logger.LogDebug("Listener service resources disposed during shutdown");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in connection listener");
+            throw;
+        }
+        finally
+        {
+            logger.LogInformation("Connection listener stopped");
         }
     }
 

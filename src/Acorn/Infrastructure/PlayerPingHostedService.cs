@@ -50,10 +50,13 @@ public class PlayerPingHostedService(
             try
             {
                 // Check if player needs a pong response
+                // TODO: Re-enable ping enforcement once client properly responds to pings
                 if (player.NeedPong)
                 {
-                    logger.LogWarning("Player {SessionId} did not respond to ping, disconnecting", player.SessionId);
-                    player.Dispose();
+                    logger.LogDebug("Player {SessionId} has not yet responded to previous ping", player.SessionId);
+                    // For now, don't disconnect - just log and continue
+                    // logger.LogWarning("Player {SessionId} did not respond to ping, disconnecting", player.SessionId);
+                    // player.Dispose();
                     continue;
                 }
 

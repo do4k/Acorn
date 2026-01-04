@@ -89,9 +89,10 @@ public interface IFormulaService
     int GetNpcExperience(EnfRecord npcData);
 
     /// <summary>
-    /// Calculate the experience required to reach the next level.
+    /// Calculate the cumulative experience required to reach a level.
+    /// This is the total experience from level 0, not the difference between levels.
     /// </summary>
-    int GetExperienceToNextLevel(int level);
+    int GetCumulativeExperienceForLevel(int level);
 
     /// <summary>
     /// Check if character has enough experience to level up.
