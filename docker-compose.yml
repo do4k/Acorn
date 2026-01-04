@@ -16,6 +16,7 @@ services:
       - Cache__Enabled=true
       - Cache__UseRedis=true
       - Cache__ConnectionString=redis:6379
+      - Server__SLN__Enabled=true
     depends_on:
       mysql:
         condition: service_healthy
