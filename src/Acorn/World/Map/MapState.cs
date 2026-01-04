@@ -138,6 +138,7 @@ public class MapState
         => Npcs.Select((x, i) => (npc: x, index: i))
             .Where(t => !t.npc.IsDead)
             .Select(t => t.npc.AsNpcMapInfo(t.index))
+            .Take(252) // EO Protocol limit: NpcMapInfo uses byte field, max 252 NPCs
             .ToList();
 
     public async Task NotifyEnter(PlayerState player, WarpEffect warpEffect = WarpEffect.None)

@@ -24,12 +24,6 @@ public interface IPaperdollService
     EquipmentCharacterSelect ToEquipmentCharacterSelect(Character character);
 
     /// <summary>
-    /// Converts equipment paperdoll item IDs to graphic IDs for paperdoll display.
-    /// Used for paperdoll window display.
-    /// </summary>
-    EquipmentPaperdoll ToEquipmentPaperdoll(EquipmentPaperdoll paperdoll);
-
-    /// <summary>
     /// Gets the graphic ID (spec1) for an item ID.
     /// Returns 0 if item not found or itemId is 0.
     /// </summary>

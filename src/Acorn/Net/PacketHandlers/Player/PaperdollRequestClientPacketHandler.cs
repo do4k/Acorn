@@ -33,13 +33,6 @@ public class PaperdollRequestClientPacketHandler : IPacketHandler<PaperdollReque
 
         var character = targetPlayer.Character;
 
-        var equipment = _paperdollService.ToEquipmentPaperdoll(character.Equipment());
-        
-        _logger.LogInformation("Paperdoll request for {CharacterName} - Equipment: Hat={Hat}, Armor={Armor}, Weapon={Weapon}, Shield={Shield}, Boots={Boots}, Accessory={Accessory}, Necklace={Necklace}, Belt={Belt}, Gloves={Gloves}, Ring=[{Ring1},{Ring2}], Bracer=[{Bracer1},{Bracer2}], Armlet=[{Armlet1},{Armlet2}]",
-            character.Name, equipment.Hat, equipment.Armor, equipment.Weapon, equipment.Shield, equipment.Boots,
-            equipment.Accessory, equipment.Necklace, equipment.Belt, equipment.Gloves,
-            equipment.Ring[0], equipment.Ring[1], equipment.Bracer[0], equipment.Bracer[1], equipment.Armlet[0], equipment.Armlet[1]);
-
         // Send the paperdoll reply with target player's details and equipment
         await playerState.Send(new PaperdollReplyServerPacket
         {
@@ -56,7 +49,7 @@ public class PaperdollRequestClientPacketHandler : IPacketHandler<PaperdollReque
                 ClassId = character.Class,
                 Gender = character.Gender,
             },
-            Equipment = equipment
+            Equipment = character.Equipment()
         });
     }
 

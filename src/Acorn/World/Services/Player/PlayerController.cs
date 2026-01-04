@@ -1,3 +1,5 @@
+using Acorn.Game.Models;
+using Acorn.Game.Services;
 using Acorn.Net;
 using Acorn.Net.PacketHandlers.Player.Warp;
 using Acorn.Options;
@@ -15,17 +17,20 @@ public class PlayerController : IPlayerController
     private readonly ILogger<PlayerController> _logger;
     private readonly IMapBroadcastService _broadcastService;
     private readonly Lazy<IWorldQueries> _worldQueries;
+    private readonly IStatCalculator _statCalculator;
     private readonly ServerOptions _serverOptions;
 
     public PlayerController(
         ILogger<PlayerController> logger,
         IMapBroadcastService broadcastService,
         Lazy<IWorldQueries> worldQueries,
+        IStatCalculator statCalculator,
         IOptions<ServerOptions> serverOptions)
     {
         _logger = logger;
         _broadcastService = broadcastService;
         _worldQueries = worldQueries;
+        _statCalculator = statCalculator;
         _serverOptions = serverOptions.Value;
     }
 
@@ -184,5 +189,58 @@ public class PlayerController : IPlayerController
 
         _logger.LogDebug("Player {CharacterName} respawned at map {MapId} ({X}, {Y})",
             player.Character.Name, rescue.Map, rescue.X, rescue.Y);
+    }
+
+    public async Task<bool> EquipItemAsync(PlayerState player, int itemId, int subLoc)
+    {
+        if (player.Character == null || player.CurrentMap == null)
+        {
+            return false;
+        }
+
+        var itemDb = _worldQueries.Value.DataRepository;
+        var result = player.Character.Equip(itemId, subLoc, itemDb);
+
+        if (result == CharacterEquipmentExtensions.EquipResult.Failed)
+        {
+            _logger.LogWarning("Player {CharacterName} failed to equip item {ItemId} to slot {SubLoc}",
+                player.Character.Name, itemId, subLoc);
+            return false;
+        }
+
+        // Recalculate stats after equipment change
+        var classes = _worldQueries.Value.DataRepository.Ecf;
+        _statCalculator.RecalculateStats(player.Character, classes);
+
+        _logger.LogInformation("Player {CharacterName} equipped item {ItemId} to slot {SubLoc} (Result: {Result})",
+            player.Character.Name, itemId, subLoc, result);
+
+        return true;
+    }
+
+    public async Task<bool> UnequipItemAsync(PlayerState player, int itemId, int subLoc)
+    {
+        if (player.Character == null || player.CurrentMap == null)
+        {
+            return false;
+        }
+
+        var success = player.Character.Unequip(itemId, subLoc);
+
+        if (!success)
+        {
+            _logger.LogWarning("Player {CharacterName} failed to unequip item {ItemId} from slot {SubLoc}",
+                player.Character.Name, itemId, subLoc);
+            return false;
+        }
+
+        // Recalculate stats after equipment change
+        var classes = _worldQueries.Value.DataRepository.Ecf;
+        _statCalculator.RecalculateStats(player.Character, classes);
+
+        _logger.LogInformation("Player {CharacterName} unequipped item {ItemId} from slot {SubLoc}",
+            player.Character.Name, itemId, subLoc);
+
+        return true;
     }
 }

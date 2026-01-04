@@ -59,12 +59,6 @@ public class PaperdollService : IPaperdollService
         };
     }
 
-    public EquipmentPaperdoll ToEquipmentPaperdoll(EquipmentPaperdoll paperdoll)
-    {
-        // Paperdoll uses item IDs directly, not graphic IDs
-        return paperdoll;
-    }
-
     public int GetGraphicId(int itemId)
     {
         if (itemId == 0) return 0;

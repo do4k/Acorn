@@ -131,7 +131,7 @@ public class DbInitialiser : IDbInitialiser
                 Fiance = "",
                 Partner = "",
                 Admin = AdminLevel.HighGameMaster,
-                Class = 1,
+                Class = 2,
                 Gender = Gender.Male,
                 Race = 1,
                 HairStyle = 3,

@@ -44,4 +44,24 @@ public interface IPlayerController
     /// Handle player death. Warps them to rescue spawn location.
     /// </summary>
     Task DieAsync(PlayerState player);
+
+    /// <summary>
+    /// Equip an item from the player's inventory to their paperdoll.
+    /// Recalculates stats after successful equip.
+    /// </summary>
+    /// <param name="player">Player equipping the item</param>
+    /// <param name="itemId">ID of item to equip</param>
+    /// <param name="subLoc">Paperdoll slot (1-15)</param>
+    /// <returns>True if equip was successful, false otherwise</returns>
+    Task<bool> EquipItemAsync(PlayerState player, int itemId, int subLoc);
+
+    /// <summary>
+    /// Unequip an item from the player's paperdoll back to inventory.
+    /// Recalculates stats after successful unequip.
+    /// </summary>
+    /// <param name="player">Player unequipping the item</param>
+    /// <param name="itemId">ID of item to unequip</param>
+    /// <param name="subLoc">Paperdoll slot (1-15)</param>
+    /// <returns>True if unequip was successful, false otherwise</returns>
+    Task<bool> UnequipItemAsync(PlayerState player, int itemId, int subLoc);
 }
