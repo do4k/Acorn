@@ -171,12 +171,12 @@ public class DbInitialiser : IDbInitialiser
             var paperdoll = new CharacterPaperdoll
             {
                 CharacterName = "acorn",
-                Hat = 0,
+                Hat = 313,
                 Armor = 428,
-                Weapon = 37,
-                Shield = 10,
-                Boots = 15,
-                Necklace = 0,
+                Weapon = 421,
+                Shield = 384,
+                Boots = 382,
+                Necklace = 50,
                 Belt = 0,
                 Gloves = 0,
                 Accessory = 0,
