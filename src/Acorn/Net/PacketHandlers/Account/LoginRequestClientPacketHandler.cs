@@ -25,9 +25,12 @@ public class LoginRequestClientPacketHandler(
     public async Task HandleAsync(PlayerState playerState,
         LoginRequestClientPacket packet)
     {
+        logger.LogDebug("Login attempt for username: {Username}", packet.Username);
+        
         var account = await _repository.GetByKeyAsync(packet.Username);
         if (account is null)
         {
+            logger.LogWarning("Login failed - account not found: {Username}", packet.Username);
             await playerState.Send(new LoginReplyServerPacket
             {
                 ReplyCode = LoginReply.WrongUser,
@@ -51,6 +54,7 @@ public class LoginRequestClientPacketHandler(
 
         if (valid is false)
         {
+            logger.LogWarning("Login failed - invalid password for account: {Username}", packet.Username);
             await playerState.Send(new LoginReplyServerPacket
             {
                 ReplyCode = LoginReply.WrongUserPassword,
@@ -59,6 +63,7 @@ public class LoginRequestClientPacketHandler(
             return;
         }
 
+        logger.LogInformation("Login successful for account: {Username}", packet.Username);
         playerState.Account = account;
         await playerState.Send(new LoginReplyServerPacket
         {
