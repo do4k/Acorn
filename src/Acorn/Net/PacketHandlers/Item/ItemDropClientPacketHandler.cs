@@ -28,8 +28,8 @@ public class ItemDropClientPacketHandler(
             return;
         }
 
-        // Convert ByteCoords to Coords
-        var coords = new Coords { X = packet.Coords.X, Y = packet.Coords.Y };
+        // Convert ByteCoords to Coords (ByteCoords are encoded with +1 offset)
+        var coords = new Coords { X = packet.Coords.X - 1, Y = packet.Coords.Y - 1 };
 
         // Use map item service for drop logic
         var result =
