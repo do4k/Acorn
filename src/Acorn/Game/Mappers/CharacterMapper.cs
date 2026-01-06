@@ -65,13 +65,15 @@ public class CharacterMapper : ICharacterMapper
                 CharacterName = character.Name!,
                 ItemId = i.Id,
                 Amount = i.Amount,
-                Slot = 0 // Inventory
+                Slot = 0, // Inventory
+                Character = null // Explicitly set to null to avoid circular reference
             }).Concat(character.Bank.Items.Select(i => new CharacterItem
             {
                 CharacterName = character.Name!,
                 ItemId = i.Id,
                 Amount = i.Amount,
-                Slot = 1 // Bank
+                Slot = 1, // Bank
+                Character = null // Explicitly set to null to avoid circular reference
             })).ToList(),
             Paperdoll = new CharacterPaperdoll
             {
