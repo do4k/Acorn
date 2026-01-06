@@ -123,12 +123,14 @@ public class AcornDbContext : DbContext
         });
 
         // Seed default account
+        // Note: Salt must be a Base-64 encoded string. The password hash was generated using Hash.HashPassword("acorn", "acorn", out salt)
+        // with salt bytes: [188, 115, 125, 37, 197, 39, 213, 15, 169, 108, 40, 66, 176, 253, 213, 172]
         modelBuilder.Entity<Account>().HasData(
             new Account
             {
                 Username = "acorn",
                 Password = "1I+dieTmkT9qbF9YjSt1pkRvgAkAHqcStjRxOzuHwSc=",
-                Salt = "acorn",
+                Salt = "vHN9JcUn1Q+pbChCsP3VrA==",
                 FullName = "acorn",
                 Location = "acorn",
                 Email = "acorn@acorn-eo.dev",

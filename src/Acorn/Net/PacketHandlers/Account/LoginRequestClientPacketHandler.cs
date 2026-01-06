@@ -49,7 +49,22 @@ public class LoginRequestClientPacketHandler(
             return;
         }
 
-        var salt = Convert.FromBase64String(account.Salt);
+        byte[] salt;
+        try
+        {
+            salt = Convert.FromBase64String(account.Salt);
+        }
+        catch (FormatException ex)
+        {
+            logger.LogError(ex, "Invalid Base-64 salt for account: {Username}. Salt value: {Salt}", account.Username, account.Salt);
+            await playerState.Send(new LoginReplyServerPacket
+            {
+                ReplyCode = LoginReply.WrongUserPassword,
+                ReplyCodeData = new LoginReplyServerPacket.ReplyCodeDataWrongUserPassword()
+            });
+            return;
+        }
+        
         var valid = Hash.VerifyPassword(packet.Username, packet.Password, salt, account.Password);
 
         if (valid is false)
