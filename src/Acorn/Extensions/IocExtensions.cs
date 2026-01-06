@@ -122,6 +122,7 @@ internal static class IocRegistrations
         AddPacketHandler<WelcomeMsgClientPacket, WelcomeMsgClientPacketHandler>();
         AddPacketHandler<WelcomeRequestClientPacket, WelcomeRequestClientPacketHandler>();
         AddPacketHandler<FacePlayerClientPacket, FacePlayerClientPacketHandler>();
+        AddPacketHandler<ItemGetClientPacket, ItemGetClientPacketHandler>();
         return services;
     }
 
