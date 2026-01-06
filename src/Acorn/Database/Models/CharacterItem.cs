@@ -20,7 +20,4 @@ public class CharacterItem
     /// </summary>
     [Required]
     public int Slot { get; set; }
-
-    // Navigation property
-    public Character? Character { get; set; }
 }

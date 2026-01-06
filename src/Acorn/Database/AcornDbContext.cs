@@ -82,7 +82,7 @@ public class AcornDbContext : DbContext
 
             // Configure relationships
             entity.HasMany(e => e.Items)
-                .WithOne(i => i.Character)
+                .WithOne()
                 .HasForeignKey(i => i.CharacterName)
                 .OnDelete(DeleteBehavior.Cascade);
 
