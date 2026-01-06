@@ -130,7 +130,7 @@ public class AcornDbContext : DbContext
             {
                 Username = "acorn",
                 Password = "1I+dieTmkT9qbF9YjSt1pkRvgAkAHqcStjRxOzuHwSc=",
-                Salt = "vHN9JcUn1Q+pbChCsP3VrA==",
+                Salt = "acorn",
                 FullName = "acorn",
                 Location = "acorn",
                 Email = "acorn@acorn-eo.dev",
