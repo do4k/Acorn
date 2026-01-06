@@ -151,6 +151,7 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
                     DropIndex = dropIndex,
                     DropId = dropId,
                     DropAmount = dropAmount,
+                    DropCoords = new Coords { X = target.X, Y = target.Y },
                     Damage = damage
                 };
 
