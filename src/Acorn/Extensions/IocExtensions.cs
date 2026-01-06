@@ -6,6 +6,7 @@ using Acorn.Game.Services;
 using Acorn.Net.PacketHandlers;
 using Acorn.Net.PacketHandlers.Account;
 using Acorn.Net.PacketHandlers.Character;
+using Acorn.Net.PacketHandlers.Item;
 using Acorn.Net.PacketHandlers.Npc;
 using Acorn.Net.PacketHandlers.Player;
 using Acorn.Net.PacketHandlers.Player.Talk;
