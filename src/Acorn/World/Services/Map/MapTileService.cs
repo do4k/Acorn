@@ -57,7 +57,7 @@ public class MapTileService : IMapTileService
 
     public int GetDistance(Coords a, Coords b)
     {
-        return Math.Abs(a.X - b.X) + Math.Abs(a.Y - b.Y);
+        return Math.Max(Math.Abs(a.X - b.X), Math.Abs(a.Y - b.Y));
     }
 
     public bool InClientRange(Coords a, Coords b)
