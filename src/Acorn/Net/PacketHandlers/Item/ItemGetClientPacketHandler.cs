@@ -3,6 +3,7 @@ using Acorn.Game.Mappers;
 using Acorn.Game.Services;
 using Acorn.World.Services.Map;
 using Microsoft.Extensions.Logging;
+using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
@@ -35,29 +36,27 @@ public class ItemGetClientPacketHandler(
         if (result.Success)
         {
             // Calculate current weight
-            var currentWeight = weightCalculator.CalculateWeight(player.Character, dataFileRepository.Eif);
-            var maxWeight = weightCalculator.CalculateMaxWeight(player.Character);
-
-            // Get the amount in inventory (after pickup)
-            var inventoryItem = player.Character.Items.FirstOrDefault(i => i.ItemId == result.ItemId);
-            var amountInInventory = inventoryItem?.Amount ?? 0;
+            var currentWeight = weightCalculator.GetCurrentWeight(player.Character, dataFileRepository.Eif);
+            var maxWeight = player.Character.MaxWeight;
 
             // Send ItemGetServerPacket to confirm pickup
             await player.Send(new ItemGetServerPacket
             {
-                ItemIndex = packet.ItemIndex,
-                ItemId = result.ItemId,
-                AmountTaken = result.Amount,
+                TakenItemIndex = packet.ItemIndex,
+                TakenItem = new ThreeItem
+                {
+                    Id = result.ItemId,
+                    Amount = result.Amount
+                },
                 Weight = new Weight
                 {
                     Current = currentWeight,
                     Max = maxWeight
-                },
-                Amount = amountInInventory
+                }
             });
 
-            logger.LogInformation("Player {Character} picked up item {ItemId} x{Amount} (inventory now: {Total})",
-                player.Character.Name, result.ItemId, result.Amount, amountInInventory);
+            logger.LogInformation("Player {Character} picked up item {ItemId} x{Amount}",
+                player.Character.Name, result.ItemId, result.Amount);
 
             // Save character inventory to database
             await characterRepository.UpdateAsync(characterMapper.ToDatabase(player.Character));
