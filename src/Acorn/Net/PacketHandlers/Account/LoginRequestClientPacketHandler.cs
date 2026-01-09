@@ -49,7 +49,7 @@ public class LoginRequestClientPacketHandler(
             return;
         }
 
-        var salt = Encoding.UTF8.GetBytes(account.Salt);
+        var salt = Convert.FromBase64String(account.Salt);
         var valid = Hash.VerifyPassword(packet.Username, packet.Password, salt, account.Password);
 
         if (valid is false)
