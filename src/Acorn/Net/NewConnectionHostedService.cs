@@ -39,10 +39,10 @@ public class NewConnectionHostedService(
 
             // Start WebSocket listener on all interfaces
             _wsListener = new HttpListener();
-            
+
             // Try wildcard binding first (works in Docker/Linux without special permissions)
             _wsListener.Prefixes.Add($"http://*:{_serverOptions.Hosting.WebSocketPort}/");
-            
+
             try
             {
                 _wsListener.Start();
@@ -52,16 +52,16 @@ public class NewConnectionHostedService(
             catch (HttpListenerException ex) when (ex.Message.Contains("Access is denied") || ex.ErrorCode == 5)
             {
                 // On Windows without admin rights, try + instead of *
-                logger.LogWarning(ex, "Failed to bind to *:{Port}, trying +:{Port} (requires admin on Windows)", 
+                logger.LogWarning(ex, "Failed to bind to *:{Port}, trying +:{Port} (requires admin on Windows)",
                     _serverOptions.Hosting.WebSocketPort, _serverOptions.Hosting.WebSocketPort);
-                
+
                 _wsListener.Prefixes.Clear();
                 _wsListener.Prefixes.Add($"http://+:{_serverOptions.Hosting.WebSocketPort}/");
-                
+
                 try
                 {
                     _wsListener.Start();
-                    logger.LogInformation("WebSocket listener started on http://+:{Port}/", 
+                    logger.LogInformation("WebSocket listener started on http://+:{Port}/",
                         _serverOptions.Hosting.WebSocketPort);
                 }
                 catch (HttpListenerException ex2)
@@ -70,12 +70,12 @@ public class NewConnectionHostedService(
                         "On Windows, you may need to run as administrator or use netsh to reserve the URL. " +
                         "Command: netsh http add urlacl url=http://+:{Port}/ user=Everyone",
                         _serverOptions.Hosting.WebSocketPort, _serverOptions.Hosting.WebSocketPort);
-                    
+
                     // Last resort: Try localhost binding only
                     _wsListener.Prefixes.Clear();
                     _wsListener.Prefixes.Add($"http://localhost:{_serverOptions.Hosting.WebSocketPort}/");
                     _wsListener.Prefixes.Add($"http://127.0.0.1:{_serverOptions.Hosting.WebSocketPort}/");
-                    
+
                     try
                     {
                         _wsListener.Start();
@@ -107,9 +107,9 @@ public class NewConnectionHostedService(
 
                     ICommunicator communicator = completed switch
                     {
-                        Task<TcpClient> tcp when tcp == tcpAcceptTask => 
+                        Task<TcpClient> tcp when tcp == tcpAcceptTask =>
                             tcpCommunicatorFactory.Initialise(tcp.Result),
-                        Task<HttpListenerContext> ws when ws == wsAcceptTask => 
+                        Task<HttpListenerContext> ws when ws == wsAcceptTask =>
                             await HandleWebSocketConnection(ws.Result, cancellationToken),
                         _ => throw new InvalidOperationException("Unexpected task completion")
                     };
@@ -187,7 +187,7 @@ public class NewConnectionHostedService(
 
         if (!context.Request.IsWebSocketRequest)
         {
-            logger.LogWarning("Received non-WebSocket HTTP request to WebSocket endpoint from {RemoteEndpoint}", 
+            logger.LogWarning("Received non-WebSocket HTTP request to WebSocket endpoint from {RemoteEndpoint}",
                 context.Request.RemoteEndPoint);
             context.Response.StatusCode = 400;
             context.Response.Close();

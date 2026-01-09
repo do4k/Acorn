@@ -18,7 +18,7 @@ public class SpellRequestClientPacketHandler(
 
         if (packet.SpellId <= 0)
         {
-            logger.LogWarning("Player {Character} attempted to cast invalid spell {SpellId}", 
+            logger.LogWarning("Player {Character} attempted to cast invalid spell {SpellId}",
                 player.Character.Name, packet.SpellId);
             return;
         }

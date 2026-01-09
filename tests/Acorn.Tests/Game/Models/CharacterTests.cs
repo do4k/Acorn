@@ -39,7 +39,8 @@ public class CharacterTests
                 Armlet2 = 13,
                 Bracer1 = 14,
                 Bracer2 = 15
-            }
+            },
+            Spells = new Acorn.Game.Models.Spells([])
         };
     }
 

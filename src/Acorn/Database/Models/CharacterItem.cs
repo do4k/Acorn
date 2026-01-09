@@ -9,7 +9,7 @@ public class CharacterItem
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int Id { get; set; }
 
-    [Required] [MaxLength(16)] public required string CharacterName { get; set; }
+    [Required][MaxLength(16)] public required string CharacterName { get; set; }
 
     [Required] public int ItemId { get; set; }
 

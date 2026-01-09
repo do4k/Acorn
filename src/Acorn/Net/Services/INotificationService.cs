@@ -41,6 +41,6 @@ public class NotificationService : INotificationService
     public Task AdminMessage(PlayerState player, string message)
     {
         return player.Send(new TalkAdminServerPacket
-            { Message = message, PlayerName = player.Character?.Name ?? "System" });
+        { Message = message, PlayerName = player.Character?.Name ?? "System" });
     }
 }

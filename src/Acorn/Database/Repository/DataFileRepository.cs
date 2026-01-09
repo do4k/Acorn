@@ -83,7 +83,6 @@ public class DataFileRepository : IDataFileRepository
 
     /// <summary>
     ///     Recalculates the RID (CRC32 checksum) for an EIF pub file.
-    ///     This matches reoserv's behavior where the checksum is calculated from the file content
     ///     starting at byte 7 (after the header).
     /// </summary>
     private void RecalculateRid(Eif eif)

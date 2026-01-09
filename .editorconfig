@@ -115,3 +115,7 @@ csharp_style_unused_value_assignment_preference = discard_variable:suggestion
 csharp_style_unused_value_expression_statement_preference = discard_variable:silent
 csharp_indent_labels = one_less_than_current
 csharp_space_around_binary_operators = before_and_after
+
+# Attribute formatting - place each attribute on separate lines
+csharp_style_attributes_on_same_line = false:warning
+csharp_prefer_separate_attribute_groups = true:warning

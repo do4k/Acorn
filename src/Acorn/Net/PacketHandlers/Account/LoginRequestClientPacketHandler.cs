@@ -26,7 +26,7 @@ public class LoginRequestClientPacketHandler(
         LoginRequestClientPacket packet)
     {
         logger.LogDebug("Login attempt for username: {Username}", packet.Username);
-        
+
         var account = await _repository.GetByKeyAsync(packet.Username);
         if (account is null)
         {

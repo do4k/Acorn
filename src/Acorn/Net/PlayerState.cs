@@ -159,7 +159,6 @@ public class PlayerState : IDisposable
                     else
                     {
                         // If sequence is >= 256, we need to handle it differently
-                        // For now, use the low byte as reoserv does
                         rateLimitResponse[2] = (byte)(serverSequence & 0xFF);
                     }
 

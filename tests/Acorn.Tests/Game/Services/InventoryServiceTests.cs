@@ -26,9 +26,10 @@ public class InventoryServiceTests
         {
             Accounts_Username = "testuser",
             Name = "TestCharacter",
-            Inventory = new Inventory(new ConcurrentBag<ItemWithAmount>()),
-            Bank = new Bank(new ConcurrentBag<ItemWithAmount>()),
-            Paperdoll = new Paperdoll()
+            Inventory = new Inventory([]),
+            Bank = new Bank([]),
+            Paperdoll = new Paperdoll(),
+            Spells = new Acorn.Game.Models.Spells([])
         };
     }
 

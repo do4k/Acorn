@@ -194,7 +194,7 @@ public class NpcController : INpcController
             var closestPlayer = players
                 .Where(p => p.Character != null)
                 .Select(p => new
-                    { Player = p, Distance = Math.Abs(npc.X - p.Character!.X) + Math.Abs(npc.Y - p.Character.Y) })
+                { Player = p, Distance = Math.Abs(npc.X - p.Character!.X) + Math.Abs(npc.Y - p.Character.Y) })
                 .Where(x => x.Distance <= CHASE_DISTANCE)
                 .MinBy(x => x.Distance);
 

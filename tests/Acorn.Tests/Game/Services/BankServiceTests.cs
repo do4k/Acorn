@@ -2,8 +2,6 @@ using System.Collections.Concurrent;
 using Acorn.Database.Models;
 using Acorn.Game.Services;
 using FluentAssertions;
-using Moffat.EndlessOnline.SDK.Protocol;
-using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Xunit;
 using Character = Acorn.Game.Models.Character;
 using Inventory = Acorn.Game.Models.Inventory;
@@ -29,7 +27,8 @@ public class BankServiceTests
             BankMax = bankMax,
             Inventory = new Inventory(new ConcurrentBag<ItemWithAmount>()),
             Bank = new Bank(new ConcurrentBag<ItemWithAmount>()),
-            Paperdoll = new Paperdoll()
+            Paperdoll = new Paperdoll(),
+            Spells = new Acorn.Game.Models.Spells([])
         };
     }
 
