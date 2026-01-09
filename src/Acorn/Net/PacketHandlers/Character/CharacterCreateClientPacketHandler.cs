@@ -52,11 +52,15 @@ internal class CharacterCreateClientPacketHandler(
             return;
         }
 
+        // First character in the entire game gets admin privileges, subsequent characters are regular players
+        var allCharacters = await repository.GetAllAsync();
+        var isFirstCharacterInGame = !allCharacters.Any();
+
         var character = new Database.Models.Character
         {
             Name = packet.Name,
             Race = packet.Skin,
-            Admin = AdminLevel.HighGameMaster,
+            Admin = isFirstCharacterInGame ? AdminLevel.HighGameMaster : AdminLevel.Player,
             Accounts_Username = playerState.Account.Username,
             Map = _serverOptions.NewCharacter.Map,
             X = _serverOptions.NewCharacter.X,
