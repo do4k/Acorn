@@ -74,6 +74,9 @@ public class PlayerState : IDisposable
     public int Timestamp { get; set; }
     public int? SpellId { get; set; }
 
+    // Character deletion state
+    public int? CharacterIdToDelete { get; set; }
+
     public void Dispose()
     {
         if (_disconnectReason != null)

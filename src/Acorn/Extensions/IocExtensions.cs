@@ -12,6 +12,7 @@ using Acorn.Net.PacketHandlers.Player;
 using Acorn.Net.PacketHandlers.Player.Talk;
 using Acorn.Net.PacketHandlers.Player.Warp;
 using Acorn.Net.PacketHandlers.Range;
+using Acorn.Net.PacketHandlers.Spell;
 using Acorn.World.Services.Map;
 using Acorn.World.Services.Npc;
 using Acorn.World.Services.Player;
@@ -97,6 +98,8 @@ internal static class IocRegistrations
         AddPacketHandler<LoginRequestClientPacket, LoginRequestClientPacketHandler>();
         AddPacketHandler<CharacterCreateClientPacket, CharacterCreateClientPacketHandler>();
         AddPacketHandler<CharacterRequestClientPacket, CharacterRequestClientPacketHandler>();
+        AddPacketHandler<CharacterTakeClientPacket, CharacterTakeClientPacketHandler>();
+        AddPacketHandler<CharacterRemoveClientPacket, CharacterRemoveClientPacketHandler>();
         AddPacketHandler<NpcRangeRequestClientPacket, NpcRangeRequestClientPacketHandler>();
         AddPacketHandler<RangeRequestClientPacket, RangeRequestClientPacketHandler>();
         AddPacketHandler<WarpAcceptClientPacket, WarpAcceptClientPacketHandler>();
@@ -127,6 +130,10 @@ internal static class IocRegistrations
         AddPacketHandler<ItemDropClientPacket, ItemDropClientPacketHandler>();
         AddPacketHandler<ItemJunkClientPacket, ItemJunkClientPacketHandler>();
         AddPacketHandler<ItemUseClientPacket, ItemUseClientPacketHandler>();
+        AddPacketHandler<SpellRequestClientPacket, SpellRequestClientPacketHandler>();
+        AddPacketHandler<SpellTargetSelfClientPacket, SpellTargetSelfClientPacketHandler>();
+        AddPacketHandler<SpellTargetOtherClientPacket, SpellTargetOtherClientPacketHandler>();
+        AddPacketHandler<SpellTargetGroupClientPacket, SpellTargetGroupClientPacketHandler>();
         return services;
     }
 

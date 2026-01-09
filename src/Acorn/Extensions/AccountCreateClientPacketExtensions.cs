@@ -20,7 +20,7 @@ public static class AccountCreateClientPacketExtensions
             LastUsed = created,
             Location = packet.Location,
             Password = password,
-            Salt = Convert.ToBase64String(salt),
+            Salt = Encoding.UTF8.GetString(salt),
             Username = packet.Username
         };
     }
