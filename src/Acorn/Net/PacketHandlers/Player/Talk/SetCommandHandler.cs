@@ -102,11 +102,49 @@ public class SetCommandHandler : ITalkHandler
             adjustment();
             await _notifications.SystemMessage(playerState, $"Player {args[0]} had {args[1]} updated to {value}.");
             await _playerController.RefreshAsync(playerState);
+            
+            // Send stat update to target player if they're online
+            await SendStatUpdateToPlayer(target);
         }
         catch (Exception ex)
         {
             await _notifications.SystemMessage(playerState, $"{args[1]} is not a recognised attribute. {Usage}");
             _logger.LogError(ex, "Failed to set attribute {Attribute} for player {Player}", args[1], args[0]);
         }
+    }
+
+    private async Task SendStatUpdateToPlayer(PlayerState target)
+    {
+        if (target.Character is null)
+            return;
+
+        var character = target.Character;
+        await target.Send(new StatSkillPlayerServerPacket
+        {
+            StatPoints = character.StatPoints,
+            Stats = new CharacterStatsUpdate
+            {
+                MaxHp = character.MaxHp,
+                MaxTp = character.MaxTp,
+                MaxSp = character.MaxSp,
+                BaseStats = new CharacterBaseStats
+                {
+                    Str = character.Str,
+                    Intl = character.Int,
+                    Wis = character.Wis,
+                    Agi = character.Agi,
+                    Con = character.Con,
+                    Cha = character.Cha
+                },
+                SecondaryStats = new CharacterSecondaryStats
+                {
+                    MinDamage = character.MinDamage,
+                    MaxDamage = character.MaxDamage,
+                    Accuracy = character.Accuracy,
+                    Evade = character.Evade,
+                    Armor = character.Armor
+                }
+            }
+        });
     }
 }
