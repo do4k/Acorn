@@ -6,8 +6,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 namespace Acorn.Net.PacketHandlers.StatSkill;
 
 public class StatSkillAddClientPacketHandler(
-    ILogger<StatSkillAddClientPacketHandler> logger,
-    IWorldQueries worldQueries)
+    ILogger<StatSkillAddClientPacketHandler> logger)
     : IPacketHandler<StatSkillAddClientPacket>
 {
     public async Task HandleAsync(PlayerState player, StatSkillAddClientPacket packet)

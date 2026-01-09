@@ -5,7 +5,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 
 namespace Acorn.Net.PacketHandlers.Jukebox;
 
-public class JukeboxOpenClientPacketHandler(ILogger<JukeboxOpenClientPacketHandler> logger, IWorldQueries worldQueries)
+public class JukeboxOpenClientPacketHandler(ILogger<JukeboxOpenClientPacketHandler> logger)
     : IPacketHandler<JukeboxOpenClientPacket>
 {
     public async Task HandleAsync(PlayerState player, JukeboxOpenClientPacket packet)

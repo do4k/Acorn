@@ -63,8 +63,8 @@ public class Character
     public required Inventory Inventory { get; set; }
     public required Bank Bank { get; set; }
     public required Paperdoll Paperdoll { get; set; }
+    public required Spells Spells { get; set; }
 
-    //TODO: Add spells
     //TODO: Add guilds
     //TODO: Add quests
 

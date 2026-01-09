@@ -6,7 +6,7 @@ namespace Acorn.Game.Models;
 
 /// <summary>
 ///     Extension methods for Character equipment management.
-///     Implements equip/unequip logic matching reoserv implementation.
+///     Implements equip/unequip logic
 ///     NOTE: subLoc is NOT a slot number. It's an array index for multi-slot items:
 ///     - For single-slot items (Weapon, Shield, Armor, Hat, Boots, Gloves, Accessory, Belt, Necklace):
 ///     subLoc must be 0 and is ignored

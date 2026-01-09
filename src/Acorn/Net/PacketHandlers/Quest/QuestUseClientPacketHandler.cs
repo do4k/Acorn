@@ -5,7 +5,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 
 namespace Acorn.Net.PacketHandlers.Quest;
 
-public class QuestUseClientPacketHandler(ILogger<QuestUseClientPacketHandler> logger, IWorldQueries worldQueries)
+public class QuestUseClientPacketHandler(ILogger<QuestUseClientPacketHandler> logger)
     : IPacketHandler<QuestUseClientPacket>
 {
     public async Task HandleAsync(PlayerState player, QuestUseClientPacket packet)

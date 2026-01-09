@@ -5,7 +5,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 
 namespace Acorn.Net.PacketHandlers.Chest;
 
-public class ChestOpenClientPacketHandler(ILogger<ChestOpenClientPacketHandler> logger, IWorldQueries worldQueries)
+public class ChestOpenClientPacketHandler(ILogger<ChestOpenClientPacketHandler> logger)
     : IPacketHandler<ChestOpenClientPacket>
 {
     public async Task HandleAsync(PlayerState player, ChestOpenClientPacket packet)

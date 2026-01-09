@@ -5,7 +5,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 
 namespace Acorn.Net.PacketHandlers.Barber;
 
-public class BarberOpenClientPacketHandler(ILogger<BarberOpenClientPacketHandler> logger, IWorldQueries worldQueries)
+public class BarberOpenClientPacketHandler(ILogger<BarberOpenClientPacketHandler> logger)
     : IPacketHandler<BarberOpenClientPacket>
 {
     public async Task HandleAsync(PlayerState player, BarberOpenClientPacket packet)

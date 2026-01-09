@@ -58,6 +58,7 @@ public class Character
 
     // Navigation properties for relational data
     public ICollection<CharacterItem> Items { get; set; } = new List<CharacterItem>();
+    public ICollection<CharacterSpell> Spells { get; set; } = new List<CharacterSpell>();
     public CharacterPaperdoll? Paperdoll { get; set; }
 
     public Game.Models.Character AsGameModel()
@@ -70,6 +71,15 @@ public class Character
                 .ToList();
 
             return new ConcurrentBag<ItemWithAmount>(itemsList);
+        }
+
+        ConcurrentBag<Game.Models.Spell> GetSpellsFromDb()
+        {
+            var spellsList = Spells
+                .Select(s => new Game.Models.Spell(s.SpellId, s.Level))
+                .ToList();
+
+            return new ConcurrentBag<Game.Models.Spell>(spellsList);
         }
 
         return new Game.Models.Character
@@ -117,6 +127,7 @@ public class Character
             NoInteract = NoInteract,
             Bank = new Bank(GetItemsFromDb(1)),
             Inventory = new Inventory(GetItemsFromDb(0)),
+            Spells = new Game.Models.Spells(GetSpellsFromDb()),
             Paperdoll = Paperdoll == null
                 ? new Paperdoll()
                 : new Paperdoll

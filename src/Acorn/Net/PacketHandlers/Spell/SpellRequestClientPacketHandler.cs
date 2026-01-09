@@ -1,4 +1,3 @@
-using Acorn.World;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
@@ -6,8 +5,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 namespace Acorn.Net.PacketHandlers.Spell;
 
 public class SpellRequestClientPacketHandler(
-    ILogger<SpellRequestClientPacketHandler> logger,
-    IWorldQueries worldQueries)
+    ILogger<SpellRequestClientPacketHandler> logger)
     : IPacketHandler<SpellRequestClientPacket>
 {
     public async Task HandleAsync(PlayerState player, SpellRequestClientPacket packet)
@@ -18,10 +16,21 @@ public class SpellRequestClientPacketHandler(
             return;
         }
 
-        logger.LogInformation("Player {Character} casting spell {SpellId} at timestamp {Timestamp}",
+        if (packet.SpellId <= 0)
+        {
+            logger.LogWarning("Player {Character} attempted to cast invalid spell {SpellId}", 
+                player.Character.Name, packet.SpellId);
+            return;
+        }
+
+        logger.LogInformation("Player {Character} starting spell chant for spell {SpellId} at timestamp {Timestamp}",
             player.Character.Name, packet.SpellId, packet.Timestamp);
 
-        // TODO: Implement map.CastSpell(player, spellId, timestamp)
+        // Update player state for tracking
+        player.Timestamp = packet.Timestamp;
+        player.SpellId = packet.SpellId;
+
+        // TODO: Implement map.StartSpellChant(player.Id, spellId)
         await Task.CompletedTask;
     }
 

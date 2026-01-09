@@ -263,7 +263,7 @@ public class FormulaService : IFormulaService
 
     /// <summary>
     ///     Calculate the CUMULATIVE experience required to reach a level.
-    ///     Formula: (level^3 * 133.1).Round() - to match reoserv exactly
+    ///     Formula: (level^3 * 133.1).Round()
     ///     This is the total experience from level 0, NOT the difference between levels.
     /// </summary>
     public int GetCumulativeExperienceForLevel(int level)

@@ -5,7 +5,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 
 namespace Acorn.Net.PacketHandlers.Book;
 
-public class BookRequestClientPacketHandler(ILogger<BookRequestClientPacketHandler> logger, IWorldQueries worldQueries)
+public class BookRequestClientPacketHandler(ILogger<BookRequestClientPacketHandler> logger)
     : IPacketHandler<BookRequestClientPacket>
 {
     public async Task HandleAsync(PlayerState player, BookRequestClientPacket packet)

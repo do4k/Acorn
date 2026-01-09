@@ -45,7 +45,7 @@ public class LootDrop
     /// </summary>
     public int GetInternalRate()
     {
-        return RatePercent * 640 / 100;
+        return RatePercent * 64000 / 100;
     }
 }
 

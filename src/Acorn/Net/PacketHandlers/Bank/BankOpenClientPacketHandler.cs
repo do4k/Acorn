@@ -5,7 +5,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 
 namespace Acorn.Net.PacketHandlers.Bank;
 
-public class BankOpenClientPacketHandler(ILogger<BankOpenClientPacketHandler> logger, IWorldQueries worldQueries)
+public class BankOpenClientPacketHandler(ILogger<BankOpenClientPacketHandler> logger)
     : IPacketHandler<BankOpenClientPacket>
 {
     public async Task HandleAsync(PlayerState player, BankOpenClientPacket packet)

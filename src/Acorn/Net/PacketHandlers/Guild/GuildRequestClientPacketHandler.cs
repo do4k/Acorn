@@ -6,8 +6,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 namespace Acorn.Net.PacketHandlers.Guild;
 
 public class GuildRequestClientPacketHandler(
-    ILogger<GuildRequestClientPacketHandler> logger,
-    IWorldQueries worldQueries)
+    ILogger<GuildRequestClientPacketHandler> logger)
     : IPacketHandler<GuildRequestClientPacket>
 {
     public async Task HandleAsync(PlayerState player, GuildRequestClientPacket packet)

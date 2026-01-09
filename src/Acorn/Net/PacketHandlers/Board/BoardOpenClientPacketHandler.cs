@@ -1,4 +1,3 @@
-using Acorn.World;
 using Acorn.World.Services.Map;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Map;
@@ -9,7 +8,6 @@ namespace Acorn.Net.PacketHandlers.Board;
 
 public class BoardOpenClientPacketHandler(
     ILogger<BoardOpenClientPacketHandler> logger,
-    IWorldQueries worldQueries,
     IMapTileService tileService)
     : IPacketHandler<BoardOpenClientPacket>
 {

@@ -5,7 +5,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 
 namespace Acorn.Net.PacketHandlers.Locker;
 
-public class LockerOpenClientPacketHandler(ILogger<LockerOpenClientPacketHandler> logger, IWorldQueries worldQueries)
+public class LockerOpenClientPacketHandler(ILogger<LockerOpenClientPacketHandler> logger)
     : IPacketHandler<LockerOpenClientPacket>
 {
     public async Task HandleAsync(PlayerState player, LockerOpenClientPacket packet)

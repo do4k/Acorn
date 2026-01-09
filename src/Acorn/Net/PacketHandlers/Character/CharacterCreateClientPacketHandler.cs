@@ -43,6 +43,13 @@ internal class CharacterCreateClientPacketHandler(
                     ReplyCode = CharacterReply.Exists,
                     ReplyCodeData = new CharacterReplyServerPacket.ReplyCodeDataExists()
                 });
+            return;
+        }
+
+        if (_serverOptions.NewCharacter is null)
+        {
+            logger.LogError("NewCharacter configuration is missing from server options");
+            return;
         }
 
         var character = new Database.Models.Character
@@ -58,6 +65,7 @@ internal class CharacterCreateClientPacketHandler(
             HairStyle = packet.HairStyle,
             Gender = packet.Gender,
             Items = new List<CharacterItem>(),
+            Spells = new List<CharacterSpell>(),
             Paperdoll = new CharacterPaperdoll
             {
                 CharacterName = packet.Name

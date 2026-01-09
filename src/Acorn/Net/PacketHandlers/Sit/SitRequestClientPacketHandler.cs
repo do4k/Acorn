@@ -1,11 +1,10 @@
-using Acorn.World;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 
 namespace Acorn.Net.PacketHandlers.Sit;
 
-public class SitRequestClientPacketHandler(ILogger<SitRequestClientPacketHandler> logger, IWorldQueries worldQueries)
+public class SitRequestClientPacketHandler(ILogger<SitRequestClientPacketHandler> logger)
     : IPacketHandler<SitRequestClientPacket>
 {
     public async Task HandleAsync(PlayerState player, SitRequestClientPacket packet)

@@ -17,6 +17,7 @@ public class AcornDbContext : DbContext
     public DbSet<Guild> Guilds { get; set; }
     public DbSet<CharacterItem> CharacterItems { get; set; }
     public DbSet<CharacterPaperdoll> CharacterPaperdolls { get; set; }
+    public DbSet<CharacterSpell> CharacterSpells { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -86,6 +87,11 @@ public class AcornDbContext : DbContext
                 .HasForeignKey(i => i.CharacterName)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            entity.HasMany(e => e.Spells)
+                .WithOne()
+                .HasForeignKey(s => s.CharacterName)
+                .OnDelete(DeleteBehavior.Cascade);
+
             entity.HasOne(e => e.Paperdoll)
                 .WithOne(p => p.Character)
                 .HasForeignKey<CharacterPaperdoll>(p => p.CharacterName)
@@ -110,6 +116,19 @@ public class AcornDbContext : DbContext
         {
             entity.HasKey(e => e.CharacterName);
             entity.Property(e => e.CharacterName).IsRequired().HasMaxLength(16);
+        });
+
+        // Configure CharacterSpell entity
+        modelBuilder.Entity<CharacterSpell>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.CharacterName).IsRequired().HasMaxLength(16);
+            entity.Property(e => e.SpellId).IsRequired();
+            entity.Property(e => e.Level).IsRequired();
+
+            // Create index for faster queries
+            entity.HasIndex(e => e.CharacterName);
+            entity.HasIndex(e => new { e.CharacterName, e.SpellId }).IsUnique();
         });
 
         // Configure Guild entity

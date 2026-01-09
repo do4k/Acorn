@@ -3,6 +3,8 @@ using Acorn.Database.Models;
 using GameCharacter = Acorn.Game.Models.Character;
 using Inventory = Acorn.Game.Models.Inventory;
 using Bank = Acorn.Game.Models.Bank;
+using Spell = Acorn.Game.Models.Spell;
+using Spells = Acorn.Game.Models.Spells;
 
 namespace Acorn.Game.Mappers;
 
@@ -107,6 +109,10 @@ public class CharacterMapper : ICharacterMapper
                             .Select(i => new ItemWithAmount { Id = i.ItemId, Amount = i.Amount })
                         ?? Enumerable.Empty<ItemWithAmount>();
 
+        var spells = dbCharacter.Spells?
+                         .Select(s => new Spell(s.SpellId, s.Level))
+                     ?? Enumerable.Empty<Spell>();
+
         return new GameCharacter
         {
             Accounts_Username = dbCharacter.Accounts_Username,
@@ -156,6 +162,7 @@ public class CharacterMapper : ICharacterMapper
             Usage = dbCharacter.Usage,
             Inventory = new Inventory(new ConcurrentBag<ItemWithAmount>(inventoryItems)),
             Bank = new Bank(new ConcurrentBag<ItemWithAmount>(bankItems)),
+            Spells = new Spells(new ConcurrentBag<Spell>(spells)),
             Paperdoll = new Paperdoll
             {
                 Hat = dbCharacter.Paperdoll?.Hat ?? 0,

@@ -53,7 +53,7 @@ public class NewConnectionHostedService(
             {
                 // On Windows without admin rights, try + instead of *
                 logger.LogWarning(ex, "Failed to bind to *:{Port}, trying +:{Port} (requires admin on Windows)", 
-                    _serverOptions.Hosting.WebSocketPort);
+                    _serverOptions.Hosting.WebSocketPort, _serverOptions.Hosting.WebSocketPort);
                 
                 _wsListener.Prefixes.Clear();
                 _wsListener.Prefixes.Add($"http://+:{_serverOptions.Hosting.WebSocketPort}/");
@@ -69,7 +69,7 @@ public class NewConnectionHostedService(
                     logger.LogError(ex2, "Failed to start WebSocket listener on port {Port}. " +
                         "On Windows, you may need to run as administrator or use netsh to reserve the URL. " +
                         "Command: netsh http add urlacl url=http://+:{Port}/ user=Everyone",
-                        _serverOptions.Hosting.WebSocketPort);
+                        _serverOptions.Hosting.WebSocketPort, _serverOptions.Hosting.WebSocketPort);
                     
                     // Last resort: Try localhost binding only
                     _wsListener.Prefixes.Clear();

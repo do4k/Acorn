@@ -6,8 +6,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 namespace Acorn.Net.PacketHandlers.Marriage;
 
 public class MarriageRequestClientPacketHandler(
-    ILogger<MarriageRequestClientPacketHandler> logger,
-    IWorldQueries worldQueries)
+    ILogger<MarriageRequestClientPacketHandler> logger)
     : IPacketHandler<MarriageRequestClientPacket>
 {
     public async Task HandleAsync(PlayerState player, MarriageRequestClientPacket packet)

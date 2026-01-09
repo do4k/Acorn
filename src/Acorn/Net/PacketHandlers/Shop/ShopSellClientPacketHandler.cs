@@ -8,8 +8,7 @@ namespace Acorn.Net.PacketHandlers.Shop;
 
 public class ShopSellClientPacketHandler(
     ILogger<ShopSellClientPacketHandler> logger,
-    IInventoryService inventoryService,
-    IDbRepository<Database.Models.Character> characterRepository)
+    IInventoryService inventoryService)
     : IPacketHandler<ShopSellClientPacket>
 {
     public async Task HandleAsync(PlayerState player, ShopSellClientPacket packet)

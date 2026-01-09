@@ -5,7 +5,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 
 namespace Acorn.Net.PacketHandlers.Shop;
 
-public class ShopCreateClientPacketHandler(ILogger<ShopCreateClientPacketHandler> logger, IWorldQueries worldQueries)
+public class ShopCreateClientPacketHandler(ILogger<ShopCreateClientPacketHandler> logger)
     : IPacketHandler<ShopCreateClientPacket>
 {
     public async Task HandleAsync(PlayerState player, ShopCreateClientPacket packet)

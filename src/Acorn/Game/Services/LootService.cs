@@ -63,8 +63,8 @@ public class LootService : ILootService
         // Roll against each drop's rate
         foreach (var drop in sortedDrops)
         {
-            // Generate random value from 0-64000 (matching reoserv's system)
-            var roll = _random.Next(0, 100);
+            // Generate random value from 0-64000
+            var roll = _random.Next(0, 64001);
             var internalRate = drop.GetInternalRate();
 
             if (roll <= internalRate)

@@ -5,7 +5,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 
 namespace Acorn.Net.PacketHandlers.Message;
 
-public class MessagePingClientPacketHandler(ILogger<MessagePingClientPacketHandler> logger, IWorldQueries worldQueries)
+public class MessagePingClientPacketHandler(ILogger<MessagePingClientPacketHandler> logger)
     : IPacketHandler<MessagePingClientPacket>
 {
     public async Task HandleAsync(PlayerState player, MessagePingClientPacket packet)

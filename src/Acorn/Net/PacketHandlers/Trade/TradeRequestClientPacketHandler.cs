@@ -6,8 +6,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 namespace Acorn.Net.PacketHandlers.Trade;
 
 public class TradeRequestClientPacketHandler(
-    ILogger<TradeRequestClientPacketHandler> logger,
-    IWorldQueries worldQueries)
+    ILogger<TradeRequestClientPacketHandler> logger)
     : IPacketHandler<TradeRequestClientPacket>
 {
     public async Task HandleAsync(PlayerState player, TradeRequestClientPacket packet)

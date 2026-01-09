@@ -6,8 +6,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 namespace Acorn.Net.PacketHandlers.Priest;
 
 public class PriestRequestClientPacketHandler(
-    ILogger<PriestRequestClientPacketHandler> logger,
-    IWorldQueries worldQueries)
+    ILogger<PriestRequestClientPacketHandler> logger)
     : IPacketHandler<PriestRequestClientPacket>
 {
     public async Task HandleAsync(PlayerState player, PriestRequestClientPacket packet)

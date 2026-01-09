@@ -70,6 +70,10 @@ public class PlayerState : IDisposable
 
     public MapState? CurrentMap { get; set; }
 
+    // Spell casting state
+    public int Timestamp { get; set; }
+    public int? SpellId { get; set; }
+
     public void Dispose()
     {
         if (_disconnectReason != null)

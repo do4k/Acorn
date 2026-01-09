@@ -6,8 +6,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 namespace Acorn.Net.PacketHandlers.Party;
 
 public class PartyRequestClientPacketHandler(
-    ILogger<PartyRequestClientPacketHandler> logger,
-    IWorldQueries worldQueries)
+    ILogger<PartyRequestClientPacketHandler> logger)
     : IPacketHandler<PartyRequestClientPacket>
 {
     public async Task HandleAsync(PlayerState player, PartyRequestClientPacket packet)

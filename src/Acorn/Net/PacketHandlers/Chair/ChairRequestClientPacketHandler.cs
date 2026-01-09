@@ -6,8 +6,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 namespace Acorn.Net.PacketHandlers.Chair;
 
 public class ChairRequestClientPacketHandler(
-    ILogger<ChairRequestClientPacketHandler> logger,
-    IWorldQueries worldQueries)
+    ILogger<ChairRequestClientPacketHandler> logger)
     : IPacketHandler<ChairRequestClientPacket>
 {
     public async Task HandleAsync(PlayerState player, ChairRequestClientPacket packet)
