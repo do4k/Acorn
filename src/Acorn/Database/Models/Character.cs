@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 using Acorn.Game.Models;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
@@ -56,9 +57,12 @@ public class Character
     public int GoldBank { get; set; }
     public int Usage { get; set; }
 
-    // Navigation properties for relational data
+    // Navigation properties for relational data - ignored during JSON serialization
+    [JsonIgnore]
     public ICollection<CharacterItem> Items { get; set; } = new List<CharacterItem>();
+    [JsonIgnore]
     public ICollection<CharacterSpell> Spells { get; set; } = new List<CharacterSpell>();
+    [JsonIgnore]
     public CharacterPaperdoll? Paperdoll { get; set; }
 
     public Game.Models.Character AsGameModel()

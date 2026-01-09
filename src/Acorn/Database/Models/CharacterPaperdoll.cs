@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace Acorn.Database.Models;
 
@@ -22,6 +23,7 @@ public class CharacterPaperdoll
     public int Armlet1 { get; set; }
     public int Armlet2 { get; set; }
 
-    // Navigation property
+    // Navigation property - ignored during JSON serialization to prevent cycles
+    [JsonIgnore]
     public Character? Character { get; set; }
 }
