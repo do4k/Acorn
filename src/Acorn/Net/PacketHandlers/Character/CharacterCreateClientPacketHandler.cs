@@ -75,7 +75,12 @@ internal class CharacterCreateClientPacketHandler(
         await repository.CreateAsync(character);
         logger.LogInformation("Character '{Name}' created by '{Username}'.", character.Name,
             playerState.Account.Username);
-        playerState.Account.Characters.Add(character);
+
+        // Add to account's character list if not already present (EF Core may auto-add via navigation)
+        if (!playerState.Account.Characters.Contains(character))
+        {
+            playerState.Account.Characters.Add(character);
+        }
 
         await playerState.Send(new CharacterReplyServerPacket
         {
