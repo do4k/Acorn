@@ -40,54 +40,62 @@ public class NewConnectionHostedService(
             // Start WebSocket listener on all interfaces
             _wsListener = new HttpListener();
 
-            // Try wildcard binding first (works in Docker/Linux without special permissions)
-            _wsListener.Prefixes.Add($"http://*:{_serverOptions.Hosting.WebSocketPort}/");
+            // On Linux, prefer binding to all addresses explicitly
+            var isLinux = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+                System.Runtime.InteropServices.OSPlatform.Linux);
 
-            try
+            var prefixPatterns = isLinux 
+                ? new[] 
+                { 
+                    $"http://0.0.0.0:{_serverOptions.Hosting.WebSocketPort}/",
+                    $"http://*:{_serverOptions.Hosting.WebSocketPort}/",
+                    $"http://+:{_serverOptions.Hosting.WebSocketPort}/"
+                }
+                : new[] 
+                { 
+                    $"http://*:{_serverOptions.Hosting.WebSocketPort}/",
+                    $"http://+:{_serverOptions.Hosting.WebSocketPort}/"
+                };
+
+            bool wsStarted = false;
+            foreach (var prefix in prefixPatterns)
             {
-                _wsListener.Start();
-                logger.LogInformation("Waiting for TCP on {Endpoint} and WebSocket on http://*:{Port}/ (all interfaces)...",
-                    _listener.LocalEndpoint, _serverOptions.Hosting.WebSocketPort);
+                try
+                {
+                    _wsListener.Prefixes.Clear();
+                    _wsListener.Prefixes.Add(prefix);
+                    _wsListener.Start();
+                    logger.LogInformation("Waiting for TCP on {Endpoint} and WebSocket on {Prefix} (all interfaces)...",
+                        _listener.LocalEndpoint, prefix);
+                    wsStarted = true;
+                    break;
+                }
+                catch (HttpListenerException ex)
+                {
+                    logger.LogWarning(ex, "Failed to bind WebSocket to {Prefix}, trying next pattern...", prefix);
+                }
             }
-            catch (HttpListenerException ex) when (ex.Message.Contains("Access is denied") || ex.ErrorCode == 5)
-            {
-                // On Windows without admin rights, try + instead of *
-                logger.LogWarning(ex, "Failed to bind to *:{Port}, trying +:{Port} (requires admin on Windows)",
-                    _serverOptions.Hosting.WebSocketPort, _serverOptions.Hosting.WebSocketPort);
 
+            if (!wsStarted)
+            {
+                logger.LogWarning("Could not bind to any public interface, attempting localhost fallback...");
+
+                // Last resort: Try localhost binding only
                 _wsListener.Prefixes.Clear();
-                _wsListener.Prefixes.Add($"http://+:{_serverOptions.Hosting.WebSocketPort}/");
+                _wsListener.Prefixes.Add($"http://localhost:{_serverOptions.Hosting.WebSocketPort}/");
+                _wsListener.Prefixes.Add($"http://127.0.0.1:{_serverOptions.Hosting.WebSocketPort}/");
 
                 try
                 {
                     _wsListener.Start();
-                    logger.LogInformation("WebSocket listener started on http://+:{Port}/",
+                    logger.LogWarning("WebSocket listener started on localhost only (port {Port}). " +
+                        "External connections will not work.",
                         _serverOptions.Hosting.WebSocketPort);
                 }
-                catch (HttpListenerException ex2)
+                catch (Exception fallbackEx)
                 {
-                    logger.LogError(ex2, "Failed to start WebSocket listener on port {Port}. " +
-                        "On Windows, you may need to run as administrator or use netsh to reserve the URL. " +
-                        "Command: netsh http add urlacl url=http://+:{Port}/ user=Everyone",
-                        _serverOptions.Hosting.WebSocketPort, _serverOptions.Hosting.WebSocketPort);
-
-                    // Last resort: Try localhost binding only
-                    _wsListener.Prefixes.Clear();
-                    _wsListener.Prefixes.Add($"http://localhost:{_serverOptions.Hosting.WebSocketPort}/");
-                    _wsListener.Prefixes.Add($"http://127.0.0.1:{_serverOptions.Hosting.WebSocketPort}/");
-
-                    try
-                    {
-                        _wsListener.Start();
-                        logger.LogWarning("WebSocket listener started on localhost only (port {Port}). " +
-                            "External connections will not work. Run as administrator for full functionality.",
-                            _serverOptions.Hosting.WebSocketPort);
-                    }
-                    catch (Exception fallbackEx)
-                    {
-                        logger.LogError(fallbackEx, "Failed to start WebSocket listener even on localhost");
-                        throw;
-                    }
+                    logger.LogError(fallbackEx, "Failed to start WebSocket listener even on localhost");
+                    throw;
                 }
             }
 
