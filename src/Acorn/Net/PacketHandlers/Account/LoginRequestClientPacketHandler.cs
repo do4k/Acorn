@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using Acorn.Database.Models;
 using Acorn.Database.Repository;
 using Acorn.Extensions;
 using Acorn.Game.Services;

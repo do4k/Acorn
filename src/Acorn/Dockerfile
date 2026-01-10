@@ -17,11 +17,15 @@ WORKDIR /src
 # Copy project files and restore dependencies (better layer caching)
 COPY ["src/Acorn/Acorn.csproj", "src/Acorn/"]
 COPY ["src/Acorn.Shared/Acorn.Shared.csproj", "src/Acorn.Shared/"]
+COPY ["src/Acorn.Domain/Acorn.Domain.csproj", "src/Acorn.Domain/"]
+COPY ["src/Acorn.Database/Acorn.Database.csproj", "src/Acorn.Database/"]
 RUN dotnet restore "src/Acorn/Acorn.csproj"
 
 # Copy remaining source files
 COPY src/Acorn/ src/Acorn/
 COPY src/Acorn.Shared/ src/Acorn.Shared/
+COPY src/Acorn.Domain/ src/Acorn.Domain/
+COPY src/Acorn.Database/ src/Acorn.Database/
 
 # Stage 3: Publish image
 FROM build AS publish

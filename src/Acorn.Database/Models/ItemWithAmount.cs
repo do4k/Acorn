@@ -1,4 +1,4 @@
-﻿namespace Acorn.Database.Models;
+namespace Acorn.Database.Models;
 
 public class ItemWithAmount
 {

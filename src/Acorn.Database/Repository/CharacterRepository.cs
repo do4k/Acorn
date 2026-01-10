@@ -1,4 +1,4 @@
-﻿using Acorn.Database.Models;
+using Acorn.Database.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 

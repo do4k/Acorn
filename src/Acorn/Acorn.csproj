@@ -23,6 +23,7 @@
     <ItemGroup>
         <ProjectReference Include="..\Acorn.Shared\Acorn.Shared.csproj"/>
         <ProjectReference Include="..\Acorn.Domain\Acorn.Domain.csproj"/>
+        <ProjectReference Include="..\Acorn.Database\Acorn.Database.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
