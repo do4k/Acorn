@@ -1,4 +1,4 @@
-namespace Acorn.Game.Models;
+namespace Acorn.Domain.Models;
 
 public enum SpellTarget
 {

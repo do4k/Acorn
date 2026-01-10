@@ -1,10 +1,13 @@
 using System.Collections.Concurrent;
 using Acorn.Database.Models;
-using GameCharacter = Acorn.Game.Models.Character;
-using Inventory = Acorn.Game.Models.Inventory;
-using Bank = Acorn.Game.Models.Bank;
-using Spell = Acorn.Game.Models.Spell;
-using Spells = Acorn.Game.Models.Spells;
+using DatabaseCharacter = Acorn.Database.Models.Character;
+using GameCharacter = Acorn.Domain.Models.Character;
+using Inventory = Acorn.Domain.Models.Inventory;
+using Bank = Acorn.Domain.Models.Bank;
+using Spell = Acorn.Domain.Models.Spell;
+using Spells = Acorn.Domain.Models.Spells;
+using Paperdoll = Acorn.Domain.Models.Paperdoll;
+using ItemWithAmount = Acorn.Domain.Models.ItemWithAmount;
 
 namespace Acorn.Game.Mappers;
 
@@ -13,9 +16,9 @@ namespace Acorn.Game.Mappers;
 /// </summary>
 public class CharacterMapper : ICharacterMapper
 {
-    public Character ToDatabase(GameCharacter character)
+    public DatabaseCharacter ToDatabase(GameCharacter character)
     {
-        return new Character
+        return new DatabaseCharacter
         {
             Accounts_Username = character.Accounts_Username,
             Name = character.Name,
@@ -97,7 +100,7 @@ public class CharacterMapper : ICharacterMapper
         };
     }
 
-    public GameCharacter FromDatabase(Character dbCharacter)
+    public GameCharacter FromDatabase(DatabaseCharacter dbCharacter)
     {
         var inventoryItems = dbCharacter.Items?
                                  .Where(i => i.Slot == 0)

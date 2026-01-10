@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 
-namespace Acorn.Game.Models;
+namespace Acorn.Domain.Models;
 
 public record Spell(int Id, int Level);
 

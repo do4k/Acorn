@@ -5,9 +5,9 @@ using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Xunit;
-using Character = Acorn.Game.Models.Character;
-using Inventory = Acorn.Game.Models.Inventory;
-using Bank = Acorn.Game.Models.Bank;
+using Character = Acorn.Domain.Models.Character;
+using Inventory = Acorn.Domain.Models.Inventory;
+using Bank = Acorn.Domain.Models.Bank;
 
 namespace Acorn.Tests.Game.Services;
 
@@ -29,7 +29,7 @@ public class InventoryServiceTests
             Inventory = new Inventory([]),
             Bank = new Bank([]),
             Paperdoll = new Paperdoll(),
-            Spells = new Acorn.Game.Models.Spells([])
+            Spells = new Acorn.Domain.Models.Spells([])
         };
     }
 

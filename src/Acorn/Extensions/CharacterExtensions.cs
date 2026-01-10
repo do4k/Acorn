@@ -1,5 +1,6 @@
-﻿using Acorn.Game.Models;
+﻿using Acorn.Domain.Models;
 using Acorn.Game.Services;
+using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.Extensions;
@@ -112,6 +113,104 @@ public static class CharacterExtensions
             Evade = c.Evade,
             MinDamage = c.MinDamage,
             MaxDamage = c.MaxDamage
+        };
+    }
+
+    public static System.Collections.Generic.IEnumerable<ItemWithAmount> Items(this Character character)
+    {
+        return character.Inventory.Items;
+    }
+
+    public static Coords AsCoords(this Character character)
+    {
+        return new Coords
+        {
+            X = character.X,
+            Y = character.Y
+        };
+    }
+
+    public static EquipmentPaperdoll Equipment(this Character character)
+    {
+        return new EquipmentPaperdoll
+        {
+            Hat = character.Paperdoll.Hat,
+            Necklace = character.Paperdoll.Necklace,
+            Armor = character.Paperdoll.Armor,
+            Belt = character.Paperdoll.Belt,
+            Boots = character.Paperdoll.Boots,
+            Gloves = character.Paperdoll.Gloves,
+            Weapon = character.Paperdoll.Weapon,
+            Shield = character.Paperdoll.Shield,
+            Accessory = character.Paperdoll.Accessory,
+            Ring = [character.Paperdoll.Ring1, character.Paperdoll.Ring2],
+            Bracer = [character.Paperdoll.Bracer1, character.Paperdoll.Bracer2],
+            Armlet = [character.Paperdoll.Armlet1, character.Paperdoll.Armlet2]
+        };
+    }
+
+    public static Coords NextCoords(this Character character)
+    {
+        return character.AsCoords().NextCoords(character.Direction);
+    }
+
+    /// <summary>
+    ///     Recover HP and TP based on divisor.
+    ///     Formula: (MaxHP/divisor + 1) for HP, (MaxTP/divisor + 1) for TP.
+    ///     Divisor should be 5 for standing, 10 for sitting.
+    /// </summary>
+    public static (int Hp, int Tp) Recover(this Character character, int divisor)
+    {
+        if (character.Hp < character.MaxHp)
+        {
+            var hpGain = character.MaxHp / divisor + 1;
+            character.Hp = Math.Min(character.Hp + hpGain, character.MaxHp);
+        }
+
+        if (character.Tp < character.MaxTp)
+        {
+            var tpGain = character.MaxTp / divisor + 1;
+            character.Tp = Math.Min(character.Tp + tpGain, character.MaxTp);
+        }
+
+        return (character.Hp, character.Tp);
+    }
+
+    /// <summary>
+    ///     Add experience to the character.
+    /// </summary>
+    public static void GainExperience(this Character character, int amount)
+    {
+        character.Exp += amount;
+    }
+
+    /// <summary>
+    ///     Get character stats for equipment change response.
+    ///     Returns current stat values including equipment bonuses.
+    /// </summary>
+    public static CharacterStatsEquipmentChange GetCharacterStatsEquipmentChange(this Character character)
+    {
+        return new CharacterStatsEquipmentChange
+        {
+            MaxHp = character.MaxHp,
+            MaxTp = character.MaxTp,
+            BaseStats = new CharacterBaseStats
+            {
+                Str = character.Str,
+                Intl = character.Int,
+                Wis = character.Wis,
+                Agi = character.Agi,
+                Con = character.Con,
+                Cha = character.Cha
+            },
+            SecondaryStats = new CharacterSecondaryStats
+            {
+                MinDamage = character.MinDamage,
+                MaxDamage = character.MaxDamage,
+                Accuracy = character.Accuracy,
+                Evade = character.Evade,
+                Armor = character.Armor
+            }
         };
     }
 }

@@ -116,10 +116,10 @@ internal class StatSkillAddClientPacketHandler(
         // Create new Spells collection with updated spell
         var updatedSpells = character.Spells.Items
             .Where(s => s.Id != spellId)
-            .Append(new Game.Models.Spell(spellId, spell.Level + 1))
+            .Append(new Acorn.Domain.Models.Spell(spellId, spell.Level + 1))
             .ToList();
         
-        character.Spells = new Game.Models.Spells(new System.Collections.Concurrent.ConcurrentBag<Game.Models.Spell>(updatedSpells));
+        character.Spells = new Acorn.Domain.Models.Spells(new System.Collections.Concurrent.ConcurrentBag<Acorn.Domain.Models.Spell>(updatedSpells));
         character.SkillPoints--;
 
         // Save to database
@@ -138,7 +138,7 @@ internal class StatSkillAddClientPacketHandler(
         return true;
     }
 
-    private async Task SendStatUpdate(PlayerState playerState, Game.Models.Character character)
+    private async Task SendStatUpdate(PlayerState playerState, Acorn.Domain.Models.Character character)
     {
         await playerState.Send(new StatSkillPlayerServerPacket
         {

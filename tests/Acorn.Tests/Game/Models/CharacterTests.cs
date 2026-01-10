@@ -4,9 +4,9 @@ using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Xunit;
-using Character = Acorn.Game.Models.Character;
-using Inventory = Acorn.Game.Models.Inventory;
-using Bank = Acorn.Game.Models.Bank;
+using Character = Acorn.Domain.Models.Character;
+using Inventory = Acorn.Domain.Models.Inventory;
+using Bank = Acorn.Domain.Models.Bank;
 
 namespace Acorn.Tests.Game.Models;
 
@@ -40,7 +40,7 @@ public class CharacterTests
                 Bracer1 = 14,
                 Bracer2 = 15
             },
-            Spells = new Acorn.Game.Models.Spells([])
+            Spells = new Acorn.Domain.Models.Spells([])
         };
     }
 

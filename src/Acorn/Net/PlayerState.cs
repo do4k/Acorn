@@ -12,7 +12,7 @@ using Moffat.EndlessOnline.SDK.Packet;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using Character = Acorn.Game.Models.Character;
+using Character = Acorn.Domain.Models.Character;
 
 namespace Acorn.Net;
 

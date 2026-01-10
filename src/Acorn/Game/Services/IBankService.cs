@@ -1,4 +1,4 @@
-using Acorn.Game.Models;
+using Acorn.Domain.Models;
 
 namespace Acorn.Game.Services;
 

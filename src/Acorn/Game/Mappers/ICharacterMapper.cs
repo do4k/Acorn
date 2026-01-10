@@ -1,4 +1,7 @@
 using Acorn.Database.Models;
+using Acorn.Domain.Models;
+using DatabaseCharacter = Acorn.Database.Models.Character;
+using GameCharacter = Acorn.Domain.Models.Character;
 
 namespace Acorn.Game.Mappers;
 
@@ -10,10 +13,10 @@ public interface ICharacterMapper
     /// <summary>
     ///     Converts a game Character to a database Character model.
     /// </summary>
-    Character ToDatabase(Models.Character character);
+    DatabaseCharacter ToDatabase(GameCharacter character);
 
     /// <summary>
     ///     Converts a database Character to a game Character model.
     /// </summary>
-    Models.Character FromDatabase(Character dbCharacter);
+    GameCharacter FromDatabase(DatabaseCharacter dbCharacter);
 }

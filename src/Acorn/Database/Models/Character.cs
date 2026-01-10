@@ -1,7 +1,8 @@
 ﻿using System.Collections.Concurrent;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
-using Acorn.Game.Models;
+using Acorn.Domain.Models;
+using DatabaseItemWithAmount = Acorn.Database.Models.ItemWithAmount;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
@@ -65,28 +66,28 @@ public class Character
     [JsonIgnore]
     public CharacterPaperdoll? Paperdoll { get; set; }
 
-    public Game.Models.Character AsGameModel()
+    public Domain.Models.Character AsGameModel()
     {
-        ConcurrentBag<ItemWithAmount> GetItemsFromDb(int slot)
+        ConcurrentBag<Domain.Models.ItemWithAmount> GetItemsFromDb(int slot)
         {
             var itemsList = Items
                 .Where(i => i.Slot == slot)
-                .Select(i => new ItemWithAmount { Id = i.ItemId, Amount = i.Amount })
+                .Select(i => new Domain.Models.ItemWithAmount { Id = i.ItemId, Amount = i.Amount })
                 .ToList();
 
-            return new ConcurrentBag<ItemWithAmount>(itemsList);
+            return new ConcurrentBag<Domain.Models.ItemWithAmount>(itemsList);
         }
 
-        ConcurrentBag<Game.Models.Spell> GetSpellsFromDb()
+        ConcurrentBag<Domain.Models.Spell> GetSpellsFromDb()
         {
             var spellsList = Spells
-                .Select(s => new Game.Models.Spell(s.SpellId, s.Level))
+                .Select(s => new Domain.Models.Spell(s.SpellId, s.Level))
                 .ToList();
 
-            return new ConcurrentBag<Game.Models.Spell>(spellsList);
+            return new ConcurrentBag<Domain.Models.Spell>(spellsList);
         }
 
-        return new Game.Models.Character
+        return new Domain.Models.Character
         {
             Accounts_Username = Accounts_Username,
             Level = Level,
@@ -131,10 +132,10 @@ public class Character
             NoInteract = NoInteract,
             Bank = new Bank(GetItemsFromDb(1)),
             Inventory = new Inventory(GetItemsFromDb(0)),
-            Spells = new Game.Models.Spells(GetSpellsFromDb()),
+            Spells = new Domain.Models.Spells(GetSpellsFromDb()),
             Paperdoll = Paperdoll == null
-                ? new Paperdoll()
-                : new Paperdoll
+                ? new Domain.Models.Paperdoll()
+                : new Domain.Models.Paperdoll
                 {
                     Hat = Paperdoll.Hat,
                     Necklace = Paperdoll.Necklace,

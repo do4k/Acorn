@@ -1,7 +1,5 @@
 using System.Collections.Concurrent;
-using Acorn.Database.Models;
-using Character = Acorn.Game.Models.Character;
-using Inventory = Acorn.Game.Models.Inventory;
+using Acorn.Domain.Models;
 
 namespace Acorn.Game.Services;
 
