@@ -1,4 +1,7 @@
-﻿using Acorn.World;
+﻿using Acorn.Extensions;
+using Acorn.Game.Services;
+using Acorn.Shared.Caching;
+using Acorn.World;
 using Acorn.World.Map;
 using Acorn.World.Services.Map;
 using Acorn.World.Services.Player;
@@ -17,17 +20,23 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
     private readonly IMapTileService _mapTileService;
     private readonly IPlayerController _playerController;
     private readonly IWorldQueries _world;
+    private readonly ICharacterCacheService _characterCache;
+    private readonly IPaperdollService _paperdollService;
 
     public WalkPlayerClientPacketHandler(
         ILogger<WalkPlayerClientPacketHandler> logger,
         IWorldQueries world,
         IPlayerController playerController,
-        IMapTileService mapTileService)
+        IMapTileService mapTileService,
+        ICharacterCacheService characterCache,
+        IPaperdollService paperdollService)
     {
         _logger = logger;
         _world = world;
         _playerController = playerController;
         _mapTileService = mapTileService;
+        _characterCache = characterCache;
+        _paperdollService = paperdollService;
     }
 
     public async Task HandleAsync(PlayerState playerState,
@@ -55,6 +64,9 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
         };
 
         playerState.Character.Direction = packet.WalkAction.Direction;
+
+        // Cache character state after position/direction update
+        await playerState.CacheCharacterStateAsync(_characterCache, _paperdollService);
 
         if (playerState.CurrentMap is null)
         {

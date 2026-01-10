@@ -1,4 +1,7 @@
-﻿using Acorn.Net.Services;
+﻿using Acorn.Extensions;
+using Acorn.Game.Services;
+using Acorn.Net.Services;
+using Acorn.Shared.Caching;
 using Acorn.World;
 using Acorn.World.Services.Player;
 using Microsoft.Extensions.Logging;
@@ -14,14 +17,19 @@ public class SetCommandHandler : ITalkHandler
     private readonly INotificationService _notifications;
     private readonly IPlayerController _playerController;
     private readonly IWorldQueries _world;
+    private readonly ICharacterCacheService _characterCache;
+    private readonly IPaperdollService _paperdollService;
 
     public SetCommandHandler(IWorldQueries world, ILogger<SetCommandHandler> logger, INotificationService notifications,
-        IPlayerController playerController)
+        IPlayerController playerController, ICharacterCacheService characterCache,
+        IPaperdollService paperdollService)
     {
         _world = world;
         _logger = logger;
         _notifications = notifications;
         _playerController = playerController;
+        _characterCache = characterCache;
+        _paperdollService = paperdollService;
     }
 
     public bool CanHandle(string command)
@@ -102,6 +110,9 @@ public class SetCommandHandler : ITalkHandler
             adjustment();
             await _notifications.SystemMessage(playerState, $"Player {args[0]} had {args[1]} updated to {value}.");
             await _playerController.RefreshAsync(playerState);
+            
+            // Cache the target player's state after adjustment
+            await target.CacheCharacterStateAsync(_characterCache, _paperdollService);
             
             // Send stat update to target player if they're online
             await SendStatUpdateToPlayer(target);

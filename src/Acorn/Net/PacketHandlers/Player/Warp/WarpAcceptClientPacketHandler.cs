@@ -1,4 +1,7 @@
-﻿using Acorn.World;
+﻿using Acorn.Extensions;
+using Acorn.Game.Services;
+using Acorn.Shared.Caching;
+using Acorn.World;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
@@ -9,10 +12,18 @@ namespace Acorn.Net.PacketHandlers.Player.Warp;
 public class WarpAcceptClientPacketHandler : IPacketHandler<WarpAcceptClientPacket>
 {
     private readonly ILogger<WarpAcceptClientPacketHandler> _logger;
+    private readonly ICharacterCacheService _characterCache;
+    private readonly IPaperdollService _paperdollService;
 
-    public WarpAcceptClientPacketHandler(IWorldQueries world, ILogger<WarpAcceptClientPacketHandler> logger)
+    public WarpAcceptClientPacketHandler(
+        IWorldQueries world,
+        ILogger<WarpAcceptClientPacketHandler> logger,
+        ICharacterCacheService characterCache,
+        IPaperdollService paperdollService)
     {
         _logger = logger;
+        _characterCache = characterCache;
+        _paperdollService = paperdollService;
     }
 
     public async Task HandleAsync(PlayerState playerState,
@@ -43,6 +54,9 @@ public class WarpAcceptClientPacketHandler : IPacketHandler<WarpAcceptClientPack
         playerState.Character.X = playerState.WarpSession.X;
         playerState.Character.Y = playerState.WarpSession.Y;
         playerState.Character.SitState = SitState.Stand;
+
+        // Cache character state after warp position update
+        await playerState.CacheCharacterStateAsync(_characterCache, _paperdollService);
 
         await playerState.CurrentMap.NotifyEnter(playerState, playerState.WarpSession.WarpEffect);
 

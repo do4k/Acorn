@@ -1,5 +1,7 @@
+using Acorn.Extensions;
 using Acorn.Game.Models;
 using Acorn.Game.Services;
+using Acorn.Shared.Caching;
 using Acorn.Net;
 using Acorn.Net.PacketHandlers.Player.Warp;
 using Acorn.Options;
@@ -19,19 +21,25 @@ public class PlayerController : IPlayerController
     private readonly ServerOptions _serverOptions;
     private readonly IStatCalculator _statCalculator;
     private readonly Lazy<IWorldQueries> _worldQueries;
+    private readonly ICharacterCacheService _characterCache;
+    private readonly IPaperdollService _paperdollService;
 
     public PlayerController(
         ILogger<PlayerController> logger,
         IMapBroadcastService broadcastService,
         Lazy<IWorldQueries> worldQueries,
         IStatCalculator statCalculator,
-        IOptions<ServerOptions> serverOptions)
+        IOptions<ServerOptions> serverOptions,
+        ICharacterCacheService characterCache,
+        IPaperdollService paperdollService)
     {
         _logger = logger;
         _broadcastService = broadcastService;
         _worldQueries = worldQueries;
         _statCalculator = statCalculator;
         _serverOptions = serverOptions.Value;
+        _characterCache = characterCache;
+        _paperdollService = paperdollService;
     }
 
     public async Task WarpAsync(PlayerState player, MapState targetMap, int x, int y,
@@ -86,6 +94,9 @@ public class PlayerController : IPlayerController
 
         player.Character.X = x;
         player.Character.Y = y;
+
+        // Cache character state after position change
+        await player.CacheCharacterStateAsync(_characterCache, _paperdollService);
 
         // Broadcast movement to other players
         await _broadcastService.BroadcastPacket(

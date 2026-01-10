@@ -1,4 +1,7 @@
+using Acorn.Extensions;
+using Acorn.Game.Services;
 using Acorn.Net;
+using Acorn.Shared.Caching;
 using Acorn.World.Map;
 using Acorn.World.Services.Npc;
 using Acorn.World.Services.Player;
@@ -19,6 +22,8 @@ public class MapController : IMapController
     private readonly INpcController _npcController;
     private readonly IPlayerController _playerController;
     private readonly IMapTileService _tileService;
+    private readonly ICharacterCacheService _characterCache;
+    private readonly IPaperdollService _paperdollService;
 
     public MapController(
         IMapTileService tileService,
@@ -27,7 +32,9 @@ public class MapController : IMapController
         INpcController npcController,
         IPlayerController playerController,
         IFormulaService formulaService,
-        ILogger<MapController> logger)
+        ILogger<MapController> logger,
+        ICharacterCacheService characterCache,
+        IPaperdollService paperdollService)
     {
         _tileService = tileService;
         _npcCombatService = npcCombatService;
@@ -35,6 +42,8 @@ public class MapController : IMapController
         _playerController = playerController;
         _formulaService = formulaService;
         _logger = logger;
+        _characterCache = characterCache;
+        _paperdollService = paperdollService;
     }
 
     public async Task<bool> SitInChairAsync(PlayerState player, Coords coords, MapState map)
@@ -98,6 +107,9 @@ public class MapController : IMapController
         player.Character.Y = coords.Y;
         player.Character.Direction = sitDirection.Value;
         player.Character.SitState = SitState.Chair;
+
+        // Cache character state after position and sit state change
+        await player.CacheCharacterStateAsync(_characterCache, _paperdollService);
 
         // Broadcast sit action
         await map.BroadcastPacket(new SitPlayerServerPacket

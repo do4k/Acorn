@@ -2,6 +2,7 @@
 using Acorn.Extensions;
 using Acorn.Game.Services;
 using Acorn.Options;
+using Acorn.Shared.Caching;
 using Acorn.World.Map;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -21,11 +22,14 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
     private readonly ILogger<AttackUseClientPacketHandler> _logger;
     private readonly ILootService _lootService;
     private readonly UtcNowDelegate _now;
+    private readonly ICharacterCacheService _characterCache;
+    private readonly IPaperdollService _paperdollService;
     private DateTime _timeSinceLastAttack;
 
     public AttackUseClientPacketHandler(UtcNowDelegate now, ILogger<AttackUseClientPacketHandler> logger,
         IFormulaService formulaService, IDataFileRepository dataFiles, ILootService lootService,
-        IOptions<ServerOptions> serverOptions)
+        IOptions<ServerOptions> serverOptions, ICharacterCacheService characterCache,
+        IPaperdollService paperdollService)
     {
         _now = now;
         _logger = logger;
@@ -33,6 +37,8 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
         _dataFiles = dataFiles;
         _lootService = lootService;
         _dropProtectionTicks = serverOptions.Value.DropProtectionTicks;
+        _characterCache = characterCache;
+        _paperdollService = paperdollService;
     }
 
     public async Task HandleAsync(PlayerState playerState, AttackUseClientPacket packet)
@@ -111,6 +117,12 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
 
                     _logger.LogInformation("Player {PlayerName} leveled up to level {Level}!",
                         playerState.Character.Name, newLevel);
+                }
+
+                // Cache character state if level up occurred
+                if (levelsGained > 0)
+                {
+                    await playerState.CacheCharacterStateAsync(_characterCache, _paperdollService);
                 }
 
                 // Roll for item drop
