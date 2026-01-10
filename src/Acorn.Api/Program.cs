@@ -5,6 +5,7 @@ using Acorn.Database.Repository;
 using Acorn.Shared.Extensions;
 using Acorn.Shared.Options;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,7 +22,7 @@ builder.Services.Configure<DatabaseOptions>(configuration.GetSection(DatabaseOpt
 // Configure Database (same as Acorn core)
 builder.Services.AddDbContext<AcornDbContext>((sp, options) =>
 {
-    var dbOptions = sp.GetRequiredService<DatabaseOptions>();
+    var dbOptions = sp.GetRequiredService<IOptions<DatabaseOptions>>().Value;
     var connectionString = dbOptions.ConnectionString;
     var dbEngine = dbOptions.Engine?.ToLower() ?? "sqlite";
 
@@ -45,8 +46,8 @@ builder.Services.AddDbContext<AcornDbContext>((sp, options) =>
             break;
     }
 
-    options.EnableSensitiveDataLogging(true);
-    options.EnableDetailedErrors(true);
+    options.EnableSensitiveDataLogging();
+    options.EnableDetailedErrors();
 });
 
 // Register repositories for database access

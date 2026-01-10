@@ -11,12 +11,12 @@ services:
     volumes:
       - ./src/Acorn/Data:/app/Data:ro
     environment:
-      - Database__Engine=MySQL
-      - Database__ConnectionString=Server=mysql;Port=3306;Database=acorn;User=acorn;Password=acornpassword
-      - Cache__Enabled=true
-      - Cache__UseRedis=true
-      - Cache__ConnectionString=redis:6379
-      - Server__SLN__Enabled=true
+      - Database__Engine=${DATABASE_ENGINE}
+      - Database__ConnectionString=${DATABASE_CONNECTION_STRING}
+      - Cache__Enabled=${CACHE_ENABLED}
+      - Cache__UseRedis=${CACHE_USE_REDIS}
+      - Cache__ConnectionString=${CACHE_CONNECTION_STRING}
+      - Server__SLN__Enabled=${SERVER_SLN_ENABLED}
     depends_on:
       mysql:
         condition: service_healthy
@@ -31,16 +31,16 @@ services:
     image: mysql:9.1
     container_name: acorn-mysql-db
     environment:
-      - MYSQL_DATABASE=acorn
-      - MYSQL_USER=acorn
-      - MYSQL_PASSWORD=acornpassword
-      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
     volumes:
       - mysql-data:/var/lib/mysql
     ports:
       - "3306:3306"
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "acorn", "-pacornpassword"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_USER}", "-p${MYSQL_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -75,10 +75,12 @@ services:
     ports:
       - "5000:8080"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-      - Cache__Enabled=true
-      - Cache__UseRedis=true
-      - Cache__ConnectionString=redis:6379
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+      - Database__Engine=${DATABASE_ENGINE}
+      - Database__ConnectionString=${DATABASE_CONNECTION_STRING}
+      - Cache__Enabled=${CACHE_ENABLED}
+      - Cache__UseRedis=${CACHE_USE_REDIS}
+      - Cache__ConnectionString=${CACHE_CONNECTION_STRING}
     depends_on:
       redis:
         condition: service_healthy
