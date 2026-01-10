@@ -1,6 +1,10 @@
 using Acorn.Api.Features;
+using Acorn.Database;
+using Acorn.Database.Models;
+using Acorn.Database.Repository;
 using Acorn.Shared.Extensions;
 using Acorn.Shared.Options;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +16,41 @@ var configuration = builder.Configuration;
 
 // Configure options
 builder.Services.Configure<CacheOptions>(configuration.GetSection("Cache"));
+builder.Services.Configure<DatabaseOptions>(configuration.GetSection(DatabaseOptions.SectionName));
+
+// Configure Database (same as Acorn core)
+builder.Services.AddDbContext<AcornDbContext>((sp, options) =>
+{
+    var dbOptions = sp.GetRequiredService<DatabaseOptions>();
+    var connectionString = dbOptions.ConnectionString;
+    var dbEngine = dbOptions.Engine?.ToLower() ?? "sqlite";
+
+    switch (dbEngine)
+    {
+        case "postgresql":
+        case "postgres":
+            options.UseNpgsql(connectionString);
+            break;
+        case "mysql":
+        case "mariadb":
+            options.UseMySQL(connectionString!);
+            break;
+        case "sqlserver":
+        case "mssql":
+            options.UseSqlServer(connectionString);
+            break;
+        case "sqlite":
+        default:
+            options.UseSqlite(connectionString);
+            break;
+    }
+
+    options.EnableSensitiveDataLogging(true);
+    options.EnableDetailedErrors(true);
+});
+
+// Register repositories for database access
+builder.Services.AddScoped<IDbRepository<Character>, CharacterRepository>();
 
 // Configure Caching (Redis or In-Memory) - same as Acorn core
 builder.Services.AddCaching();

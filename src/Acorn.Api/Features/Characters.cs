@@ -1,3 +1,5 @@
+using Acorn.Database.Models;
+using Acorn.Database.Repository;
 using Acorn.Shared.Caching;
 using Acorn.Shared.Models;
 
@@ -12,7 +14,7 @@ public static class CharactersFeature
 
         group.MapGet("/{name}", GetCharacter)
             .WithName("GetCharacter")
-            .WithDescription("Get character details by name from cache")
+            .WithDescription("Get character details by name - checks cache first, then database")
             .Produces<object>()
             .Produces<NotFoundError>(StatusCodes.Status404NotFound)
             .Produces<ServiceUnavailableError>(StatusCodes.Status503ServiceUnavailable);
@@ -20,22 +22,55 @@ public static class CharactersFeature
         return group;
     }
 
-    private static async Task<IResult> GetCharacter(string name, ICacheService cache)
+    private static async Task<IResult> GetCharacter(
+        string name,
+        ICacheService cache,
+        IDbRepository<Character> characterRepository)
     {
+        // Try cache first (online players)
+        var character = await cache.GetAsync<object>($"character:name:{name.ToLower()}");
+        if (character != null)
+            return Results.Ok(character);
+
+        // If not in cache, check if Redis is unavailable vs character just offline
         if (cache is InMemoryCacheService)
             return RedisUnavailable();
 
-        var character = await cache.GetAsync<object>($"character:name:{name.ToLower()}");
-        if (character == null)
+        // Fall back to database for offline characters
+        try
+        {
+            var dbCharacter = await characterRepository.GetByKeyAsync(name);
+            if (dbCharacter == null)
+                return Results.NotFound(new NotFoundError
+                {
+                    Error = "Character not found",
+                    Message = "The character does not exist",
+                    ResourceType = "Character",
+                    ResourceId = name
+                });
+
+            return Results.Ok(new
+            {
+                dbCharacter.Name,
+                dbCharacter.Level,
+                dbCharacter.Class,
+                dbCharacter.Gender,
+                dbCharacter.Map,
+                dbCharacter.X,
+                dbCharacter.Y,
+                Status = "offline"
+            });
+        }
+        catch
+        {
             return Results.NotFound(new NotFoundError
             {
                 Error = "Character not found",
-                Message = "The character does not exist or is not cached",
+                Message = "The character does not exist",
                 ResourceType = "Character",
                 ResourceId = name
             });
-
-        return Results.Ok(character);
+        }
     }
 
     private static IResult RedisUnavailable() => Results.Json(new ServiceUnavailableError
