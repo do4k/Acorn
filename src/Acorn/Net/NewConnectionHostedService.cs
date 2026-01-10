@@ -40,22 +40,12 @@ public class NewConnectionHostedService(
             // Start WebSocket listener on all interfaces
             _wsListener = new HttpListener();
 
-            // On Linux, prefer binding to all addresses explicitly
-            var isLinux = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
-                System.Runtime.InteropServices.OSPlatform.Linux);
-
-            var prefixPatterns = isLinux 
-                ? new[] 
-                { 
-                    $"http://0.0.0.0:{_serverOptions.Hosting.WebSocketPort}/",
-                    $"http://*:{_serverOptions.Hosting.WebSocketPort}/",
-                    $"http://+:{_serverOptions.Hosting.WebSocketPort}/"
-                }
-                : new[] 
-                { 
-                    $"http://*:{_serverOptions.Hosting.WebSocketPort}/",
-                    $"http://+:{_serverOptions.Hosting.WebSocketPort}/"
-                };
+            // HttpListener binding patterns: * works on Linux, + on Windows
+            var prefixPatterns = new[] 
+            { 
+                $"http://*:{_serverOptions.Hosting.WebSocketPort}/",
+                $"http://+:{_serverOptions.Hosting.WebSocketPort}/"
+            };
 
             bool wsStarted = false;
             foreach (var prefix in prefixPatterns)
