@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Acorn.Database.Models;
 using Acorn.Infrastructure.Communicators;
 using Acorn.Net.Models;
@@ -18,6 +19,9 @@ namespace Acorn.Net;
 
 public class PlayerState : IDisposable
 {
+    // Static cache for handler method invocation - avoids repeated reflection
+    private static readonly ConcurrentDictionary<Type, Func<object, PlayerState, IPacket, Task>> _handlerInvokeCache = new();
+    
     private readonly CancellationToken _cancellationToken;
     private readonly IEnumerable<IPacketHandler> _handlers;
     private readonly ILogger<PlayerState> _logger;
@@ -210,7 +214,14 @@ public class PlayerState : IDisposable
                 // Record packet for rate limiting after successful processing
                 _packetLog.RecordPacket(action, family);
 
-                await resolvedHandler.HandleAsync(this, packet);
+                // Use cached reflection to invoke the typed HandleAsync method
+                var invoker = _handlerInvokeCache.GetOrAdd(packet.GetType(), packetType =>
+                {
+                    var method = typeof(IPacketHandler<>).MakeGenericType(packetType).GetMethod("HandleAsync")!;
+                    return (handler, playerState, pkt) => (Task)method.Invoke(handler, [playerState, pkt])!;
+                });
+                
+                await invoker(resolvedHandler, this, packet);
             }
             catch (EndOfStreamException)
             {

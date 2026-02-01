@@ -149,8 +149,4 @@ public class LockerTakeClientPacketHandler(
         return totalWeight;
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (LockerTakeClientPacket)packet);
-    }
 }

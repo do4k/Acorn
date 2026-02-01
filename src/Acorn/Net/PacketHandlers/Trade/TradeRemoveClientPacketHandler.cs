@@ -114,8 +114,4 @@ public class TradeRemoveClientPacketHandler(
         }
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (TradeRemoveClientPacket)packet);
-    }
 }

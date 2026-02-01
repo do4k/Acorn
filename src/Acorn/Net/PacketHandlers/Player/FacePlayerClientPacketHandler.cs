@@ -31,8 +31,4 @@ internal class FacePlayerClientPacketHandler : IPacketHandler<FacePlayerClientPa
         await Task.WhenAll(broadcast);
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (FacePlayerClientPacket)packet);
-    }
 }

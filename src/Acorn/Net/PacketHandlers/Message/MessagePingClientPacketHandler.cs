@@ -23,8 +23,4 @@ public class MessagePingClientPacketHandler(ILogger<MessagePingClientPacketHandl
         await Task.CompletedTask;
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (MessagePingClientPacket)packet);
-    }
 }

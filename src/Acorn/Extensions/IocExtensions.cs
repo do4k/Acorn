@@ -110,7 +110,7 @@ internal static class IocRegistrations
     {
         void AddPacketHandler<TPacket, THandler>()
             where TPacket : IPacket
-            where THandler : class, IPacketHandler<TPacket>, IPacketHandler
+            where THandler : class, IPacketHandler<TPacket>
         {
             services.AddTransient<IPacketHandler<TPacket>, THandler>();
             services.AddTransient<IPacketHandler, THandler>(sp =>

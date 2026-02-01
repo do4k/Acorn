@@ -50,8 +50,4 @@ public class PaperdollRequestClientPacketHandler : IPacketHandler<PaperdollReque
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (PaperdollRequestClientPacket)packet);
-    }
 }

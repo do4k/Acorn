@@ -98,8 +98,4 @@ public class ShopOpenClientPacketHandler(
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (ShopOpenClientPacket)packet);
-    }
 }

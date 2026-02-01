@@ -30,8 +30,4 @@ public class GlobalOpenClientPacketHandler : IPacketHandler<GlobalOpenClientPack
         }
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (GlobalOpenClientPacket)packet);
-    }
 }

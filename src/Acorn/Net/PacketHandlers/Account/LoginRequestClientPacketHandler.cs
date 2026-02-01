@@ -77,8 +77,4 @@ public class LoginRequestClientPacketHandler(
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (LoginRequestClientPacket)packet);
-    }
 }

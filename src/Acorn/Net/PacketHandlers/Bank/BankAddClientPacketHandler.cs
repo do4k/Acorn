@@ -93,8 +93,4 @@ public class BankAddClientPacketHandler(
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (BankAddClientPacket)packet);
-    }
 }

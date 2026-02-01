@@ -25,8 +25,4 @@ public class DoorOpenClientPacketHandler : IPacketHandler<DoorOpenClientPacket>
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (DoorOpenClientPacket)packet);
-    }
 }

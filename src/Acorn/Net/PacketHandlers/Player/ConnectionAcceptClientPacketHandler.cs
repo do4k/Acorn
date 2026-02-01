@@ -26,8 +26,4 @@ public class ConnectionAcceptClientPacketHandler(
         return Task.CompletedTask;
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (ConnectionAcceptClientPacket)packet);
-    }
 }

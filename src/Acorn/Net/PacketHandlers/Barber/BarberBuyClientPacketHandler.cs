@@ -109,8 +109,4 @@ public class BarberBuyClientPacketHandler(
         await player.CurrentMap.BroadcastPacket(avatarPacket, player);
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (BarberBuyClientPacket)packet);
-    }
 }

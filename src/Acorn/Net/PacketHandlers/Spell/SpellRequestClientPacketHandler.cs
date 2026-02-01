@@ -34,8 +34,4 @@ public class SpellRequestClientPacketHandler(
         await Task.CompletedTask;
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (SpellRequestClientPacket)packet);
-    }
 }

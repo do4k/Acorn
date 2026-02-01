@@ -43,8 +43,4 @@ internal class AccountCreateClientPacketHandler(
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (AccountCreateClientPacket)packet);
-    }
 }

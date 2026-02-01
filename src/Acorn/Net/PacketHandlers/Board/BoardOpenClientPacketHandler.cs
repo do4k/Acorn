@@ -96,8 +96,4 @@ public class BoardOpenClientPacketHandler(
             player.Character.Name, packet.BoardId, postListings.Count);
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (BoardOpenClientPacket)packet);
-    }
 }

@@ -24,8 +24,4 @@ public class QuestUseClientPacketHandler(ILogger<QuestUseClientPacketHandler> lo
         await Task.CompletedTask;
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (QuestUseClientPacket)packet);
-    }
 }

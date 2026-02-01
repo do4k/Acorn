@@ -31,8 +31,4 @@ internal class TalkMsgClientPacketHandler : IPacketHandler<TalkMsgClientPacket>
         await Task.WhenAll(broadcast);
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (TalkMsgClientPacket)packet);
-    }
 }

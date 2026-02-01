@@ -24,8 +24,4 @@ public class BookRequestClientPacketHandler(ILogger<BookRequestClientPacketHandl
         await Task.CompletedTask;
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (BookRequestClientPacket)packet);
-    }
 }

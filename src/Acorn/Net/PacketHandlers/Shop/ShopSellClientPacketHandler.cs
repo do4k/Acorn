@@ -151,8 +151,4 @@ public class ShopSellClientPacketHandler(
         return totalWeight;
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (ShopSellClientPacket)packet);
-    }
 }

@@ -24,8 +24,4 @@ public class AdminInteractTellClientPacketHandler(
         await Task.CompletedTask;
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (AdminInteractTellClientPacket)packet);
-    }
 }

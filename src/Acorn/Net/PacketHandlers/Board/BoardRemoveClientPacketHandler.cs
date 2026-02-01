@@ -103,8 +103,4 @@ public class BoardRemoveClientPacketHandler(
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (BoardRemoveClientPacket)packet);
-    }
 }

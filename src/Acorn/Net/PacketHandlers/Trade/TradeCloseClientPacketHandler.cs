@@ -52,8 +52,4 @@ public class TradeCloseClientPacketHandler(
         }
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (TradeCloseClientPacket)packet);
-    }
 }

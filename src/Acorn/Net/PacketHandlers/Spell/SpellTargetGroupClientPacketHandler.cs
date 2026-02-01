@@ -43,10 +43,6 @@ public class SpellTargetGroupClientPacketHandler(
         await Task.CompletedTask;
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (SpellTargetGroupClientPacket)packet);
-    }
 
     private bool CheckTimestamp(PlayerState player, int timestamp)
     {

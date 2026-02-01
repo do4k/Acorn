@@ -21,8 +21,4 @@ public class WalkAdminClientPacketHandler : IPacketHandler<WalkAdminClientPacket
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (WalkAdminClientPacket)packet);
-    }
 }

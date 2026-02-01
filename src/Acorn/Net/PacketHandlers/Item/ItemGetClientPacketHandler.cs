@@ -68,8 +68,4 @@ public class ItemGetClientPacketHandler(
         }
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (ItemGetClientPacket)packet);
-    }
 }

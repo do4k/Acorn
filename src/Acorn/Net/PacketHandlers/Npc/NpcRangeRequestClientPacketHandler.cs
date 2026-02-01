@@ -29,8 +29,4 @@ public class NpcRangeRequestClientPacketHandler : IPacketHandler<NpcRangeRequest
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (NpcRangeRequestClientPacket)packet);
-    }
 }

@@ -25,8 +25,4 @@ public class PartyRequestClientPacketHandler(
         await Task.CompletedTask;
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (PartyRequestClientPacket)packet);
-    }
 }

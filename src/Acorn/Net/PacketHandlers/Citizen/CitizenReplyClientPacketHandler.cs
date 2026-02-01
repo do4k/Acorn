@@ -91,8 +91,4 @@ public class CitizenReplyClientPacketHandler(
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (CitizenReplyClientPacket)packet);
-    }
 }

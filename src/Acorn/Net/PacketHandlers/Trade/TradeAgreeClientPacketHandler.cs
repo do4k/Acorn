@@ -172,8 +172,4 @@ public class TradeAgreeClientPacketHandler(
             player.Character.Name, partner.Character.Name);
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (TradeAgreeClientPacket)packet);
-    }
 }

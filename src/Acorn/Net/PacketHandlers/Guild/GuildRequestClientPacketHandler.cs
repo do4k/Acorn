@@ -25,8 +25,4 @@ public class GuildRequestClientPacketHandler(
         await Task.CompletedTask;
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (GuildRequestClientPacket)packet);
-    }
 }

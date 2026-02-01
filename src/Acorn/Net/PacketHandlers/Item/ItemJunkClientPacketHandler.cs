@@ -67,8 +67,4 @@ public class ItemJunkClientPacketHandler(
         }
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (ItemJunkClientPacket)packet);
-    }
 }

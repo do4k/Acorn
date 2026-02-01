@@ -85,8 +85,4 @@ public class BoardTakeClientPacketHandler(
         _ => null
     };
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (BoardTakeClientPacket)packet);
-    }
 }

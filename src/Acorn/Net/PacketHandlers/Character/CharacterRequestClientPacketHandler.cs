@@ -29,8 +29,4 @@ internal class CharacterRequestClientPacketHandler : IPacketHandler<CharacterReq
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (CharacterRequestClientPacket)packet);
-    }
 }

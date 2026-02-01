@@ -59,7 +59,7 @@ internal class CharacterRemoveClientPacketHandler(
 
         // Delete the character from the database
         await repository.DeleteAsync(character);
-        
+
         logger.LogInformation(
             "Character '{CharacterName}' deleted by account '{Username}'",
             character.Name, playerState.Account.Username);
@@ -82,8 +82,4 @@ internal class CharacterRemoveClientPacketHandler(
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (CharacterRemoveClientPacket)packet);
-    }
 }

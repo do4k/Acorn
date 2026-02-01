@@ -77,10 +77,6 @@ public class ItemUseClientPacketHandler(
         await Task.CompletedTask;
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (ItemUseClientPacket)packet);
-    }
 
     private async Task HandleHealItem(PlayerState player, EifRecord item)
     {

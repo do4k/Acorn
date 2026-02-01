@@ -75,8 +75,4 @@ public class ItemDropClientPacketHandler(
         }
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (ItemDropClientPacket)packet);
-    }
 }

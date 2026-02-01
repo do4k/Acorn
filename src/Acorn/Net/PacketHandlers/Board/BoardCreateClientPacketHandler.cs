@@ -137,8 +137,4 @@ public class BoardCreateClientPacketHandler(
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (BoardCreateClientPacket)packet);
-    }
 }

@@ -25,8 +25,4 @@ public class JukeboxOpenClientPacketHandler(ILogger<JukeboxOpenClientPacketHandl
         await Task.CompletedTask;
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (JukeboxOpenClientPacket)packet);
-    }
 }

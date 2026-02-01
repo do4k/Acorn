@@ -11,8 +11,4 @@ internal class ConnectionPingClientPacketHandler : IPacketHandler<ConnectionPing
         return Task.CompletedTask;
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (ConnectionPingClientPacket)packet);
-    }
 }

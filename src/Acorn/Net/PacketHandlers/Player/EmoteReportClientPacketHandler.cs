@@ -10,8 +10,4 @@ public class EmoteReportClientPacketHandler : IPacketHandler<EmoteReportClientPa
         throw new NotImplementedException();
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (EmoteReportClientPacket)packet);
-    }
 }

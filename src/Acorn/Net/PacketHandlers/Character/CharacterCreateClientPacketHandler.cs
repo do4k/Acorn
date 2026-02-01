@@ -70,7 +70,7 @@ internal class CharacterCreateClientPacketHandler(
             Gender = packet.Gender,
             Hp = 10,
             MaxHp = 10,
-            Tp = 10, 
+            Tp = 10,
             MaxTp = 10,
             Items = new List<CharacterItem>(),
             Spells = new List<CharacterSpell>(),
@@ -101,8 +101,4 @@ internal class CharacterCreateClientPacketHandler(
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (CharacterCreateClientPacket)packet);
-    }
 }

@@ -90,8 +90,4 @@ public class ChestOpenClientPacketHandler(
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (ChestOpenClientPacket)packet);
-    }
 }

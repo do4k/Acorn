@@ -22,8 +22,4 @@ public class SitRequestClientPacketHandler(ILogger<SitRequestClientPacketHandler
         await Task.CompletedTask;
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (SitRequestClientPacket)packet);
-    }
 }

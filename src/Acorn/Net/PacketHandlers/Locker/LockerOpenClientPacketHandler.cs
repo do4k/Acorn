@@ -62,8 +62,4 @@ public class LockerOpenClientPacketHandler(
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (LockerOpenClientPacket)packet);
-    }
 }

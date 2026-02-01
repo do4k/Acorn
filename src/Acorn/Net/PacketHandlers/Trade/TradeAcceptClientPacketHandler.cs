@@ -102,8 +102,4 @@ public class TradeAcceptClientPacketHandler(
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (TradeAcceptClientPacket)packet);
-    }
 }

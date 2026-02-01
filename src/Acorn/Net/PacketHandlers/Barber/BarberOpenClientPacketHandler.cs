@@ -51,8 +51,4 @@ public class BarberOpenClientPacketHandler(
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (BarberOpenClientPacket)packet);
-    }
 }

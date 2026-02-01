@@ -35,8 +35,4 @@ public class PlayersRequestClientPacketHandler : IPacketHandler<PlayersRequestCl
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (PlayersRequestClientPacket)packet);
-    }
 }

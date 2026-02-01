@@ -84,8 +84,4 @@ public class WarpAcceptClientPacketHandler : IPacketHandler<WarpAcceptClientPack
         playerState.WarpSession = null;
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (WarpAcceptClientPacket)packet);
-    }
 }

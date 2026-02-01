@@ -44,10 +44,6 @@ public class SpellTargetOtherClientPacketHandler(
         await Task.CompletedTask;
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (SpellTargetOtherClientPacket)packet);
-    }
 
     private bool CheckTimestamp(PlayerState player, int spellId, int timestamp)
     {

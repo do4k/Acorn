@@ -72,8 +72,4 @@ public class PaperdollRemoveClientPacketHandler : IPacketHandler<PaperdollRemove
         await playerState.CurrentMap.BroadcastPacket(broadcastPacket, playerState);
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (PaperdollRemoveClientPacket)packet);
-    }
 }

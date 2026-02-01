@@ -129,8 +129,4 @@ internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequest
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (WelcomeRequestClientPacket)packet);
-    }
 }

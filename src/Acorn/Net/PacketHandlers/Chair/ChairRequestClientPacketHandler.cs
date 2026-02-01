@@ -38,8 +38,4 @@ public class ChairRequestClientPacketHandler(
         }
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (ChairRequestClientPacket)packet);
-    }
 }

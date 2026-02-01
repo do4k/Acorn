@@ -53,7 +53,7 @@ public class TradeRequestClientPacketHandler(
         var distance = Math.Max(
             Math.Abs(player.Character.X - targetPlayer.Character.X),
             Math.Abs(player.Character.Y - targetPlayer.Character.Y));
-        
+
         if (distance > MaxTradeDistance)
         {
             logger.LogDebug("Players too far apart for trade ({Distance})", distance);
@@ -74,8 +74,4 @@ public class TradeRequestClientPacketHandler(
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (TradeRequestClientPacket)packet);
-    }
 }

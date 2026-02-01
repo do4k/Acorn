@@ -91,8 +91,4 @@ public class WelcomeAgreeClientPacketHandler(IDataFileRepository dataRepository)
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (WelcomeAgreeClientPacket)packet);
-    }
 }

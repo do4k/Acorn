@@ -38,8 +38,4 @@ internal class InitInitClientPacketHandler(ILogger<InitInitClientPacketHandler> 
         playerState.ClientState = ClientState.Initialized;
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (InitInitClientPacket)packet);
-    }
 }

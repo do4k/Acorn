@@ -50,8 +50,4 @@ internal class WarpTakeClientPacketHandler : IPacketHandler<WarpTakeClientPacket
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (WarpTakeClientPacket)packet);
-    }
 }

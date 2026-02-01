@@ -121,8 +121,4 @@ public class CitizenAcceptClientPacketHandler(
         // This would require integration with the warp system
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (CitizenAcceptClientPacket)packet);
-    }
 }

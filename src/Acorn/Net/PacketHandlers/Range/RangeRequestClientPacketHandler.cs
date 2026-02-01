@@ -50,8 +50,4 @@ public class RangeRequestClientPacketHandler(
         }
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (RangeRequestClientPacket)packet);
-    }
 }

@@ -93,8 +93,4 @@ public class PaperdollAddClientPacketHandler : IPacketHandler<PaperdollAddClient
         await playerState.CurrentMap.BroadcastPacket(broadcastPacket, playerState);
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (PaperdollAddClientPacket)packet);
-    }
 }

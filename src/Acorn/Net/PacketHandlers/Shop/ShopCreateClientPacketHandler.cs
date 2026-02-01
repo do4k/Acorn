@@ -66,7 +66,7 @@ public class ShopCreateClientPacketHandler(
         // Check if player has all required ingredients
         foreach (var ingredient in craft.Ingredients)
         {
-            if (ingredient.ItemId > 0 && 
+            if (ingredient.ItemId > 0 &&
                 inventoryService.GetItemAmount(player.Character, ingredient.ItemId) < ingredient.Amount)
             {
                 logger.LogDebug("Player {Character} missing ingredient {ItemId} for craft",
@@ -155,8 +155,4 @@ public class ShopCreateClientPacketHandler(
         return totalWeight;
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (ShopCreateClientPacket)packet);
-    }
 }

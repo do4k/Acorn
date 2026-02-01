@@ -156,8 +156,4 @@ public class ChestTakeClientPacketHandler(
         return totalWeight;
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (ChestTakeClientPacket)packet);
-    }
 }

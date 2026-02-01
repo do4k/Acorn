@@ -220,8 +220,4 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
         _timeSinceLastAttack = DateTime.UtcNow;
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (AttackUseClientPacket)packet);
-    }
 }

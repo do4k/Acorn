@@ -44,8 +44,4 @@ public class TalkAnnounceClientPacketHandler : IPacketHandler<TalkAnnounceClient
         await Task.WhenAll(announcePackets);
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (TalkAnnounceClientPacket)packet);
-    }
 }

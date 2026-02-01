@@ -110,8 +110,4 @@ public class BankTakeClientPacketHandler(
         return totalWeight;
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (BankTakeClientPacket)packet);
-    }
 }

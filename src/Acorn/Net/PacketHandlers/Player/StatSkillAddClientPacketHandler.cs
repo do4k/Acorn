@@ -118,7 +118,7 @@ internal class StatSkillAddClientPacketHandler(
             .Where(s => s.Id != spellId)
             .Append(new Acorn.Domain.Models.Spell(spellId, spell.Level + 1))
             .ToList();
-        
+
         character.Spells = new Acorn.Domain.Models.Spells(new System.Collections.Concurrent.ConcurrentBag<Acorn.Domain.Models.Spell>(updatedSpells));
         character.SkillPoints--;
 
@@ -128,7 +128,7 @@ internal class StatSkillAddClientPacketHandler(
         // Send updated stats to client
         await SendStatUpdate(playerState, character);
 
-        logger.LogInformation("Character '{CharacterName}' increased spell {SpellId} to level {Level}", 
+        logger.LogInformation("Character '{CharacterName}' increased spell {SpellId} to level {Level}",
             character.Name, spellId, spell.Level);
     }
 
@@ -169,8 +169,4 @@ internal class StatSkillAddClientPacketHandler(
         });
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (StatSkillAddClientPacket)packet);
-    }
 }

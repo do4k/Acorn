@@ -130,10 +130,6 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
             warpTile.Warp.DestinationCoords.Y);
     }
 
-    public Task HandleAsync(PlayerState playerState, IPacket packet)
-    {
-        return HandleAsync(playerState, (WalkPlayerClientPacket)packet);
-    }
 
     private bool TryGetWarpTile(MapState map, Acorn.Domain.Models.Character character, out MapWarpRowTile? tile)
     {
