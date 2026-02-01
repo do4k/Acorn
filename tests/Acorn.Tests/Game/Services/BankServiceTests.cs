@@ -1,11 +1,8 @@
 using System.Collections.Concurrent;
-using Acorn.Database.Models;
+using Acorn.Domain.Models;
 using Acorn.Game.Services;
 using FluentAssertions;
 using Xunit;
-using Character = Acorn.Domain.Models.Character;
-using Inventory = Acorn.Domain.Models.Inventory;
-using Bank = Acorn.Domain.Models.Bank;
 
 namespace Acorn.Tests.Game.Services;
 
@@ -28,7 +25,7 @@ public class BankServiceTests
             Inventory = new Inventory(new ConcurrentBag<ItemWithAmount>()),
             Bank = new Bank(new ConcurrentBag<ItemWithAmount>()),
             Paperdoll = new Paperdoll(),
-            Spells = new Acorn.Domain.Models.Spells([])
+            Spells = new Spells([])
         };
     }
 

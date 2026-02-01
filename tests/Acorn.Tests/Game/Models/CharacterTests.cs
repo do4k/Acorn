@@ -1,12 +1,10 @@
 using System.Collections.Concurrent;
-using Acorn.Database.Models;
+using Acorn.Domain.Models;
+using Acorn.Extensions;
 using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Xunit;
-using Character = Acorn.Domain.Models.Character;
-using Inventory = Acorn.Domain.Models.Inventory;
-using Bank = Acorn.Domain.Models.Bank;
 
 namespace Acorn.Tests.Game.Models;
 
@@ -40,7 +38,7 @@ public class CharacterTests
                 Bracer1 = 14,
                 Bracer2 = 15
             },
-            Spells = new Acorn.Domain.Models.Spells([])
+            Spells = new Spells([])
         };
     }
 

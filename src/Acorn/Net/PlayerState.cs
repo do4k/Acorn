@@ -1,4 +1,4 @@
-﻿using Acorn.Database.Models;
+using Acorn.Database.Models;
 using Acorn.Infrastructure.Communicators;
 using Acorn.Net.Models;
 using Acorn.Net.PacketHandlers;
@@ -76,6 +76,18 @@ public class PlayerState : IDisposable
 
     // Character deletion state
     public int? CharacterIdToDelete { get; set; }
+
+    // NPC interaction state (for shops, banks, etc.)
+    public int? InteractingNpcIndex { get; set; }
+
+    // Chest interaction state
+    public Coords? InteractingChestCoords { get; set; }
+
+    // Trade state
+    public TradeSession? TradeSession { get; set; }
+    
+    // Pending trade request - the player who has requested to trade with us
+    public int? PendingTradeRequestFromPlayerId { get; set; }
 
     public void Dispose()
     {

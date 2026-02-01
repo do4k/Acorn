@@ -1,18 +1,25 @@
 using System.Reflection;
+using Acorn.Data;
 using Acorn.Database;
 using Acorn.Database.Models;
 using Acorn.Database.Repository;
 using Acorn.Game.Services;
 using Acorn.Net.PacketHandlers;
 using Acorn.Net.PacketHandlers.Account;
+using Acorn.Net.PacketHandlers.Bank;
+using Acorn.Net.PacketHandlers.Barber;
 using Acorn.Net.PacketHandlers.Character;
+using Acorn.Net.PacketHandlers.Chest;
 using Acorn.Net.PacketHandlers.Item;
+using Acorn.Net.PacketHandlers.Locker;
 using Acorn.Net.PacketHandlers.Npc;
 using Acorn.Net.PacketHandlers.Player;
 using Acorn.Net.PacketHandlers.Player.Talk;
 using Acorn.Net.PacketHandlers.Player.Warp;
 using Acorn.Net.PacketHandlers.Range;
+using Acorn.Net.PacketHandlers.Shop;
 using Acorn.Net.PacketHandlers.Spell;
+using Acorn.Net.PacketHandlers.Trade;
 using Acorn.Shared.Caching;
 using Acorn.World.Services.Map;
 using Acorn.World.Services.Npc;
@@ -65,7 +72,8 @@ internal static class IocRegistrations
                 var inner = new CharacterRepository(context, logger);
                 return new CachedCharacterRepository(inner, cache, cachedLogger);
             })
-            .AddSingleton<IDataFileRepository, DataFileRepository>();
+            .AddSingleton<IDataFileRepository, DataFileRepository>()
+            .AddSingleton<IShopDataRepository, ShopDataRepository>();
     }
 
     public static IServiceCollection AddWorldServices(this IServiceCollection services)
@@ -147,6 +155,40 @@ internal static class IocRegistrations
         AddPacketHandler<SpellTargetOtherClientPacket, SpellTargetOtherClientPacketHandler>();
         AddPacketHandler<SpellTargetGroupClientPacket, SpellTargetGroupClientPacketHandler>();
         AddPacketHandler<StatSkillAddClientPacket, StatSkillAddClientPacketHandler>();
+
+        // Shop handlers
+        AddPacketHandler<ShopOpenClientPacket, ShopOpenClientPacketHandler>();
+        AddPacketHandler<ShopBuyClientPacket, ShopBuyClientPacketHandler>();
+        AddPacketHandler<ShopSellClientPacket, ShopSellClientPacketHandler>();
+        AddPacketHandler<ShopCreateClientPacket, ShopCreateClientPacketHandler>();
+
+        // Bank handlers
+        AddPacketHandler<BankOpenClientPacket, BankOpenClientPacketHandler>();
+        AddPacketHandler<BankAddClientPacket, BankAddClientPacketHandler>();
+        AddPacketHandler<BankTakeClientPacket, BankTakeClientPacketHandler>();
+
+        // Locker handlers
+        AddPacketHandler<LockerOpenClientPacket, LockerOpenClientPacketHandler>();
+        AddPacketHandler<LockerAddClientPacket, LockerAddClientPacketHandler>();
+        AddPacketHandler<LockerTakeClientPacket, LockerTakeClientPacketHandler>();
+
+        // Chest handlers
+        AddPacketHandler<ChestOpenClientPacket, ChestOpenClientPacketHandler>();
+        AddPacketHandler<ChestAddClientPacket, ChestAddClientPacketHandler>();
+        AddPacketHandler<ChestTakeClientPacket, ChestTakeClientPacketHandler>();
+
+        // Barber handlers
+        AddPacketHandler<BarberOpenClientPacket, BarberOpenClientPacketHandler>();
+        AddPacketHandler<BarberBuyClientPacket, BarberBuyClientPacketHandler>();
+
+        // Trade handlers
+        AddPacketHandler<TradeRequestClientPacket, TradeRequestClientPacketHandler>();
+        AddPacketHandler<TradeAcceptClientPacket, TradeAcceptClientPacketHandler>();
+        AddPacketHandler<TradeAddClientPacket, TradeAddClientPacketHandler>();
+        AddPacketHandler<TradeRemoveClientPacket, TradeRemoveClientPacketHandler>();
+        AddPacketHandler<TradeAgreeClientPacket, TradeAgreeClientPacketHandler>();
+        AddPacketHandler<TradeCloseClientPacket, TradeCloseClientPacketHandler>();
+
         return services;
     }
 }

@@ -94,6 +94,7 @@ public class MapState
     public ConcurrentBag<NpcState> Npcs { get; set; } = new();
     public ConcurrentBag<PlayerState> Players { get; set; } = new();
     public ConcurrentDictionary<int, MapItem> Items { get; set; } = new();
+    public ConcurrentDictionary<Coords, MapChest> Chests { get; set; } = new();
 
     public bool HasPlayer(PlayerState player)
     {
