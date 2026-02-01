@@ -1,17 +1,23 @@
+using Acorn.Database.Repository;
 using Acorn.Extensions;
 using Acorn.World.Services.Map;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
+using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.Net.PacketHandlers.Board;
 
 public class BoardOpenClientPacketHandler(
     ILogger<BoardOpenClientPacketHandler> logger,
-    IMapTileService tileService)
+    IMapTileService tileService,
+    IBoardRepository boardRepository)
     : IPacketHandler<BoardOpenClientPacket>
 {
+    private const int MaxPosts = 20;
+    private const int AdminBoardId = 8; // Board 8 is typically admin-only
+
     public async Task HandleAsync(PlayerState player, BoardOpenClientPacket packet)
     {
         if (player.Character == null || player.CurrentMap == null)
@@ -28,6 +34,14 @@ public class BoardOpenClientPacketHandler(
         {
             logger.LogWarning("Player {Character} tried to open invalid board {BoardId}",
                 player.Character.Name, packet.BoardId);
+            return;
+        }
+
+        // Check admin board permissions
+        if (packet.BoardId == AdminBoardId && (int)player.Character.Admin < 1)
+        {
+            logger.LogWarning("Player {Character} tried to open admin board without permission",
+                player.Character.Name);
             return;
         }
 
@@ -58,12 +72,28 @@ public class BoardOpenClientPacketHandler(
             return;
         }
 
-        // TODO: Fetch board posts from database
-        // TODO: Send BoardOpenServerPacket with posts
-        logger.LogInformation("Player {Character} successfully opened board {BoardId}",
-            player.Character.Name, packet.BoardId);
+        // Store the board ID for subsequent operations
+        player.InteractingBoardId = packet.BoardId;
 
-        await Task.CompletedTask;
+        // Fetch board posts from database
+        var posts = await boardRepository.GetPostsAsync(packet.BoardId, MaxPosts);
+
+        // Build post listings
+        var postListings = posts.Select(p => new BoardPostListing
+        {
+            PostId = p.Id,
+            Author = p.CharacterName,
+            Subject = p.Subject
+        }).ToList();
+
+        await player.Send(new BoardOpenServerPacket
+        {
+            BoardId = packet.BoardId,
+            Posts = postListings
+        });
+
+        logger.LogInformation("Player {Character} successfully opened board {BoardId} with {PostCount} posts",
+            player.Character.Name, packet.BoardId, postListings.Count);
     }
 
     public Task HandleAsync(PlayerState playerState, IPacket packet)

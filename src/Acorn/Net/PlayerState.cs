@@ -89,6 +89,12 @@ public class PlayerState : IDisposable
     // Pending trade request - the player who has requested to trade with us
     public int? PendingTradeRequestFromPlayerId { get; set; }
 
+    // Board interaction state
+    public int? InteractingBoardId { get; set; }
+
+    // Inn/Sleep state
+    public int? SleepCost { get; set; }
+
     public void Dispose()
     {
         if (_disconnectReason != null)

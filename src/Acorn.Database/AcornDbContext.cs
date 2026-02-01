@@ -18,6 +18,7 @@ public class AcornDbContext : DbContext
     public DbSet<CharacterItem> CharacterItems { get; set; }
     public DbSet<CharacterPaperdoll> CharacterPaperdolls { get; set; }
     public DbSet<CharacterSpell> CharacterSpells { get; set; }
+    public DbSet<BoardPost> BoardPosts { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -139,6 +140,21 @@ public class AcornDbContext : DbContext
             entity.Property(e => e.Name).HasMaxLength(100);
             entity.Property(e => e.Description).HasMaxLength(500);
             entity.Property(e => e.Ranks).HasMaxLength(500);
+        });
+
+        // Configure BoardPost entity
+        modelBuilder.Entity<BoardPost>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.BoardId).IsRequired();
+            entity.Property(e => e.CharacterName).IsRequired().HasMaxLength(16);
+            entity.Property(e => e.Subject).IsRequired().HasMaxLength(64);
+            entity.Property(e => e.Body).IsRequired().HasMaxLength(2048);
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Create index for faster board listing queries
+            entity.HasIndex(e => new { e.BoardId, e.Id });
+            entity.HasIndex(e => e.CharacterName);
         });
 
         // Seed default account

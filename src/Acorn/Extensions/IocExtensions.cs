@@ -8,8 +8,10 @@ using Acorn.Net.PacketHandlers;
 using Acorn.Net.PacketHandlers.Account;
 using Acorn.Net.PacketHandlers.Bank;
 using Acorn.Net.PacketHandlers.Barber;
+using Acorn.Net.PacketHandlers.Board;
 using Acorn.Net.PacketHandlers.Character;
 using Acorn.Net.PacketHandlers.Chest;
+using Acorn.Net.PacketHandlers.Citizen;
 using Acorn.Net.PacketHandlers.Item;
 using Acorn.Net.PacketHandlers.Locker;
 using Acorn.Net.PacketHandlers.Npc;
@@ -73,7 +75,9 @@ internal static class IocRegistrations
                 return new CachedCharacterRepository(inner, cache, cachedLogger);
             })
             .AddSingleton<IDataFileRepository, DataFileRepository>()
-            .AddSingleton<IShopDataRepository, ShopDataRepository>();
+            .AddSingleton<IShopDataRepository, ShopDataRepository>()
+            .AddSingleton<IInnDataRepository, InnDataRepository>()
+            .AddScoped<IBoardRepository, BoardRepository>();
     }
 
     public static IServiceCollection AddWorldServices(this IServiceCollection services)
@@ -188,6 +192,18 @@ internal static class IocRegistrations
         AddPacketHandler<TradeRemoveClientPacket, TradeRemoveClientPacketHandler>();
         AddPacketHandler<TradeAgreeClientPacket, TradeAgreeClientPacketHandler>();
         AddPacketHandler<TradeCloseClientPacket, TradeCloseClientPacketHandler>();
+
+        // Board handlers
+        AddPacketHandler<BoardOpenClientPacket, BoardOpenClientPacketHandler>();
+        AddPacketHandler<BoardCreateClientPacket, BoardCreateClientPacketHandler>();
+        AddPacketHandler<BoardTakeClientPacket, BoardTakeClientPacketHandler>();
+        AddPacketHandler<BoardRemoveClientPacket, BoardRemoveClientPacketHandler>();
+
+        // Citizen/Inn handlers
+        AddPacketHandler<CitizenOpenClientPacket, CitizenOpenClientPacketHandler>();
+        AddPacketHandler<CitizenRequestClientPacket, CitizenRequestClientPacketHandler>();
+        AddPacketHandler<CitizenReplyClientPacket, CitizenReplyClientPacketHandler>();
+        AddPacketHandler<CitizenAcceptClientPacket, CitizenAcceptClientPacketHandler>();
 
         return services;
     }
