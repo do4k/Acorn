@@ -150,19 +150,6 @@ public class MapState
             .Select(bot => bot.AsCharacterMapInfo(warpEffect))
             .ToList();
 
-        // Log for debugging
-        if (botCharacters.Count > 0)
-        {
-            var botNames = string.Join(", ", ArenaBots.Select(b => $"{b.Name} ID:{b.Id} ({b.X},{b.Y})"));
-            Console.WriteLine($"[NEARBY DEBUG] Map {Id}: Including {botCharacters.Count} bots: {botNames}");
-            
-            // Log each bot's CharacterMapInfo details
-            foreach (var botChar in botCharacters)
-            {
-                Console.WriteLine($"[BOT CHAR] PlayerId={botChar.PlayerId}, Name={botChar.Name}, Coords=({botChar.Coords.X},{botChar.Coords.Y}), Level={botChar.Level}, Class={botChar.ClassId}");
-            }
-        }
-
         characters.AddRange(botCharacters);
 
         return new NearbyInfo
@@ -203,14 +190,6 @@ public class MapState
         }
 
         var nearbyInfo = AsNearbyInfo(null, warpEffect);
-        
-        Console.WriteLine($"[NOTIFY ENTER] Player {player.Character.Name} entering map {Id}");
-        Console.WriteLine($"[NOTIFY ENTER] Sending {nearbyInfo.Characters.Count} characters, {nearbyInfo.Npcs.Count} NPCs");
-        if (nearbyInfo.Characters.Count > 0)
-        {
-            var charNames = string.Join(", ", nearbyInfo.Characters.Select(c => c.Name));
-            Console.WriteLine($"[NOTIFY ENTER] Characters: {charNames}");
-        }
 
         await BroadcastPacket(new PlayersAgreeServerPacket
         {

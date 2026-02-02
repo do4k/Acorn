@@ -243,12 +243,44 @@ public class ArenaBotService : IArenaBotService
 
     private int CountRealPlayersInQueue(MapState map, Acorn.Options.Arena arenaConfig)
     {
-        return arenaConfig.Spawns.Count(spawn =>
+        _logger.LogDebug("[QUEUE DEBUG] Total players on map {MapId}: {Count}", map.Id, map.Players.Count);
+        _logger.LogDebug("[QUEUE DEBUG] Total ArenaPlayers: {Count}", map.ArenaPlayers.Count);
+        
+        // Log each player's position
+        foreach (var p in map.Players)
+        {
+            if (p.Character != null)
+            {
+                var isInArena = map.ArenaPlayers.Any(ap => ap.PlayerId == p.SessionId);
+                _logger.LogDebug("[QUEUE DEBUG] Player {Name} (ID: {Id}) at ({X},{Y}), InArena: {InArena}", 
+                    p.Character.Name, 
+                    p.SessionId, 
+                    p.Character.X, 
+                    p.Character.Y,
+                    isInArena);
+            }
+            else
+            {
+                _logger.LogDebug("[QUEUE DEBUG] Player ID {Id} has NULL character", p.SessionId);
+            }
+        }
+        
+        // Log spawn points being checked
+        _logger.LogDebug("[QUEUE DEBUG] Checking {Count} spawn points:", arenaConfig.Spawns.Count);
+        foreach (var spawn in arenaConfig.Spawns)
+        {
+            _logger.LogDebug("[QUEUE DEBUG] Spawn position: ({X},{Y})", spawn.From.X, spawn.From.Y);
+        }
+        
+        var count = arenaConfig.Spawns.Count(spawn =>
             map.Players.Any(p =>
                 p.Character != null &&
                 p.Character.X == spawn.From.X &&
                 p.Character.Y == spawn.From.Y &&
                 !map.ArenaPlayers.Any(ap => ap.PlayerId == p.SessionId)));
+        
+        _logger.LogDebug("[QUEUE DEBUG] Real players in queue: {Count}", count);
+        return count;
     }
 
     private List<(int spawnIndex, Coords coords)> GetAvailableQueueSpawns(MapState map, Acorn.Options.Arena arenaConfig)

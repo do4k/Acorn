@@ -49,6 +49,27 @@ internal class WelcomeMsgClientPacketHandler : IPacketHandler<WelcomeMsgClientPa
                 Nearby = map.AsNearbyInfo()
             }
         });
+
+        // Send bots as a separate packet after a small delay to ensure client is ready
+        // This fixes the issue where bots are invisible on initial login
+        if (map.ArenaBots.Count > 0)
+        {
+            await Task.Delay(150); // Give client time to process welcome packet
+            
+            var botCharacters = map.ArenaBots
+                .Select(bot => bot.AsCharacterMapInfo())
+                .ToList();
+            
+            await playerState.Send(new PlayersAgreeServerPacket
+            {
+                Nearby = new NearbyInfo
+                {
+                    Characters = botCharacters,
+                    Npcs = new List<NpcMapInfo>(),
+                    Items = new List<ItemMapInfo>()
+                }
+            });
+        }
     }
 
 }
