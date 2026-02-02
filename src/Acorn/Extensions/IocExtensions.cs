@@ -9,6 +9,7 @@ using Acorn.Net.PacketHandlers.Account;
 using Acorn.Net.PacketHandlers.Bank;
 using Acorn.Net.PacketHandlers.Barber;
 using Acorn.Net.PacketHandlers.Board;
+using Acorn.Net.PacketHandlers.Chair;
 using Acorn.Net.PacketHandlers.Character;
 using Acorn.Net.PacketHandlers.Chest;
 using Acorn.Net.PacketHandlers.Citizen;
@@ -20,9 +21,12 @@ using Acorn.Net.PacketHandlers.Player.Talk;
 using Acorn.Net.PacketHandlers.Player.Warp;
 using Acorn.Net.PacketHandlers.Range;
 using Acorn.Net.PacketHandlers.Shop;
+using Acorn.Net.PacketHandlers.Sit;
 using Acorn.Net.PacketHandlers.Spell;
 using Acorn.Net.PacketHandlers.Trade;
 using Acorn.Shared.Caching;
+using Acorn.World.Services.Arena;
+using Acorn.World.Services.Bot;
 using Acorn.World.Services.Map;
 using Acorn.World.Services.Npc;
 using Acorn.World.Services.Player;
@@ -91,6 +95,9 @@ internal static class IocRegistrations
             .AddSingleton<IPlayerController, PlayerController>()
             .AddSingleton<INpcController, NpcController>()
             .AddSingleton<IMapController, MapController>()
+            .AddSingleton<IArenaService, ArenaService>()
+            .AddSingleton<IArenaBotController, ArenaBotController>()
+            .AddSingleton<IArenaBotService, ArenaBotService>()
             // Lazy<T> registration to break circular dependencies
             .AddTransient(typeof(Lazy<>), typeof(LazyServiceProvider<>));
     }
@@ -204,6 +211,10 @@ internal static class IocRegistrations
         AddPacketHandler<CitizenRequestClientPacket, CitizenRequestClientPacketHandler>();
         AddPacketHandler<CitizenReplyClientPacket, CitizenReplyClientPacketHandler>();
         AddPacketHandler<CitizenAcceptClientPacket, CitizenAcceptClientPacketHandler>();
+
+        // Sit/Chair handlers
+        AddPacketHandler<SitRequestClientPacket, SitRequestClientPacketHandler>();
+        AddPacketHandler<ChairRequestClientPacket, ChairRequestClientPacketHandler>();
 
         return services;
     }

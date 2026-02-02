@@ -1,6 +1,8 @@
 using Acorn.Database.Repository;
 using Acorn.Game.Services;
 using Acorn.Options;
+using Acorn.World.Services.Arena;
+using Acorn.World.Services.Bot;
 using Acorn.World.Services.Map;
 using Acorn.World.Services.Npc;
 using Microsoft.Extensions.Logging;
@@ -15,11 +17,13 @@ public class MapStateFactory(
     INpcController npcController,
     IPaperdollService paperdollService,
     IOptions<ServerOptions> serverOptions,
-    ILogger<MapState> logger)
+    ILogger<MapState> logger,
+    IArenaService? arenaService = null,
+    IArenaBotService? botService = null)
 {
     public MapState Create(MapWithId data)
     {
         return new MapState(data, dataRepository, broadcastService, mapController, npcController, paperdollService,
-            serverOptions.Value.PlayerRecoverRate, logger);
+            serverOptions.Value.PlayerRecoverRate, logger, arenaService, botService);
     }
 }

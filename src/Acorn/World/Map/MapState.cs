@@ -3,10 +3,14 @@ using Acorn.Database.Repository;
 using Acorn.Extensions;
 using Acorn.Game.Services;
 using Acorn.Net;
+using Acorn.Options;
+using Acorn.World.Bot;
 using Acorn.World.Npc;
+using Acorn.World.Services.Arena;
 using Acorn.World.Services.Map;
 using Acorn.World.Services.Npc;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
@@ -26,15 +30,27 @@ public class MapItem
     public int ProtectedTicks { get; set; } // Ticks until anyone can pick up
 }
 
+/// <summary>
+///     Represents a player currently in an arena match
+/// </summary>
+public class ArenaPlayer
+{
+    public required int PlayerId { get; set; }
+    public int Kills { get; set; }
+}
+
 public class MapState
 {
     private readonly IMapBroadcastService _broadcastService;
     private readonly IMapController _mapController;
     private readonly IPaperdollService _paperdollService;
     private readonly int _playerRecoverRate;
+    private readonly IArenaService? _arenaService;
+    private readonly Services.Bot.IArenaBotService? _botService;
 
     // Tick counters for periodic events
     private int _playerRecoverTicks;
+    private int _arenaTicks;
 
     public MapState(
         MapWithId data,
@@ -44,7 +60,9 @@ public class MapState
         INpcController npcController,
         IPaperdollService paperdollService,
         int playerRecoverRate,
-        ILogger<MapState> logger)
+        ILogger<MapState> logger,
+        IArenaService? arenaService = null,
+        Services.Bot.IArenaBotService? botService = null)
     {
         Id = data.Id;
         Data = data.Map;
@@ -52,6 +70,8 @@ public class MapState
         _mapController = mapController;
         _paperdollService = paperdollService;
         _playerRecoverRate = playerRecoverRate;
+        _arenaService = arenaService;
+        _botService = botService;
 
         var mapNpcs = data.Map.Npcs.SelectMany(mapNpc => Enumerable.Range(0, mapNpc.Amount).Select(_ => mapNpc));
         foreach (var npc in mapNpcs)
@@ -93,8 +113,13 @@ public class MapState
 
     public ConcurrentBag<NpcState> Npcs { get; set; } = new();
     public ConcurrentBag<PlayerState> Players { get; set; } = new();
+    public ConcurrentBag<ArenaBotState> ArenaBots { get; set; } = new();
     public ConcurrentDictionary<int, MapItem> Items { get; set; } = new();
     public ConcurrentDictionary<Coords, MapChest> Chests { get; set; } = new();
+
+    // Arena state
+    public List<ArenaPlayer> ArenaPlayers { get; set; } = new();
+    public int ArenaTicks => _arenaTicks;
 
     public bool HasPlayer(PlayerState player)
     {
@@ -113,13 +138,36 @@ public class MapState
 
     public NearbyInfo AsNearbyInfo(PlayerState? except = null, WarpEffect warpEffect = WarpEffect.None)
     {
+        // Include real players
+        var characters = Players
+            .Where(x => x.Character is not null)
+            .Where(x => except == null || x != except)
+            .Select(x => x.Character?.AsCharacterMapInfo(x.SessionId, warpEffect, _paperdollService))
+            .ToList();
+
+        // Include bots (they appear as characters too)
+        var botCharacters = ArenaBots
+            .Select(bot => bot.AsCharacterMapInfo(warpEffect))
+            .ToList();
+
+        // Log for debugging
+        if (botCharacters.Count > 0)
+        {
+            var botNames = string.Join(", ", ArenaBots.Select(b => $"{b.Name} ID:{b.Id} ({b.X},{b.Y})"));
+            Console.WriteLine($"[NEARBY DEBUG] Map {Id}: Including {botCharacters.Count} bots: {botNames}");
+            
+            // Log each bot's CharacterMapInfo details
+            foreach (var botChar in botCharacters)
+            {
+                Console.WriteLine($"[BOT CHAR] PlayerId={botChar.PlayerId}, Name={botChar.Name}, Coords=({botChar.Coords.X},{botChar.Coords.Y}), Level={botChar.Level}, Class={botChar.ClassId}");
+            }
+        }
+
+        characters.AddRange(botCharacters);
+
         return new NearbyInfo
         {
-            Characters = Players
-                .Where(x => x.Character is not null)
-                .Where(x => except == null || x != except)
-                .Select(x => x.Character?.AsCharacterMapInfo(x.SessionId, warpEffect, _paperdollService))
-                .ToList(),
+            Characters = characters,
             Items = Items.Select(kvp => new ItemMapInfo
             {
                 Uid = kvp.Key,
@@ -154,9 +202,19 @@ public class MapState
             Players.Add(player);
         }
 
+        var nearbyInfo = AsNearbyInfo(null, warpEffect);
+        
+        Console.WriteLine($"[NOTIFY ENTER] Player {player.Character.Name} entering map {Id}");
+        Console.WriteLine($"[NOTIFY ENTER] Sending {nearbyInfo.Characters.Count} characters, {nearbyInfo.Npcs.Count} NPCs");
+        if (nearbyInfo.Characters.Count > 0)
+        {
+            var charNames = string.Join(", ", nearbyInfo.Characters.Select(c => c.Name));
+            Console.WriteLine($"[NOTIFY ENTER] Characters: {charNames}");
+        }
+
         await BroadcastPacket(new PlayersAgreeServerPacket
         {
-            Nearby = AsNearbyInfo(null, warpEffect)
+            Nearby = nearbyInfo
         }, player);
 
         player.CurrentMap = this;
@@ -164,6 +222,12 @@ public class MapState
 
     public async Task NotifyLeave(PlayerState player, WarpEffect warpEffect = WarpEffect.None)
     {
+        // Handle arena abandonment if player is in arena
+        if (_arenaService is not null)
+        {
+            await _arenaService.HandleArenaAbandonmentAsync(player, this);
+        }
+
         Players = new ConcurrentBag<PlayerState>(Players.Where(p => p != player));
 
         await _broadcastService.NotifyPlayerLeave(Players, player, warpEffect);
@@ -196,9 +260,50 @@ public class MapState
         return _mapController.StandFromChairAsync(player, this);
     }
 
+    public Task<bool> Sit(PlayerState player)
+    {
+        return _mapController.SitAsync(player, this);
+    }
+
+    public Task<bool> Stand(PlayerState player)
+    {
+        return _mapController.StandAsync(player, this);
+    }
+
+    public void IncrementArenaTicks()
+    {
+        _arenaTicks++;
+    }
+
+    public void ResetArenaTicks()
+    {
+        _arenaTicks = 0;
+    }
+
     public async Task Tick()
     {
-        if (Players.Any() is false)
+        // Always process arena (which spawns bots if needed)
+        if (_arenaService is not null)
+        {
+            await _arenaService.ProcessTimedArenaAsync(this);
+        }
+
+        // Check if there's any activity after spawning
+        var hasActivity = Players.Any() || ArenaBots.Any();
+        
+        if (!hasActivity)
+        {
+            return;
+        }
+
+        // Process bot actions (both in arena and in queue)
+        if (_botService is not null && ArenaBots.Any())
+        {
+            await _botService.ProcessBotActionsAsync(this);
+        }
+
+        // Only process player-related stuff if players exist
+        if (!Players.Any())
         {
             return;
         }

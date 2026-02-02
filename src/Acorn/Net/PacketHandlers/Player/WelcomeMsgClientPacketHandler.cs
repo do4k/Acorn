@@ -1,4 +1,4 @@
-﻿using Acorn.Extensions;
+using Acorn.Extensions;
 using Acorn.Net;
 using Acorn.Net.Models;
 using Acorn.Net.PacketHandlers;

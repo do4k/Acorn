@@ -1,4 +1,4 @@
-﻿using Acorn.Extensions;
+using Acorn.Extensions;
 using Acorn.World;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
@@ -19,6 +19,28 @@ public class PlayersRequestClientPacketHandler : IPacketHandler<PlayersRequestCl
     public async Task HandleAsync(PlayerState playerState,
         PlayersRequestClientPacket packet)
     {
+        // Get all real players
+        var realPlayers = _world.GetAllPlayers()
+            .Where(x => x.Character is not null)
+            .Select(x => x.Character!.AsOnlinePlayer())
+            .ToList();
+        
+        // Add bots from all maps
+        var botPlayers = _world.GetAllMaps()
+            .SelectMany(map => map.ArenaBots)
+            .Select(bot => new OnlinePlayer
+            {
+                Name = bot.Name,
+                Title = "",
+                Level = 1,
+                Icon = CharacterIcon.Player,
+                ClassId = 0,
+                GuildTag = "   "
+            })
+            .ToList();
+        
+        realPlayers.AddRange(botPlayers);
+        
         await playerState.Send(new InitInitServerPacket
         {
             ReplyCode = InitReply.PlayersList,
@@ -26,10 +48,7 @@ public class PlayersRequestClientPacketHandler : IPacketHandler<PlayersRequestCl
             {
                 PlayersList = new PlayersList
                 {
-                    Players = _world.GetAllPlayers()
-                        .Where(x => x.Character is not null)
-                        .Select(x => x.Character!.AsOnlinePlayer())
-                        .ToList()
+                    Players = realPlayers
                 }
             }
         });
