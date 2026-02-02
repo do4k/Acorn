@@ -3,6 +3,7 @@ using Acorn.Game.Mappers;
 using Acorn.Game.Services;
 using Acorn.Net.Services;
 using Microsoft.Extensions.Logging;
+using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
@@ -16,12 +17,14 @@ public class SpawnItemCommandHandler : ITalkHandler
     private readonly IInventoryService _inventoryService;
     private readonly ILogger<SpawnItemCommandHandler> _logger;
     private readonly INotificationService _notifications;
+    private readonly IWeightCalculator _weightCalculator;
 
     public SpawnItemCommandHandler(IDataFileRepository dataFiles,
         ILogger<SpawnItemCommandHandler> logger, INotificationService notifications,
         IInventoryService inventoryService,
         IDbRepository<Database.Models.Character> characterRepository,
-        ICharacterMapper characterMapper)
+        ICharacterMapper characterMapper,
+        IWeightCalculator weightCalculator)
     {
         _dataFiles = dataFiles;
         _logger = logger;
@@ -29,6 +32,7 @@ public class SpawnItemCommandHandler : ITalkHandler
         _inventoryService = inventoryService;
         _characterRepository = characterRepository;
         _characterMapper = characterMapper;
+        _weightCalculator = weightCalculator;
     }
 
     public bool CanHandle(string command)
@@ -104,15 +108,24 @@ public class SpawnItemCommandHandler : ITalkHandler
         var inventoryItem = playerState.Character.Inventory.Items.FirstOrDefault(i => i.Id == itemId);
         var currentAmount = inventoryItem?.Amount ?? amount;
 
-        // Send inventory update to player
-        await playerState.Send(new ItemObtainServerPacket
+        // Calculate current weight
+        var currentWeight = _weightCalculator.GetCurrentWeight(playerState.Character, _dataFiles.Eif);
+        var maxWeight = playerState.Character.MaxWeight;
+
+        // Send ItemGetServerPacket to update client inventory
+        await playerState.Send(new ItemGetServerPacket
         {
-            Item = new ThreeItem
+            TakenItemIndex = 0, // 0 indicates admin-spawned item (not from ground)
+            TakenItem = new ThreeItem
             {
                 Id = itemId,
                 Amount = currentAmount
             },
-            CurrentWeight = 0 // Weight not dynamically tracked
+            Weight = new Weight
+            {
+                Current = currentWeight,
+                Max = maxWeight
+            }
         });
     }
 
