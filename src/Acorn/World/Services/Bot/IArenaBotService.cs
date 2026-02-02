@@ -28,7 +28,8 @@ public interface IArenaBotService
     ///     Called every server tick for maps with active arena bots.
     /// </summary>
     /// <param name="map">The map state containing the arena</param>
-    Task ProcessBotActionsAsync(MapState map);
+    /// <param name="onMatchEnd">Callback to handle match completion (eject winner)</param>
+    Task ProcessBotActionsAsync(MapState map, Func<Task>? onMatchEnd = null);
 
     /// <summary>
     ///     Handles bot death in arena combat.

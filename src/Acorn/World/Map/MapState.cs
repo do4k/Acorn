@@ -278,7 +278,19 @@ public class MapState
         // Process bot actions (both in arena and in queue)
         if (_botService is not null && ArenaBots.Any())
         {
-            await _botService.ProcessBotActionsAsync(this);
+            // Pass a callback to handle match end (eject winner players)
+            await _botService.ProcessBotActionsAsync(this, async () =>
+            {
+                // Eject all remaining participants using ArenaService
+                if (_arenaService != null)
+                {
+                    var remainingPlayers = Players.Where(p => ArenaPlayers.Any(ap => ap.PlayerId == p.SessionId)).ToList();
+                    foreach (var player in remainingPlayers)
+                    {
+                        await _arenaService.HandleArenaDeathAsync(player);
+                    }
+                }
+            });
         }
 
         // Only process player-related stuff if players exist
