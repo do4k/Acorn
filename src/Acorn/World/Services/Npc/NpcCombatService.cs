@@ -1,5 +1,7 @@
 using Acorn.Net;
+using Acorn.Options;
 using Acorn.World.Npc;
+using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using SdkNpcType = Moffat.EndlessOnline.SDK.Protocol.Pub.NpcType;
@@ -8,6 +10,13 @@ namespace Acorn.World.Services.Npc;
 
 public class NpcCombatService : INpcCombatService
 {
+    private readonly NpcOptions _npcOptions;
+
+    public NpcCombatService(IOptions<ServerOptions> serverOptions)
+    {
+        _npcOptions = serverOptions.Value.Npc;
+    }
+
     public void AddOpponent(NpcState npc, int playerId, int damage)
     {
         npc.AddOpponent(playerId, damage);
@@ -23,13 +32,13 @@ public class NpcCombatService : INpcCombatService
     {
         return spawnType switch
         {
-            0 => 4, // Fastest
-            1 => 8,
-            2 => 12,
-            3 => 16,
-            4 => 24,
-            5 => 32,
-            6 => 48, // Slowest
+            0 => _npcOptions.Speed0,
+            1 => _npcOptions.Speed1,
+            2 => _npcOptions.Speed2,
+            3 => _npcOptions.Speed3,
+            4 => _npcOptions.Speed4,
+            5 => _npcOptions.Speed5,
+            6 => _npcOptions.Speed6,
             7 => 0, // Stationary - never acts
             _ => 16
         };

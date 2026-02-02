@@ -3,6 +3,7 @@ using Acorn.Extensions;
 using Acorn.Options;
 using Acorn.World.Bot;
 using Acorn.World.Map;
+using Acorn.World.Services.Arena;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Protocol;
@@ -18,6 +19,7 @@ public class ArenaBotService : IArenaBotService
     private readonly ILogger<ArenaBotService> _logger;
     private readonly ArenaOptions _arenaOptions;
     private readonly IArenaBotController _botController;
+    private readonly IArenaService _arenaService;
     
     // EO protocol max player ID is 64008 (short integer limit)
     // Player sessions use 1-50000, bots use 50001-64008 to avoid collisions
@@ -34,10 +36,12 @@ public class ArenaBotService : IArenaBotService
     public ArenaBotService(
         IOptions<ArenaOptions> arenaOptions,
         IArenaBotController botController,
+        IArenaService arenaService,
         ILogger<ArenaBotService> logger)
     {
         _arenaOptions = arenaOptions.Value;
         _botController = botController;
+        _arenaService = arenaService;
         _logger = logger;
     }
 
@@ -155,7 +159,14 @@ public class ArenaBotService : IArenaBotService
                 if (distance <= 1)
                 {
                     // Attack if adjacent
-                    await _botController.AttackAsync(bot, targetId, isBot, map);
+                    var matchEnded = await _botController.AttackAsync(bot, targetId, isBot, map);
+                    
+                    // If match ended, eject all participants
+                    if (matchEnded)
+                    {
+                        await HandleMatchEndAsync(map, arenaConfig);
+                        return; // Stop processing, arena is done
+                    }
                 }
                 else
                 {
@@ -351,6 +362,34 @@ public class ArenaBotService : IArenaBotService
 
         _logger.LogInformation("[BOT] Bot {BotName} (ID: {BotId}) removed from map",
             bot.Name, bot.Id);
+    }
+
+    private async Task HandleMatchEndAsync(MapState map, Acorn.Options.Arena arenaConfig)
+    {
+        _logger.LogInformation("[ARENA] Handling match end on map {MapId}", map.Id);
+
+        // Eject all remaining participants (should be just the winner)
+        var remainingPlayers = map.Players.Where(p => map.ArenaPlayers.Any(ap => ap.PlayerId == p.SessionId)).ToList();
+        
+        foreach (var player in remainingPlayers)
+        {
+            _logger.LogInformation("[ARENA] Ejecting winner {PlayerName} from arena", player.Character?.Name ?? "Unknown");
+            await _arenaService.HandleArenaDeathAsync(player);
+        }
+
+        // Remove all remaining bots from arena
+        var remainingBots = map.ArenaBots.Where(b => b.IsInArena).ToList();
+        foreach (var bot in remainingBots)
+        {
+            bot.IsInArena = false;
+            await BroadcastBotRemovalAsync(map, bot);
+            _logger.LogInformation("[ARENA] Removed bot {BotName} (ID: {BotId}) from arena", bot.Name, bot.Id);
+        }
+
+        // Clear arena players list
+        map.ArenaPlayers.Clear();
+        
+        _logger.LogInformation("[ARENA] Match cleanup complete for map {MapId}", map.Id);
     }
 
     #endregion

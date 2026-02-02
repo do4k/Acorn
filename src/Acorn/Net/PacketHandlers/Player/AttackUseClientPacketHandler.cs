@@ -1,9 +1,10 @@
-﻿using Acorn.Database.Repository;
+using Acorn.Database.Repository;
 using Acorn.Extensions;
 using Acorn.Game.Services;
 using Acorn.Options;
 using Acorn.Shared.Caching;
 using Acorn.World.Map;
+using Acorn.World.Services.Arena;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Protocol;
@@ -24,12 +25,13 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
     private readonly UtcNowDelegate _now;
     private readonly ICharacterCacheService _characterCache;
     private readonly IPaperdollService _paperdollService;
+    private readonly IArenaService? _arenaService;
     private DateTime _timeSinceLastAttack;
 
     public AttackUseClientPacketHandler(UtcNowDelegate now, ILogger<AttackUseClientPacketHandler> logger,
         IFormulaService formulaService, IDataFileRepository dataFiles, ILootService lootService,
         IOptions<ServerOptions> serverOptions, ICharacterCacheService characterCache,
-        IPaperdollService paperdollService)
+        IPaperdollService paperdollService, IArenaService? arenaService = null)
     {
         _now = now;
         _logger = logger;
@@ -39,6 +41,7 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
         _dropProtectionTicks = serverOptions.Value.DropProtectionTicks;
         _characterCache = characterCache;
         _paperdollService = paperdollService;
+        _arenaService = arenaService;
     }
 
     public async Task HandleAsync(PlayerState playerState, AttackUseClientPacket packet)
@@ -56,6 +59,37 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
         if (playerState.Character is not null)
         {
             var nextCoords = playerState.Character.NextCoords();
+
+            // Check if this is arena combat (PvP) first
+            if (_arenaService is not null && _arenaService.IsPlayerInArena(playerState, playerState.CurrentMap))
+            {
+                var targetPlayer = playerState.CurrentMap.Players.FirstOrDefault(p =>
+                    p.Character != null &&
+                    p.SessionId != playerState.SessionId &&
+                    p.Character.X == nextCoords.X &&
+                    p.Character.Y == nextCoords.Y);
+
+                if (targetPlayer is not null)
+                {
+                    // Handle arena PvP combat
+                    var handled = await _arenaService.HandleArenaCombatAsync(playerState, targetPlayer, playerState.CurrentMap);
+
+                    if (handled)
+                    {
+                        // Broadcast attack animation
+                        await playerState.CurrentMap.BroadcastPacket(new AttackPlayerServerPacket
+                        {
+                            Direction = playerState.Character.Direction,
+                            PlayerId = playerState.SessionId
+                        }, playerState);
+
+                        _timeSinceLastAttack = DateTime.UtcNow;
+                        return;
+                    }
+                }
+            }
+
+            // Normal NPC combat (not arena)
             var target = playerState.CurrentMap.Npcs.FirstOrDefault(x =>
                 !x.IsDead &&
                 x.X == nextCoords.X && x.Y == nextCoords.Y &&
@@ -74,6 +108,16 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
             if (damage > 0)
             {
                 target.AddOpponent(playerState.SessionId, damage);
+                
+                // Shared aggro: If attacking a boss, transfer aggro to all children
+                if (target.IsBoss)
+                {
+                    var childNpcs = playerState.CurrentMap.Npcs.Where(n => n.IsChild && !n.IsDead).ToList();
+                    foreach (var child in childNpcs)
+                    {
+                        child.AddOpponent(playerState.SessionId, 0); // Add with 0 damage to establish aggro
+                    }
+                }
             }
 
             var npcIndex = playerState.CurrentMap.Npcs.ToList().IndexOf(target);
@@ -98,6 +142,22 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
 
                 _logger.LogInformation("NPC {NpcName} (ID: {NpcId}) killed by {PlayerName}",
                     target.Data.Name, target.Id, playerState.Character.Name);
+
+                // Boss death: Kill all child NPCs
+                if (target.IsBoss)
+                {
+                    var childNpcs = playerState.CurrentMap.Npcs.Where(n => n.IsChild && !n.IsDead).ToList();
+                    foreach (var child in childNpcs)
+                    {
+                        child.IsDead = true;
+                        child.DeathTime = DateTime.UtcNow;
+                        child.Hp = 0;
+                        child.Opponents.Clear();
+                        
+                        _logger.LogInformation("Child NPC {NpcName} (ID: {NpcId}) died with boss",
+                            child.Data.Name, child.Id);
+                    }
+                }
 
                 // Award experience from NPC data
                 var experienceGained = target.Data.Experience;

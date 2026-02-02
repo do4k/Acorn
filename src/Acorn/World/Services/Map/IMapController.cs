@@ -17,6 +17,16 @@ public interface IMapController
     Task<bool> StandFromChairAsync(PlayerState player, MapState map);
 
     /// <summary>
+    ///     Sit a player on the floor at their current position.
+    /// </summary>
+    Task<bool> SitAsync(PlayerState player, MapState map);
+
+    /// <summary>
+    ///     Stand a player up from the floor.
+    /// </summary>
+    Task<bool> StandAsync(PlayerState player, MapState map);
+
+    /// <summary>
     ///     Process all NPC respawns for the map.
     /// </summary>
     Task ProcessNpcRespawnsAsync(MapState map);

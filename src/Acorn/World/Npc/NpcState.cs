@@ -87,6 +87,16 @@ public class NpcState
     /// </summary>
     public int ActTicks { get; set; }
 
+    /// <summary>
+    ///     Whether this NPC is a boss. Boss NPCs have special behavior and can have child minions.
+    /// </summary>
+    public bool IsBoss { get; set; }
+
+    /// <summary>
+    ///     Whether this NPC is a child minion of a boss. Child NPCs only spawn when their boss is alive.
+    /// </summary>
+    public bool IsChild { get; set; }
+
     #region Simple Data Operations
 
     /// <summary>

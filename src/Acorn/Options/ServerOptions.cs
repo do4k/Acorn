@@ -1,4 +1,4 @@
-﻿namespace Acorn.Options;
+namespace Acorn.Options;
 
 public class ServerOptions
 {
@@ -32,6 +32,16 @@ public class ServerOptions
     ///     Whether to log packet contents at debug level. Can be very verbose.
     /// </summary>
     public bool LogPackets { get; set; } = false;
+
+    /// <summary>
+    ///     NPC behavior configuration
+    /// </summary>
+    public NpcOptions Npc { get; set; } = new();
+
+    /// <summary>
+    ///     Stat calculation formulas configuration
+    /// </summary>
+    public FormulasOptions Formulas { get; set; } = new();
 
     public static string SectionName => "Server";
 }

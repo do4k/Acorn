@@ -18,8 +18,16 @@ public class SitRequestClientPacketHandler(ILogger<SitRequestClientPacketHandler
         logger.LogInformation("Player {Character} sitting with action {SitAction}",
             player.Character.Name, packet.SitAction);
 
-        // TODO: Implement map.PlayerSit(player, sitAction, cursor)
-        await Task.CompletedTask;
+        switch (packet.SitAction)
+        {
+            case SitAction.Sit:
+                await player.CurrentMap.Sit(player);
+                break;
+
+            case SitAction.Stand:
+                await player.CurrentMap.Stand(player);
+                break;
+        }
     }
 
 }

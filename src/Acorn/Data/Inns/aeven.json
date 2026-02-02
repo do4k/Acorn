@@ -1,0 +1,28 @@
+{
+  "behavior_id": 1,
+  "name": "Aeven",
+  "spawn_map": 192,
+  "spawn_x": 7,
+  "spawn_y": 6,
+  "sleep_map": 192,
+  "sleep_x": 7,
+  "sleep_y": 6,
+  "alternate_spawn_enabled": false,
+  "alternate_spawn_map": 0,
+  "alternate_spawn_x": 0,
+  "alternate_spawn_y": 0,
+  "questions": [
+    {
+      "question": "What is the name of this town?",
+      "answer": "Aeven"
+    },
+    {
+      "question": "What color is the sky?",
+      "answer": "Blue"
+    },
+    {
+      "question": "What is 1 \u002B 1?",
+      "answer": "2"
+    }
+  ]
+}

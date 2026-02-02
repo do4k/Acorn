@@ -30,7 +30,8 @@ public interface IArenaBotController
     /// <summary>
     ///     Bot attacks a target (player or bot).
     /// </summary>
-    Task AttackAsync(ArenaBotState bot, int targetId, bool isBot, MapState map);
+    /// <returns>True if the match ended (only one fighter remains), false otherwise</returns>
+    Task<bool> AttackAsync(ArenaBotState bot, int targetId, bool isBot, MapState map);
 
     /// <summary>
     ///     Bot performs idle animation (face direction changes, emotes).

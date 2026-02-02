@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using Acorn.Database;
 using Acorn.Database.Repository;
@@ -94,6 +94,7 @@ var host = Host.CreateDefaultBuilder(args)
             .Configure<ServerOptions>(configuration.GetSection(ServerOptions.SectionName))
             .Configure<CacheOptions>(configuration.GetSection(CacheOptions.SectionName))
             .Configure<WiseManAgentOptions>(configuration.GetSection(WiseManAgentOptions.SectionName))
+            .Configure<ArenaOptions>(configuration.GetSection("Arena"))
             .AddSingleton<UtcNowDelegate>(() => DateTime.UtcNow);
 
         // Configure DbContext based on database engine

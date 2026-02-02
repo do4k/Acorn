@@ -1,4 +1,5 @@
-﻿using Acorn.Extensions;
+using Acorn.Database.Repository;
+using Acorn.Extensions;
 using Acorn.Game.Services;
 using Acorn.Net.Services;
 using Acorn.Shared.Caching;
@@ -19,10 +20,12 @@ public class SetCommandHandler : ITalkHandler
     private readonly IWorldQueries _world;
     private readonly ICharacterCacheService _characterCache;
     private readonly IPaperdollService _paperdollService;
+    private readonly IStatCalculator _statCalculator;
+    private readonly IDataFileRepository _dataFileRepository;
 
     public SetCommandHandler(IWorldQueries world, ILogger<SetCommandHandler> logger, INotificationService notifications,
         IPlayerController playerController, ICharacterCacheService characterCache,
-        IPaperdollService paperdollService)
+        IPaperdollService paperdollService, IStatCalculator statCalculator, IDataFileRepository dataFileRepository)
     {
         _world = world;
         _logger = logger;
@@ -30,6 +33,8 @@ public class SetCommandHandler : ITalkHandler
         _playerController = playerController;
         _characterCache = characterCache;
         _paperdollService = paperdollService;
+        _statCalculator = statCalculator;
+        _dataFileRepository = dataFileRepository;
     }
 
     public bool CanHandle(string command)
@@ -108,6 +113,16 @@ public class SetCommandHandler : ITalkHandler
         try
         {
             adjustment();
+            
+            // Recalculate stats if any stat was changed
+            var statAttributes = new[] { "str", "wis", "int", "agi", "con", "cha", "level" };
+            if (statAttributes.Contains(args[1].ToLower()))
+            {
+                _statCalculator.RecalculateStats(target.Character, _dataFileRepository.Ecf);
+                _logger.LogDebug("Recalculated stats for {CharacterName} after setting {Attribute} to {Value}",
+                    target.Character.Name, args[1], value);
+            }
+            
             await _notifications.SystemMessage(playerState, $"Player {args[0]} had {args[1]} updated to {value}.");
             await _playerController.RefreshAsync(playerState);
             

@@ -1,0 +1,16 @@
+{
+  "behavior_id": 1,
+  "name": "Sample Shop",
+  "min_level": 0,
+  "max_level": 0,
+  "class_requirement": 0,
+  "trades": [
+    {
+      "item_id": 1,
+      "buy_price": 0,
+      "sell_price": 1,
+      "max_amount": 99
+    }
+  ],
+  "crafts": []
+}

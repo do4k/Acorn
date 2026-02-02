@@ -1,11 +1,13 @@
 using Acorn.Extensions;
 using Acorn.Game.Services;
 using Acorn.Net;
+using Acorn.Options;
 using Acorn.Shared.Caching;
 using Acorn.World.Map;
 using Acorn.World.Services.Npc;
 using Acorn.World.Services.Player;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
@@ -15,7 +17,6 @@ namespace Acorn.World.Services.Map;
 public class MapController : IMapController
 {
     private const int NPC_ACT_RATE = 2;
-    private const int NPC_BORED_THRESHOLD = 60;
     private readonly IFormulaService _formulaService;
     private readonly ILogger<MapController> _logger;
     private readonly INpcCombatService _npcCombatService;
@@ -24,6 +25,7 @@ public class MapController : IMapController
     private readonly IMapTileService _tileService;
     private readonly ICharacterCacheService _characterCache;
     private readonly IPaperdollService _paperdollService;
+    private readonly NpcOptions _npcOptions;
 
     public MapController(
         IMapTileService tileService,
@@ -34,7 +36,8 @@ public class MapController : IMapController
         IFormulaService formulaService,
         ILogger<MapController> logger,
         ICharacterCacheService characterCache,
-        IPaperdollService paperdollService)
+        IPaperdollService paperdollService,
+        IOptions<ServerOptions> serverOptions)
     {
         _tileService = tileService;
         _npcCombatService = npcCombatService;
@@ -44,6 +47,7 @@ public class MapController : IMapController
         _logger = logger;
         _characterCache = characterCache;
         _paperdollService = paperdollService;
+        _npcOptions = serverOptions.Value.Npc;
     }
 
     public async Task<bool> SitInChairAsync(PlayerState player, Coords coords, MapState map)
@@ -151,6 +155,70 @@ public class MapController : IMapController
         return true;
     }
 
+    public async Task<bool> SitAsync(PlayerState player, MapState map)
+    {
+        if (player.Character == null)
+        {
+            return false;
+        }
+
+        // Check if player is standing
+        if (player.Character.SitState != SitState.Stand)
+        {
+            _logger.LogWarning("Player {Character} tried to sit but already sitting", player.Character.Name);
+            return false;
+        }
+
+        // Update player state to sitting on floor
+        player.Character.SitState = SitState.Floor;
+
+        // Cache character state after sit state change
+        await player.CacheCharacterStateAsync(_characterCache, _paperdollService);
+
+        // Broadcast sit action to all players on map
+        await map.BroadcastPacket(new SitReplyServerPacket
+        {
+            PlayerId = player.SessionId,
+            Coords = player.Character.AsCoords(),
+            Direction = player.Character.Direction
+        });
+
+        _logger.LogInformation("Player {Character} sat on floor at ({X}, {Y})",
+            player.Character.Name, player.Character.X, player.Character.Y);
+
+        return true;
+    }
+
+    public async Task<bool> StandAsync(PlayerState player, MapState map)
+    {
+        if (player.Character == null)
+        {
+            return false;
+        }
+
+        if (player.Character.SitState != SitState.Floor)
+        {
+            return false;
+        }
+
+        // Update player state to standing
+        player.Character.SitState = SitState.Stand;
+
+        // Cache character state after sit state change
+        await player.CacheCharacterStateAsync(_characterCache, _paperdollService);
+
+        // Broadcast stand action to all players on map
+        await map.BroadcastPacket(new SitCloseServerPacket
+        {
+            PlayerId = player.SessionId,
+            Coords = player.Character.AsCoords()
+        });
+
+        _logger.LogInformation("Player {Character} stood up from floor", player.Character.Name);
+
+        return true;
+    }
+
     public async Task ProcessNpcRespawnsAsync(MapState map)
     {
         var deadNpcs = map.Npcs
@@ -159,6 +227,16 @@ public class MapController : IMapController
 
         foreach (var npc in deadNpcs)
         {
+            // Child NPCs can only respawn if their boss is alive
+            if (npc.IsChild)
+            {
+                var bossAlive = map.Npcs.Any(n => n.IsBoss && !n.IsDead);
+                if (!bossAlive)
+                {
+                    continue; // Skip respawn for child NPCs if boss is dead
+                }
+            }
+
             if (npc.DeathTime.HasValue)
             {
                 var timeSinceDeath = DateTime.UtcNow - npc.DeathTime.Value;
@@ -217,7 +295,7 @@ public class MapController : IMapController
         {
             // Increment act ticks and process opponent boredom
             npc.ActTicks += NPC_ACT_RATE;
-            _npcCombatService.ProcessOpponentBoredom(npc, NPC_ACT_RATE, NPC_BORED_THRESHOLD);
+            _npcCombatService.ProcessOpponentBoredom(npc, NPC_ACT_RATE, _npcOptions.BoredThreshold);
 
             // Only act if enough time has passed based on spawn type speed
             var actRate = _npcCombatService.GetActRate(npc.SpawnType);

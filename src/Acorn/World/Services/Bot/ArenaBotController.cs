@@ -170,7 +170,7 @@ public class ArenaBotController : IArenaBotController
         }
     }
 
-    public async Task AttackAsync(ArenaBotState bot, int targetId, bool isBot, MapState map)
+    public async Task<bool> AttackAsync(ArenaBotState bot, int targetId, bool isBot, MapState map)
     {
         if (isBot)
         {
@@ -180,8 +180,15 @@ public class ArenaBotController : IArenaBotController
             {
                 _logger.LogWarning("[BOT] Bot {BotId} tried to attack bot {TargetId} but target not found",
                     bot.Id, targetId);
-                return;
+                return false;
             }
+
+            // Send attack animation BEFORE processing kill
+            await map.BroadcastPacket(new AttackPlayerServerPacket
+            {
+                PlayerId = bot.Id,
+                Direction = bot.Direction
+            });
 
             _logger.LogInformation("[BOT COMBAT] Bot {AttackerName} (ID: {AttackerId}) killed bot {TargetName} (ID: {TargetId})",
                 bot.Name, bot.Id, targetBot.Name, targetBot.Id);
@@ -244,17 +251,12 @@ public class ArenaBotController : IArenaBotController
                 _logger.LogInformation("[ARENA] Match ended: {WinnerName} won with {Kills} kills",
                     winnerName, winnerArena.Kills);
 
-                // Clear arena
-                map.ArenaPlayers.Clear();
-                
-                // Remove all bots from arena
-                foreach (var arenaBot in map.ArenaBots.Where(b => b.IsInArena).ToList())
-                {
-                    arenaBot.IsInArena = false;
-                    await map.BroadcastPacket(new PlayersRemoveServerPacket { PlayerId = arenaBot.Id });
-                    await map.BroadcastPacket(new AvatarRemoveServerPacket { PlayerId = arenaBot.Id, WarpEffect = WarpEffect.None });
-                }
+                // DON'T clear arena or eject players here - let ArenaBotService handle that
+                // Just return true to signal match ended
+                return true;
             }
+            
+            return false; // Match continues
         }
         else
         {
@@ -265,7 +267,7 @@ public class ArenaBotController : IArenaBotController
             {
                 _logger.LogWarning("[BOT] Bot {BotId} tried to attack player {TargetId} but player not found",
                     bot.Id, targetId);
-                return;
+                return false;
             }
 
             _logger.LogDebug("[BOT COMBAT] Bot {BotName} (ID: {BotId}) attacking player {PlayerName} (ID: {PlayerId})",
@@ -277,6 +279,8 @@ public class ArenaBotController : IArenaBotController
                 PlayerId = bot.Id,
                 Direction = bot.Direction
             });
+            
+            return false; // Bot vs player doesn't instantly end match
         }
     }
 

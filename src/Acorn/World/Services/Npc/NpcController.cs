@@ -1,7 +1,9 @@
 using Acorn.Extensions;
 using Acorn.Net;
+using Acorn.Options;
 using Acorn.World.Npc;
 using Acorn.World.Services.Map;
+using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Map;
 using PubNpcType = Moffat.EndlessOnline.SDK.Protocol.Pub.NpcType;
@@ -10,14 +12,13 @@ namespace Acorn.World.Services.Npc;
 
 public class NpcController : INpcController
 {
-    private const int CHASE_DISTANCE = 10;
-    private const int SPAWN_VARIANCE = 2;
-    private const int MAX_SPAWN_ATTEMPTS = 200;
     private readonly IMapTileService _tileService;
+    private readonly NpcOptions _npcOptions;
 
-    public NpcController(IMapTileService tileService)
+    public NpcController(IMapTileService tileService, IOptions<ServerOptions> serverOptions)
     {
         _tileService = tileService;
+        _npcOptions = serverOptions.Value.Npc;
     }
 
     public NpcMoveResult TryMove(NpcState npc, IEnumerable<PlayerState> players, IEnumerable<NpcState> npcs,
@@ -85,11 +86,14 @@ public class NpcController : INpcController
     {
         var playerList = players.ToList();
         var npcList = npcs.ToList();
+        var variance = _npcOptions.SpawnVariance;
+        var maxAttempts = _npcOptions.MaxSpawnAttempts;
+        var relaxOccupancyAt = maxAttempts / 2; // After half attempts, relax occupancy check
 
-        for (var attempt = 0; attempt < MAX_SPAWN_ATTEMPTS; attempt++)
+        for (var attempt = 0; attempt < maxAttempts; attempt++)
         {
-            var x = Math.Clamp(baseX + Random.Shared.Next(-SPAWN_VARIANCE, SPAWN_VARIANCE + 1), 0, mapData.Width);
-            var y = Math.Clamp(baseY + Random.Shared.Next(-SPAWN_VARIANCE, SPAWN_VARIANCE + 1), 0, mapData.Height);
+            var x = Math.Clamp(baseX + Random.Shared.Next(-variance, variance + 1), 0, mapData.Width);
+            var y = Math.Clamp(baseY + Random.Shared.Next(-variance, variance + 1), 0, mapData.Height);
 
             // Check if tile is walkable for NPCs
             if (!IsTileWalkableForNpc(x, y, mapData))
@@ -98,18 +102,27 @@ public class NpcController : INpcController
             }
 
             // Check if tile is occupied by another NPC
-            if (npcList.Any(n => n != npc && !n.IsDead && n.X == x && n.Y == y))
-            {
-                continue;
-            }
-
+            var npcOccupied = npcList.Any(n => n != npc && !n.IsDead && n.X == x && n.Y == y);
+            
             // Check if tile is occupied by a player
-            if (playerList.Any(p => p.Character?.X == x && p.Character?.Y == y))
-            {
-                continue;
-            }
+            var playerOccupied = playerList.Any(p => p.Character?.X == x && p.Character?.Y == y);
 
-            return (x, y);
+            // After half attempts, relax occupancy constraint (like reoserv)
+            if (attempt >= relaxOccupancyAt)
+            {
+                if (!npcOccupied && !playerOccupied)
+                {
+                    return (x, y);
+                }
+            }
+            else
+            {
+                // Normal strict checking
+                if (!npcOccupied && !playerOccupied)
+                {
+                    return (x, y);
+                }
+            }
         }
 
         // Fallback to base spawn position if no valid position found
@@ -165,6 +178,8 @@ public class NpcController : INpcController
 
     private Coords? GetChaseTarget(NpcState npc, List<PlayerState> players)
     {
+        var chaseDistance = _npcOptions.ChaseDistance;
+        
         // If NPC has opponents, find the priority target (most damage dealt, in range)
         if (npc.Opponents.Count > 0)
         {
@@ -178,7 +193,7 @@ public class NpcController : INpcController
                     }
 
                     var distance = Math.Abs(npc.X - player.Character.X) + Math.Abs(npc.Y - player.Character.Y);
-                    return distance <= CHASE_DISTANCE;
+                    return distance <= chaseDistance;
                 })
                 .MaxBy(o => o.DamageDealt);
 
@@ -196,7 +211,7 @@ public class NpcController : INpcController
                 .Where(p => p.Character != null)
                 .Select(p => new
                 { Player = p, Distance = Math.Abs(npc.X - p.Character!.X) + Math.Abs(npc.Y - p.Character.Y) })
-                .Where(x => x.Distance <= CHASE_DISTANCE)
+                .Where(x => x.Distance <= chaseDistance)
                 .MinBy(x => x.Distance);
 
             return closestPlayer?.Player.Character?.AsCoords();
