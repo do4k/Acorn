@@ -1,4 +1,5 @@
 using Acorn.Net;
+using Acorn.World.Bot;
 using Acorn.World.Map;
 
 namespace Acorn.World.Services.Arena;
@@ -17,6 +18,11 @@ public interface IArenaService
     ///     Handles arena combat when a player attacks another in an arena.
     /// </summary>
     Task<bool> HandleArenaCombatAsync(PlayerState attacker, PlayerState target, MapState map);
+
+    /// <summary>
+    ///     Handles arena combat when a player attacks a bot in an arena.
+    /// </summary>
+    Task<bool> HandlePlayerAttackBotAsync(PlayerState attacker, ArenaBotState targetBot, MapState map);
 
     /// <summary>
     ///     Handles a player dying in the arena and respawning.

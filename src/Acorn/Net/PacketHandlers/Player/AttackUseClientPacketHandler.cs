@@ -60,9 +60,10 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
         {
             var nextCoords = playerState.Character.NextCoords();
 
-            // Check if this is arena combat (PvP) first
+            // Check if this is arena combat (PvP or PvBot) first
             if (_arenaService is not null && _arenaService.IsPlayerInArena(playerState, playerState.CurrentMap))
             {
+                // Check for player target
                 var targetPlayer = playerState.CurrentMap.Players.FirstOrDefault(p =>
                     p.Character != null &&
                     p.SessionId != playerState.SessionId &&
@@ -73,6 +74,31 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
                 {
                     // Handle arena PvP combat
                     var handled = await _arenaService.HandleArenaCombatAsync(playerState, targetPlayer, playerState.CurrentMap);
+
+                    if (handled)
+                    {
+                        // Broadcast attack animation
+                        await playerState.CurrentMap.BroadcastPacket(new AttackPlayerServerPacket
+                        {
+                            Direction = playerState.Character.Direction,
+                            PlayerId = playerState.SessionId
+                        }, playerState);
+
+                        _timeSinceLastAttack = DateTime.UtcNow;
+                        return;
+                    }
+                }
+                
+                // Check for bot target
+                var targetBot = playerState.CurrentMap.ArenaBots.FirstOrDefault(b =>
+                    b.IsInArena &&
+                    b.X == nextCoords.X &&
+                    b.Y == nextCoords.Y);
+
+                if (targetBot is not null)
+                {
+                    // Handle player attacking bot in arena
+                    var handled = await _arenaService.HandlePlayerAttackBotAsync(playerState, targetBot, playerState.CurrentMap);
 
                     if (handled)
                     {
