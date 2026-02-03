@@ -25,6 +25,11 @@ public interface IArenaService
     Task<bool> HandlePlayerAttackBotAsync(PlayerState attacker, ArenaBotState targetBot, MapState map);
 
     /// <summary>
+    ///     Handles arena combat when a bot attacks a player in an arena.
+    /// </summary>
+    Task<bool> HandleBotAttackPlayerAsync(ArenaBotState attackerBot, PlayerState target, MapState map);
+
+    /// <summary>
     ///     Handles a player dying in the arena and respawning.
     /// </summary>
     Task HandleArenaDeathAsync(PlayerState player);

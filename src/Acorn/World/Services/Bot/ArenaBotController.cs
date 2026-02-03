@@ -1,6 +1,7 @@
 using Acorn.Options;
 using Acorn.World.Bot;
 using Acorn.World.Map;
+using Acorn.World.Services.Arena;
 using Acorn.World.Services.Map;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol;
@@ -16,11 +17,16 @@ public class ArenaBotController : IArenaBotController
 {
     private readonly ILogger<ArenaBotController> _logger;
     private readonly IMapTileService _tileService;
+    private readonly IArenaService _arenaService;
 
-    public ArenaBotController(ILogger<ArenaBotController> logger, IMapTileService tileService)
+    public ArenaBotController(
+        ILogger<ArenaBotController> logger, 
+        IMapTileService tileService,
+        IArenaService arenaService)
     {
         _logger = logger;
         _tileService = tileService;
+        _arenaService = arenaService;
     }
 
     public (bool isBot, int targetId, int targetX, int targetY)? FindNearestEnemy(ArenaBotState bot, MapState map)
@@ -260,8 +266,7 @@ public class ArenaBotController : IArenaBotController
         }
         else
         {
-            // Bot vs Player combat - handled by ArenaService.HandleArenaCombatAsync
-            // This is triggered when a bot "attacks" a player, but actual combat is in ArenaService
+            // Bot vs Player combat - handled by ArenaService
             var targetPlayer = map.Players.FirstOrDefault(p => p.SessionId == targetId);
             if (targetPlayer?.Character is null)
             {
@@ -270,17 +275,20 @@ public class ArenaBotController : IArenaBotController
                 return false;
             }
 
-            _logger.LogDebug("[BOT COMBAT] Bot {BotName} (ID: {BotId}) attacking player {PlayerName} (ID: {PlayerId})",
+            _logger.LogInformation("[BOT COMBAT] Bot {BotName} (ID: {BotId}) attacking player {PlayerName} (ID: {PlayerId})",
                 bot.Name, bot.Id, targetPlayer.Character.Name, targetPlayer.SessionId);
 
-            // Send attack animation
-            await map.BroadcastPacket(new AttackPlayerServerPacket
-            {
-                PlayerId = bot.Id,
-                Direction = bot.Direction
-            });
+            // Call ArenaService to handle combat (instant kill, notifications, match end logic)
+            var matchEnded = await _arenaService.HandleBotAttackPlayerAsync(bot, targetPlayer, map);
             
-            return false; // Bot vs player doesn't instantly end match
+            if (matchEnded)
+            {
+                _logger.LogInformation("[BOT COMBAT] Bot {BotName} killed player {PlayerName} and won the match",
+                    bot.Name, targetPlayer.Character.Name);
+                return true; // Match ended, bot won
+            }
+            
+            return false; // Match continues
         }
     }
 

@@ -370,6 +370,97 @@ public class ArenaService : IArenaService
         return true;
     }
 
+    public async Task<bool> HandleBotAttackPlayerAsync(ArenaBotState attackerBot, PlayerState target, MapState map)
+    {
+        if (target.Character is null)
+        {
+            return false;
+        }
+
+        // Verify bot is in arena and player is in arena
+        var botArena = map.ArenaPlayers.FirstOrDefault(ap => ap.PlayerId == attackerBot.Id);
+        var targetArena = map.ArenaPlayers.FirstOrDefault(ap => ap.PlayerId == target.SessionId);
+
+        if (botArena is null || targetArena is null)
+        {
+            return false;
+        }
+
+        // Check distance (must be adjacent - distance <= 1)
+        var distance = Math.Abs(attackerBot.X - target.Character.X) +
+                       Math.Abs(attackerBot.Y - target.Character.Y);
+
+        if (distance > 1)
+        {
+            return false;
+        }
+
+        // Instant kill - increment bot kills
+        botArena.Kills++;
+
+        // Remove target player from arena
+        map.ArenaPlayers.Remove(targetArena);
+
+        _logger.LogInformation("Arena kill: Bot {BotName} killed {PlayerName} (Kills: {Kills})",
+            attackerBot.Name, target.Character.Name, botArena.Kills);
+
+        // Send kill notification
+        await map.BroadcastPacket(new ArenaSpecServerPacket
+        {
+            PlayerId = attackerBot.Id,
+            Direction = attackerBot.Direction,
+            KillsCount = botArena.Kills,
+            KillerName = attackerBot.Name,
+            VictimName = target.Character.Name
+        });
+
+        // Send defeat message
+        await map.BroadcastPacket(new TalkServerServerPacket
+        {
+            Message = $"{attackerBot.Name} defeated {target.Character.Name}!"
+        });
+
+        // Handle player death - warp back to spawn
+        await HandleArenaDeathAsync(target);
+
+        // Check if only one entity remains (winner)
+        if (map.ArenaPlayers.Count == 1)
+        {
+            var winnerArena = map.ArenaPlayers.First();
+            var winnerPlayer = map.Players.FirstOrDefault(p => p.SessionId == winnerArena.PlayerId);
+            var winnerBot = map.ArenaBots.FirstOrDefault(b => b.Id == winnerArena.PlayerId && b.IsInArena);
+
+            string winnerName = winnerPlayer?.Character?.Name ?? winnerBot?.Name ?? "Unknown";
+
+            // Send victory notification
+            await map.BroadcastPacket(new ArenaAcceptServerPacket
+            {
+                WinnerName = winnerName,
+                KillsCount = winnerArena.Kills,
+                KillerName = attackerBot.Name,
+                VictimName = target.Character.Name
+            });
+
+            _logger.LogInformation("Arena ended: {WinnerName} won with {Kills} kills",
+                winnerName, winnerArena.Kills);
+
+            // Warp winner back to spawn (if player)
+            if (winnerPlayer != null)
+            {
+                await HandleArenaDeathAsync(winnerPlayer);
+            }
+
+            // Clear arena (bots will be removed)
+            map.ArenaPlayers.Clear();
+            if (_botService is not null)
+            {
+                await _botService.ClearBotsAsync(map);
+            }
+        }
+
+        return true;
+    }
+
     public async Task HandleArenaDeathAsync(PlayerState player)
     {
         if (player.Character is null || player.CurrentMap is null)
