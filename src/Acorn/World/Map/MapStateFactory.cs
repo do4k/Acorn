@@ -15,11 +15,16 @@ public class MapStateFactory(
     INpcController npcController,
     IPaperdollService paperdollService,
     IOptions<ServerOptions> serverOptions,
+    IOptions<ArenaOptions> arenaOptions,
     ILogger<MapState> logger)
 {
     public MapState Create(MapWithId data)
     {
         return new MapState(data, dataRepository, broadcastService, mapController, npcController, paperdollService,
-            serverOptions.Value.PlayerRecoverRate, logger);
+            serverOptions.Value.PlayerRecoverRate, 
+            arenaOptions.Value.Enabled,
+            arenaOptions.Value.SpawnInterval,
+            arenaOptions.Value.MinPlayersToBlock,
+            logger);
     }
 }

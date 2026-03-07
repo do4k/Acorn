@@ -24,6 +24,7 @@ public class MapController : IMapController
     private readonly IMapTileService _tileService;
     private readonly ICharacterCacheService _characterCache;
     private readonly IPaperdollService _paperdollService;
+    private readonly WorldState _worldState;
 
     public MapController(
         IMapTileService tileService,
@@ -34,7 +35,8 @@ public class MapController : IMapController
         IFormulaService formulaService,
         ILogger<MapController> logger,
         ICharacterCacheService characterCache,
-        IPaperdollService paperdollService)
+        IPaperdollService paperdollService,
+        WorldState worldState)
     {
         _tileService = tileService;
         _npcCombatService = npcCombatService;
@@ -44,6 +46,7 @@ public class MapController : IMapController
         _logger = logger;
         _characterCache = characterCache;
         _paperdollService = paperdollService;
+        _worldState = worldState;
     }
 
     public async Task<bool> SitInChairAsync(PlayerState player, Coords coords, MapState map)
@@ -332,5 +335,17 @@ public class MapController : IMapController
             Hp = hp,
             Tp = tp
         });
+    }
+
+    public async Task WarpPlayerAsync(PlayerState player, int mapId, int x, int y, WarpEffect warpEffect)
+    {
+        var targetMap = _worldState.MapForId(mapId);
+        if (targetMap == null)
+        {
+            _logger.LogWarning("Cannot warp player to map {MapId} - map not found", mapId);
+            return;
+        }
+
+        await _playerController.WarpAsync(player, targetMap, x, y, warpEffect);
     }
 }

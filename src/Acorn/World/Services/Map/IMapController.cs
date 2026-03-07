@@ -36,4 +36,9 @@ public interface IMapController
     ///     Decrease item protection timers.
     /// </summary>
     void ProcessItemProtection(MapState map);
+
+    /// <summary>
+    ///     Warp a player to a specific location.
+    /// </summary>
+    Task WarpPlayerAsync(PlayerState player, int mapId, int x, int y, WarpEffect warpEffect);
 }

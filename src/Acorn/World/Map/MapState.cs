@@ -22,8 +22,16 @@ public class MapItem
     public required int Id { get; set; }
     public required int Amount { get; set; }
     public required Coords Coords { get; set; }
-    public int OwnerId { get; set; } // Player ID who dropped it
-    public int ProtectedTicks { get; set; } // Ticks until anyone can pick up
+    public int OwnerId { get; set; }
+    public int ProtectedTicks { get; set; }
+}
+
+public class ArenaPlayer
+{
+    public required int PlayerId { get; set; }
+    public required int SessionId { get; set; }
+    public int Kills { get; set; }
+    public bool IsDead { get; set; }
 }
 
 public class MapState
@@ -32,9 +40,18 @@ public class MapState
     private readonly IMapController _mapController;
     private readonly IPaperdollService _paperdollService;
     private readonly int _playerRecoverRate;
+    private readonly bool _isArenaEnabled;
+    private readonly int _arenaSpawnInterval;
+    private readonly int _arenaMinPlayers;
 
     // Tick counters for periodic events
     private int _playerRecoverTicks;
+    private int _arenaTicks;
+
+    // Arena state
+    public ConcurrentQueue<int> ArenaQueue { get; } = new();
+    public List<ArenaPlayer> ArenaPlayers { get; } = new();
+    public bool IsArenaMap { get; private set; }
 
     public MapState(
         MapWithId data,
@@ -44,6 +61,9 @@ public class MapState
         INpcController npcController,
         IPaperdollService paperdollService,
         int playerRecoverRate,
+        bool isArenaEnabled,
+        int arenaSpawnInterval,
+        int arenaMinPlayers,
         ILogger<MapState> logger)
     {
         Id = data.Id;
@@ -52,6 +72,10 @@ public class MapState
         _mapController = mapController;
         _paperdollService = paperdollService;
         _playerRecoverRate = playerRecoverRate;
+        _isArenaEnabled = isArenaEnabled;
+        _arenaSpawnInterval = arenaSpawnInterval;
+        _arenaMinPlayers = arenaMinPlayers;
+        IsArenaMap = _isArenaEnabled && data.Id == 1;
 
         var mapNpcs = data.Map.Npcs.SelectMany(mapNpc => Enumerable.Range(0, mapNpc.Amount).Select(_ => mapNpc));
         foreach (var npc in mapNpcs)
@@ -220,5 +244,82 @@ public class MapState
             // Exclude players who were attacked this tick from recovery
             await _mapController.ProcessPlayerRecoveryAsync(this, attackedPlayerIds);
         }
+
+        // Process arena spawns
+        if (IsArenaMap && _isArenaEnabled)
+        {
+            await ProcessArenaTickAsync();
+        }
     }
-}
+
+    private async Task ProcessArenaTickAsync()
+    {
+        _arenaTicks++;
+        if (_arenaTicks >= _arenaSpawnInterval)
+        {
+            _arenaTicks = 0;
+
+            // Try to spawn players from queue
+            if (ArenaQueue.TryPeek(out var playerId))
+            {
+                var player = Players.FirstOrDefault(p => p.SessionId == playerId);
+                if (player != null)
+                {
+                    // Spawn player into arena
+                    ArenaQueue.TryDequeue(out _);
+                    var arenaPlayer = new ArenaPlayer
+                    {
+                        PlayerId = playerId,
+                        SessionId = player.SessionId,
+                        Kills = 0,
+                        IsDead = false
+                    };
+                    ArenaPlayers.Add(arenaPlayer);
+
+                    // Warp to arena spawn point (use map's relog coords or default)
+                    await _mapController.WarpPlayerAsync(player, Id, 1, 1, WarpEffect.Warp);
+                }
+                else
+                {
+                    // Player not found, remove from queue
+                    ArenaQueue.TryDequeue(out _);
+                }
+            }
+        }
+    }
+
+    public bool TryJoinArenaQueue(int sessionId)
+    {
+        if (!IsArenaMap || !_isArenaEnabled)
+        {
+            return false;
+        }
+
+        // Check if already in queue or in arena
+        if (ArenaQueue.Contains(sessionId) || ArenaPlayers.Any(p => p.SessionId == sessionId))
+        {
+            return false;
+        }
+
+        ArenaQueue.Enqueue(sessionId);
+        return true;
+    }
+
+    public void RemoveFromArena(int sessionId)
+    {
+        ArenaPlayers.RemoveAll(p => p.SessionId == sessionId);
+    }
+
+    public void LeaveArenaQueue(int sessionId)
+    {
+        // Simple approach: recreate queue without the player
+        var newQueue = new ConcurrentQueue<int>();
+        while (ArenaQueue.TryDequeue(out var id))
+        {
+            if (id != sessionId)
+            {
+                newQueue.Enqueue(id);
+            }
+        }
+        // Note: This is a bit racy but acceptable for game logic
+    }

@@ -92,6 +92,7 @@ var host = Host.CreateDefaultBuilder(args)
             .AddSingleton<IConfiguration>(configuration)
             .Configure<DatabaseOptions>(configuration.GetSection(DatabaseOptions.SectionName))
             .Configure<ServerOptions>(configuration.GetSection(ServerOptions.SectionName))
+            .Configure<ArenaOptions>(configuration.GetSection(ArenaOptions.SectionName))
             .Configure<CacheOptions>(configuration.GetSection(CacheOptions.SectionName))
             .Configure<WiseManAgentOptions>(configuration.GetSection(WiseManAgentOptions.SectionName))
             .AddSingleton<UtcNowDelegate>(() => DateTime.UtcNow);
