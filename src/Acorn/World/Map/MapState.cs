@@ -253,37 +253,32 @@ public class MapState
     private async Task ProcessArenaTickAsync()
     {
         _arenaTicks++;
-        if (_arenaTicks >= _arenaSpawnInterval)
+        if (_arenaTicks < _arenaSpawnInterval)
+            return;
+
+        _arenaTicks = 0;
+
+        if (!ArenaQueue.TryPeek(out var playerId))
+            return;
+
+        var player = Players.FirstOrDefault(p => p.SessionId == playerId);
+        if (player == null)
         {
-            _arenaTicks = 0;
-
-            // Try to spawn players from queue
-            if (ArenaQueue.TryPeek(out var playerId))
-            {
-                var player = Players.FirstOrDefault(p => p.SessionId == playerId);
-                if (player != null)
-                {
-                    // Spawn player into arena
-                    ArenaQueue.TryDequeue(out _);
-                    var arenaPlayer = new ArenaPlayer
-                    {
-                        PlayerId = playerId,
-                        SessionId = player.SessionId,
-                        Kills = 0,
-                        IsDead = false
-                    };
-                    ArenaPlayers.Add(arenaPlayer);
-
-                    // Warp to arena spawn point (use map's relog coords or default)
-                    await _mapController.WarpPlayerAsync(player, Id, 1, 1, WarpEffect.Warp);
-                }
-                else
-                {
-                    // Player not found, remove from queue
-                    ArenaQueue.TryDequeue(out _);
-                }
-            }
+            ArenaQueue.TryDequeue(out _);
+            return;
         }
+
+        ArenaQueue.TryDequeue(out _);
+        var arenaPlayer = new ArenaPlayer
+        {
+            PlayerId = playerId,
+            SessionId = player.SessionId,
+            Kills = 0,
+            IsDead = false
+        };
+        ArenaPlayers.Add(arenaPlayer);
+
+        await _mapController.WarpPlayerAsync(player, Id, 1, 1, WarpEffect.Warp);
     }
 
     public bool TryJoinArenaQueue(int sessionId)
