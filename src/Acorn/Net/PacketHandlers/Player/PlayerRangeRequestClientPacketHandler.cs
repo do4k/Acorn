@@ -19,7 +19,7 @@ public class PlayerRangeRequestClientPacketHandler : IPacketHandler<PlayerRangeR
         {
             PlayersList = new PlayersList
             {
-                Players = playerState.CurrentMap.Players.Select(x => x.Character?.AsOnlinePlayer()).ToList()
+                Players = playerState.CurrentMap.Players.Values.Select(x => x.Character?.AsOnlinePlayer()).ToList()
             }
         });
     }

@@ -9,9 +9,13 @@ namespace Acorn.World;
 public class WorldState
 {
     private readonly ILogger<WorldState> _logger;
-    public ConcurrentDictionary<Guid, GlobalMessage> GlobalMessages = [];
-    public ConcurrentDictionary<int, MapState> Maps = [];
-    public ConcurrentDictionary<int, PlayerState> Players = [];
+    private readonly ConcurrentDictionary<Guid, GlobalMessage> _globalMessages = [];
+    private readonly ConcurrentDictionary<int, MapState> _maps = [];
+    private readonly ConcurrentDictionary<int, PlayerState> _players = [];
+
+    public IReadOnlyDictionary<Guid, GlobalMessage> GlobalMessages => _globalMessages;
+    public IReadOnlyDictionary<int, MapState> Maps => _maps;
+    public IReadOnlyDictionary<int, PlayerState> Players => _players;
 
     public WorldState(
         IDataFileRepository dataRepository,
@@ -21,7 +25,7 @@ public class WorldState
         _logger = logger;
         foreach (var map in dataRepository.Maps)
         {
-            var added = Maps.TryAdd(map.Id, mapStateFactory.Create(map));
+            var added = _maps.TryAdd(map.Id, mapStateFactory.Create(map));
             if (added is false)
             {
                 _logger.LogWarning("Failed to add map {MapId} to world state", map.Id);
@@ -31,7 +35,7 @@ public class WorldState
 
     public MapState? MapForId(int mapId)
     {
-        var exists = Maps.TryGetValue(mapId, out var map);
+        var exists = _maps.TryGetValue(mapId, out var map);
         if (exists is true && map is not null)
         {
             return map;
@@ -43,7 +47,32 @@ public class WorldState
 
     public bool LoggedIn(string username)
     {
-        return Players.Values.Any(x =>
+        return _players.Values.Any(x =>
             x.Account?.Username.Equals(username, StringComparison.InvariantCultureIgnoreCase) ?? false);
+    }
+
+    public bool TryAddPlayer(int sessionId, PlayerState player)
+    {
+        return _players.TryAdd(sessionId, player);
+    }
+
+    public bool TryRemovePlayer(int sessionId, out PlayerState? player)
+    {
+        return _players.TryRemove(sessionId, out player);
+    }
+
+    public PlayerState? GetPlayer(int sessionId)
+    {
+        return _players.TryGetValue(sessionId, out var player) ? player : null;
+    }
+
+    public IEnumerable<PlayerState> GetPlayersOnMap(int mapId)
+    {
+        return _players.Values.Where(p => p.Character?.Map == mapId);
+    }
+
+    public IEnumerable<PlayerState> GetGlobalListeners()
+    {
+        return _players.Values.Where(p => p.IsListeningToGlobal);
     }
 }

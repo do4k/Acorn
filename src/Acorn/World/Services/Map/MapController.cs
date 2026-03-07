@@ -195,7 +195,7 @@ public class MapController : IMapController
                         npc.Data.Name, npc.Id, npc.X, npc.Y);
 
                     // Broadcast respawn to all players on map
-                    var npcIndex = map.Npcs.ToList().IndexOf(npc);
+                    var npcIndex = map.Npcs.Values.ToList().IndexOf(npc);
                     await map.BroadcastPacket(new NpcAgreeServerPacket
                     {
                         Npcs = new List<NpcMapInfo>
@@ -210,8 +210,8 @@ public class MapController : IMapController
 
     public async Task<HashSet<int>> ProcessNpcActionsAsync(MapState map)
     {
-        var aliveNpcs = map.Npcs.Where(n => !n.IsDead).ToList();
-        var npcList = map.Npcs.ToList();
+        var aliveNpcs = map.Npcs.Values.Where(n => !n.IsDead).ToList();
+        var npcList = map.Npcs.Values.ToList();
 
         var positionUpdates = new List<NpcUpdatePosition>();
         var attackUpdates = new List<NpcUpdateAttack>();
@@ -257,7 +257,7 @@ public class MapController : IMapController
         // This prevents the client from receiving updates for NPCs it has removed from memory
         if (positionUpdates.Count > 0 || attackUpdates.Count > 0)
         {
-            var playersWithCharacters = map.Players.Where(p => p.Character != null).ToList();
+            var playersWithCharacters = map.Players.Values.Where(p => p.Character != null).ToList();
 
             // Filter position updates to only include NPCs within client range of at least one player
             var filteredPositionUpdates = positionUpdates
@@ -286,7 +286,7 @@ public class MapController : IMapController
 
             if (attack.Killed == PlayerKilledState.Killed)
             {
-                var deadPlayer = map.Players.FirstOrDefault(p => p.SessionId == attack.PlayerId);
+                var deadPlayer = map.Players.Values.FirstOrDefault(p => p.SessionId == attack.PlayerId);
                 if (deadPlayer?.Character != null)
                 {
                     tasks.Add(_playerController.DieAsync(deadPlayer));

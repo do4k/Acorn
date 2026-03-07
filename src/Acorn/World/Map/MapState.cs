@@ -108,26 +108,26 @@ public class MapState
                 BehaviorType = npc.SpawnType == 7 ? NpcBehaviorType.Stationary : NpcBehaviorType.Wander
             };
 
-            Npcs.Add(npcState);
+            Npcs.TryAdd(npcState.Id, npcState);
         }
     }
 
     public int Id { get; set; }
     public Emf Data { get; set; }
 
-    public ConcurrentBag<NpcState> Npcs { get; set; } = new();
-    public ConcurrentBag<PlayerState> Players { get; set; } = new();
+    public ConcurrentDictionary<int, NpcState> Npcs { get; set; } = new();
+    public ConcurrentDictionary<int, PlayerState> Players { get; set; } = new();
     public ConcurrentDictionary<int, MapItem> Items { get; set; } = new();
     public ConcurrentDictionary<Coords, MapChest> Chests { get; set; } = new();
 
     public bool HasPlayer(PlayerState player)
     {
-        return Players.Contains(player);
+        return Players.ContainsKey(player.SessionId);
     }
 
     public IEnumerable<PlayerState> PlayersExcept(PlayerState? except)
     {
-        return Players.Where(x => except is null || x != except);
+        return Players.Values.Where(x => except is null || x.SessionId != except.SessionId);
     }
 
     public async Task BroadcastPacket(IPacket packet, PlayerState? except = null)
@@ -157,7 +157,8 @@ public class MapState
 
     public List<NpcMapInfo> AsNpcMapInfo()
     {
-        return Npcs.Select((x, i) => (npc: x, index: i))
+        return Npcs.Values
+            .Select((npc, index) => (npc, index))
             .Where(t => !t.npc.IsDead)
             .Select(t => t.npc.AsNpcMapInfo(t.index))
             .Take(252) // EO Protocol limit: NpcMapInfo uses byte field, max 252 NPCs
@@ -173,10 +174,7 @@ public class MapState
 
         player.Character.Map = Id;
 
-        if (!Players.Contains(player))
-        {
-            Players.Add(player);
-        }
+        Players.TryAdd(player.SessionId, player);
 
         await BroadcastPacket(new PlayersAgreeServerPacket
         {
@@ -188,16 +186,16 @@ public class MapState
 
     public async Task NotifyLeave(PlayerState player, WarpEffect warpEffect = WarpEffect.None)
     {
-        Players = new ConcurrentBag<PlayerState>(Players.Where(p => p != player));
+        Players.TryRemove(player.SessionId, out _);
 
-        await _broadcastService.NotifyPlayerLeave(Players, player, warpEffect);
+        await _broadcastService.NotifyPlayerLeave(Players.Values.ToList(), player, warpEffect);
     }
 
     public bool IsTileOccupied(Coords coords)
     {
-        return Players.Any(p => p.Character != null && !p.Character.Hidden &&
+        return Players.Values.Any(p => p.Character != null && !p.Character.Hidden &&
                                 p.Character.X == coords.X && p.Character.Y == coords.Y)
-               || Npcs.Any(n => n.X == coords.X && n.Y == coords.Y);
+               || Npcs.Values.Any(n => n.X == coords.X && n.Y == coords.Y);
     }
 
     public int GetNextItemIndex(int seed = 1)
@@ -222,7 +220,7 @@ public class MapState
 
     public async Task Tick()
     {
-        if (Players.Any() is false)
+        if (Players.IsEmpty)
         {
             return;
         }

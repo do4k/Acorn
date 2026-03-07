@@ -126,7 +126,7 @@ public class ChestTakeClientPacketHandler(
 
         // Notify other players near the chest
         var agreePacket = new ChestAgreeServerPacket { Items = chestItems };
-        foreach (var otherPlayer in player.CurrentMap.Players.Where(p => p != player))
+        foreach (var otherPlayer in player.CurrentMap.Players.Values.Where(p => p != player))
         {
             if (otherPlayer.Character == null) continue;
 

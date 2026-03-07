@@ -77,7 +77,7 @@ public class WiseManTalkHandler
             // Find Wise Man NPC on the map
             var map = playerState.CurrentMap;
             var wiseManNpc =
-                map.Npcs.FirstOrDefault(n => n.Data.Name.Contains("Wise Man", StringComparison.OrdinalIgnoreCase));
+                map.Npcs.Values.FirstOrDefault(n => n.Data.Name.Contains("Wise Man", StringComparison.OrdinalIgnoreCase));
             if (wiseManNpc == null)
             {
                 _logger.LogWarning("No Wise Man NPC found on map for player {Player}", playerState.Character.Name);

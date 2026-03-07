@@ -30,7 +30,7 @@ public class WorldStateQueries : IWorldQueries
 
     public IEnumerable<PlayerState> GetPlayersInMap(int mapId)
     {
-        return _world.Players.Values.Where(p => p.Character?.Map == mapId);
+        return _world.GetPlayersOnMap(mapId);
     }
 
     public IEnumerable<PlayerState> GetAllPlayers()
@@ -40,7 +40,7 @@ public class WorldStateQueries : IWorldQueries
 
     public IEnumerable<PlayerState> GetGlobalChatListeners()
     {
-        return _world.Players.Values.Where(p => p.IsListeningToGlobal);
+        return _world.GetGlobalListeners();
     }
 
     public bool IsPlayerOnline(string username)
@@ -50,7 +50,7 @@ public class WorldStateQueries : IWorldQueries
 
     public PlayerState? GetPlayer(int sessionId)
     {
-        return _world.Players.TryGetValue(sessionId, out var player) ? player : null;
+        return _world.GetPlayer(sessionId);
     }
 
     public IEnumerable<MapState> GetAllMaps()
@@ -60,8 +60,7 @@ public class WorldStateQueries : IWorldQueries
 
     public IEnumerable<GlobalMessage> GetRecentGlobalMessages(int count = 10)
     {
-        return _world.GlobalMessages
-            .Values
+        return _world.GlobalMessages.Values
             .OrderByDescending(x => x.CreatedAt)
             .Take(count);
     }
@@ -79,8 +78,7 @@ public class WorldStateQueries : IWorldQueries
             return;
         }
 
-        var oldestMessages = _world.GlobalMessages
-            .Values
+        var oldestMessages = _world.GlobalMessages.Values
             .OrderBy(x => x.CreatedAt);
 
         foreach (var oldMessage in oldestMessages.Take(_world.GlobalMessages.Count - 100))

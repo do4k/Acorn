@@ -29,7 +29,7 @@ public class TradeRequestClientPacketHandler(
         var targetPlayerId = packet.PlayerId;
 
         // Find target player on same map
-        var targetPlayer = player.CurrentMap.Players.FirstOrDefault(p => p.SessionId == targetPlayerId);
+        var targetPlayer = player.CurrentMap.Players.Values.FirstOrDefault(p => p.SessionId == targetPlayerId);
         if (targetPlayer?.Character == null)
         {
             logger.LogDebug("Target player {TargetId} not found on map", targetPlayerId);

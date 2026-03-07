@@ -21,7 +21,7 @@ internal class FacePlayerClientPacketHandler : IPacketHandler<FacePlayerClientPa
             return;
         }
 
-        var broadcast = playerState.CurrentMap.Players.Select(player =>
+        var broadcast = playerState.CurrentMap.Players.Values.Select(player =>
             player.Send(new FacePlayerServerPacket
             {
                 Direction = packet.Direction,

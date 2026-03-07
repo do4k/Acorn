@@ -110,7 +110,7 @@ public class SpawnNpcCommandHandler : ITalkHandler
                 IsAdminSpawned = true
             };
 
-            playerState.CurrentMap.Npcs.Add(npc);
+            playerState.CurrentMap.Npcs.TryAdd(npc.Id, npc);
         }
 
         await _notifications.ServerAnnouncement(playerState,

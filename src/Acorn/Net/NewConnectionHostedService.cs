@@ -10,6 +10,7 @@ using Acorn.World;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.Net;
 
@@ -117,7 +118,7 @@ public class NewConnectionHostedService(
                     var playerState = playerStateFactory.CreatePlayerState(communicator, sessionId,
                         async player => await OnClientDisposed(player, sessionId));
 
-                    var added = worldState.Players.TryAdd(sessionId, playerState);
+                    var added = worldState.TryAddPlayer(sessionId, playerState);
                     logger.LogInformation("Connection accepted. {PlayersConnected} players connected",
                         worldState.Players.Count);
                     UpdateConnectedCount();
@@ -168,13 +169,33 @@ public class NewConnectionHostedService(
 
     private async Task OnClientDisposed(PlayerState player, int sessionId)
     {
+        // Cancel any pending warp
+        player.WarpSession = null;
+
+        // Cancel any pending trade
+        if (player.TradeSession != null)
+        {
+            var partner = player.CurrentMap?.Players.Values.FirstOrDefault(p => 
+                p.SessionId == player.TradeSession?.PartnerId);
+            
+            if (partner != null)
+            {
+                partner.TradeSession = null;
+                partner.PendingTradeRequestFromPlayerId = null;
+                await partner.Send(new TradeCloseServerPacket());
+            }
+            
+            player.TradeSession = null;
+            player.PendingTradeRequestFromPlayerId = null;
+        }
+
         if (player.Character is not null && player.CurrentMap is not null)
         {
             await player.CurrentMap.NotifyLeave(player);
             await characterRepository.UpdateAsync(characterMapper.ToDatabase(player.Character));
         }
 
-        worldState.Players.TryRemove(sessionId, out _);
+        worldState.TryRemovePlayer(sessionId, out _);
         logger.LogInformation("Player disconnected");
         UpdateConnectedCount();
     }

@@ -1,6 +1,7 @@
 ﻿using System.Timers;
 using Acorn.Options;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Timer = System.Timers.Timer;
 
@@ -10,12 +11,14 @@ internal class WorldHostedService : IHostedService
 {
     private readonly Timer _timer;
     private readonly WorldState _world;
+    private readonly ILogger<WorldHostedService> _logger;
 
-    public WorldHostedService(IOptions<ServerOptions> options, WorldState world)
+    public WorldHostedService(IOptions<ServerOptions> options, WorldState world, ILogger<WorldHostedService> logger)
     {
         _world = world;
+        _logger = logger;
         _timer = new Timer(options.Value.TickRate);
-        _timer.Elapsed += Tick!;
+        _timer.Elapsed += OnTick;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
@@ -30,12 +33,19 @@ internal class WorldHostedService : IHostedService
         return Task.CompletedTask;
     }
 
-    private void Tick(object sender, ElapsedEventArgs args)
+    private async void OnTick(object sender, ElapsedEventArgs args)
     {
-        var tickTasks = _world
-            .Maps
-            .Select(x => x.Value.Tick());
+        try
+        {
+            var tickTasks = _world
+                .Maps
+                .Select(x => x.Value.Tick());
 
-        Task.WhenAll(tickTasks).GetAwaiter().GetResult();
+            await Task.WhenAll(tickTasks);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during world tick");
+        }
     }
 }

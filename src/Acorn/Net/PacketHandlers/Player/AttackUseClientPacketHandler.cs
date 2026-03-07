@@ -56,7 +56,7 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
         if (playerState.Character is not null)
         {
             var nextCoords = playerState.Character.NextCoords();
-            var target = playerState.CurrentMap.Npcs.FirstOrDefault(x =>
+            var target = playerState.CurrentMap.Npcs.Values.FirstOrDefault(x =>
                 !x.IsDead &&
                 x.X == nextCoords.X && x.Y == nextCoords.Y &&
                 x.Data.Type is NpcType.Aggressive or NpcType.Passive);
@@ -76,7 +76,7 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
                 target.AddOpponent(playerState.SessionId, damage);
             }
 
-            var npcIndex = playerState.CurrentMap.Npcs.ToList().IndexOf(target);
+            var npcIndex = playerState.CurrentMap.Npcs.Values.ToList().IndexOf(target);
             var hpPercentage = (int)Math.Max((double)target.Hp / target.Data.Hp * 100, 0);
 
             await playerState.CurrentMap.BroadcastPacket(new NpcReplyServerPacket

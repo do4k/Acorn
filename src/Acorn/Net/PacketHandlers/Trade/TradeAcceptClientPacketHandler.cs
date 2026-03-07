@@ -33,7 +33,7 @@ public class TradeAcceptClientPacketHandler(
         var partnerPlayerId = packet.PlayerId;
 
         // Find partner player who should have requested to trade with us
-        var partnerPlayer = player.CurrentMap.Players.FirstOrDefault(p => p.SessionId == partnerPlayerId);
+        var partnerPlayer = player.CurrentMap.Players.Values.FirstOrDefault(p => p.SessionId == partnerPlayerId);
         if (partnerPlayer?.Character == null)
         {
             logger.LogDebug("Partner player {PartnerId} not found on map", partnerPlayerId);

@@ -54,7 +54,7 @@ public class WiseManQueueService : BackgroundService
 
         // Find Wise Man NPC on the map
         var wiseManNpc =
-            map.Npcs.FirstOrDefault(n => n.Data.Name.Contains("Wise Man", StringComparison.OrdinalIgnoreCase));
+            map.Npcs.Values.FirstOrDefault(n => n.Data.Name.Contains("Wise Man", StringComparison.OrdinalIgnoreCase));
         if (wiseManNpc == null)
         {
             return false;
@@ -191,7 +191,7 @@ public class WiseManQueueService : BackgroundService
                 }
             }
 
-            var npcIndex = player.CurrentMap.Npcs.ToList().IndexOf(wiseManNpc);
+            var npcIndex = player.CurrentMap.Npcs.Values.ToList().IndexOf(wiseManNpc);
             var chatUpdate = new NpcUpdateChat
             {
                 NpcIndex = npcIndex,
@@ -201,7 +201,7 @@ public class WiseManQueueService : BackgroundService
             {
                 Chats = [chatUpdate]
             };
-            foreach (var mapPlayer in player.CurrentMap.Players)
+            foreach (var mapPlayer in player.CurrentMap.Players.Values)
             {
                 try
                 {
