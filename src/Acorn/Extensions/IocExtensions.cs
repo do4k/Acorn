@@ -24,6 +24,7 @@ using Acorn.Net.PacketHandlers.Spell;
 using Acorn.Net.PacketHandlers.Trade;
 using Acorn.Shared.Caching;
 using Acorn.World.Services.Map;
+using Acorn.World.Services.Arena;
 using Acorn.World.Services.Npc;
 using Acorn.World.Services.Player;
 using Microsoft.Extensions.DependencyInjection;

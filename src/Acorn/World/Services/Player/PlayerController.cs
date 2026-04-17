@@ -101,7 +101,7 @@ public class PlayerController : IPlayerController
 
         // Broadcast movement to other players
         await _broadcastService.BroadcastPacket(
-            player.CurrentMap.Players,
+            player.CurrentMap.Players.Values,
             new WalkPlayerServerPacket
             {
                 PlayerId = player.SessionId,
@@ -122,7 +122,7 @@ public class PlayerController : IPlayerController
 
         // Broadcast face direction to other players
         await _broadcastService.BroadcastPacket(
-            player.CurrentMap.Players,
+            player.CurrentMap.Players.Values,
             new FacePlayerServerPacket
             {
                 PlayerId = player.SessionId,
@@ -141,7 +141,7 @@ public class PlayerController : IPlayerController
         player.Character.SitState = SitState.Floor;
 
         await _broadcastService.BroadcastPacket(
-            player.CurrentMap.Players,
+            player.CurrentMap.Players.Values,
             new SitPlayerServerPacket
             {
                 PlayerId = player.SessionId,
@@ -160,7 +160,7 @@ public class PlayerController : IPlayerController
         player.Character.SitState = SitState.Stand;
 
         await _broadcastService.BroadcastPacket(
-            player.CurrentMap.Players,
+            player.CurrentMap.Players.Values,
             new SitPlayerServerPacket
             {
                 PlayerId = player.SessionId,

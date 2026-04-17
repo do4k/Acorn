@@ -59,7 +59,7 @@ public class MapCacheHostedService : BackgroundService
         {
             try
             {
-                var players = mapState.Players
+                var players = mapState.Players.Values
                     .Where(p => p.Character != null)
                     .Select(p => new MapPlayerRecord
                     {
@@ -76,7 +76,7 @@ public class MapCacheHostedService : BackgroundService
                     })
                     .ToList();
 
-                var npcs = mapState.Npcs
+                var npcs = mapState.Npcs.Values
                     .Select((npc, index) => new MapNpcRecord
                     {
                         Index = index,

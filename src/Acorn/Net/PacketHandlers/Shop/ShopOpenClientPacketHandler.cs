@@ -24,11 +24,7 @@ public class ShopOpenClientPacketHandler(
 
         // Find the NPC by index on the map
         var npcIndex = packet.NpcIndex;
-        var npc = player.CurrentMap.Npcs
-            .Select((n, i) => (npc: n, index: i))
-            .FirstOrDefault(x => x.index == npcIndex);
-
-        if (npc.npc == null)
+        if (!player.CurrentMap.Npcs.TryGetValue(npcIndex, out var npc))
         {
             logger.LogWarning("Player {Character} tried to open shop at invalid NPC index {NpcIndex}",
                 player.Character.Name, npcIndex);
@@ -36,18 +32,18 @@ public class ShopOpenClientPacketHandler(
         }
 
         // Verify it's a shop NPC
-        if (npc.npc.Data.Type != NpcType.Shop)
+        if (npc.Data.Type != NpcType.Shop)
         {
             logger.LogWarning("Player {Character} tried to open shop at non-shop NPC {NpcId}",
-                player.Character.Name, npc.npc.Id);
+                player.Character.Name, npc.Id);
             return;
         }
 
         // Get shop data by NPC's behavior ID
-        var shop = shopDataRepository.GetShopByBehaviorId(npc.npc.Data.BehaviorId);
+        var shop = shopDataRepository.GetShopByBehaviorId(npc.Data.BehaviorId);
         if (shop == null)
         {
-            logger.LogWarning("No shop data found for NPC behavior ID {BehaviorId}", npc.npc.Data.BehaviorId);
+            logger.LogWarning("No shop data found for NPC behavior ID {BehaviorId}", npc.Data.BehaviorId);
             return;
         }
 

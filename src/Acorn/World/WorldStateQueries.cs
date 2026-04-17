@@ -67,13 +67,13 @@ public class WorldStateQueries : IWorldQueries
 
     public void AddGlobalMessage(GlobalMessage message)
     {
-        var success = _world.GlobalMessages.TryAdd(message.Id, message);
+        var success = _world.TryAddGlobalMessage(message.Id, message);
         if (!success)
         {
             _logger.LogWarning("Could not add global message {messageId} to WorldState", message.Id);
         }
 
-        if (_world.GlobalMessages.Count <= 100)
+        if (_world.GlobalMessageCount <= 100)
         {
             return;
         }
@@ -81,9 +81,9 @@ public class WorldStateQueries : IWorldQueries
         var oldestMessages = _world.GlobalMessages.Values
             .OrderBy(x => x.CreatedAt);
 
-        foreach (var oldMessage in oldestMessages.Take(_world.GlobalMessages.Count - 100))
+        foreach (var oldMessage in oldestMessages.Take(_world.GlobalMessageCount - 100))
         {
-            var removeSuccess = _world.GlobalMessages.TryRemove(oldMessage.Id, out _);
+            var removeSuccess = _world.TryRemoveGlobalMessage(oldMessage.Id);
             if (!removeSuccess)
             {
                 _logger.LogWarning("Could not remove old global message {messageId} from WorldState", oldMessage.Id);

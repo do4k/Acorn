@@ -57,10 +57,10 @@ public class ArenaService : IArenaService
             _logger.LogInformation("Player {SessionId} joined arena queue", player.SessionId);
             
             // Notify player they joined the queue
-            await player.Send(new ArenaReplyServerPacket
+            await player.Send(new TalkMsgServerPacket
             {
-                State = ArenaState.Queued,
-                Position = 0 // TODO: Calculate actual position
+                PlayerName = "Arena",
+                Message = "You have joined the arena queue!"
             });
         }
     }
@@ -134,21 +134,23 @@ public class ArenaService : IArenaService
         // For now, warp to map 1, spawn point
         if (deadPlayer.Character != null)
         {
-            var homeMap = _worldState.MapForId(deadPlayer.Character.HomeMap);
+            var homeMap = _worldState.MapForId(deadPlayer.Character.Map);
             if (homeMap != null)
             {
-                await _worldState.Players[deadPlayer.Account!.Id]
-                    .CurrentMap!
-                    .NotifyLeave(deadPlayer);
+                if (deadPlayer.CurrentMap != null)
+                {
+                    await deadPlayer.CurrentMap.NotifyLeave(deadPlayer);
+                }
                 
                 await homeMap.NotifyEnter(deadPlayer);
             }
         }
 
         // Notify player they died in arena
-        await deadPlayer.Send(new ArenaReplyServerPacket
+        await deadPlayer.Send(new TalkMsgServerPacket
         {
-            State = ArenaState.Dead
+            PlayerName = "Arena",
+            Message = "You have been eliminated from the arena!"
         });
     }
 
@@ -156,10 +158,10 @@ public class ArenaService : IArenaService
     {
         _logger.LogInformation("Player {SessionId} won the arena with {Kills} kills", winner.SessionId, kills);
 
-        await winner.Send(new ArenaReplyServerPacket
+        await winner.Send(new TalkMsgServerPacket
         {
-            State = ArenaState.Won,
-            Kills = kills
+            PlayerName = "Arena",
+            Message = $"Congratulations! You won the arena with {kills} kills!"
         });
     }
 }

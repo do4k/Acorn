@@ -43,11 +43,7 @@ public class BankAddClientPacketHandler(
         }
 
         var npcIndex = player.InteractingNpcIndex.Value;
-        var npc = player.CurrentMap.Npcs
-            .Select((n, i) => (npc: n, index: i))
-            .FirstOrDefault(x => x.index == npcIndex);
-
-        if (npc.npc == null || npc.npc.Data.Type != NpcType.Bank)
+        if (!player.CurrentMap.Npcs.TryGetValue(npcIndex, out var npc) || npc.Data.Type != NpcType.Bank)
         {
             logger.LogWarning("Player {Character} tried to deposit at invalid bank NPC",
                 player.Character.Name);

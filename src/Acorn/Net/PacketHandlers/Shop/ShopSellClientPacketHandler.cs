@@ -56,11 +56,7 @@ public class ShopSellClientPacketHandler(
         }
 
         var npcIndex = player.InteractingNpcIndex.Value;
-        var npc = player.CurrentMap.Npcs
-            .Select((n, i) => (npc: n, index: i))
-            .FirstOrDefault(x => x.index == npcIndex);
-
-        if (npc.npc == null || npc.npc.Data.Type != NpcType.Shop)
+        if (!player.CurrentMap.Npcs.TryGetValue(npcIndex, out var npc) || npc.Data.Type != NpcType.Shop)
         {
             logger.LogWarning("Player {Character} tried to sell to invalid shop NPC",
                 player.Character.Name);
@@ -68,10 +64,10 @@ public class ShopSellClientPacketHandler(
         }
 
         // Get shop data
-        var shop = shopDataRepository.GetShopByBehaviorId(npc.npc.Data.BehaviorId);
+        var shop = shopDataRepository.GetShopByBehaviorId(npc.Data.BehaviorId);
         if (shop == null)
         {
-            logger.LogWarning("No shop data found for NPC behavior ID {BehaviorId}", npc.npc.Data.BehaviorId);
+            logger.LogWarning("No shop data found for NPC behavior ID {BehaviorId}", npc.Data.BehaviorId);
             return;
         }
 

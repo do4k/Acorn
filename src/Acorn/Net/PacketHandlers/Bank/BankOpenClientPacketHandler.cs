@@ -23,11 +23,7 @@ public class BankOpenClientPacketHandler(
 
         // Find the NPC by index on the map
         var npcIndex = packet.NpcIndex;
-        var npc = player.CurrentMap.Npcs
-            .Select((n, i) => (npc: n, index: i))
-            .FirstOrDefault(x => x.index == npcIndex);
-
-        if (npc.npc == null)
+        if (!player.CurrentMap.Npcs.TryGetValue(npcIndex, out var npc))
         {
             logger.LogWarning("Player {Character} tried to open bank at invalid NPC index {NpcIndex}",
                 player.Character.Name, npcIndex);
@@ -35,10 +31,10 @@ public class BankOpenClientPacketHandler(
         }
 
         // Verify it's a bank NPC
-        if (npc.npc.Data.Type != NpcType.Bank)
+        if (npc.Data.Type != NpcType.Bank)
         {
             logger.LogWarning("Player {Character} tried to open bank at non-bank NPC {NpcId}",
-                player.Character.Name, npc.npc.Id);
+                player.Character.Name, npc.Id);
             return;
         }
 

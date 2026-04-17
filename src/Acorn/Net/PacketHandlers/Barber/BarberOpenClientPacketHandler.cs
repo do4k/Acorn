@@ -21,11 +21,7 @@ public class BarberOpenClientPacketHandler(
         }
 
         var npcIndex = packet.NpcIndex;
-        var npc = player.CurrentMap.Npcs
-            .Select((n, i) => (npc: n, index: i))
-            .FirstOrDefault(x => x.index == npcIndex);
-
-        if (npc.npc == null)
+        if (!player.CurrentMap.Npcs.TryGetValue(npcIndex, out var npc))
         {
             logger.LogWarning("Player {Character} tried to open barber at invalid NPC index {NpcIndex}",
                 player.Character.Name, npcIndex);
@@ -33,10 +29,10 @@ public class BarberOpenClientPacketHandler(
         }
 
         // Verify it's a barber NPC
-        if (npc.npc.Data.Type != NpcType.Barber)
+        if (npc.Data.Type != NpcType.Barber)
         {
             logger.LogWarning("Player {Character} tried to open barber at non-barber NPC {NpcId}",
-                player.Character.Name, npc.npc.Id);
+                player.Character.Name, npc.Id);
             return;
         }
 

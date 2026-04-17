@@ -28,7 +28,7 @@ public class RangeRequestClientPacketHandler(
             {
                 PlayersList = new PlayersList
                 {
-                    Players = player.CurrentMap.Players
+                    Players = player.CurrentMap.Players.Values
                         .Where(p => p.Character != null && packet.PlayerIds.Contains(p.SessionId))
                         .Select(p => p.Character!.AsOnlinePlayer())
                         .ToList()

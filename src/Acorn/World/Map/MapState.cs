@@ -42,8 +42,6 @@ public class MapState
     private readonly int _playerRecoverRate;
     private readonly bool _isArenaEnabled;
     private readonly int _arenaSpawnInterval;
-    private readonly int _arenaMinPlayers;
-
     // Tick counters for periodic events
     private int _playerRecoverTicks;
     private int _arenaTicks;
@@ -63,7 +61,6 @@ public class MapState
         int playerRecoverRate,
         bool isArenaEnabled,
         int arenaSpawnInterval,
-        int arenaMinPlayers,
         ILogger<MapState> logger)
     {
         Id = data.Id;
@@ -74,7 +71,6 @@ public class MapState
         _playerRecoverRate = playerRecoverRate;
         _isArenaEnabled = isArenaEnabled;
         _arenaSpawnInterval = arenaSpawnInterval;
-        _arenaMinPlayers = arenaMinPlayers;
         IsArenaMap = _isArenaEnabled && data.Id == 1;
 
         var mapNpcs = data.Map.Npcs.SelectMany(mapNpc => Enumerable.Range(0, mapNpc.Amount).Select(_ => mapNpc));
@@ -108,7 +104,8 @@ public class MapState
                 BehaviorType = npc.SpawnType == 7 ? NpcBehaviorType.Stationary : NpcBehaviorType.Wander
             };
 
-            Npcs.TryAdd(npcState.Id, npcState);
+            var npcIndex = Npcs.Count;
+            Npcs.TryAdd(npcIndex, npcState);
         }
     }
 
@@ -132,14 +129,14 @@ public class MapState
 
     public async Task BroadcastPacket(IPacket packet, PlayerState? except = null)
     {
-        await _broadcastService.BroadcastPacket(Players, packet, except);
+        await _broadcastService.BroadcastPacket(Players.Values, packet, except);
     }
 
     public NearbyInfo AsNearbyInfo(PlayerState? except = null, WarpEffect warpEffect = WarpEffect.None)
     {
         return new NearbyInfo
         {
-            Characters = Players
+            Characters = Players.Values
                 .Where(x => x.Character is not null)
                 .Where(x => except == null || x != except)
                 .Select(x => x.Character?.AsCharacterMapInfo(x.SessionId, warpEffect, _paperdollService))
@@ -261,7 +258,7 @@ public class MapState
         if (!ArenaQueue.TryPeek(out var playerId))
             return;
 
-        var player = Players.FirstOrDefault(p => p.SessionId == playerId);
+        var player = Players.Values.FirstOrDefault(p => p.SessionId == playerId);
         if (player == null)
         {
             ArenaQueue.TryDequeue(out _);
@@ -278,7 +275,7 @@ public class MapState
         };
         ArenaPlayers.Add(arenaPlayer);
 
-        await _mapController.WarpPlayerAsync(player, Id, 1, 1, WarpEffect.Warp);
+        await _mapController.WarpPlayerAsync(player, Id, 1, 1, WarpEffect.Admin);
     }
 
     public bool TryJoinArenaQueue(int sessionId)
@@ -316,3 +313,4 @@ public class MapState
         }
         // Note: This is a bit racy but acceptable for game logic
     }
+}

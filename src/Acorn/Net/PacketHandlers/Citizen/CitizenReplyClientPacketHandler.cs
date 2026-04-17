@@ -30,11 +30,7 @@ public class CitizenReplyClientPacketHandler(
         }
 
         // Find the NPC by index on the map
-        var npc = player.CurrentMap.Npcs
-            .Select((n, i) => (npc: n, index: i))
-            .FirstOrDefault(x => x.index == npcIndex.Value);
-
-        if (npc.npc == null)
+        if (!player.CurrentMap.Npcs.TryGetValue(npcIndex.Value, out var npc))
         {
             logger.LogWarning("Player {Character} tried to reply citizenship at invalid NPC index {NpcIndex}",
                 player.Character.Name, npcIndex);
@@ -42,18 +38,18 @@ public class CitizenReplyClientPacketHandler(
         }
 
         // Verify it's an Inn NPC
-        if (npc.npc.Data.Type != NpcType.Inn)
+        if (npc.Data.Type != NpcType.Inn)
         {
             logger.LogWarning("Player {Character} tried to reply citizenship at non-inn NPC {NpcId}",
-                player.Character.Name, npc.npc.Id);
+                player.Character.Name, npc.Id);
             return;
         }
 
         // Get inn data by NPC's behavior ID
-        var inn = innDataRepository.GetInnByBehaviorId(npc.npc.Data.BehaviorId);
+        var inn = innDataRepository.GetInnByBehaviorId(npc.Data.BehaviorId);
         if (inn == null)
         {
-            logger.LogWarning("No inn data found for NPC behavior ID {BehaviorId}", npc.npc.Data.BehaviorId);
+            logger.LogWarning("No inn data found for NPC behavior ID {BehaviorId}", npc.Data.BehaviorId);
             return;
         }
 

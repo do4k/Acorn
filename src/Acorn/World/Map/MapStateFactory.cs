@@ -24,7 +24,6 @@ public class MapStateFactory(
             serverOptions.Value.PlayerRecoverRate, 
             arenaOptions.Value.Enabled,
             arenaOptions.Value.SpawnInterval,
-            arenaOptions.Value.MinPlayersToBlock,
             logger);
     }
 }

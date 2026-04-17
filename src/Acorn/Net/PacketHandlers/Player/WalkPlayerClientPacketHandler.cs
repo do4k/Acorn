@@ -1,4 +1,4 @@
-﻿using Acorn.Extensions;
+using Acorn.Extensions;
 using Acorn.Game.Services;
 using Acorn.Shared.Caching;
 using Acorn.World;
@@ -79,13 +79,12 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
         // Get nearby NPCs for this player (within client range)
         var playerCoords = playerState.Character.AsCoords();
         var nearbyNpcIndexes = playerState.CurrentMap.Npcs
-            .Select((npc, index) => new { Npc = npc, Index = index })
-            .Where(x => _mapTileService.InClientRange(playerCoords, new Coords { X = x.Npc.X, Y = x.Npc.Y }))
-            .Select(x => x.Index)
+            .Where(kvp => _mapTileService.InClientRange(playerCoords, new Coords { X = kvp.Value.X, Y = kvp.Value.Y }))
+            .Select(kvp => kvp.Key)
             .ToList();
 
         // Get nearby players (within client range)
-        var nearbyPlayerIds = playerState.CurrentMap.Players
+        var nearbyPlayerIds = playerState.CurrentMap.Players.Values
             .Where(p => p.Character != null && p.SessionId != playerState.SessionId)
             .Where(p => _mapTileService.InClientRange(playerCoords, p.Character!.AsCoords()))
             .Select(p => p.SessionId)

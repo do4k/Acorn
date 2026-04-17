@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using Acorn.Database.Repository;
 using Acorn.Net;
 using Acorn.World.Map;
@@ -14,6 +14,10 @@ public class WorldState
     private readonly ConcurrentDictionary<int, PlayerState> _players = [];
 
     public IReadOnlyDictionary<Guid, GlobalMessage> GlobalMessages => _globalMessages;
+
+    public bool TryAddGlobalMessage(Guid id, GlobalMessage message) => _globalMessages.TryAdd(id, message);
+    public bool TryRemoveGlobalMessage(Guid id) => _globalMessages.TryRemove(id, out _);
+    public int GlobalMessageCount => _globalMessages.Count;
     public IReadOnlyDictionary<int, MapState> Maps => _maps;
     public IReadOnlyDictionary<int, PlayerState> Players => _players;
 

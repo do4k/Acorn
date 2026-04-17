@@ -156,7 +156,7 @@ public class MapController : IMapController
 
     public async Task ProcessNpcRespawnsAsync(MapState map)
     {
-        var deadNpcs = map.Npcs
+        var deadNpcs = map.Npcs.Values
             .Where(npc => npc.IsDead && npc.DeathTime.HasValue && !npc.IsAdminSpawned)
             .ToList();
 
@@ -178,7 +178,7 @@ public class MapController : IMapController
                     if (_npcController.ShouldUseSpawnVariance(npc))
                     {
                         var (spawnX, spawnY) = _npcController.FindSpawnPosition(npc, npc.SpawnX, npc.SpawnY,
-                            map.Players, map.Npcs, map.Data);
+                            map.Players.Values, map.Npcs.Values, map.Data);
                         npc.X = spawnX;
                         npc.Y = spawnY;
                     }
@@ -230,7 +230,7 @@ public class MapController : IMapController
             }
 
             // Try to attack first
-            var attackResult = _npcCombatService.TryAttack(npc, npcList.IndexOf(npc), map.Players, _formulaService);
+            var attackResult = _npcCombatService.TryAttack(npc, npcList.IndexOf(npc), map.Players.Values, _formulaService);
             if (attackResult != null)
             {
                 attackUpdates.Add(attackResult);
@@ -239,7 +239,7 @@ public class MapController : IMapController
             else
             {
                 // If not attacking, try to move (chase or wander)
-                var moveResult = _npcController.TryMove(npc, map.Players, map.Npcs, map.Data);
+                var moveResult = _npcController.TryMove(npc, map.Players.Values, map.Npcs.Values, map.Data);
                 if (moveResult.Moved)
                 {
                     positionUpdates.Add(new NpcUpdatePosition
@@ -301,7 +301,7 @@ public class MapController : IMapController
 
     public async Task ProcessPlayerRecoveryAsync(MapState map, HashSet<int> excludePlayerIds)
     {
-        var tasks = map.Players
+        var tasks = map.Players.Values
             .Where(p => !excludePlayerIds.Contains(p.SessionId))
             .Select(player => RecoverPlayerAsync(player))
             .ToList();

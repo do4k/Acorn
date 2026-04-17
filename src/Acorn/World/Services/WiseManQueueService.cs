@@ -179,7 +179,7 @@ public class WiseManQueueService : BackgroundService
                 PlayerName = "Wise Man",
                 Message = clampedPart
             };
-            foreach (var mapPlayer in player.CurrentMap.Players)
+            foreach (var mapPlayer in player.CurrentMap.Players.Values)
             {
                 try
                 {
