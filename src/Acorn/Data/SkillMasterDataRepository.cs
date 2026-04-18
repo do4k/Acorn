@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Acorn.Infrastructure.Telemetry;
 using Microsoft.Extensions.Logging;
 
 namespace Acorn.Data;
@@ -22,16 +23,23 @@ public class SkillMasterDataRepository : ISkillMasterDataRepository
     {
         if (!Directory.Exists(SkillMastersDirectory))
         {
-            _logger.LogWarning("SkillMasters directory not found at {Directory}. Creating with sample.", SkillMastersDirectory);
-            Directory.CreateDirectory(SkillMastersDirectory);
-            CreateSample();
+            try
+            {
+                _logger.DataDirectoryNotFound(SkillMastersDirectory);
+                Directory.CreateDirectory(SkillMastersDirectory);
+                CreateSample();
+            }
+            catch (IOException ex)
+            {
+                _logger.DataDirectoryCreateFailed(ex, SkillMastersDirectory);
+            }
             return;
         }
 
         var jsonFiles = Directory.GetFiles(SkillMastersDirectory, "*.json");
         if (jsonFiles.Length == 0)
         {
-            _logger.LogWarning("No skill master files found in {Directory}. Creating sample.", SkillMastersDirectory);
+            _logger.DataDirectoryEmpty(SkillMastersDirectory);
             CreateSample();
             return;
         }
@@ -48,7 +56,7 @@ public class SkillMasterDataRepository : ISkillMasterDataRepository
 
                 if (model == null)
                 {
-                    _logger.LogWarning("Failed to parse skill master file: {File}", file);
+                    _logger.DataFileParseFailed(file);
                     continue;
                 }
 
@@ -74,16 +82,15 @@ public class SkillMasterDataRepository : ISkillMasterDataRepository
                 );
 
                 _skillMasters.Add(skillMaster);
-                _logger.LogInformation("Loaded skill master: {Name} (BehaviorId: {BehaviorId}, {SkillCount} skills)",
-                    skillMaster.Name, skillMaster.BehaviorId, skillMaster.Skills.Count);
+                _logger.SkillMasterLoaded(skillMaster.Name, skillMaster.BehaviorId, skillMaster.Skills.Count);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading skill master file: {File}", file);
+                _logger.DataFileLoadError(ex, file);
             }
         }
 
-        _logger.LogInformation("Loaded {Count} skill masters", _skillMasters.Count);
+        _logger.SkillMastersLoaded(_skillMasters.Count);
     }
 
     private void CreateSample()
@@ -117,7 +124,7 @@ public class SkillMasterDataRepository : ISkillMasterDataRepository
         var json = JsonSerializer.Serialize(sample, new JsonSerializerOptions { WriteIndented = true });
         var samplePath = Path.Combine(SkillMastersDirectory, "sample_skill_master.json");
         File.WriteAllText(samplePath, json);
-        _logger.LogInformation("Created sample skill master file at {Path}", samplePath);
+        _logger.SampleDataFileCreated(samplePath);
     }
 
     public SkillMasterData? GetByBehaviorId(int behaviorId)

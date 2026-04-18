@@ -6,7 +6,7 @@ EXPOSE 8078 8079
 # Create app user and directories
 RUN addgroup -g 1000 acorn && \
     adduser -u 1000 -G acorn -s /bin/sh -D acorn && \
-    mkdir -p /app/mnt /app/Data && \
+    mkdir -p /app/mnt /app/Data/SkillMasters /app/Data/Shops /app/Data/Inns /app/Data/quests && \
     chown -R acorn:acorn /app
 
 # Stage 2: Build image

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Acorn.Infrastructure.Telemetry;
 using Microsoft.Extensions.Logging;
 
 namespace Acorn.Data;
@@ -25,16 +26,23 @@ public class InnDataRepository : IInnDataRepository
     {
         if (!Directory.Exists(InnsDirectory))
         {
-            _logger.LogWarning("Inns directory not found at {Directory}. Creating with sample inn.", InnsDirectory);
-            Directory.CreateDirectory(InnsDirectory);
-            CreateSampleInn();
+            try
+            {
+                _logger.DataDirectoryNotFound(InnsDirectory);
+                Directory.CreateDirectory(InnsDirectory);
+                CreateSampleInn();
+            }
+            catch (IOException ex)
+            {
+                _logger.DataDirectoryCreateFailed(ex, InnsDirectory);
+            }
             return;
         }
 
         var jsonFiles = Directory.GetFiles(InnsDirectory, "*.json");
         if (jsonFiles.Length == 0)
         {
-            _logger.LogWarning("No inn files found in {Directory}. Creating sample inn.", InnsDirectory);
+            _logger.DataDirectoryEmpty(InnsDirectory);
             CreateSampleInn();
             return;
         }
@@ -51,7 +59,7 @@ public class InnDataRepository : IInnDataRepository
 
                 if (innJson == null)
                 {
-                    _logger.LogWarning("Failed to parse inn file: {File}", file);
+                    _logger.DataFileParseFailed(file);
                     continue;
                 }
 
@@ -75,16 +83,15 @@ public class InnDataRepository : IInnDataRepository
                 );
 
                 _inns.Add(inn);
-                _logger.LogInformation("Loaded inn: {Name} (BehaviorId: {BehaviorId})",
-                    inn.Name, inn.BehaviorId);
+                _logger.InnLoaded(inn.Name, inn.BehaviorId);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading inn file: {File}", file);
+                _logger.DataFileLoadError(ex, file);
             }
         }
 
-        _logger.LogInformation("Loaded {Count} inns", _inns.Count);
+        _logger.InnsLoaded(_inns.Count);
     }
 
     private void CreateSampleInn()
@@ -114,7 +121,7 @@ public class InnDataRepository : IInnDataRepository
         var json = JsonSerializer.Serialize(sampleInn, new JsonSerializerOptions { WriteIndented = true });
         var samplePath = Path.Combine(InnsDirectory, "aeven.json");
         File.WriteAllText(samplePath, json);
-        _logger.LogInformation("Created sample inn file at {Path}", samplePath);
+        _logger.SampleDataFileCreated(samplePath);
         
         // Reload after creating sample
         LoadInns();
