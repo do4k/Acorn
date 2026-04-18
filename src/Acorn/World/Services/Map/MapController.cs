@@ -16,6 +16,9 @@ public class MapController : IMapController
 {
     private const int NPC_ACT_RATE = 2;
     private const int NPC_BORED_THRESHOLD = 60;
+    private const float SPIKE_DAMAGE_PERCENT = 0.1f;
+    private const int DOOR_CLOSE_RATE = 10;
+    private const int ITEM_CLEANUP_TICKS = 300; // ~5 minutes at 1 tick/sec
     private readonly IFormulaService _formulaService;
     private readonly ILogger<MapController> _logger;
     private readonly INpcCombatService _npcCombatService;
@@ -25,6 +28,12 @@ public class MapController : IMapController
     private readonly ICharacterCacheService _characterCache;
     private readonly IPaperdollService _paperdollService;
     private readonly WorldState _worldState;
+
+    // Per-map quake state is tracked on MapController since it's shared
+    private readonly Dictionary<int, int> _quakeTicks = new();
+    private readonly Dictionary<int, int> _quakeRate = new();
+    private readonly Dictionary<int, int> _quakeStrength = new();
+    private readonly Random _random = new();
 
     public MapController(
         IMapTileService tileService,
@@ -347,5 +356,202 @@ public class MapController : IMapController
         }
 
         await _playerController.WarpAsync(player, targetMap, x, y, warpEffect);
+    }
+
+    public async Task ProcessSpikeDamageAsync(MapState map)
+    {
+        var playersOnSpikes = new List<PlayerState>();
+
+        foreach (var player in map.Players.Values)
+        {
+            if (player.Character == null || player.Character.Hidden || player.Character.Hp <= 0)
+            {
+                continue;
+            }
+
+            var tile = _tileService.GetTile(map.Data, player.Character.AsCoords());
+            if (tile == MapTileSpec.TimedSpikes)
+            {
+                playersOnSpikes.Add(player);
+            }
+        }
+
+        if (playersOnSpikes.Count == 0)
+        {
+            return;
+        }
+
+        // Send spike effect notification to players NOT on spikes
+        var reportPacket = new EffectReportServerPacket();
+        foreach (var player in map.Players.Values)
+        {
+            if (player.Character != null && !playersOnSpikes.Contains(player))
+            {
+                await player.Send(reportPacket);
+            }
+        }
+
+        // Apply spike damage to players standing on spike tiles
+        foreach (var player in playersOnSpikes)
+        {
+            if (player.Character == null)
+            {
+                continue;
+            }
+
+            var damage = (int)Math.Floor(player.Character.MaxHp * SPIKE_DAMAGE_PERCENT);
+            damage = Math.Min(damage, player.Character.Hp);
+            player.Character.Hp -= damage;
+
+            var hpPercentage = player.Character.MaxHp > 0
+                ? (int)((double)player.Character.Hp / player.Character.MaxHp * 100)
+                : 0;
+
+            // Send damage notification to nearby players
+            await map.BroadcastPacket(new EffectAdminServerPacket
+            {
+                PlayerId = player.SessionId,
+                HpPercentage = hpPercentage,
+                Died = player.Character.Hp == 0,
+                Damage = damage
+            });
+
+            // Send HP update to the damaged player
+            await player.Send(new EffectSpecServerPacket
+            {
+                MapDamageType = MapDamageType.Spikes,
+                MapDamageTypeData = new EffectSpecServerPacket.MapDamageTypeDataSpikes
+                {
+                    HpDamage = damage,
+                    Hp = player.Character.Hp,
+                    MaxHp = player.Character.MaxHp
+                }
+            });
+
+            if (player.Character.Hp == 0)
+            {
+                await _playerController.DieAsync(player);
+            }
+        }
+    }
+
+    public async Task ProcessDoorAutoCloseAsync(MapState map)
+    {
+        var doorsToClose = new List<Coords>();
+
+        foreach (var kvp in map.OpenedDoors)
+        {
+            kvp.Value.OpenTicks++;
+            if (kvp.Value.OpenTicks >= DOOR_CLOSE_RATE)
+            {
+                doorsToClose.Add(kvp.Key);
+            }
+        }
+
+        foreach (var coords in doorsToClose)
+        {
+            map.OpenedDoors.TryRemove(coords, out _);
+
+            if (map.Players.IsEmpty)
+            {
+                continue;
+            }
+
+            await map.BroadcastPacket(new DoorCloseServerPacket());
+        }
+    }
+
+    public void ProcessGroundItemCleanup(MapState map)
+    {
+        var currentTick = map.TotalTicks;
+        var itemsToRemove = new List<int>();
+
+        foreach (var kvp in map.Items)
+        {
+            var age = currentTick - kvp.Value.DroppedAtTick;
+            if (age >= ITEM_CLEANUP_TICKS)
+            {
+                itemsToRemove.Add(kvp.Key);
+            }
+        }
+
+        foreach (var key in itemsToRemove)
+        {
+            map.Items.TryRemove(key, out _);
+            _logger.LogDebug("Cleaned up expired ground item (uid: {Uid}) on map {MapId}", key, map.Id);
+        }
+    }
+
+    public void ProcessNpcRecovery(MapState map)
+    {
+        foreach (var npc in map.Npcs.Values)
+        {
+            if (npc.IsDead || npc.Hp >= npc.Data.Hp)
+            {
+                continue;
+            }
+
+            // Only recover NPCs not currently in combat (no opponents)
+            if (npc.Opponents.Count > 0)
+            {
+                continue;
+            }
+
+            // Recover 10% of max HP + 1 per tick (matching reoserv formula)
+            var recovery = npc.Data.Hp / 10 + 1;
+            npc.Hp = Math.Min(npc.Hp + recovery, npc.Data.Hp);
+        }
+    }
+
+    public async Task ProcessQuakeAsync(MapState map)
+    {
+        var timedEffect = map.Data.TimedEffect;
+
+        if (timedEffect != MapTimedEffect.Quake1 &&
+            timedEffect != MapTimedEffect.Quake2 &&
+            timedEffect != MapTimedEffect.Quake3 &&
+            timedEffect != MapTimedEffect.Quake4)
+        {
+            return;
+        }
+
+        // Get quake config based on level
+        var (minTicks, maxTicks, minStrength, maxStrength) = timedEffect switch
+        {
+            MapTimedEffect.Quake1 => (30, 60, 1, 3),
+            MapTimedEffect.Quake2 => (20, 50, 2, 5),
+            MapTimedEffect.Quake3 => (15, 40, 3, 7),
+            MapTimedEffect.Quake4 => (10, 30, 5, 10),
+            _ => (30, 60, 1, 3)
+        };
+
+        // Initialize rate if needed
+        if (!_quakeRate.ContainsKey(map.Id))
+        {
+            _quakeRate[map.Id] = _random.Next(minTicks, maxTicks + 1);
+            _quakeStrength[map.Id] = _random.Next(minStrength, maxStrength + 1);
+            _quakeTicks[map.Id] = 0;
+        }
+
+        _quakeTicks[map.Id] = _quakeTicks.GetValueOrDefault(map.Id) + 1;
+
+        if (_quakeTicks[map.Id] >= _quakeRate[map.Id])
+        {
+            var strength = _quakeStrength[map.Id];
+
+            await map.BroadcastPacket(new EffectUseServerPacket
+            {
+                Effect = MapEffect.Quake,
+                EffectData = new EffectUseServerPacket.EffectDataQuake
+                {
+                    QuakeStrength = strength
+                }
+            });
+
+            // Reset for next quake
+            _quakeRate[map.Id] = _random.Next(minTicks, maxTicks + 1);
+            _quakeStrength[map.Id] = _random.Next(minStrength, maxStrength + 1);
+            _quakeTicks[map.Id] = 0;
+        }
     }
 }

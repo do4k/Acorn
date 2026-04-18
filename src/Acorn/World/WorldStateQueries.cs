@@ -53,6 +53,12 @@ public class WorldStateQueries : IWorldQueries
         return _world.GetPlayer(sessionId);
     }
 
+    public PlayerState? FindPlayerByName(string name)
+    {
+        return _world.Players.Values.FirstOrDefault(p =>
+            p.Character?.Name?.Equals(name, StringComparison.OrdinalIgnoreCase) == true);
+    }
+
     public IEnumerable<MapState> GetAllMaps()
     {
         return _world.Maps.Values;

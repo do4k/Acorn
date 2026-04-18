@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
+using System.Reflection;
 using Acorn.Database.Models;
 using Acorn.Infrastructure.Communicators;
+using Acorn.Infrastructure.Telemetry;
 using Acorn.Net.Models;
 using Acorn.Net.PacketHandlers;
 using Acorn.Net.PacketHandlers.Player.Warp;
@@ -13,7 +15,7 @@ using Moffat.EndlessOnline.SDK.Packet;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using Character = Acorn.Domain.Models.Character;
+using Character = Acorn.Game.Models.Character;
 
 namespace Acorn.Net;
 
@@ -22,9 +24,13 @@ public class PlayerState : IDisposable
     // Static cache for handler method invocation - avoids repeated reflection
     private static readonly ConcurrentDictionary<Type, Func<object, PlayerState, IPacket, Task>> _handlerInvokeCache = new();
     
+    // Static cache for [RequiresCharacter] attribute check per handler type
+    private static readonly ConcurrentDictionary<Type, bool> _requiresCharacterCache = new();
+    
     private readonly CancellationToken _cancellationToken;
     private readonly IEnumerable<IPacketHandler> _handlers;
     private readonly ILogger<PlayerState> _logger;
+    private readonly AcornMetrics _metrics;
     private readonly Action<PlayerState> _onDispose;
     private readonly PacketLog _packetLog = new();
     private readonly PacketResolver _resolver = new("Moffat.EndlessOnline.SDK.Protocol.Net.Client");
@@ -38,15 +44,19 @@ public class PlayerState : IDisposable
         ICommunicator communicator,
         ILogger<PlayerState> logger,
         IOptions<ServerOptions> serverOptions,
+        AcornMetrics metrics,
         int sessionId,
         Action<PlayerState> onDispose
     )
     {
         _logger = logger;
+        _metrics = metrics;
         _serverOptions = serverOptions.Value;
         _cancellationToken = _tokenSource.Token;
         _upcomingSequence = PingSequenceStart.Generate(Rnd);
-        _logger.LogInformation("New client connected from {Location}", communicator.GetConnectionOrigin());
+        _logger.PlayerConnected(sessionId, communicator.GetConnectionOrigin());
+        _metrics.ConnectionsTotal.Add(1);
+        _metrics.PlayersOnline.Add(1);
         _onDispose = onDispose;
         _handlers = handlers;
         SessionId = sessionId;
@@ -93,18 +103,25 @@ public class PlayerState : IDisposable
     // Pending trade request - the player who has requested to trade with us
     public int? PendingTradeRequestFromPlayerId { get; set; }
 
+    // Admin state
+    public bool IsFrozen { get; set; }
+    public bool IsMuted { get; set; }
+    public bool IsJailed { get; set; }
+
     // Board interaction state
     public int? InteractingBoardId { get; set; }
+
+    // Guild interaction state - the player who has requested to join/trade with us
+    public int? InteractingPlayerId { get; set; }
 
     // Inn/Sleep state
     public int? SleepCost { get; set; }
 
     public void Dispose()
     {
-        if (_disconnectReason != null)
-        {
-            _logger.LogInformation("Player disconnected: {Reason}", _disconnectReason);
-        }
+        _logger.PlayerDisconnected(SessionId, Account?.Username, Character?.Name, _disconnectReason ?? "unknown");
+        _metrics.DisconnectionsTotal.Add(1);
+        _metrics.PlayersOnline.Add(-1);
 
         _onDispose(this);
         // Fire and forget close - we're already in synchronous Dispose
@@ -170,7 +187,8 @@ public class PlayerState : IDisposable
                 // Rate limiting check
                 if (_packetLog.ShouldRateLimit(action, family))
                 {
-                    _logger.LogDebug("Rate limited: {Action}_{Family}", action, family);
+                    _logger.PacketRateLimited(action, family, SessionId);
+                    _metrics.PacketsRateLimited.Add(1);
                     // Send rate-limit response packet: 0xfe 0xfe <sequence>
                     var rateLimitResponse = new byte[3];
                     rateLimitResponse[0] = 0xfe;
@@ -208,11 +226,25 @@ public class PlayerState : IDisposable
                 {
                     _logger.LogError("Handler not registered for packet of type {PacketType} Skipping...",
                         packet.GetType());
+                    _metrics.PacketsUnhandled.Add(1);
                     continue;
                 }
 
                 // Record packet for rate limiting after successful processing
                 _packetLog.RecordPacket(action, family);
+
+                // Pipeline check: reject packets requiring a character if player hasn't loaded one
+                var requiresCharacter = _requiresCharacterCache.GetOrAdd(
+                    resolvedHandler.GetType(),
+                    type => type.GetCustomAttribute<RequiresCharacterAttribute>() != null);
+
+                if (requiresCharacter && (Character is null || CurrentMap is null))
+                {
+                    _logger.LogWarning(
+                        "Player {SessionId} attempted {PacketType} without character or map",
+                        SessionId, packet.GetType().Name);
+                    continue;
+                }
 
                 // Use cached reflection to invoke the typed HandleAsync method
                 var invoker = _handlerInvokeCache.GetOrAdd(packet.GetType(), packetType =>
@@ -221,7 +253,10 @@ public class PlayerState : IDisposable
                     return (handler, playerState, pkt) => (Task)method.Invoke(handler, [playerState, pkt])!;
                 });
                 
+                var sw = System.Diagnostics.Stopwatch.StartNew();
                 await invoker(resolvedHandler, this, packet);
+                sw.Stop();
+                _metrics.PacketProcessDuration.Record(sw.Elapsed.TotalMilliseconds);
             }
             catch (EndOfStreamException)
             {
@@ -282,7 +317,6 @@ public class PlayerState : IDisposable
         if (_serverOptions.EnforceSequence && serverSequence != clientSequence)
         {
             var message = $"Sending invalid sequence: Got {clientSequence}, expected {serverSequence}";
-            _logger.LogWarning(message);
             CloseWithReason(message);
             throw new InvalidOperationException(message);
         }

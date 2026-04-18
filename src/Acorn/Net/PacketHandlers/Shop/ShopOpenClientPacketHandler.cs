@@ -1,43 +1,23 @@
 using Acorn.Data;
-using Acorn.Database.Repository;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Shop;
 
+[RequiresCharacter]
 public class ShopOpenClientPacketHandler(
     ILogger<ShopOpenClientPacketHandler> logger,
-    IDataFileRepository dataFileRepository,
     IShopDataRepository shopDataRepository)
     : IPacketHandler<ShopOpenClientPacket>
 {
     public async Task HandleAsync(PlayerState player, ShopOpenClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to open shop without character or map", player.SessionId);
-            return;
-        }
-
-        // Find the NPC by index on the map
-        var npcIndex = packet.NpcIndex;
-        if (!player.CurrentMap.Npcs.TryGetValue(npcIndex, out var npc))
-        {
-            logger.LogWarning("Player {Character} tried to open shop at invalid NPC index {NpcIndex}",
-                player.Character.Name, npcIndex);
-            return;
-        }
-
-        // Verify it's a shop NPC
-        if (npc.Data.Type != NpcType.Shop)
-        {
-            logger.LogWarning("Player {Character} tried to open shop at non-shop NPC {NpcId}",
-                player.Character.Name, npc.Id);
-            return;
-        }
+        var npc = NpcInteractionHelper.ValidateAndStartInteraction(player, packet.NpcIndex, NpcType.Shop, logger);
+        if (npc is null) return;
 
         // Get shop data by NPC's behavior ID
         var shop = shopDataRepository.GetShopByBehaviorId(npc.Data.BehaviorId);
@@ -48,10 +28,7 @@ public class ShopOpenClientPacketHandler(
         }
 
         logger.LogInformation("Player {Character} opening shop {ShopName}",
-            player.Character.Name, shop.Name);
-
-        // Store the NPC index for subsequent buy/sell operations
-        player.InteractingNpcIndex = npcIndex;
+            player.Character!.Name, shop.Name);
 
         // Build trade items list
         var tradeItems = shop.Trades.Select(t => new Moffat.EndlessOnline.SDK.Protocol.Net.Server.ShopTradeItem

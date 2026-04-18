@@ -1,28 +1,22 @@
-using Acorn.World;
+using Acorn.World.Services.Party;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Party;
 
+[RequiresCharacter]
 public class PartyRequestClientPacketHandler(
+    IPartyService partyService,
     ILogger<PartyRequestClientPacketHandler> logger)
     : IPacketHandler<PartyRequestClientPacket>
 {
     public async Task HandleAsync(PlayerState player, PartyRequestClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to party action without character or map",
-                player.SessionId);
-            return;
-        }
+        logger.LogDebug("Player {Character} sending party {Type} request to {Target}",
+            player.Character!.Name, packet.RequestType, packet.PlayerId);
 
-        logger.LogInformation("Player {Character} initiating party with type {RequestType}",
-            player.Character.Name, packet.RequestType);
-
-        // TODO: Implement map.PartyRequest(player, requestType, playerId)
-        await Task.CompletedTask;
+        await partyService.RequestParty(player, packet.PlayerId, packet.RequestType);
     }
-
 }

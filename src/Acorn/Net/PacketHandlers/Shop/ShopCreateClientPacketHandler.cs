@@ -6,9 +6,11 @@ using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Shop;
 
+[RequiresCharacter]
 public class ShopCreateClientPacketHandler(
     ILogger<ShopCreateClientPacketHandler> logger,
     IDataFileRepository dataFileRepository,
@@ -18,29 +20,11 @@ public class ShopCreateClientPacketHandler(
 {
     public async Task HandleAsync(PlayerState player, ShopCreateClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to craft without character or map", player.SessionId);
-            return;
-        }
-
         var craftItemId = packet.CraftItemId;
 
         // Get the NPC we're interacting with
-        if (player.InteractingNpcIndex == null)
-        {
-            logger.LogWarning("Player {Character} attempted to craft without interacting with NPC",
-                player.Character.Name);
-            return;
-        }
-
-        var npcIndex = player.InteractingNpcIndex.Value;
-        if (!player.CurrentMap.Npcs.TryGetValue(npcIndex, out var npc) || npc.Data.Type != NpcType.Shop)
-        {
-            logger.LogWarning("Player {Character} tried to craft at invalid shop NPC",
-                player.Character.Name);
-            return;
-        }
+        var npc = NpcInteractionHelper.ValidateInteraction(player, NpcType.Shop, logger);
+        if (npc is null) return;
 
         // Get shop data
         var shop = shopDataRepository.GetShopByBehaviorId(npc.Data.BehaviorId);
@@ -55,7 +39,7 @@ public class ShopCreateClientPacketHandler(
         if (craft == null)
         {
             logger.LogWarning("Player {Character} tried to craft item {ItemId} not craftable at shop {Shop}",
-                player.Character.Name, craftItemId, shop.Name);
+                player.Character!.Name, craftItemId, shop.Name);
             return;
         }
 
@@ -63,10 +47,10 @@ public class ShopCreateClientPacketHandler(
         foreach (var ingredient in craft.Ingredients)
         {
             if (ingredient.ItemId > 0 &&
-                inventoryService.GetItemAmount(player.Character, ingredient.ItemId) < ingredient.Amount)
+                inventoryService.GetItemAmount(player.Character!, ingredient.ItemId) < ingredient.Amount)
             {
                 logger.LogDebug("Player {Character} missing ingredient {ItemId} for craft",
-                    player.Character.Name, ingredient.ItemId);
+                    player.Character!.Name, ingredient.ItemId);
                 return;
             }
         }
@@ -76,21 +60,21 @@ public class ShopCreateClientPacketHandler(
         {
             if (ingredient.ItemId > 0)
             {
-                if (!inventoryService.TryRemoveItem(player.Character, ingredient.ItemId, ingredient.Amount))
+                if (!inventoryService.TryRemoveItem(player.Character!, ingredient.ItemId, ingredient.Amount))
                 {
                     logger.LogError("Failed to remove ingredient {ItemId} from player {Character}",
-                        ingredient.ItemId, player.Character.Name);
+                        ingredient.ItemId, player.Character!.Name);
                     return;
                 }
             }
         }
 
         // Add crafted item
-        inventoryService.TryAddItem(player.Character, craftItemId, 1);
+        inventoryService.TryAddItem(player.Character!, craftItemId, 1);
 
         var itemData = dataFileRepository.Eif.GetItem(craftItemId);
         logger.LogInformation("Player {Character} crafted {ItemName}",
-            player.Character.Name, itemData?.Name ?? $"Item {craftItemId}");
+            player.Character!.Name, itemData?.Name ?? $"Item {craftItemId}");
 
         // Build response with remaining ingredient amounts
         // Pad to exactly 4 ingredients
@@ -106,29 +90,29 @@ public class ShopCreateClientPacketHandler(
             Weight = new Weight
             {
                 Current = CalculateCurrentWeight(player),
-                Max = player.Character.MaxWeight
+                Max = player.Character!.MaxWeight
             },
             Ingredients =
             [
                 new Moffat.EndlessOnline.SDK.Protocol.Net.Item
                 {
                     Id = ingredientAmounts[0].ItemId,
-                    Amount = inventoryService.GetItemAmount(player.Character, ingredientAmounts[0].ItemId)
+                    Amount = inventoryService.GetItemAmount(player.Character!, ingredientAmounts[0].ItemId)
                 },
                 new Moffat.EndlessOnline.SDK.Protocol.Net.Item
                 {
                     Id = ingredientAmounts[1].ItemId,
-                    Amount = inventoryService.GetItemAmount(player.Character, ingredientAmounts[1].ItemId)
+                    Amount = inventoryService.GetItemAmount(player.Character!, ingredientAmounts[1].ItemId)
                 },
                 new Moffat.EndlessOnline.SDK.Protocol.Net.Item
                 {
                     Id = ingredientAmounts[2].ItemId,
-                    Amount = inventoryService.GetItemAmount(player.Character, ingredientAmounts[2].ItemId)
+                    Amount = inventoryService.GetItemAmount(player.Character!, ingredientAmounts[2].ItemId)
                 },
                 new Moffat.EndlessOnline.SDK.Protocol.Net.Item
                 {
                     Id = ingredientAmounts[3].ItemId,
-                    Amount = inventoryService.GetItemAmount(player.Character, ingredientAmounts[3].ItemId)
+                    Amount = inventoryService.GetItemAmount(player.Character!, ingredientAmounts[3].ItemId)
                 }
             ]
         });
@@ -139,7 +123,7 @@ public class ShopCreateClientPacketHandler(
         if (player.Character == null) return 0;
 
         var totalWeight = 0;
-        foreach (var item in player.Character.Inventory.Items)
+        foreach (var item in player.Character!.Inventory.Items)
         {
             var itemData = dataFileRepository.Eif.GetItem(item.Id);
             if (itemData != null)

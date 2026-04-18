@@ -5,9 +5,11 @@ using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Player;
 
+[RequiresCharacter]
 public class PaperdollAddClientPacketHandler : IPacketHandler<PaperdollAddClientPacket>
 {
     private readonly IInventoryService _inventoryService;
@@ -29,14 +31,7 @@ public class PaperdollAddClientPacketHandler : IPacketHandler<PaperdollAddClient
 
     public async Task HandleAsync(PlayerState playerState, PaperdollAddClientPacket packet)
     {
-        if (playerState.Character is null || playerState.CurrentMap is null)
-        {
-            _logger.LogWarning("PaperdollAdd failed - Character is null: {CharIsNull}, CurrentMap is null: {MapIsNull}",
-                playerState.Character is null, playerState.CurrentMap is null);
-            return;
-        }
-
-        var character = playerState.Character;
+        var character = playerState.Character!;
 
         // Check if the player has the item
         var hasItem = _inventoryService.HasItem(character, packet.ItemId);
@@ -90,7 +85,7 @@ public class PaperdollAddClientPacketHandler : IPacketHandler<PaperdollAddClient
 
         // Broadcast avatar change to nearby players
         var broadcastPacket = new AvatarAgreeServerPacket { Change = avatarChange };
-        await playerState.CurrentMap.BroadcastPacket(broadcastPacket, playerState);
+        await playerState.CurrentMap!.BroadcastPacket(broadcastPacket, playerState);
     }
 
 }

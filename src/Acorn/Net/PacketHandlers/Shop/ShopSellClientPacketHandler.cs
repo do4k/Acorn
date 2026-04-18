@@ -6,14 +6,18 @@ using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
+using Acorn.Infrastructure.Telemetry;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Shop;
 
+[RequiresCharacter]
 public class ShopSellClientPacketHandler(
     ILogger<ShopSellClientPacketHandler> logger,
     IDataFileRepository dataFileRepository,
     IShopDataRepository shopDataRepository,
-    IInventoryService inventoryService)
+    IInventoryService inventoryService,
+    AcornMetrics metrics)
     : IPacketHandler<ShopSellClientPacket>
 {
     private const int GoldItemId = 1;
@@ -21,47 +25,28 @@ public class ShopSellClientPacketHandler(
 
     public async Task HandleAsync(PlayerState player, ShopSellClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to sell to shop without character or map",
-                player.SessionId);
-            return;
-        }
-
         var itemId = packet.SellItem.Id;
         var requestedAmount = packet.SellItem.Amount;
 
         if (requestedAmount <= 0 || requestedAmount > MaxItem)
         {
             logger.LogWarning("Player {Character} attempted to sell invalid amount {Amount}",
-                player.Character.Name, requestedAmount);
+                player.Character!.Name, requestedAmount);
             return;
         }
 
         // Validate player has the item
-        var playerItemAmount = inventoryService.GetItemAmount(player.Character, itemId);
+        var playerItemAmount = inventoryService.GetItemAmount(player.Character!, itemId);
         if (playerItemAmount < requestedAmount)
         {
             logger.LogWarning("Player {Character} tried to sell {Amount}x item {ItemId} but only has {Has}",
-                player.Character.Name, requestedAmount, itemId, playerItemAmount);
+                player.Character!.Name, requestedAmount, itemId, playerItemAmount);
             return;
         }
 
         // Get the NPC we're interacting with
-        if (player.InteractingNpcIndex == null)
-        {
-            logger.LogWarning("Player {Character} attempted to sell without interacting with NPC",
-                player.Character.Name);
-            return;
-        }
-
-        var npcIndex = player.InteractingNpcIndex.Value;
-        if (!player.CurrentMap.Npcs.TryGetValue(npcIndex, out var npc) || npc.Data.Type != NpcType.Shop)
-        {
-            logger.LogWarning("Player {Character} tried to sell to invalid shop NPC",
-                player.Character.Name);
-            return;
-        }
+        var npc = NpcInteractionHelper.ValidateInteraction(player, NpcType.Shop, logger);
+        if (npc is null) return;
 
         // Get shop data
         var shop = shopDataRepository.GetShopByBehaviorId(npc.Data.BehaviorId);
@@ -76,7 +61,7 @@ public class ShopSellClientPacketHandler(
         if (trade == null)
         {
             logger.LogWarning("Player {Character} tried to sell item {ItemId} not bought by shop {Shop}",
-                player.Character.Name, itemId, shop.Name);
+                player.Character!.Name, itemId, shop.Name);
             return;
         }
 
@@ -101,31 +86,32 @@ public class ShopSellClientPacketHandler(
         var sellValue = Math.Min(trade.SellPrice * amount, MaxItem);
 
         // Remove sold item from inventory
-        if (!inventoryService.TryRemoveItem(player.Character, itemId, amount))
+        if (!inventoryService.TryRemoveItem(player.Character!, itemId, amount))
         {
-            logger.LogWarning("Failed to remove item from player {Character}", player.Character.Name);
+            logger.LogWarning("Failed to remove item from player {Character}", player.Character!.Name);
             return;
         }
 
         // Add gold to inventory
-        inventoryService.TryAddItem(player.Character, GoldItemId, sellValue);
+        inventoryService.TryAddItem(player.Character!, GoldItemId, sellValue);
+        metrics.GoldEarned.Add(sellValue);
 
         logger.LogInformation("Player {Character} sold {Amount}x {ItemName} for {Value} gold",
-            player.Character.Name, amount, itemData.Name, sellValue);
+            player.Character!.Name, amount, itemData.Name, sellValue);
 
         // Send response
         await player.Send(new ShopSellServerPacket
         {
-            GoldAmount = inventoryService.GetItemAmount(player.Character, GoldItemId),
+            GoldAmount = inventoryService.GetItemAmount(player.Character!, GoldItemId),
             SoldItem = new ShopSoldItem
             {
                 Id = itemId,
-                Amount = inventoryService.GetItemAmount(player.Character, itemId)
+                Amount = inventoryService.GetItemAmount(player.Character!, itemId)
             },
             Weight = new Weight
             {
                 Current = CalculateCurrentWeight(player),
-                Max = player.Character.MaxWeight
+                Max = player.Character!.MaxWeight
             }
         });
     }
@@ -135,7 +121,7 @@ public class ShopSellClientPacketHandler(
         if (player.Character == null) return 0;
 
         var totalWeight = 0;
-        foreach (var item in player.Character.Inventory.Items)
+        foreach (var item in player.Character!.Inventory.Items)
         {
             var itemData = dataFileRepository.Eif.GetItem(item.Id);
             if (itemData != null)

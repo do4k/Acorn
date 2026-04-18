@@ -24,6 +24,21 @@ public class MapItem
     public required Coords Coords { get; set; }
     public int OwnerId { get; set; }
     public int ProtectedTicks { get; set; }
+
+    /// <summary>
+    ///     Tick count when this item was dropped on the ground.
+    ///     Used for ground item cleanup after expiry.
+    /// </summary>
+    public int DroppedAtTick { get; set; }
+}
+
+/// <summary>
+///     Tracks an opened door with its auto-close timer.
+/// </summary>
+public class OpenedDoor
+{
+    public required Coords Coords { get; set; }
+    public int OpenTicks { get; set; }
 }
 
 public class ArenaPlayer
@@ -45,6 +60,10 @@ public class MapState
     // Tick counters for periodic events
     private int _playerRecoverTicks;
     private int _arenaTicks;
+    private int _spikeTicks;
+    private int _npcRecoverTicks;
+    private int _itemCleanupTicks;
+    private int _totalTicks;
 
     // Arena state
     public ConcurrentQueue<int> ArenaQueue { get; } = new();
@@ -116,6 +135,37 @@ public class MapState
     public ConcurrentDictionary<int, PlayerState> Players { get; set; } = new();
     public ConcurrentDictionary<int, MapItem> Items { get; set; } = new();
     public ConcurrentDictionary<Coords, MapChest> Chests { get; set; } = new();
+
+    /// <summary>
+    ///     Doors currently open with auto-close timers.
+    /// </summary>
+    public ConcurrentDictionary<Coords, OpenedDoor> OpenedDoors { get; set; } = new();
+
+    /// <summary>
+    ///     Remaining ticks for the currently playing jukebox track.
+    ///     When > 0, the jukebox is busy and cannot play another track.
+    /// </summary>
+    public int JukeboxTicks { get; set; }
+
+    /// <summary>
+    ///     Name of the player who last played the jukebox.
+    /// </summary>
+    public string? JukeboxPlayerName { get; set; }
+
+    /// <summary>
+    ///     Active wedding ceremony on this map, if any.
+    /// </summary>
+    public Wedding? Wedding { get; set; }
+
+    /// <summary>
+    ///     Tick counter for the wedding ceremony progression.
+    /// </summary>
+    public int WeddingTicks { get; set; }
+
+    /// <summary>
+    ///     Current total tick count for this map, used for item drop timestamps.
+    /// </summary>
+    public int TotalTicks => _totalTicks;
 
     public bool HasPlayer(PlayerState player)
     {
@@ -217,8 +267,13 @@ public class MapState
 
     public async Task Tick()
     {
+        _totalTicks++;
+
         if (Players.IsEmpty)
         {
+            // Still process door auto-close and NPC recovery even without players
+            await _mapController.ProcessDoorAutoCloseAsync(this);
+            _mapController.ProcessNpcRecovery(this);
             return;
         }
 
@@ -239,6 +294,46 @@ public class MapState
             // Exclude players who were attacked this tick from recovery
             await _mapController.ProcessPlayerRecoveryAsync(this, attackedPlayerIds);
         }
+
+        // Spike damage every 2 ticks
+        _spikeTicks++;
+        if (_spikeTicks >= 2)
+        {
+            _spikeTicks = 0;
+            await _mapController.ProcessSpikeDamageAsync(this);
+        }
+
+        // Door auto-close check every tick
+        await _mapController.ProcessDoorAutoCloseAsync(this);
+
+        // NPC HP recovery every 5 ticks (same rate as player recovery default)
+        _npcRecoverTicks++;
+        if (_npcRecoverTicks >= 5)
+        {
+            _npcRecoverTicks = 0;
+            _mapController.ProcessNpcRecovery(this);
+        }
+
+        // Ground item cleanup every 30 ticks
+        _itemCleanupTicks++;
+        if (_itemCleanupTicks >= 30)
+        {
+            _itemCleanupTicks = 0;
+            _mapController.ProcessGroundItemCleanup(this);
+        }
+
+        // Jukebox timer
+        if (JukeboxTicks > 0)
+        {
+            JukeboxTicks--;
+            if (JukeboxTicks == 0)
+            {
+                JukeboxPlayerName = null;
+            }
+        }
+
+        // Quake effects
+        await _mapController.ProcessQuakeAsync(this);
 
         // Process arena spawns
         if (IsArenaMap && _isArenaEnabled)
@@ -312,5 +407,15 @@ public class MapState
             }
         }
         // Note: This is a bit racy but acceptable for game logic
+    }
+
+    /// <summary>
+    ///     Register a door as opened for auto-close tracking.
+    /// </summary>
+    public void RegisterOpenedDoor(Coords coords)
+    {
+        OpenedDoors.AddOrUpdate(coords,
+            _ => new OpenedDoor { Coords = coords, OpenTicks = 0 },
+            (_, existing) => { existing.OpenTicks = 0; return existing; });
     }
 }

@@ -1,5 +1,5 @@
 using System.Collections.Concurrent;
-using Acorn.Domain.Models;
+using Acorn.Game.Models;
 
 namespace Acorn.Game.Services;
 

@@ -5,32 +5,18 @@ using Acorn.Database.Models;
 using Acorn.Database.Repository;
 using Acorn.Game.Services;
 using Acorn.Net.PacketHandlers;
-using Acorn.Net.PacketHandlers.Account;
-using Acorn.Net.PacketHandlers.Bank;
-using Acorn.Net.PacketHandlers.Barber;
-using Acorn.Net.PacketHandlers.Board;
-using Acorn.Net.PacketHandlers.Character;
-using Acorn.Net.PacketHandlers.Chest;
-using Acorn.Net.PacketHandlers.Citizen;
-using Acorn.Net.PacketHandlers.Item;
-using Acorn.Net.PacketHandlers.Locker;
-using Acorn.Net.PacketHandlers.Npc;
-using Acorn.Net.PacketHandlers.Player;
-using Acorn.Net.PacketHandlers.Player.Talk;
-using Acorn.Net.PacketHandlers.Player.Warp;
-using Acorn.Net.PacketHandlers.Range;
-using Acorn.Net.PacketHandlers.Shop;
-using Acorn.Net.PacketHandlers.Spell;
-using Acorn.Net.PacketHandlers.Trade;
 using Acorn.Shared.Caching;
+using Acorn.World.Services.Admin;
 using Acorn.World.Services.Map;
 using Acorn.World.Services.Arena;
+using Acorn.World.Services.Guild;
+using Acorn.World.Services.Marriage;
+using Acorn.World.Services.Quest;
 using Acorn.World.Services.Npc;
+using Acorn.World.Services.Party;
 using Acorn.World.Services.Player;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Moffat.EndlessOnline.SDK.Protocol.Net;
-using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 
 namespace Acorn.Extensions;
 
@@ -77,7 +63,9 @@ internal static class IocRegistrations
             })
             .AddSingleton<IDataFileRepository, DataFileRepository>()
             .AddSingleton<IShopDataRepository, ShopDataRepository>()
+            .AddSingleton<ISkillMasterDataRepository, SkillMasterDataRepository>()
             .AddSingleton<IInnDataRepository, InnDataRepository>()
+            .AddSingleton<IQuestDataRepository, QuestDataRepository>()
             .AddScoped<IBoardRepository, BoardRepository>();
     }
 
@@ -92,7 +80,14 @@ internal static class IocRegistrations
             .AddSingleton<IPlayerController, PlayerController>()
             .AddSingleton<INpcController, NpcController>()
             .AddSingleton<IMapController, MapController>()
+            .AddSingleton<IMapEffectService, MapEffectService>()
             .AddSingleton<IArenaService, ArenaService>()
+            .AddSingleton<IPartyService, PartyService>()
+            .AddSingleton<IGuildService, GuildService>()
+            .AddSingleton<IQuestService, QuestService>()
+            .AddSingleton<IAdminService, AdminService>()
+            .AddSingleton<IMarriageService, MarriageService>()
+            .AddSingleton<IMapItemService, MapItemService>()
             // Lazy<T> registration to break circular dependencies
             .AddTransient(typeof(Lazy<>), typeof(LazyServiceProvider<>));
     }
@@ -108,104 +103,32 @@ internal static class IocRegistrations
         }
     }
 
+    /// <summary>
+    /// Auto-discovers and registers all IPacketHandler&lt;T&gt; implementations in the assembly.
+    /// Each handler is registered as both its typed interface and the marker IPacketHandler interface.
+    /// </summary>
     public static IServiceCollection AddPacketHandlers(this IServiceCollection services)
     {
-        void AddPacketHandler<TPacket, THandler>()
-            where TPacket : IPacket
-            where THandler : class, IPacketHandler<TPacket>
+        var assembly = Assembly.GetExecutingAssembly();
+        var handlerTypes = assembly.GetTypes()
+            .Where(t => t is { IsAbstract: false, IsInterface: false })
+            .Where(t => t.GetInterfaces().Any(i =>
+                i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IPacketHandler<>)))
+            .ToList();
+
+        foreach (var handlerType in handlerTypes)
         {
-            services.AddTransient<IPacketHandler<TPacket>, THandler>();
-            services.AddTransient<IPacketHandler, THandler>(sp =>
-                (THandler)sp.GetRequiredService<IPacketHandler<TPacket>>());
+            var packetInterface = handlerType.GetInterfaces()
+                .First(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IPacketHandler<>));
+
+            // Register as IPacketHandler<TPacket>
+            services.AddTransient(packetInterface, handlerType);
+
+            // Register as IPacketHandler (marker) by resolving via the typed interface
+            var capturedInterface = packetInterface;
+            services.AddTransient<IPacketHandler>(sp =>
+                (IPacketHandler)sp.GetRequiredService(capturedInterface));
         }
-
-        AddPacketHandler<AccountCreateClientPacket, AccountCreateClientPacketHandler>();
-        AddPacketHandler<AccountRequestClientPacket, AccountRequestClientPacketHandler>();
-        AddPacketHandler<LoginRequestClientPacket, LoginRequestClientPacketHandler>();
-        AddPacketHandler<CharacterCreateClientPacket, CharacterCreateClientPacketHandler>();
-        AddPacketHandler<CharacterRequestClientPacket, CharacterRequestClientPacketHandler>();
-        AddPacketHandler<CharacterTakeClientPacket, CharacterTakeClientPacketHandler>();
-        AddPacketHandler<CharacterRemoveClientPacket, CharacterRemoveClientPacketHandler>();
-        AddPacketHandler<NpcRangeRequestClientPacket, NpcRangeRequestClientPacketHandler>();
-        AddPacketHandler<RangeRequestClientPacket, RangeRequestClientPacketHandler>();
-        AddPacketHandler<WarpAcceptClientPacket, WarpAcceptClientPacketHandler>();
-        AddPacketHandler<WarpTakeClientPacket, WarpTakeClientPacketHandler>();
-        AddPacketHandler<TalkAnnounceClientPacket, TalkAnnounceClientPacketHandler>();
-        AddPacketHandler<TalkMsgClientPacket, TalkMsgClientPacketHandler>();
-        AddPacketHandler<TalkReportClientPacket, TalkReportClientPacketHandler>();
-        AddPacketHandler<AttackUseClientPacket, AttackUseClientPacketHandler>();
-        AddPacketHandler<ConnectionAcceptClientPacket, ConnectionAcceptClientPacketHandler>();
-        AddPacketHandler<ConnectionPingClientPacket, ConnectionPingClientPacketHandler>();
-        AddPacketHandler<DoorOpenClientPacket, DoorOpenClientPacketHandler>();
-        AddPacketHandler<GlobalCloseClientPacket, GlobalCloseClientPacketHandler>();
-        AddPacketHandler<GlobalOpenClientPacket, GlobalOpenClientPacketHandler>();
-        AddPacketHandler<InitInitClientPacket, InitInitClientPacketHandler>();
-        AddPacketHandler<PaperdollRequestClientPacket, PaperdollRequestClientPacketHandler>();
-        AddPacketHandler<PaperdollAddClientPacket, PaperdollAddClientPacketHandler>();
-        AddPacketHandler<PaperdollRemoveClientPacket, PaperdollRemoveClientPacketHandler>();
-        AddPacketHandler<PlayerRangeRequestClientPacket, PlayerRangeRequestClientPacketHandler>();
-        AddPacketHandler<PlayersRequestClientPacket, PlayersRequestClientPacketHandler>();
-        AddPacketHandler<RefreshRequestClientPacket, RefreshRequestClientPacketHandler>();
-        AddPacketHandler<WalkAdminClientPacket, WalkAdminClientPacketHandler>();
-        AddPacketHandler<WalkPlayerClientPacket, WalkPlayerClientPacketHandler>();
-        AddPacketHandler<WelcomeAgreeClientPacket, WelcomeAgreeClientPacketHandler>();
-        AddPacketHandler<WelcomeMsgClientPacket, WelcomeMsgClientPacketHandler>();
-        AddPacketHandler<WelcomeRequestClientPacket, WelcomeRequestClientPacketHandler>();
-        AddPacketHandler<FacePlayerClientPacket, FacePlayerClientPacketHandler>();
-        AddPacketHandler<ItemGetClientPacket, ItemGetClientPacketHandler>();
-        AddPacketHandler<ItemDropClientPacket, ItemDropClientPacketHandler>();
-        AddPacketHandler<ItemJunkClientPacket, ItemJunkClientPacketHandler>();
-        AddPacketHandler<ItemUseClientPacket, ItemUseClientPacketHandler>();
-        AddPacketHandler<SpellRequestClientPacket, SpellRequestClientPacketHandler>();
-        AddPacketHandler<SpellTargetSelfClientPacket, SpellTargetSelfClientPacketHandler>();
-        AddPacketHandler<SpellTargetOtherClientPacket, SpellTargetOtherClientPacketHandler>();
-        AddPacketHandler<SpellTargetGroupClientPacket, SpellTargetGroupClientPacketHandler>();
-        AddPacketHandler<StatSkillAddClientPacket, StatSkillAddClientPacketHandler>();
-
-        // Shop handlers
-        AddPacketHandler<ShopOpenClientPacket, ShopOpenClientPacketHandler>();
-        AddPacketHandler<ShopBuyClientPacket, ShopBuyClientPacketHandler>();
-        AddPacketHandler<ShopSellClientPacket, ShopSellClientPacketHandler>();
-        AddPacketHandler<ShopCreateClientPacket, ShopCreateClientPacketHandler>();
-
-        // Bank handlers
-        AddPacketHandler<BankOpenClientPacket, BankOpenClientPacketHandler>();
-        AddPacketHandler<BankAddClientPacket, BankAddClientPacketHandler>();
-        AddPacketHandler<BankTakeClientPacket, BankTakeClientPacketHandler>();
-
-        // Locker handlers
-        AddPacketHandler<LockerOpenClientPacket, LockerOpenClientPacketHandler>();
-        AddPacketHandler<LockerAddClientPacket, LockerAddClientPacketHandler>();
-        AddPacketHandler<LockerTakeClientPacket, LockerTakeClientPacketHandler>();
-
-        // Chest handlers
-        AddPacketHandler<ChestOpenClientPacket, ChestOpenClientPacketHandler>();
-        AddPacketHandler<ChestAddClientPacket, ChestAddClientPacketHandler>();
-        AddPacketHandler<ChestTakeClientPacket, ChestTakeClientPacketHandler>();
-
-        // Barber handlers
-        AddPacketHandler<BarberOpenClientPacket, BarberOpenClientPacketHandler>();
-        AddPacketHandler<BarberBuyClientPacket, BarberBuyClientPacketHandler>();
-
-        // Trade handlers
-        AddPacketHandler<TradeRequestClientPacket, TradeRequestClientPacketHandler>();
-        AddPacketHandler<TradeAcceptClientPacket, TradeAcceptClientPacketHandler>();
-        AddPacketHandler<TradeAddClientPacket, TradeAddClientPacketHandler>();
-        AddPacketHandler<TradeRemoveClientPacket, TradeRemoveClientPacketHandler>();
-        AddPacketHandler<TradeAgreeClientPacket, TradeAgreeClientPacketHandler>();
-        AddPacketHandler<TradeCloseClientPacket, TradeCloseClientPacketHandler>();
-
-        // Board handlers
-        AddPacketHandler<BoardOpenClientPacket, BoardOpenClientPacketHandler>();
-        AddPacketHandler<BoardCreateClientPacket, BoardCreateClientPacketHandler>();
-        AddPacketHandler<BoardTakeClientPacket, BoardTakeClientPacketHandler>();
-        AddPacketHandler<BoardRemoveClientPacket, BoardRemoveClientPacketHandler>();
-
-        // Citizen/Inn handlers
-        AddPacketHandler<CitizenOpenClientPacket, CitizenOpenClientPacketHandler>();
-        AddPacketHandler<CitizenRequestClientPacket, CitizenRequestClientPacketHandler>();
-        AddPacketHandler<CitizenReplyClientPacket, CitizenReplyClientPacketHandler>();
-        AddPacketHandler<CitizenAcceptClientPacket, CitizenAcceptClientPacketHandler>();
 
         return services;
     }

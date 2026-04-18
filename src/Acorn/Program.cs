@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using Acorn.Database;
 using Acorn.Database.Repository;
@@ -8,6 +8,7 @@ using Acorn.Game.Services;
 using Acorn.Infrastructure;
 using Acorn.Infrastructure.Communicators;
 using Acorn.Infrastructure.Gemini;
+using Acorn.Infrastructure.Telemetry;
 using Acorn.Net;
 using Acorn.Net.PacketHandlers.Player.Talk;
 using Acorn.Net.Services;
@@ -18,13 +19,13 @@ using Acorn.SLN;
 using Acorn.World;
 using Acorn.World.Map;
 using Acorn.World.Services;
-using Acorn.World.Services.Map;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using OpenTelemetry.Metrics;
 using Refit;
 
 var GREEN = Console.IsOutputRedirected ? "" : "\x1b[92m";
@@ -95,7 +96,18 @@ var host = Host.CreateDefaultBuilder(args)
             .Configure<ArenaOptions>(configuration.GetSection(ArenaOptions.SectionName))
             .Configure<CacheOptions>(configuration.GetSection(CacheOptions.SectionName))
             .Configure<WiseManAgentOptions>(configuration.GetSection(WiseManAgentOptions.SectionName))
-            .AddSingleton<UtcNowDelegate>(() => DateTime.UtcNow);
+            .Configure<JukeboxOptions>(configuration.GetSection(JukeboxOptions.SectionName))
+            .Configure<MarriageOptions>(configuration.GetSection(MarriageOptions.SectionName))
+            .AddSingleton<UtcNowDelegate>(() => DateTime.UtcNow)
+            .AddSingleton<AcornMetrics>();
+
+        // Configure OpenTelemetry metrics export
+        services.AddOpenTelemetry()
+            .WithMetrics(metrics =>
+            {
+                metrics.AddMeter(AcornMetrics.MeterName);
+                metrics.AddOtlpExporter();
+            });
 
         // Configure DbContext based on database engine
         services.AddDbContext<AcornDbContext>((sp, options) =>
@@ -109,32 +121,8 @@ var host = Host.CreateDefaultBuilder(args)
                 "Configuring database context - Engine: {Engine}, ConnectionString: {ConnectionString}",
                 dbEngine, MaskConnectionString(connectionString));
 
-            switch (dbEngine)
-            {
-                case "postgresql":
-                case "postgres":
-                    logger.LogInformation("Using PostgreSQL database provider");
-                    options.UseNpgsql(connectionString);
-                    break;
-                case "mysql":
-                case "mariadb":
-                    logger.LogInformation("Using MySQL database provider");
-                    options.UseMySQL(connectionString!);
-                    break;
-                case "sqlserver":
-                case "mssql":
-                    logger.LogInformation("Using SQL Server database provider");
-                    options.UseSqlServer(connectionString);
-                    break;
-                case "sqlite":
-                default:
-                    logger.LogInformation("Using SQLite database provider");
-                    options.UseSqlite(connectionString);
-                    break;
-            }
-
-            options.EnableSensitiveDataLogging();
-            options.EnableDetailedErrors();
+            logger.LogInformation("Using {Engine} database provider", dbEngine);
+            options.UseDatabaseEngine(dbEngine, connectionString);
         });
 
         // Configure Caching (Redis or In-Memory)
@@ -145,15 +133,12 @@ var host = Host.CreateDefaultBuilder(args)
             .AddSingleton<ISessionGenerator, SessionGenerator>()
             // Game services
             .AddSingleton<IStatCalculator, StatCalculator>()
-            .AddSingleton<ILootService, LootService>()
             .AddSingleton<IInventoryService, InventoryService>()
             .AddSingleton<IBankService, BankService>()
             .AddSingleton<IPaperdollService, PaperdollService>()
             .AddSingleton<IWeightCalculator, WeightCalculator>()
             .AddSingleton<ICharacterMapper, CharacterMapper>()
             .AddSingleton<DropFileTextLoader>()
-            // World services
-            .AddSingleton<IMapItemService, MapItemService>()
             // Notification services
             .AddSingleton<INotificationService, NotificationService>()
             .AddScoped<IDbInitialiser, DbInitialiser>()
@@ -166,6 +151,7 @@ var host = Host.CreateDefaultBuilder(args)
             .AddSingleton<WorldState>()
             .AddSingleton<IWorldQueries, WorldStateQueries>()
             .AddAllOfType<ITalkHandler>()
+            .AddAllOfType<IPlayerCommandHandler>()
             .AddPacketHandlers()
             .AddRepositories()
             .AddWorldServices()

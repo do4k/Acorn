@@ -1,9 +1,11 @@
-﻿using System.Text;
+using System.Text;
 using Acorn.Database.Models;
 using Acorn.Database.Repository;
 using Acorn.Extensions;
+using Acorn.Game.Mappers;
 using Acorn.Game.Services;
 using Acorn.Infrastructure.Security;
+using Acorn.Infrastructure.Telemetry;
 using Acorn.World;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
@@ -16,7 +18,8 @@ public class LoginRequestClientPacketHandler(
     ILogger<LoginRequestClientPacketHandler> logger,
     IDbRepository<Database.Models.Account> repository,
     IPaperdollService paperdollService,
-    IWorldQueries world
+    IWorldQueries world,
+    AcornMetrics metrics
 ) : IPacketHandler<LoginRequestClientPacket>
 {
     private readonly IPaperdollService _paperdollService = paperdollService;
@@ -31,7 +34,7 @@ public class LoginRequestClientPacketHandler(
         var account = await _repository.GetByKeyAsync(packet.Username);
         if (account is null)
         {
-            logger.LogWarning("Login failed - account not found: {Username}", packet.Username);
+            logger.LoginFailed(packet.Username, "account not found");
             await playerState.Send(new LoginReplyServerPacket
             {
                 ReplyCode = LoginReply.WrongUser,
@@ -55,7 +58,7 @@ public class LoginRequestClientPacketHandler(
 
         if (valid is false)
         {
-            logger.LogWarning("Login failed - invalid password for account: {Username}", packet.Username);
+            logger.LoginFailed(packet.Username, "invalid password");
             await playerState.Send(new LoginReplyServerPacket
             {
                 ReplyCode = LoginReply.WrongUserPassword,
@@ -64,15 +67,16 @@ public class LoginRequestClientPacketHandler(
             return;
         }
 
-        logger.LogInformation("Login successful for account: {Username}", packet.Username);
+        logger.LoginSuccessful(packet.Username, playerState.SessionId);
         playerState.Account = account;
+        metrics.LoginsTotal.Add(1);
         await playerState.Send(new LoginReplyServerPacket
         {
             ReplyCode = LoginReply.Ok,
             ReplyCodeData = new LoginReplyServerPacket.ReplyCodeDataOk
             {
                 Characters = playerState.Account.Characters
-                    .Select((x, id) => x.AsGameModel().AsCharacterListEntry(id, _paperdollService)).ToList()
+                    .Select((x, id) => CharacterMapper.FromDatabaseModel(x).AsCharacterListEntry(id, _paperdollService)).ToList()
             }
         });
     }

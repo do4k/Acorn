@@ -1,7 +1,12 @@
-﻿using Acorn.Database.Models;
+using Acorn.Database;
+using Acorn.Database.Models;
 using Acorn.Database.Repository;
 using Acorn.Extensions;
+using Acorn.Game.Mappers;
 using Acorn.Game.Services;
+using Acorn.World.Services.Quest;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
@@ -16,17 +21,23 @@ internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequest
     private readonly ILogger<WelcomeRequestClientPacketHandler> _logger;
     private readonly IPaperdollService _paperdollService;
     private readonly IStatCalculator _statCalculator;
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IQuestService _questService;
 
     public WelcomeRequestClientPacketHandler(
         IDataFileRepository dataRepository,
         IStatCalculator statCalculator,
         IPaperdollService paperdollService,
+        IServiceScopeFactory scopeFactory,
+        IQuestService questService,
         ILogger<WelcomeRequestClientPacketHandler> logger
     )
     {
         _dataRepository = dataRepository;
         _statCalculator = statCalculator;
         _paperdollService = paperdollService;
+        _scopeFactory = scopeFactory;
+        _questService = questService;
         _logger = logger;
     }
 
@@ -48,7 +59,32 @@ internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequest
             return;
         }
 
-        playerState.Character = character.AsGameModel();
+        playerState.Character = CharacterMapper.FromDatabaseModel(character);
+
+        // Load guild membership data
+        using (var scope = _scopeFactory.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AcornDbContext>();
+            var guildMember = await db.GuildMembers
+                .Include(m => m.Guild)
+                .FirstOrDefaultAsync(m => m.CharacterName == playerState.Character.Name);
+
+            if (guildMember?.Guild is not null)
+            {
+                playerState.Character.GuildTag = guildMember.GuildTag;
+                playerState.Character.GuildName = guildMember.Guild.Name;
+                playerState.Character.GuildRankIndex = guildMember.RankIndex;
+                var ranks = guildMember.Guild.Ranks.Split(',');
+                playerState.Character.GuildRankName =
+                    guildMember.RankIndex >= 0 && guildMember.RankIndex < ranks.Length
+                        ? ranks[guildMember.RankIndex]
+                        : "";
+            }
+        }
+
+        // Load quest progress
+        await _questService.LoadQuestProgress(playerState.Character.Name!, playerState.Character);
+
         var equipmentResult = playerState.Character.Equipment();
         _statCalculator.RecalculateStats(playerState.Character, _dataRepository.Ecf);
 
@@ -70,10 +106,10 @@ internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequest
                 EsfLength = _dataRepository.Esf.Skills.Count,
                 EsfRid = _dataRepository.Esf.Rid,
                 Experience = playerState.Character.Exp,
-                GuildName = "DansArmy",
-                GuildRank = 0,
-                GuildRankName = "The Boss",
-                GuildTag = "DAN",
+                GuildName = playerState.Character.GuildName ?? "",
+                GuildRank = playerState.Character.GuildRankIndex,
+                GuildRankName = playerState.Character.GuildRankName ?? "",
+                GuildTag = playerState.Character.GuildTag ?? "   ",
                 MapFileSize = map.ByteSize,
                 MapId = playerState.Character.Map,
                 MapRid = map.Rid,

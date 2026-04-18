@@ -1,5 +1,4 @@
 using Acorn.Database.Repository;
-using Acorn.Game.Services;
 using Acorn.World.Map;
 using Acorn.World.Services.Map;
 using Microsoft.Extensions.Logging;
@@ -9,33 +8,28 @@ using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Chest;
 
+[RequiresCharacter]
 public class ChestOpenClientPacketHandler(
     ILogger<ChestOpenClientPacketHandler> logger,
     IDataFileRepository dataFileRepository,
-    IMapTileService mapTileService,
-    IInventoryService inventoryService)
+    IMapTileService mapTileService)
     : IPacketHandler<ChestOpenClientPacket>
 {
     public async Task HandleAsync(PlayerState player, ChestOpenClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to open chest without character or map", player.SessionId);
-            return;
-        }
-
         var chestCoords = packet.Coords;
-        var playerCoords = new Coords { X = player.Character.X, Y = player.Character.Y };
+        var playerCoords = new Coords { X = player.Character!.X, Y = player.Character!.Y };
 
         // Check if chest tile exists at these coordinates
-        var tile = mapTileService.GetTile(player.CurrentMap.Data, chestCoords);
+        var tile = mapTileService.GetTile(player.CurrentMap!.Data, chestCoords);
         if (tile != MapTileSpec.Chest)
         {
             logger.LogWarning("Player {Character} tried to open chest at non-chest tile ({X}, {Y})",
-                player.Character.Name, chestCoords.X, chestCoords.Y);
+                player.Character!.Name, chestCoords.X, chestCoords.Y);
             return;
         }
 
@@ -44,12 +38,12 @@ public class ChestOpenClientPacketHandler(
         if (distance > 1)
         {
             logger.LogWarning("Player {Character} tried to open chest too far away",
-                player.Character.Name);
+                player.Character!.Name);
             return;
         }
 
         // Get or create chest state
-        var chest = player.CurrentMap.Chests.GetOrAdd(chestCoords, _ => new MapChest
+        var chest = player.CurrentMap!.Chests.GetOrAdd(chestCoords, _ => new MapChest
         {
             Coords = chestCoords
         });
@@ -57,7 +51,7 @@ public class ChestOpenClientPacketHandler(
         // Check if chest requires a key
         if (chest.RequiredKeyId.HasValue)
         {
-            var hasKey = player.Character.Inventory.Items.Any(item =>
+            var hasKey = player.Character!.Inventory.Items.Any(item =>
             {
                 var itemData = dataFileRepository.Eif.GetItem(item.Id);
                 return itemData?.Type == ItemType.Key && itemData.Spec1 == chest.RequiredKeyId.Value;
@@ -65,13 +59,13 @@ public class ChestOpenClientPacketHandler(
 
             if (!hasKey)
             {
-                logger.LogDebug("Player {Character} doesn't have key for chest", player.Character.Name);
+                logger.LogDebug("Player {Character} doesn't have key for chest", player.Character!.Name);
                 return;
             }
         }
 
         logger.LogInformation("Player {Character} opening chest at ({X}, {Y})",
-            player.Character.Name, chestCoords.X, chestCoords.Y);
+            player.Character!.Name, chestCoords.X, chestCoords.Y);
 
         // Store chest coords for subsequent add/take operations
         player.InteractingChestCoords = chestCoords;

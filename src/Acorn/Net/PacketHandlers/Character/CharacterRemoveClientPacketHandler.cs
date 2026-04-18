@@ -1,6 +1,7 @@
 using Acorn.Database.Models;
 using Acorn.Database.Repository;
 using Acorn.Extensions;
+using Acorn.Game.Mappers;
 using Acorn.Game.Services;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
@@ -77,7 +78,7 @@ internal class CharacterRemoveClientPacketHandler(
             ReplyCodeData = new CharacterReplyServerPacket.ReplyCodeDataDeleted
             {
                 Characters = playerState.Account.Characters
-                    .Select((c, id) => c.AsGameModel().AsCharacterListEntry(id, _paperdollService)).ToList()
+                    .Select((c, id) => CharacterMapper.FromDatabaseModel(c).AsCharacterListEntry(id, _paperdollService)).ToList()
             }
         });
     }

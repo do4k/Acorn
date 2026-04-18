@@ -43,7 +43,7 @@ public class ItemWithAmount
 Inventory = string.Join("|", Inventory.Items.Select(i => $"{i.Id},{i.Amount}"))
 ```
 
-**From Database** (in `Character.AsGameModel()`):
+**From Database** (in `CharacterMapper.FromDatabaseModel()`):
 ```csharp
 Inventory = new Inventory(GetItemsWithAmount(Inventory))
 

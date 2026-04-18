@@ -7,5 +7,4 @@ public class HostingOptions
     public required int Port { get; set; }
     public required int WebSocketPort { get; set; }
 
-    public static string SectionName => "Hosting";
 }

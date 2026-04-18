@@ -1,28 +1,26 @@
-using Acorn.World;
+using Acorn.Net.PacketHandlers;
+using Acorn.World.Services.Marriage;
 using Microsoft.Extensions.Logging;
-using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 
 namespace Acorn.Net.PacketHandlers.Priest;
 
+[RequiresCharacter]
 public class PriestRequestClientPacketHandler(
+    IMarriageService marriageService,
     ILogger<PriestRequestClientPacketHandler> logger)
     : IPacketHandler<PriestRequestClientPacket>
 {
     public async Task HandleAsync(PlayerState player, PriestRequestClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
+        if (player.SessionId != packet.SessionId)
         {
-            logger.LogWarning("Player {SessionId} attempted to priest action without character or map",
-                player.SessionId);
             return;
         }
 
-        logger.LogInformation("Player {Character} priest request for character {Name}",
-            player.Character.Name, packet.Name);
+        logger.LogDebug("Player {Character} requesting wedding with {Partner}",
+            player.Character!.Name, packet.Name);
 
-        // TODO: Implement map.PriestRequest(player, characterName)
-        await Task.CompletedTask;
+        await marriageService.RequestWeddingAsync(player, packet.Name);
     }
-
 }

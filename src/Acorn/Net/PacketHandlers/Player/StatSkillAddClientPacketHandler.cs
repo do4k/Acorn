@@ -6,9 +6,11 @@ using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Player;
 
+[RequiresCharacter]
 internal class StatSkillAddClientPacketHandler(
     IDbRepository<Database.Models.Character> characterRepository,
     IStatCalculator statCalculator,
@@ -20,12 +22,6 @@ internal class StatSkillAddClientPacketHandler(
 {
     public async Task HandleAsync(PlayerState playerState, StatSkillAddClientPacket packet)
     {
-        if (playerState.Character is null)
-        {
-            logger.LogWarning("StatSkillAdd packet received but player has no character loaded");
-            return;
-        }
-
         switch (packet.ActionTypeData)
         {
             case StatSkillAddClientPacket.ActionTypeDataStat statData:
@@ -116,10 +112,10 @@ internal class StatSkillAddClientPacketHandler(
         // Create new Spells collection with updated spell
         var updatedSpells = character.Spells.Items
             .Where(s => s.Id != spellId)
-            .Append(new Acorn.Domain.Models.Spell(spellId, spell.Level + 1))
+            .Append(new Acorn.Game.Models.Spell(spellId, spell.Level + 1))
             .ToList();
 
-        character.Spells = new Acorn.Domain.Models.Spells(new System.Collections.Concurrent.ConcurrentBag<Acorn.Domain.Models.Spell>(updatedSpells));
+        character.Spells = new Acorn.Game.Models.Spells(new System.Collections.Concurrent.ConcurrentBag<Acorn.Game.Models.Spell>(updatedSpells));
         character.SkillPoints--;
 
         // Save to database
@@ -138,7 +134,7 @@ internal class StatSkillAddClientPacketHandler(
         return true;
     }
 
-    private async Task SendStatUpdate(PlayerState playerState, Acorn.Domain.Models.Character character)
+    private async Task SendStatUpdate(PlayerState playerState, Acorn.Game.Models.Character character)
     {
         await playerState.Send(new StatSkillPlayerServerPacket
         {

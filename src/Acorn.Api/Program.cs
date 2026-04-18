@@ -26,28 +26,7 @@ builder.Services.AddDbContext<AcornDbContext>((sp, options) =>
     var connectionString = dbOptions.ConnectionString;
     var dbEngine = dbOptions.Engine?.ToLower() ?? "sqlite";
 
-    switch (dbEngine)
-    {
-        case "postgresql":
-        case "postgres":
-            options.UseNpgsql(connectionString);
-            break;
-        case "mysql":
-        case "mariadb":
-            options.UseMySQL(connectionString!);
-            break;
-        case "sqlserver":
-        case "mssql":
-            options.UseSqlServer(connectionString);
-            break;
-        case "sqlite":
-        default:
-            options.UseSqlite(connectionString);
-            break;
-    }
-
-    options.EnableSensitiveDataLogging();
-    options.EnableDetailedErrors();
+    options.UseDatabaseEngine(dbEngine, connectionString);
 });
 
 // Register repositories for database access

@@ -63,5 +63,7 @@ public class Character
     public ICollection<CharacterSpell> Spells { get; set; } = new List<CharacterSpell>();
     [JsonIgnore]
     public CharacterPaperdoll? Paperdoll { get; set; }
+    [JsonIgnore]
+    public ICollection<QuestProgress> QuestProgress { get; set; } = new List<QuestProgress>();
 }
 

@@ -5,9 +5,11 @@ using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Citizen;
 
+[RequiresCharacter]
 public class CitizenOpenClientPacketHandler(
     ILogger<CitizenOpenClientPacketHandler> logger,
     IInnDataRepository innDataRepository)
@@ -15,30 +17,8 @@ public class CitizenOpenClientPacketHandler(
 {
     public async Task HandleAsync(PlayerState player, CitizenOpenClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to open inn without character or map",
-                player.SessionId);
-            return;
-        }
-
-        var npcIndex = packet.NpcIndex;
-
-        // Find the NPC by index on the map
-        if (!player.CurrentMap.Npcs.TryGetValue(npcIndex, out var npc))
-        {
-            logger.LogWarning("Player {Character} tried to open inn at invalid NPC index {NpcIndex}",
-                player.Character.Name, npcIndex);
-            return;
-        }
-
-        // Verify it's an Inn NPC
-        if (npc.Data.Type != NpcType.Inn)
-        {
-            logger.LogWarning("Player {Character} tried to open inn at non-inn NPC {NpcId}",
-                player.Character.Name, npc.Id);
-            return;
-        }
+        var npc = NpcInteractionHelper.ValidateAndStartInteraction(player, packet.NpcIndex, NpcType.Inn, logger);
+        if (npc is null) return;
 
         // Get inn data by NPC's behavior ID
         var inn = innDataRepository.GetInnByBehaviorId(npc.Data.BehaviorId);
@@ -49,15 +29,12 @@ public class CitizenOpenClientPacketHandler(
         }
 
         // Get current home inn
-        var currentHome = player.Character.Home ?? innDataRepository.DefaultHomeName;
+        var currentHome = player.Character!.Home ?? innDataRepository.DefaultHomeName;
         var currentInn = innDataRepository.GetInnByName(currentHome);
         var currentHomeId = currentInn?.BehaviorId ?? 0;
 
-        // Store the NPC index for subsequent operations
-        player.InteractingNpcIndex = npcIndex;
-
         logger.LogInformation("Player {Character} opening inn {InnName}",
-            player.Character.Name, inn.Name);
+            player.Character!.Name, inn.Name);
 
         // Build questions list (pad to 3 if needed)
         var questions = inn.Questions.Take(3).Select(q => q.Question).ToList();

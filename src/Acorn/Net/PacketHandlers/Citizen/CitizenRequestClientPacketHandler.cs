@@ -4,9 +4,11 @@ using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Citizen;
 
+[RequiresCharacter]
 public class CitizenRequestClientPacketHandler(
     ILogger<CitizenRequestClientPacketHandler> logger,
     IInnDataRepository innDataRepository)
@@ -14,36 +16,8 @@ public class CitizenRequestClientPacketHandler(
 {
     public async Task HandleAsync(PlayerState player, CitizenRequestClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted citizen request without character or map",
-                player.SessionId);
-            return;
-        }
-
-        var npcIndex = player.InteractingNpcIndex;
-        if (npcIndex == null)
-        {
-            logger.LogWarning("Player {Character} attempted sleep request without interacting NPC",
-                player.Character.Name);
-            return;
-        }
-
-        // Find the NPC by index on the map
-        if (!player.CurrentMap.Npcs.TryGetValue(npcIndex.Value, out var npc))
-        {
-            logger.LogWarning("Player {Character} tried to request sleep at invalid NPC index {NpcIndex}",
-                player.Character.Name, npcIndex);
-            return;
-        }
-
-        // Verify it's an Inn NPC
-        if (npc.Data.Type != NpcType.Inn)
-        {
-            logger.LogWarning("Player {Character} tried to request sleep at non-inn NPC {NpcId}",
-                player.Character.Name, npc.Id);
-            return;
-        }
+        var npc = NpcInteractionHelper.ValidateInteraction(player, NpcType.Inn, logger);
+        if (npc is null) return;
 
         // Get inn data by NPC's behavior ID
         var inn = innDataRepository.GetInnByBehaviorId(npc.Data.BehaviorId);
@@ -54,32 +28,32 @@ public class CitizenRequestClientPacketHandler(
         }
 
         // Check if player is already at full HP and TP
-        if (player.Character.Hp >= player.Character.MaxHp && player.Character.Tp >= player.Character.MaxTp)
+        if (player.Character!.Hp >= player.Character!.MaxHp && player.Character!.Tp >= player.Character!.MaxTp)
         {
             logger.LogInformation("Player {Character} already at full HP/TP, sleep not needed",
-                player.Character.Name);
+                player.Character!.Name);
             return;
         }
 
         // Check if this is the player's home inn
-        var currentHome = player.Character.Home ?? innDataRepository.DefaultHomeName;
+        var currentHome = player.Character!.Home ?? innDataRepository.DefaultHomeName;
         if (!inn.Name.Equals(currentHome, StringComparison.OrdinalIgnoreCase))
         {
             logger.LogWarning("Player {Character} tried to sleep at inn {InnName} but home is {Home}",
-                player.Character.Name, inn.Name, currentHome);
+                player.Character!.Name, inn.Name, currentHome);
             return;
         }
 
         // Calculate sleep cost (HP to restore + TP to restore)
-        var hpToRestore = player.Character.MaxHp - player.Character.Hp;
-        var tpToRestore = player.Character.MaxTp - player.Character.Tp;
+        var hpToRestore = player.Character!.MaxHp - player.Character!.Hp;
+        var tpToRestore = player.Character!.MaxTp - player.Character!.Tp;
         var cost = hpToRestore + tpToRestore;
 
         // Store the cost for when they confirm
         player.SleepCost = cost;
 
         logger.LogInformation("Player {Character} requesting sleep at {InnName}, cost: {Cost}",
-            player.Character.Name, inn.Name, cost);
+            player.Character!.Name, inn.Name, cost);
 
         await player.Send(new CitizenRequestServerPacket
         {

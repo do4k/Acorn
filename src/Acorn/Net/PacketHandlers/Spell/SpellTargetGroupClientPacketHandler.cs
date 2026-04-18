@@ -1,26 +1,22 @@
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Spell;
 
+[RequiresCharacter]
 public class SpellTargetGroupClientPacketHandler(
     ILogger<SpellTargetGroupClientPacketHandler> logger)
     : IPacketHandler<SpellTargetGroupClientPacket>
 {
     public async Task HandleAsync(PlayerState player, SpellTargetGroupClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to cast spell without character or map", player.SessionId);
-            return;
-        }
-
         // Validate spell_id matches what was requested
         if (player.SpellId != packet.SpellId)
         {
             logger.LogWarning("Player {Character} spell ID mismatch: expected {ExpectedId}, got {ActualId}",
-                player.Character.Name, player.SpellId, packet.SpellId);
+                player.Character!.Name, player.SpellId, packet.SpellId);
             return;
         }
 
@@ -28,12 +24,12 @@ public class SpellTargetGroupClientPacketHandler(
         if (!CheckTimestamp(player, packet.Timestamp))
         {
             logger.LogWarning("Player {Character} spell timestamp validation failed for spell {SpellId}",
-                player.Character.Name, packet.SpellId);
+                player.Character!.Name, packet.SpellId);
             return;
         }
 
         logger.LogInformation("Player {Character} casting spell {SpellId} on group",
-            player.Character.Name, packet.SpellId);
+            player.Character!.Name, packet.SpellId);
 
         // Update player state
         player.Timestamp = packet.Timestamp;

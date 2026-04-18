@@ -46,6 +46,11 @@ public interface IWorldQueries
     PlayerState? GetPlayer(int sessionId);
 
     /// <summary>
+    ///     Find a player by their character name (case-insensitive)
+    /// </summary>
+    PlayerState? FindPlayerByName(string name);
+
+    /// <summary>
     ///     Get all maps in the world
     /// </summary>
     IEnumerable<MapState> GetAllMaps();

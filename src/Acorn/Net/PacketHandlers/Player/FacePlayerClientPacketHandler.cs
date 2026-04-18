@@ -1,20 +1,17 @@
-﻿using Moffat.EndlessOnline.SDK.Protocol.Net;
+using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Player;
 
+[RequiresCharacter]
 internal class FacePlayerClientPacketHandler : IPacketHandler<FacePlayerClientPacket>
 {
     public async Task HandleAsync(PlayerState playerState,
         FacePlayerClientPacket packet)
     {
-        if (playerState.Character is null)
-        {
-            return;
-        }
-
-        playerState.Character.Direction = packet.Direction;
+        playerState.Character!.Direction = packet.Direction;
 
         if (playerState.CurrentMap is null)
         {

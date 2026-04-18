@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 using Acorn.Database.Repository;
-using Acorn.Domain.Models;
+using Acorn.Game.Models;
 using Acorn.Game.Services;
 using Acorn.World.Services.Map;
 using Microsoft.Extensions.Logging;
@@ -9,8 +9,10 @@ using Moffat.EndlessOnline.SDK.Protocol.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+using Acorn.Net.PacketHandlers;
 namespace Acorn.Net.PacketHandlers.Locker;
 
+[RequiresCharacter]
 public class LockerAddClientPacketHandler(
     ILogger<LockerAddClientPacketHandler> logger,
     IDataFileRepository dataFileRepository,
@@ -24,12 +26,6 @@ public class LockerAddClientPacketHandler(
 
     public async Task HandleAsync(PlayerState player, LockerAddClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to add to locker without character or map", player.SessionId);
-            return;
-        }
-
         var itemId = packet.DepositItem.Id;
         var requestedAmount = packet.DepositItem.Amount;
 
@@ -37,11 +33,11 @@ public class LockerAddClientPacketHandler(
         if (itemId <= 1 || requestedAmount <= 0 || requestedAmount > MaxItem)
         {
             logger.LogWarning("Player {Character} attempted to deposit invalid item {ItemId} or amount {Amount}",
-                player.Character.Name, itemId, requestedAmount);
+                player.Character!.Name, itemId, requestedAmount);
             return;
         }
 
-        var playerCoords = new Coords { X = player.Character.X, Y = player.Character.Y };
+        var playerCoords = new Coords { X = player.Character!.X, Y = player.Character!.Y };
 
         // Check if player is adjacent to a bank vault tile
         var adjacentCoords = new[]
@@ -54,23 +50,23 @@ public class LockerAddClientPacketHandler(
 
         var hasAdjacentLocker = adjacentCoords.Any(coord =>
         {
-            var tile = mapTileService.GetTile(player.CurrentMap.Data, coord);
+            var tile = mapTileService.GetTile(player.CurrentMap!.Data, coord);
             return tile == MapTileSpec.BankVault;
         });
 
         if (!hasAdjacentLocker)
         {
             logger.LogWarning("Player {Character} tried to deposit to locker but is not adjacent to one",
-                player.Character.Name);
+                player.Character!.Name);
             return;
         }
 
         // Check bank size limit
-        var bankSize = BaseBankSize + (player.Character.BankMax * BankSizeStep);
-        if (player.Character.Bank.Items.Count >= bankSize)
+        var bankSize = BaseBankSize + (player.Character!.BankMax * BankSizeStep);
+        if (player.Character!.Bank.Items.Count >= bankSize)
         {
             logger.LogDebug("Player {Character}'s locker is full ({Count}/{Max})",
-                player.Character.Name, player.Character.Bank.Items.Count, bankSize);
+                player.Character!.Name, player.Character!.Bank.Items.Count, bankSize);
 
             await player.Send(new LockerSpecServerPacket
             {
@@ -80,7 +76,7 @@ public class LockerAddClientPacketHandler(
         }
 
         // Get amount player actually has
-        var playerAmount = inventoryService.GetItemAmount(player.Character, itemId);
+        var playerAmount = inventoryService.GetItemAmount(player.Character!, itemId);
         var amount = Math.Min(requestedAmount, playerAmount);
 
         if (amount == 0)
@@ -89,20 +85,20 @@ public class LockerAddClientPacketHandler(
         }
 
         // Remove from inventory
-        if (!inventoryService.TryRemoveItem(player.Character, itemId, amount))
+        if (!inventoryService.TryRemoveItem(player.Character!, itemId, amount))
         {
-            logger.LogWarning("Failed to remove item from player {Character}", player.Character.Name);
+            logger.LogWarning("Failed to remove item from player {Character}", player.Character!.Name);
             return;
         }
 
         // Add to bank
-        AddBankItem(player.Character, itemId, amount);
+        AddBankItem(player.Character!, itemId, amount);
 
         logger.LogInformation("Player {Character} deposited {Amount}x item {ItemId} to locker",
-            player.Character.Name, amount, itemId);
+            player.Character!.Name, amount, itemId);
 
         // Build locker items list
-        var lockerItems = player.Character.Bank.Items.Select(item => new ThreeItem
+        var lockerItems = player.Character!.Bank.Items.Select(item => new ThreeItem
         {
             Id = item.Id,
             Amount = item.Amount
@@ -113,18 +109,18 @@ public class LockerAddClientPacketHandler(
             DepositedItem = new Moffat.EndlessOnline.SDK.Protocol.Net.Item
             {
                 Id = itemId,
-                Amount = inventoryService.GetItemAmount(player.Character, itemId)
+                Amount = inventoryService.GetItemAmount(player.Character!, itemId)
             },
             Weight = new Weight
             {
                 Current = CalculateCurrentWeight(player),
-                Max = player.Character.MaxWeight
+                Max = player.Character!.MaxWeight
             },
             LockerItems = lockerItems
         });
     }
 
-    private void AddBankItem(Domain.Models.Character character, int itemId, int amount)
+    private void AddBankItem(Game.Models.Character character, int itemId, int amount)
     {
         var existingItem = character.Bank.Items.FirstOrDefault(i => i.Id == itemId);
         if (existingItem != null)
@@ -142,7 +138,7 @@ public class LockerAddClientPacketHandler(
         if (player.Character == null) return 0;
 
         var totalWeight = 0;
-        foreach (var item in player.Character.Inventory.Items)
+        foreach (var item in player.Character!.Inventory.Items)
         {
             var itemData = dataFileRepository.Eif.GetItem(item.Id);
             if (itemData != null)

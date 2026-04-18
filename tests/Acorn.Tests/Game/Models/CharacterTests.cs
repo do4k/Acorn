@@ -1,5 +1,5 @@
 using System.Collections.Concurrent;
-using Acorn.Domain.Models;
+using Acorn.Game.Models;
 using Acorn.Extensions;
 using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol;

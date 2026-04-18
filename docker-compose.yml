@@ -1,4 +1,17 @@
 services:
+  # Aspire Dashboard (OpenTelemetry metrics/traces/logs UI)
+  aspire-dashboard:
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:latest
+    container_name: acorn-aspire
+    ports:
+      - "18888:18888"   # Web UI
+      - "4317:18889"    # OTLP gRPC receiver (mapped to host 4317)
+    environment:
+      - DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS=true
+    restart: unless-stopped
+    networks:
+      - acorn-network
+
   # Acorn Server with MySQL (default for Docker)
   acorn:
     build:
@@ -17,11 +30,14 @@ services:
       - Cache__UseRedis=${CACHE_USE_REDIS}
       - Cache__ConnectionString=${CACHE_CONNECTION_STRING}
       - Server__SLN__Enabled=${SERVER_SLN_ENABLED}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
     depends_on:
       mysql:
         condition: service_healthy
       redis:
         condition: service_healthy
+      aspire-dashboard:
+        condition: service_started
     restart: unless-stopped
     networks:
       - acorn-network
@@ -104,9 +120,12 @@ services:
       - Database__Engine=SQLite
       - Database__ConnectionString=Data Source=/app/mnt/Acorn.db;
       - Cache__ConnectionString=redis:6379
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
     depends_on:
       redis:
         condition: service_healthy
+      aspire-dashboard:
+        condition: service_started
     restart: unless-stopped
     networks:
       - acorn-network
@@ -128,11 +147,14 @@ services:
       - Database__Engine=PostgreSQL
       - Database__ConnectionString=Host=postgres;Port=5432;Database=acorn;Username=acorn;Password=acornpassword
       - Cache__ConnectionString=redis:6379
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      aspire-dashboard:
+        condition: service_started
     restart: unless-stopped
     networks:
       - acorn-network
@@ -177,11 +199,14 @@ services:
       - Database__Engine=SqlServer
       - Database__ConnectionString=Server=sqlserver;Database=acorn;User Id=sa;Password=AcornPassword123!;TrustServerCertificate=True
       - Cache__ConnectionString=redis:6379
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
     depends_on:
       sqlserver:
         condition: service_healthy
       redis:
         condition: service_healthy
+      aspire-dashboard:
+        condition: service_started
     restart: unless-stopped
     networks:
       - acorn-network

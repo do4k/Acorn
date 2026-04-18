@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Sockets;
 using Acorn.Database.Models;
 using Acorn.Database.Repository;
@@ -7,6 +7,8 @@ using Acorn.Infrastructure;
 using Acorn.Infrastructure.Communicators;
 using Acorn.Options;
 using Acorn.World;
+using Acorn.World.Services.Party;
+using Acorn.World.Services.Quest;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -24,7 +26,9 @@ public class NewConnectionHostedService(
     IOptions<ServerOptions> serverOptions,
     TcpCommunicatorFactory tcpCommunicatorFactory,
     WebSocketCommunicatorFactory webSocketCommunicatorFactory,
-    PlayerStateFactory playerStateFactory
+    PlayerStateFactory playerStateFactory,
+    IPartyService partyService,
+    IQuestService questService
 ) : BackgroundService
 {
     private readonly TcpListener _listener = new(IPAddress.Any, serverOptions.Value.Hosting.Port);
@@ -119,6 +123,10 @@ public class NewConnectionHostedService(
                         async player => await OnClientDisposed(player, sessionId));
 
                     var added = worldState.TryAddPlayer(sessionId, playerState);
+                    if (!added)
+                    {
+                        logger.LogWarning("Failed to add player session {SessionId} to world state", sessionId);
+                    }
                     logger.LogInformation("Connection accepted. {PlayersConnected} players connected",
                         worldState.Players.Count);
                     UpdateConnectedCount();
@@ -189,14 +197,19 @@ public class NewConnectionHostedService(
             player.PendingTradeRequestFromPlayerId = null;
         }
 
+        // Clean up party membership
+        await partyService.HandlePlayerDisconnect(player);
+
         if (player.Character is not null && player.CurrentMap is not null)
         {
             await player.CurrentMap.NotifyLeave(player);
             await characterRepository.UpdateAsync(characterMapper.ToDatabase(player.Character));
+            await questService.SaveQuestProgress(player.Character);
         }
 
         worldState.TryRemovePlayer(sessionId, out _);
-        logger.LogInformation("Player disconnected");
+        logger.LogInformation("Player disconnected (Session {SessionId}, Character: {Character}). {PlayersConnected} players remaining",
+            sessionId, player.Character?.Name ?? "none", worldState.Players.Count);
         UpdateConnectedCount();
     }
 

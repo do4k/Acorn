@@ -1,7 +1,7 @@
 using Acorn.Database.Models;
-using Acorn.Domain.Models;
+using Acorn.Game.Models;
 using DatabaseCharacter = Acorn.Database.Models.Character;
-using GameCharacter = Acorn.Domain.Models.Character;
+using GameCharacter = Acorn.Game.Models.Character;
 
 namespace Acorn.Game.Mappers;
 

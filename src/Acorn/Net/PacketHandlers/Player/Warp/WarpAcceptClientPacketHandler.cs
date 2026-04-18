@@ -1,4 +1,4 @@
-﻿using Acorn.Extensions;
+using Acorn.Extensions;
 using Acorn.Game.Services;
 using Acorn.Shared.Caching;
 using Acorn.World;
@@ -6,9 +6,11 @@ using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Player.Warp;
 
+[RequiresCharacter]
 public class WarpAcceptClientPacketHandler : IPacketHandler<WarpAcceptClientPacket>
 {
     private readonly ILogger<WarpAcceptClientPacketHandler> _logger;
@@ -35,22 +37,11 @@ public class WarpAcceptClientPacketHandler : IPacketHandler<WarpAcceptClientPack
             return;
         }
 
-        if (playerState.Character is null)
-        {
-            _logger.LogError("Player connection has no Character initialised.");
-            return;
-        }
-
         //todo: cancel any trades and whatnot if in progress
-        if (playerState.CurrentMap is null)
-        {
-            _logger.LogError("Player connection is not in a valid map.");
-            return;
-        }
 
-        await playerState.CurrentMap.NotifyLeave(playerState, playerState.WarpSession.WarpEffect);
+        await playerState.CurrentMap!.NotifyLeave(playerState, playerState.WarpSession.WarpEffect);
 
-        playerState.Character.Map = playerState.WarpSession.MapId;
+        playerState.Character!.Map = playerState.WarpSession.MapId;
         playerState.Character.X = playerState.WarpSession.X;
         playerState.Character.Y = playerState.WarpSession.Y;
         playerState.Character.SitState = SitState.Stand;

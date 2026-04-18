@@ -1,4 +1,4 @@
-﻿using Acorn.Database.Repository;
+using Acorn.Database.Repository;
 using Acorn.Extensions;
 using Acorn.Game.Services;
 using Acorn.Options;
@@ -11,15 +11,19 @@ using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
+using Acorn.Infrastructure.Telemetry;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Player;
 
+[RequiresCharacter]
 internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPacket>
 {
     private readonly IDataFileRepository _dataFiles;
     private readonly int _dropProtectionTicks;
     private readonly IFormulaService _formulaService;
     private readonly ILogger<AttackUseClientPacketHandler> _logger;
+    private readonly AcornMetrics _metrics;
     private readonly ILootService _lootService;
     private readonly UtcNowDelegate _now;
     private readonly ICharacterCacheService _characterCache;
@@ -29,7 +33,7 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
     public AttackUseClientPacketHandler(UtcNowDelegate now, ILogger<AttackUseClientPacketHandler> logger,
         IFormulaService formulaService, IDataFileRepository dataFiles, ILootService lootService,
         IOptions<ServerOptions> serverOptions, ICharacterCacheService characterCache,
-        IPaperdollService paperdollService)
+        IPaperdollService paperdollService, AcornMetrics metrics)
     {
         _now = now;
         _logger = logger;
@@ -39,6 +43,7 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
         _dropProtectionTicks = serverOptions.Value.DropProtectionTicks;
         _characterCache = characterCache;
         _paperdollService = paperdollService;
+        _metrics = metrics;
     }
 
     public async Task HandleAsync(PlayerState playerState, AttackUseClientPacket packet)
@@ -48,15 +53,10 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
             return;
         }
 
-        if (playerState.CurrentMap is null)
-        {
-            return;
-        }
-
         if (playerState.Character is not null)
         {
-            var nextCoords = playerState.Character.NextCoords();
-            var target = playerState.CurrentMap.Npcs.Values.FirstOrDefault(x =>
+            var nextCoords = playerState.Character!.NextCoords();
+            var target = playerState.CurrentMap!.Npcs.Values.FirstOrDefault(x =>
                 !x.IsDead &&
                 x.X == nextCoords.X && x.Y == nextCoords.Y &&
                 x.Data.Type is NpcType.Aggressive or NpcType.Passive);
@@ -96,17 +96,17 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
                 target.DeathTime = DateTime.UtcNow;
                 target.Opponents.Clear();
 
-                _logger.LogInformation("NPC {NpcName} (ID: {NpcId}) killed by {PlayerName}",
-                    target.Data.Name, target.Id, playerState.Character.Name);
+                _metrics.NpcKills.Add(1);
+
+                _logger.NpcKilled(target.Data.Name, target.Id, playerState.Character.Name!, playerState.Character.Map);
 
                 // Award experience from NPC data
                 var experienceGained = target.Data.Experience;
                 playerState.Character.GainExperience(experienceGained);
 
-                _logger.LogInformation(
-                    "Player {PlayerName} gained {Exp} experience (Level {Level}, Total Exp: {TotalExp})",
-                    playerState.Character.Name, experienceGained, playerState.Character.Level,
-                    playerState.Character.Exp);
+                _metrics.ExperienceGained.Add(experienceGained);
+
+                _logger.ExperienceGained(playerState.Character.Name!, experienceGained, playerState.Character.Exp, playerState.Character.Level);
 
                 // Check for level up(s)
                 var levelsGained = 0;
@@ -115,8 +115,9 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
                     var newLevel = _formulaService.LevelUp(playerState.Character, _dataFiles.Ecf);
                     levelsGained++;
 
-                    _logger.LogInformation("Player {PlayerName} leveled up to level {Level}!",
-                        playerState.Character.Name, newLevel);
+                    _metrics.LevelUps.Add(1);
+
+                    _logger.PlayerLeveledUp(playerState.Character.Name!, newLevel);
                 }
 
                 // Cache character state if level up occurred
@@ -211,7 +212,7 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
             }
         }
 
-        await playerState.CurrentMap.BroadcastPacket(new AttackPlayerServerPacket
+        await playerState.CurrentMap!.BroadcastPacket(new AttackPlayerServerPacket
         {
             Direction = playerState.Character?.Direction ?? Direction.Down,
             PlayerId = playerState.SessionId

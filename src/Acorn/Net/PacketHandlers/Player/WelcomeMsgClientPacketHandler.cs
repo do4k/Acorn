@@ -1,8 +1,10 @@
-﻿using Acorn.Extensions;
+using Acorn.Extensions;
+using Acorn.Infrastructure.Telemetry;
 using Acorn.Net;
 using Acorn.Net.Models;
 using Acorn.Net.PacketHandlers;
 using Acorn.World;
+using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
@@ -11,13 +13,16 @@ internal class WelcomeMsgClientPacketHandler : IPacketHandler<WelcomeMsgClientPa
 {
     private readonly string[] _newsTxt;
     private readonly IWorldQueries _world;
+    private readonly ILogger<WelcomeMsgClientPacketHandler> _logger;
 
     public WelcomeMsgClientPacketHandler(
-        IWorldQueries worldState
+        IWorldQueries worldState,
+        ILogger<WelcomeMsgClientPacketHandler> logger
     )
     {
         _newsTxt = File.ReadAllLines("Data/news.txt");
         _world = worldState;
+        _logger = logger;
     }
 
     public async Task HandleAsync(
@@ -32,6 +37,7 @@ internal class WelcomeMsgClientPacketHandler : IPacketHandler<WelcomeMsgClientPa
         }
 
         await map.NotifyEnter(playerState);
+        _logger.PlayerEnteredWorld(playerState.Character?.Name ?? "unknown", playerState.SessionId, map.Id);
 
         await playerState.Send(new WelcomeReplyServerPacket
         {

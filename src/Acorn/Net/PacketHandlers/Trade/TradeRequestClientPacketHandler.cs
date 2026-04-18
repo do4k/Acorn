@@ -2,9 +2,11 @@ using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Trade;
 
+[RequiresCharacter]
 public class TradeRequestClientPacketHandler(
     ILogger<TradeRequestClientPacketHandler> logger)
     : IPacketHandler<TradeRequestClientPacket>
@@ -13,23 +15,17 @@ public class TradeRequestClientPacketHandler(
 
     public async Task HandleAsync(PlayerState player, TradeRequestClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to trade without character or map", player.SessionId);
-            return;
-        }
-
         // Can't trade if already in a trade
         if (player.TradeSession != null)
         {
-            logger.LogDebug("Player {Character} is already in a trade", player.Character.Name);
+            logger.LogDebug("Player {Character} is already in a trade", player.Character!.Name);
             return;
         }
 
         var targetPlayerId = packet.PlayerId;
 
         // Find target player on same map
-        var targetPlayer = player.CurrentMap.Players.Values.FirstOrDefault(p => p.SessionId == targetPlayerId);
+        var targetPlayer = player.CurrentMap!.Players.Values.FirstOrDefault(p => p.SessionId == targetPlayerId);
         if (targetPlayer?.Character == null)
         {
             logger.LogDebug("Target player {TargetId} not found on map", targetPlayerId);
@@ -51,8 +47,8 @@ public class TradeRequestClientPacketHandler(
 
         // Check if players are in range
         var distance = Math.Max(
-            Math.Abs(player.Character.X - targetPlayer.Character.X),
-            Math.Abs(player.Character.Y - targetPlayer.Character.Y));
+            Math.Abs(player.Character!.X - targetPlayer.Character.X),
+            Math.Abs(player.Character!.Y - targetPlayer.Character.Y));
 
         if (distance > MaxTradeDistance)
         {
@@ -61,7 +57,7 @@ public class TradeRequestClientPacketHandler(
         }
 
         logger.LogInformation("Player {Character} requesting trade with {Target}",
-            player.Character.Name, targetPlayer.Character.Name);
+            player.Character!.Name, targetPlayer.Character.Name);
 
         // Store who we're requesting to trade with
         player.PendingTradeRequestFromPlayerId = targetPlayerId;
@@ -70,7 +66,7 @@ public class TradeRequestClientPacketHandler(
         await targetPlayer.Send(new TradeRequestServerPacket
         {
             PartnerPlayerId = player.SessionId,
-            PartnerPlayerName = player.Character.Name
+            PartnerPlayerName = player.Character!.Name
         });
     }
 

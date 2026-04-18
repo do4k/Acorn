@@ -1,7 +1,9 @@
-﻿using Acorn.Database.Models;
+using Acorn.Database.Models;
 using Acorn.Database.Repository;
 using Acorn.Extensions;
+using Acorn.Game.Mappers;
 using Acorn.Game.Services;
+using Acorn.Infrastructure.Telemetry;
 using Acorn.Options;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -16,7 +18,8 @@ internal class CharacterCreateClientPacketHandler(
     IDbRepository<Database.Models.Character> repository,
     IPaperdollService paperdollService,
     ILogger<CharacterCreateClientPacketHandler> logger,
-    IOptions<ServerOptions> serverOptions)
+    IOptions<ServerOptions> serverOptions,
+    AcornMetrics metrics)
     : IPacketHandler<CharacterCreateClientPacket>
 {
     private readonly IPaperdollService _paperdollService = paperdollService;
@@ -81,8 +84,8 @@ internal class CharacterCreateClientPacketHandler(
         };
 
         await repository.CreateAsync(character);
-        logger.LogInformation("Character '{Name}' created by '{Username}'.", character.Name,
-            playerState.Account.Username);
+        metrics.CharactersCreated.Add(1);
+        logger.CharacterCreated(character.Name, playerState.Account.Username);
 
         // Add to account's character list if not already present (EF Core may auto-add via navigation)
         if (!playerState.Account.Characters.Contains(character))
@@ -96,7 +99,7 @@ internal class CharacterCreateClientPacketHandler(
             ReplyCodeData = new CharacterReplyServerPacket.ReplyCodeDataOk
             {
                 Characters = playerState.Account.Characters
-                    .Select((c, id) => c.AsGameModel().AsCharacterListEntry(id, _paperdollService)).ToList()
+                    .Select((c, id) => CharacterMapper.FromDatabaseModel(c).AsCharacterListEntry(id, _paperdollService)).ToList()
             }
         });
     }

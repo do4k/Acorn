@@ -1,4 +1,4 @@
-﻿using Acorn.World;
+using Acorn.World;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
@@ -16,6 +16,12 @@ internal class TalkMsgClientPacketHandler : IPacketHandler<TalkMsgClientPacket>
 
     public async Task HandleAsync(PlayerState playerState, TalkMsgClientPacket packet)
     {
+        // Muted players cannot use global chat
+        if (playerState.IsMuted)
+        {
+            return;
+        }
+
         var message = new GlobalMessage(Guid.NewGuid(), packet.Message, playerState.Character?.Name ?? "Unknown",
             DateTime.UtcNow);
         _world.AddGlobalMessage(message);
