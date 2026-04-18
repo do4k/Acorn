@@ -33,7 +33,7 @@ public class BoardCreateClientPacketHandler(
         if (boardId < 1 || boardId > 8)
         {
             logger.LogWarning("Player {Character} tried to post to invalid board {BoardId}",
-                player.Character.Name, boardId);
+                player.Character!.Name, boardId);
             return;
         }
 
@@ -46,10 +46,10 @@ public class BoardCreateClientPacketHandler(
         }
 
         // Check if player is in range of the board tile
-        if (!tileService.PlayerInRangeOfTile(player.CurrentMap.Data, player.Character.AsCoords(), boardTileSpec.Value))
+        if (!tileService.PlayerInRangeOfTile(player.CurrentMap!.Data, player.Character!.AsCoords(), boardTileSpec.Value))
         {
             logger.LogWarning("Player {Character} tried to post to board {BoardId} but not in range",
-                player.Character.Name, boardId);
+                player.Character!.Name, boardId);
             await RefreshBoard(player, boardId);
             return;
         }
@@ -67,19 +67,19 @@ public class BoardCreateClientPacketHandler(
         if (string.IsNullOrWhiteSpace(subject) || string.IsNullOrWhiteSpace(body))
         {
             logger.LogWarning("Player {Character} tried to create empty post on board {BoardId}",
-                player.Character.Name, boardId);
+                player.Character!.Name, boardId);
             await RefreshBoard(player, boardId);
             return;
         }
 
         // Check rate limits
-        var recentPosts = await boardRepository.GetRecentPostCountAsync(boardId, player.Character.Name!, RecentPostWindow);
-        var totalPosts = await boardRepository.GetTotalPostCountAsync(boardId, player.Character.Name!, MaxPosts);
+        var recentPosts = await boardRepository.GetRecentPostCountAsync(boardId, player.Character!.Name!, RecentPostWindow);
+        var totalPosts = await boardRepository.GetTotalPostCountAsync(boardId, player.Character!.Name!, MaxPosts);
 
         if (recentPosts >= MaxRecentPosts || totalPosts >= MaxUserPosts)
         {
             logger.LogWarning("Player {Character} hit post limit on board {BoardId} (recent: {Recent}, total: {Total})",
-                player.Character.Name, boardId, recentPosts, totalPosts);
+                player.Character!.Name, boardId, recentPosts, totalPosts);
             await RefreshBoard(player, boardId);
             return;
         }
@@ -88,7 +88,7 @@ public class BoardCreateClientPacketHandler(
         var post = new BoardPost
         {
             BoardId = boardId,
-            CharacterName = player.Character.Name!,
+            CharacterName = player.Character!.Name!,
             Subject = subject,
             Body = body,
             CreatedAt = DateTime.UtcNow
@@ -97,7 +97,7 @@ public class BoardCreateClientPacketHandler(
         await boardRepository.CreatePostAsync(post);
 
         logger.LogInformation("Player {Character} created post '{Subject}' on board {BoardId}",
-            player.Character.Name, subject, boardId);
+            player.Character!.Name, subject, boardId);
 
         // Refresh the board to show the new post
         await RefreshBoard(player, boardId);

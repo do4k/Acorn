@@ -24,7 +24,7 @@ public class BankAddClientPacketHandler(
         if (requestedAmount <= 0)
         {
             logger.LogWarning("Player {Character} attempted to deposit invalid amount {Amount}",
-                player.Character.Name, requestedAmount);
+                player.Character!.Name, requestedAmount);
             return;
         }
 
@@ -33,7 +33,7 @@ public class BankAddClientPacketHandler(
         if (npc is null) return;
 
         // Get player's gold amount
-        var playerGold = inventoryService.GetItemAmount(player.Character, GoldItemId);
+        var playerGold = inventoryService.GetItemAmount(player.Character!, GoldItemId);
         var amount = Math.Min(requestedAmount, playerGold);
 
         if (amount <= 0)
@@ -42,32 +42,32 @@ public class BankAddClientPacketHandler(
         }
 
         // Check bank gold cap
-        var availableBankSpace = MaxBankGold - player.Character.GoldBank;
+        var availableBankSpace = MaxBankGold - player.Character!.GoldBank;
         amount = Math.Min(amount, availableBankSpace);
 
         if (amount <= 0)
         {
-            logger.LogDebug("Player {Character}'s bank is full", player.Character.Name);
+            logger.LogDebug("Player {Character}'s bank is full", player.Character!.Name);
             return;
         }
 
         // Remove gold from inventory
-        if (!inventoryService.TryRemoveItem(player.Character, GoldItemId, amount))
+        if (!inventoryService.TryRemoveItem(player.Character!, GoldItemId, amount))
         {
-            logger.LogWarning("Failed to remove gold from player {Character}", player.Character.Name);
+            logger.LogWarning("Failed to remove gold from player {Character}", player.Character!.Name);
             return;
         }
 
         // Add gold to bank
-        player.Character.GoldBank += amount;
+        player.Character!.GoldBank += amount;
 
         logger.LogInformation("Player {Character} deposited {Amount} gold (Bank: {BankGold})",
-            player.Character.Name, amount, player.Character.GoldBank);
+            player.Character!.Name, amount, player.Character!.GoldBank);
 
         await player.Send(new BankReplyServerPacket
         {
-            GoldInventory = inventoryService.GetItemAmount(player.Character, GoldItemId),
-            GoldBank = player.Character.GoldBank
+            GoldInventory = inventoryService.GetItemAmount(player.Character!, GoldItemId),
+            GoldBank = player.Character!.GoldBank
         });
     }
 

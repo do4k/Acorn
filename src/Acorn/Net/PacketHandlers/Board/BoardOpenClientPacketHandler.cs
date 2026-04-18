@@ -23,21 +23,21 @@ public class BoardOpenClientPacketHandler(
     public async Task HandleAsync(PlayerState player, BoardOpenClientPacket packet)
     {
         logger.LogInformation("Player {Character} opening board {BoardId}",
-            player.Character.Name, packet.BoardId);
+            player.Character!.Name, packet.BoardId);
 
         // Validate board ID (1-8)
         if (packet.BoardId < 1 || packet.BoardId > 8)
         {
             logger.LogWarning("Player {Character} tried to open invalid board {BoardId}",
-                player.Character.Name, packet.BoardId);
+                player.Character!.Name, packet.BoardId);
             return;
         }
 
         // Check admin board permissions
-        if (packet.BoardId == AdminBoardId && (int)player.Character.Admin < 1)
+        if (packet.BoardId == AdminBoardId && (int)player.Character!.Admin < 1)
         {
             logger.LogWarning("Player {Character} tried to open admin board without permission",
-                player.Character.Name);
+                player.Character!.Name);
             return;
         }
 
@@ -61,10 +61,10 @@ public class BoardOpenClientPacketHandler(
         }
 
         // Check if player is in range of the board tile
-        if (!tileService.PlayerInRangeOfTile(player.CurrentMap.Data, player.Character.AsCoords(), boardTileSpec.Value))
+        if (!tileService.PlayerInRangeOfTile(player.CurrentMap!.Data, player.Character!.AsCoords(), boardTileSpec.Value))
         {
             logger.LogWarning("Player {Character} tried to open board {BoardId} but not in range",
-                player.Character.Name, packet.BoardId);
+                player.Character!.Name, packet.BoardId);
             return;
         }
 
@@ -89,7 +89,7 @@ public class BoardOpenClientPacketHandler(
         });
 
         logger.LogInformation("Player {Character} successfully opened board {BoardId} with {PostCount} posts",
-            player.Character.Name, packet.BoardId, postListings.Count);
+            player.Character!.Name, packet.BoardId, postListings.Count);
     }
 
 }

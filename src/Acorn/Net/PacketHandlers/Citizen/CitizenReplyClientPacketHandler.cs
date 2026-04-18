@@ -45,14 +45,14 @@ public class CitizenReplyClientPacketHandler(
         if (questionsWrong == 0)
         {
             // All answers correct - set new home
-            player.Character.Home = inn.Name;
+            player.Character!.Home = inn.Name;
             logger.LogInformation("Player {Character} became citizen of {InnName}",
-                player.Character.Name, inn.Name);
+                player.Character!.Name, inn.Name);
         }
         else
         {
             logger.LogInformation("Player {Character} failed citizenship questions for {InnName} ({QuestionsWrong} wrong)",
-                player.Character.Name, inn.Name, questionsWrong);
+                player.Character!.Name, inn.Name, questionsWrong);
         }
 
         await player.Send(new CitizenReplyServerPacket

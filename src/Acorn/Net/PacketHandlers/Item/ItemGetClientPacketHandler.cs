@@ -24,16 +24,16 @@ public class ItemGetClientPacketHandler(
     public async Task HandleAsync(PlayerState player, ItemGetClientPacket packet)
     {
         logger.LogDebug("Player {Character} attempting to pick up item at index {ItemIndex}",
-            player.Character.Name, packet.ItemIndex);
+            player.Character!.Name, packet.ItemIndex);
 
         // Use map item service for pickup logic
-        var result = await mapItemService.TryPickupItem(player, player.CurrentMap, packet.ItemIndex);
+        var result = await mapItemService.TryPickupItem(player, player.CurrentMap!, packet.ItemIndex);
 
         if (result.Success)
         {
             // Calculate current weight
-            var currentWeight = weightCalculator.GetCurrentWeight(player.Character, dataFileRepository.Eif);
-            var maxWeight = player.Character.MaxWeight;
+            var currentWeight = weightCalculator.GetCurrentWeight(player.Character!, dataFileRepository.Eif);
+            var maxWeight = player.Character!.MaxWeight;
 
             // Send ItemGetServerPacket to confirm pickup
             await player.Send(new ItemGetServerPacket
@@ -52,15 +52,15 @@ public class ItemGetClientPacketHandler(
             });
 
             logger.LogInformation("Player {Character} picked up item {ItemId} x{Amount}",
-                player.Character.Name, result.ItemId, result.Amount);
+                player.Character!.Name, result.ItemId, result.Amount);
 
             // Save character inventory to database
-            await characterRepository.UpdateAsync(characterMapper.ToDatabase(player.Character));
+            await characterRepository.UpdateAsync(characterMapper.ToDatabase(player.Character!));
         }
         else
         {
             logger.LogWarning("Player {Character} failed to pick up item {ItemIndex}: {Error}",
-                player.Character.Name, packet.ItemIndex, result.ErrorMessage);
+                player.Character!.Name, packet.ItemIndex, result.ErrorMessage);
         }
     }
 

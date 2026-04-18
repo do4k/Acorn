@@ -12,7 +12,7 @@ public class SitRequestClientPacketHandler(ILogger<SitRequestClientPacketHandler
     public async Task HandleAsync(PlayerState player, SitRequestClientPacket packet)
     {
         logger.LogInformation("Player {Character} sitting with action {SitAction}",
-            player.Character.Name, packet.SitAction);
+            player.Character!.Name, packet.SitAction);
 
         // TODO: Implement map.PlayerSit(player, sitAction, cursor)
         await Task.CompletedTask;

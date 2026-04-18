@@ -13,7 +13,7 @@ public class BookRequestClientPacketHandler(ILogger<BookRequestClientPacketHandl
     public async Task HandleAsync(PlayerState player, BookRequestClientPacket packet)
     {
         logger.LogInformation("Player {Character} requesting book from player {PlayerId}",
-            player.Character.Name, packet.PlayerId);
+            player.Character!.Name, packet.PlayerId);
 
         // TODO: Implement map.RequestBook(player, playerId)
         await Task.CompletedTask;

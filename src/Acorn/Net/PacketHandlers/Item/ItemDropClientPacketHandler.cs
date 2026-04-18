@@ -29,16 +29,16 @@ public class ItemDropClientPacketHandler(
 
         // Use map item service for drop logic
         var result =
-            await mapItemService.TryDropItem(player, player.CurrentMap, packet.Item.Id, packet.Item.Amount, coords);
+            await mapItemService.TryDropItem(player, player.CurrentMap!, packet.Item.Id, packet.Item.Amount, coords);
 
         if (result.Success && result.ItemIndex.HasValue)
         {
             // Calculate remaining amount in inventory
-            var remaining = inventoryService.GetItemAmount(player.Character, packet.Item.Id);
+            var remaining = inventoryService.GetItemAmount(player.Character!, packet.Item.Id);
 
             // Calculate current weight
-            var currentWeight = weightCalculator.GetCurrentWeight(player.Character, dataFileRepository.Eif);
-            var maxWeight = player.Character.MaxWeight;
+            var currentWeight = weightCalculator.GetCurrentWeight(player.Character!, dataFileRepository.Eif);
+            var maxWeight = player.Character!.MaxWeight;
 
             // Send ItemDropServerPacket to confirm drop
             await player.Send(new ItemDropServerPacket
@@ -59,15 +59,15 @@ public class ItemDropClientPacketHandler(
             });
 
             logger.LogInformation("Player {Character} dropped item {ItemId} x{Amount} at ({X}, {Y})",
-                player.Character.Name, packet.Item.Id, packet.Item.Amount, coords.X, coords.Y);
+                player.Character!.Name, packet.Item.Id, packet.Item.Amount, coords.X, coords.Y);
 
             // Save character inventory to database
-            await characterRepository.UpdateAsync(characterMapper.ToDatabase(player.Character));
+            await characterRepository.UpdateAsync(characterMapper.ToDatabase(player.Character!));
         }
         else
         {
             logger.LogWarning("Player {Character} failed to drop item: {Error}",
-                player.Character.Name, result.ErrorMessage);
+                player.Character!.Name, result.ErrorMessage);
         }
     }
 

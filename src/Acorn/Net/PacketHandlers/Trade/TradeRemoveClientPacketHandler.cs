@@ -19,7 +19,7 @@ public class TradeRemoveClientPacketHandler(
         var trade = player.TradeSession;
         if (trade == null)
         {
-            logger.LogDebug("Player {Character} is not in a trade", player.Character.Name);
+            logger.LogDebug("Player {Character} is not in a trade", player.Character!.Name);
             return;
         }
 
@@ -48,7 +48,7 @@ public class TradeRemoveClientPacketHandler(
         partnerTrade.IAccepted = false;
 
         logger.LogDebug("Player {Character} removed item {ItemId} from trade",
-            player.Character.Name, itemId);
+            player.Character!.Name, itemId);
 
         // Send trade update to both players
         await SendTradeUpdate(player, trade.Partner, trade, partnerTrade);

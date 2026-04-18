@@ -28,7 +28,7 @@ public class ShopOpenClientPacketHandler(
         }
 
         logger.LogInformation("Player {Character} opening shop {ShopName}",
-            player.Character.Name, shop.Name);
+            player.Character!.Name, shop.Name);
 
         // Build trade items list
         var tradeItems = shop.Trades.Select(t => new Moffat.EndlessOnline.SDK.Protocol.Net.Server.ShopTradeItem

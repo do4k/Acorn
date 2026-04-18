@@ -1,4 +1,4 @@
-﻿using Acorn.Extensions;
+using Acorn.Extensions;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
@@ -16,7 +16,7 @@ public class PlayerRangeRequestClientPacketHandler : IPacketHandler<PlayerRangeR
         {
             PlayersList = new PlayersList
             {
-                Players = playerState.CurrentMap.Players.Values.Select(x => x.Character?.AsOnlinePlayer()).ToList()
+                    Players = playerState.CurrentMap!.Players.Values.Select(x => x.Character?.AsOnlinePlayer()).ToList()
             }
         });
     }

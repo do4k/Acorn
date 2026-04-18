@@ -34,23 +34,23 @@ public class ChestAddClientPacketHandler(
         if (player.InteractingChestCoords == null)
         {
             logger.LogWarning("Player {Character} attempted to add to chest without opening one",
-                player.Character.Name);
+                player.Character!.Name);
             return;
         }
 
         var chestCoords = player.InteractingChestCoords;
 
         // Check if player is still in range
-        var playerCoords = new Coords { X = player.Character.X, Y = player.Character.Y };
+        var playerCoords = new Coords { X = player.Character!.X, Y = player.Character!.Y };
         var distance = Math.Max(Math.Abs(playerCoords.X - chestCoords.X), Math.Abs(playerCoords.Y - chestCoords.Y));
         if (distance > 1)
         {
-            logger.LogWarning("Player {Character} is too far from chest", player.Character.Name);
+            logger.LogWarning("Player {Character} is too far from chest", player.Character!.Name);
             return;
         }
 
         // Get chest
-        if (!player.CurrentMap.Chests.TryGetValue(chestCoords, out var chest))
+        if (!player.CurrentMap!.Chests.TryGetValue(chestCoords, out var chest))
         {
             logger.LogWarning("Chest not found at ({X}, {Y})", chestCoords.X, chestCoords.Y);
             return;
@@ -65,7 +65,7 @@ public class ChestAddClientPacketHandler(
         }
 
         // Get amount player has
-        var playerAmount = inventoryService.GetItemAmount(player.Character, itemId);
+        var playerAmount = inventoryService.GetItemAmount(player.Character!, itemId);
         var amount = Math.Min(requestedAmount, playerAmount);
 
         if (amount == 0)
@@ -74,7 +74,7 @@ public class ChestAddClientPacketHandler(
         }
 
         // Remove from player inventory
-        if (!inventoryService.TryRemoveItem(player.Character, itemId, amount))
+        if (!inventoryService.TryRemoveItem(player.Character!, itemId, amount))
         {
             return;
         }
@@ -96,7 +96,7 @@ public class ChestAddClientPacketHandler(
         }
 
         logger.LogInformation("Player {Character} added {Amount}x item {ItemId} to chest",
-            player.Character.Name, amount, itemId);
+            player.Character!.Name, amount, itemId);
 
         // Build chest items list
         var chestItems = chest.Items.Select(item => new ThreeItem
@@ -109,18 +109,18 @@ public class ChestAddClientPacketHandler(
         await player.Send(new ChestReplyServerPacket
         {
             AddedItemId = itemId,
-            RemainingAmount = inventoryService.GetItemAmount(player.Character, itemId),
+            RemainingAmount = inventoryService.GetItemAmount(player.Character!, itemId),
             Weight = new Weight
             {
                 Current = CalculateCurrentWeight(player),
-                Max = player.Character.MaxWeight
+                Max = player.Character!.MaxWeight
             },
             Items = chestItems
         });
 
         // Notify other players near the chest
         var agreePacket = new ChestAgreeServerPacket { Items = chestItems };
-        foreach (var otherPlayer in player.CurrentMap.Players.Values.Where(p => p != player))
+        foreach (var otherPlayer in player.CurrentMap!.Players.Values.Where(p => p != player))
         {
             if (otherPlayer.Character == null) continue;
 
@@ -138,7 +138,7 @@ public class ChestAddClientPacketHandler(
         if (player.Character == null) return 0;
 
         var totalWeight = 0;
-        foreach (var item in player.Character.Inventory.Items)
+        foreach (var item in player.Character!.Inventory.Items)
         {
             var itemData = dataFileRepository.Eif.GetItem(item.Id);
             if (itemData != null)

@@ -28,32 +28,32 @@ public class CitizenRequestClientPacketHandler(
         }
 
         // Check if player is already at full HP and TP
-        if (player.Character.Hp >= player.Character.MaxHp && player.Character.Tp >= player.Character.MaxTp)
+        if (player.Character!.Hp >= player.Character!.MaxHp && player.Character!.Tp >= player.Character!.MaxTp)
         {
             logger.LogInformation("Player {Character} already at full HP/TP, sleep not needed",
-                player.Character.Name);
+                player.Character!.Name);
             return;
         }
 
         // Check if this is the player's home inn
-        var currentHome = player.Character.Home ?? innDataRepository.DefaultHomeName;
+        var currentHome = player.Character!.Home ?? innDataRepository.DefaultHomeName;
         if (!inn.Name.Equals(currentHome, StringComparison.OrdinalIgnoreCase))
         {
             logger.LogWarning("Player {Character} tried to sleep at inn {InnName} but home is {Home}",
-                player.Character.Name, inn.Name, currentHome);
+                player.Character!.Name, inn.Name, currentHome);
             return;
         }
 
         // Calculate sleep cost (HP to restore + TP to restore)
-        var hpToRestore = player.Character.MaxHp - player.Character.Hp;
-        var tpToRestore = player.Character.MaxTp - player.Character.Tp;
+        var hpToRestore = player.Character!.MaxHp - player.Character!.Hp;
+        var tpToRestore = player.Character!.MaxTp - player.Character!.Tp;
         var cost = hpToRestore + tpToRestore;
 
         // Store the cost for when they confirm
         player.SleepCost = cost;
 
         logger.LogInformation("Player {Character} requesting sleep at {InnName}, cost: {Cost}",
-            player.Character.Name, inn.Name, cost);
+            player.Character!.Name, inn.Name, cost);
 
         await player.Send(new CitizenRequestServerPacket
         {

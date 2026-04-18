@@ -29,7 +29,7 @@ public class ShopBuyClientPacketHandler(
         if (requestedAmount <= 0 || requestedAmount > MaxItem)
         {
             logger.LogWarning("Player {Character} attempted to buy invalid amount {Amount}",
-                player.Character.Name, requestedAmount);
+                player.Character!.Name, requestedAmount);
             return;
         }
 
@@ -50,7 +50,7 @@ public class ShopBuyClientPacketHandler(
         if (trade == null)
         {
             logger.LogWarning("Player {Character} tried to buy item {ItemId} not sold by shop {Shop}",
-                player.Character.Name, itemId, shop.Name);
+                player.Character!.Name, itemId, shop.Name);
             return;
         }
 
@@ -67,7 +67,7 @@ public class ShopBuyClientPacketHandler(
         if (canHold == 0)
         {
             logger.LogDebug("Player {Character} cannot hold any more of item {ItemId}",
-                player.Character.Name, itemId);
+                player.Character!.Name, itemId);
             return;
         }
 
@@ -79,31 +79,31 @@ public class ShopBuyClientPacketHandler(
         var totalCost = trade.BuyPrice * amount;
 
         // Check if player has enough gold
-        var playerGold = inventoryService.GetItemAmount(player.Character, GoldItemId);
+        var playerGold = inventoryService.GetItemAmount(player.Character!, GoldItemId);
         if (playerGold < totalCost)
         {
             logger.LogDebug("Player {Character} doesn't have enough gold ({Gold}) for purchase ({Cost})",
-                player.Character.Name, playerGold, totalCost);
+                player.Character!.Name, playerGold, totalCost);
             return;
         }
 
         // Remove gold
-        if (!inventoryService.TryRemoveItem(player.Character, GoldItemId, totalCost))
+        if (!inventoryService.TryRemoveItem(player.Character!, GoldItemId, totalCost))
         {
-            logger.LogWarning("Failed to remove gold from player {Character}", player.Character.Name);
+            logger.LogWarning("Failed to remove gold from player {Character}", player.Character!.Name);
             return;
         }
 
         // Add purchased item
-        inventoryService.TryAddItem(player.Character, itemId, amount);
+        inventoryService.TryAddItem(player.Character!, itemId, amount);
 
         logger.LogInformation("Player {Character} bought {Amount}x {ItemName} for {Cost} gold",
-            player.Character.Name, amount, itemData.Name, totalCost);
+            player.Character!.Name, amount, itemData.Name, totalCost);
 
         // Send response
         await player.Send(new ShopBuyServerPacket
         {
-            GoldAmount = inventoryService.GetItemAmount(player.Character, GoldItemId),
+            GoldAmount = inventoryService.GetItemAmount(player.Character!, GoldItemId),
             BoughtItem = new Moffat.EndlessOnline.SDK.Protocol.Net.Item
             {
                 Id = itemId,
@@ -112,7 +112,7 @@ public class ShopBuyClientPacketHandler(
             Weight = new Weight
             {
                 Current = CalculateCurrentWeight(player),
-                Max = player.Character.MaxWeight
+                Max = player.Character!.MaxWeight
             }
         });
     }
@@ -122,7 +122,7 @@ public class ShopBuyClientPacketHandler(
         if (player.Character == null) return 0;
 
         var currentWeight = CalculateCurrentWeight(player);
-        var maxWeight = player.Character.MaxWeight;
+        var maxWeight = player.Character!.MaxWeight;
         var availableWeight = maxWeight - currentWeight;
 
         if (itemData.Weight <= 0) return requestedAmount;
@@ -135,7 +135,7 @@ public class ShopBuyClientPacketHandler(
         if (player.Character == null) return 0;
 
         var totalWeight = 0;
-        foreach (var item in player.Character.Inventory.Items)
+        foreach (var item in player.Character!.Inventory.Items)
         {
             var itemData = dataFileRepository.Eif.GetItem(item.Id);
             if (itemData != null)

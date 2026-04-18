@@ -25,7 +25,7 @@ internal class TalkTellClientPacketHandler(IWorldQueries world) : IPacketHandler
         await target.Send(new TalkTellServerPacket
         {
             Message = packet.Message,
-            PlayerName = playerState.Character.Name!
+            PlayerName = playerState.Character!.Name!
         });
     }
 }

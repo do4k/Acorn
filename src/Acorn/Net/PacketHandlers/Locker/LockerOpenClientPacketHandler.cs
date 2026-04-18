@@ -18,7 +18,7 @@ public class LockerOpenClientPacketHandler(
 {
     public async Task HandleAsync(PlayerState player, LockerOpenClientPacket packet)
     {
-        var playerCoords = new Coords { X = player.Character.X, Y = player.Character.Y };
+        var playerCoords = new Coords { X = player.Character!.X, Y = player.Character!.Y };
 
         // Check if player is adjacent to a bank vault tile
         var adjacentCoords = new[]
@@ -31,21 +31,21 @@ public class LockerOpenClientPacketHandler(
 
         var hasAdjacentLocker = adjacentCoords.Any(coord =>
         {
-            var tile = mapTileService.GetTile(player.CurrentMap.Data, coord);
+            var tile = mapTileService.GetTile(player.CurrentMap!.Data, coord);
             return tile == MapTileSpec.BankVault;
         });
 
         if (!hasAdjacentLocker)
         {
             logger.LogWarning("Player {Character} tried to open locker but is not adjacent to one",
-                player.Character.Name);
+                player.Character!.Name);
             return;
         }
 
-        logger.LogInformation("Player {Character} opening locker", player.Character.Name);
+        logger.LogInformation("Player {Character} opening locker", player.Character!.Name);
 
         // Build locker items list
-        var lockerItems = player.Character.Bank.Items.Select(item => new ThreeItem
+        var lockerItems = player.Character!.Bank.Items.Select(item => new ThreeItem
         {
             Id = item.Id,
             Amount = item.Amount

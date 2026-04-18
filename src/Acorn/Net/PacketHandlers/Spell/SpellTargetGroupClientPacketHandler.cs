@@ -16,7 +16,7 @@ public class SpellTargetGroupClientPacketHandler(
         if (player.SpellId != packet.SpellId)
         {
             logger.LogWarning("Player {Character} spell ID mismatch: expected {ExpectedId}, got {ActualId}",
-                player.Character.Name, player.SpellId, packet.SpellId);
+                player.Character!.Name, player.SpellId, packet.SpellId);
             return;
         }
 
@@ -24,12 +24,12 @@ public class SpellTargetGroupClientPacketHandler(
         if (!CheckTimestamp(player, packet.Timestamp))
         {
             logger.LogWarning("Player {Character} spell timestamp validation failed for spell {SpellId}",
-                player.Character.Name, packet.SpellId);
+                player.Character!.Name, packet.SpellId);
             return;
         }
 
         logger.LogInformation("Player {Character} casting spell {SpellId} on group",
-            player.Character.Name, packet.SpellId);
+            player.Character!.Name, packet.SpellId);
 
         // Update player state
         player.Timestamp = packet.Timestamp;

@@ -15,7 +15,7 @@ public class RangeRequestClientPacketHandler(
     public async Task HandleAsync(PlayerState player, RangeRequestClientPacket packet)
     {
         logger.LogDebug("Player {Character} requesting range data for {PlayerCount} players and {NpcCount} NPCs",
-            player.Character.Name, packet.PlayerIds.Count, packet.NpcIndexes.Count);
+            player.Character!.Name, packet.PlayerIds.Count, packet.NpcIndexes.Count);
 
         // Send player data if requested
         if (packet.PlayerIds.Count > 0)
@@ -24,7 +24,7 @@ public class RangeRequestClientPacketHandler(
             {
                 PlayersList = new PlayersList
                 {
-                    Players = player.CurrentMap.Players.Values
+                    Players = player.CurrentMap!.Players.Values
                         .Where(p => p.Character != null && packet.PlayerIds.Contains(p.SessionId))
                         .Select(p => p.Character!.AsOnlinePlayer())
                         .ToList()
@@ -35,7 +35,7 @@ public class RangeRequestClientPacketHandler(
         // Send NPC data if requested
         if (packet.NpcIndexes.Count > 0)
         {
-            var npcs = player.CurrentMap.AsNpcMapInfo()
+            var npcs = player.CurrentMap!.AsNpcMapInfo()
                 .Where((npc, index) => packet.NpcIndexes.Contains(index))
                 .ToList();
 

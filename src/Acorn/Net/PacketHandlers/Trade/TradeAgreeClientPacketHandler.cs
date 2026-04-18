@@ -24,7 +24,7 @@ public class TradeAgreeClientPacketHandler(
         var trade = player.TradeSession;
         if (trade == null)
         {
-            logger.LogDebug("Player {Character} is not in a trade", player.Character.Name);
+            logger.LogDebug("Player {Character} is not in a trade", player.Character!.Name);
             return;
         }
 
@@ -39,7 +39,7 @@ public class TradeAgreeClientPacketHandler(
         // Must have at least one item offered to agree
         if (!trade.MyItems.Any())
         {
-            logger.LogDebug("Player {Character} tried to agree with no items", player.Character.Name);
+            logger.LogDebug("Player {Character} tried to agree with no items", player.Character!.Name);
             return;
         }
 
@@ -53,7 +53,7 @@ public class TradeAgreeClientPacketHandler(
         // Set this player as having agreed
         trade.IAccepted = true;
 
-        logger.LogDebug("Player {Character} agreed to trade", player.Character.Name);
+        logger.LogDebug("Player {Character} agreed to trade", player.Character!.Name);
 
         // Check if both players have agreed
         if (partnerTrade.IAccepted)
@@ -86,7 +86,7 @@ public class TradeAgreeClientPacketHandler(
         // Remove items from player's inventory
         foreach (var item in playerItems)
         {
-            inventoryService.TryRemoveItem(player.Character, item.ItemId, item.Amount);
+            inventoryService.TryRemoveItem(player.Character!, item.ItemId, item.Amount);
         }
 
         // Remove items from partner's inventory
@@ -98,11 +98,11 @@ public class TradeAgreeClientPacketHandler(
         // Add partner's items to player
         foreach (var item in partnerItems)
         {
-            var currentAmount = inventoryService.GetItemAmount(player.Character, item.ItemId);
+            var currentAmount = inventoryService.GetItemAmount(player.Character!, item.ItemId);
             var canAdd = Math.Min(item.Amount, MaxItemAmount - currentAmount);
             if (canAdd > 0)
             {
-                inventoryService.TryAddItem(player.Character, item.ItemId, canAdd);
+                inventoryService.TryAddItem(player.Character!, item.ItemId, canAdd);
             }
         }
 
@@ -165,7 +165,7 @@ public class TradeAgreeClientPacketHandler(
         // Can broadcast an emote packet here if desired
 
         logger.LogInformation("Trade completed between {Player} and {Partner}",
-            player.Character.Name, partner.Character.Name);
+            player.Character!.Name, partner.Character.Name);
     }
 
 }

@@ -15,7 +15,7 @@ public class PartyTakeClientPacketHandler(
     public async Task HandleAsync(PlayerState player, PartyTakeClientPacket packet)
     {
         logger.LogDebug("Player {Character} requesting party member list refresh",
-            player.Character.Name);
+            player.Character!.Name);
 
         await partyService.RefreshPartyList(player);
     }

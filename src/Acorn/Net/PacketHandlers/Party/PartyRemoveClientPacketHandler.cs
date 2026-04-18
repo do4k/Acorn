@@ -15,7 +15,7 @@ public class PartyRemoveClientPacketHandler(
     public async Task HandleAsync(PlayerState player, PartyRemoveClientPacket packet)
     {
         logger.LogDebug("Player {Character} removing {Target} from party",
-            player.Character.Name, packet.PlayerId);
+            player.Character!.Name, packet.PlayerId);
 
         await partyService.RemoveFromParty(player, packet.PlayerId);
     }

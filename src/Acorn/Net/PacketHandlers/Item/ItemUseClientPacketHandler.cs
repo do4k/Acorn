@@ -19,10 +19,10 @@ public class ItemUseClientPacketHandler(
     public async Task HandleAsync(PlayerState player, ItemUseClientPacket packet)
     {
         // Validate player has the item
-        if (!inventoryService.HasItem(player.Character, packet.ItemId))
+        if (!inventoryService.HasItem(player.Character!, packet.ItemId))
         {
             logger.LogWarning("Player {Character} tried to use item {ItemId} but doesn't have it",
-                player.Character.Name, packet.ItemId);
+                player.Character!.Name, packet.ItemId);
             return;
         }
 
@@ -35,7 +35,7 @@ public class ItemUseClientPacketHandler(
         }
 
         logger.LogInformation("Player {Character} using item {ItemId} ({ItemName}) type {Type}",
-            player.Character.Name, packet.ItemId, itemData.Name, itemData.Type);
+            player.Character!.Name, packet.ItemId, itemData.Name, itemData.Type);
 
         var consumed = true;
 
@@ -66,7 +66,7 @@ public class ItemUseClientPacketHandler(
         // Remove item from inventory if consumed
         if (consumed)
         {
-            inventoryService.TryRemoveItem(player.Character, packet.ItemId);
+            inventoryService.TryRemoveItem(player.Character!, packet.ItemId);
             // TODO: Send updated inventory packet
         }
 
@@ -81,29 +81,29 @@ public class ItemUseClientPacketHandler(
             return;
         }
 
-        var hpBefore = player.Character.Hp;
-        var tpBefore = player.Character.Tp;
+        var hpBefore = player.Character!.Hp;
+        var tpBefore = player.Character!.Tp;
 
         // Heal HP
         if (item.Hp > 0)
         {
-            player.Character.Hp = Math.Min(player.Character.Hp + item.Hp, player.Character.MaxHp);
+            player.Character!.Hp = Math.Min(player.Character!.Hp + item.Hp, player.Character!.MaxHp);
         }
 
         // Heal TP
         if (item.Tp > 0)
         {
-            player.Character.Tp = Math.Min(player.Character.Tp + item.Tp, player.Character.MaxTp);
+            player.Character!.Tp = Math.Min(player.Character!.Tp + item.Tp, player.Character!.MaxTp);
         }
 
-        var hpGain = player.Character.Hp - hpBefore;
-        var tpGain = player.Character.Tp - tpBefore;
+        var hpGain = player.Character!.Hp - hpBefore;
+        var tpGain = player.Character!.Tp - tpBefore;
 
         logger.LogInformation("Player {Character} healed {HpGain} HP and {TpGain} TP",
-            player.Character.Name, hpGain, tpGain);
+            player.Character!.Name, hpGain, tpGain);
 
         // TODO: Broadcast RecoverAgree packet to nearby players
-        // if (hpGain > 0 || tpGain > 0) { await player.CurrentMap.BroadcastPacket(...); }
+        // if (hpGain > 0 || tpGain > 0) { await player.CurrentMap!.BroadcastPacket(...); }
     }
 
     private async Task HandleTeleportItem(PlayerState player, EifRecord item)
@@ -115,7 +115,7 @@ public class ItemUseClientPacketHandler(
 
         // Check if map allows scrolling
         // TODO: Add CanScroll property to map data
-        // if (!player.CurrentMap.Data.CanScroll) return;
+        // if (!player.CurrentMap!.Data.CanScroll) return;
 
         int targetMapId;
         int targetX, targetY;
@@ -127,7 +127,7 @@ public class ItemUseClientPacketHandler(
             targetMapId = 1; // Default home map
             targetX = 12;
             targetY = 6;
-            logger.LogInformation("Player {Character} using scroll to teleport home", player.Character.Name);
+            logger.LogInformation("Player {Character} using scroll to teleport home", player.Character!.Name);
         }
         else
         {
@@ -136,7 +136,7 @@ public class ItemUseClientPacketHandler(
             targetX = item.Spec2;
             targetY = item.Spec3;
             logger.LogInformation("Player {Character} using scroll to teleport to map {MapId} ({X}, {Y})",
-                player.Character.Name, targetMapId, targetX, targetY);
+                player.Character!.Name, targetMapId, targetX, targetY);
         }
 
         // TODO: Implement warp with scroll effect
@@ -152,13 +152,13 @@ public class ItemUseClientPacketHandler(
             return;
         }
 
-        player.Character.HairColor = item.Spec1;
+        player.Character!.HairColor = item.Spec1;
 
         logger.LogInformation("Player {Character} changed hair color to {Color}",
-            player.Character.Name, item.Spec1);
+            player.Character!.Name, item.Spec1);
 
         // TODO: Broadcast AvatarAgree packet to nearby players
-        // await player.CurrentMap.BroadcastPacket(new AvatarAgreeServerPacket { ... });
+        // await player.CurrentMap!.BroadcastPacket(new AvatarAgreeServerPacket { ... });
     }
 
     private async Task HandleExpReward(PlayerState player, EifRecord item)
@@ -169,10 +169,10 @@ public class ItemUseClientPacketHandler(
         }
 
         var expGain = item.Spec1;
-        player.Character.Exp += expGain;
+        player.Character!.Exp += expGain;
 
         logger.LogInformation("Player {Character} gained {Exp} experience from item",
-            player.Character.Name, expGain);
+            player.Character!.Name, expGain);
 
         // TODO: Check for level up
         // TODO: Send experience update packet

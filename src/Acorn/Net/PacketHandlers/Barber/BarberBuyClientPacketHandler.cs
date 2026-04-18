@@ -1,4 +1,3 @@
-using Acorn.Database.Repository;
 using Acorn.Game.Services;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
@@ -12,7 +11,6 @@ namespace Acorn.Net.PacketHandlers.Barber;
 [RequiresCharacter]
 public class BarberBuyClientPacketHandler(
     ILogger<BarberBuyClientPacketHandler> logger,
-    IDataFileRepository dataFileRepository,
     IInventoryService inventoryService)
     : IPacketHandler<BarberBuyClientPacket>
 {
@@ -31,7 +29,7 @@ public class BarberBuyClientPacketHandler(
         if (hairStyle < 0 || hairStyle > MaxHairStyle || hairColor < 0 || hairColor > MaxHairColor)
         {
             logger.LogWarning("Player {Character} tried to buy invalid hairstyle {Style}/{Color}",
-                player.Character.Name, hairStyle, hairColor);
+                player.Character!.Name, hairStyle, hairColor);
             return;
         }
 
@@ -40,29 +38,29 @@ public class BarberBuyClientPacketHandler(
         if (npc is null) return;
 
         // Calculate cost based on level
-        var cost = BaseCost + Math.Max(1, player.Character.Level) * CostPerLevel;
+        var cost = BaseCost + Math.Max(1, player.Character!.Level) * CostPerLevel;
 
         // Check if player has enough gold
-        var playerGold = inventoryService.GetItemAmount(player.Character, GoldItemId);
+        var playerGold = inventoryService.GetItemAmount(player.Character!, GoldItemId);
         if (playerGold < cost)
         {
             logger.LogDebug("Player {Character} doesn't have enough gold ({Gold}) for haircut ({Cost})",
-                player.Character.Name, playerGold, cost);
+                player.Character!.Name, playerGold, cost);
             return;
         }
 
         // Remove gold
-        if (!inventoryService.TryRemoveItem(player.Character, GoldItemId, cost))
+        if (!inventoryService.TryRemoveItem(player.Character!, GoldItemId, cost))
         {
             return;
         }
 
         // Update character appearance
-        player.Character.HairStyle = hairStyle;
-        player.Character.HairColor = hairColor;
+        player.Character!.HairStyle = hairStyle;
+        player.Character!.HairColor = hairColor;
 
         logger.LogInformation("Player {Character} bought haircut style={Style} color={Color} for {Cost} gold",
-            player.Character.Name, hairStyle, hairColor, cost);
+            player.Character!.Name, hairStyle, hairColor, cost);
 
         // Create avatar change info
         var avatarChange = new AvatarChange
@@ -80,13 +78,13 @@ public class BarberBuyClientPacketHandler(
         // Send response to player
         await player.Send(new BarberAgreeServerPacket
         {
-            GoldAmount = inventoryService.GetItemAmount(player.Character, GoldItemId),
+            GoldAmount = inventoryService.GetItemAmount(player.Character!, GoldItemId),
             Change = avatarChange
         });
 
         // Notify other players on the map
         var avatarPacket = new AvatarAgreeServerPacket { Change = avatarChange };
-        await player.CurrentMap.BroadcastPacket(avatarPacket, player);
+        await player.CurrentMap!.BroadcastPacket(avatarPacket, player);
     }
 
 }

@@ -39,9 +39,9 @@ public class WarpAcceptClientPacketHandler : IPacketHandler<WarpAcceptClientPack
 
         //todo: cancel any trades and whatnot if in progress
 
-        await playerState.CurrentMap.NotifyLeave(playerState, playerState.WarpSession.WarpEffect);
+        await playerState.CurrentMap!.NotifyLeave(playerState, playerState.WarpSession.WarpEffect);
 
-        playerState.Character.Map = playerState.WarpSession.MapId;
+        playerState.Character!.Map = playerState.WarpSession.MapId;
         playerState.Character.X = playerState.WarpSession.X;
         playerState.Character.Y = playerState.WarpSession.Y;
         playerState.Character.SitState = SitState.Stand;

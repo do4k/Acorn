@@ -27,7 +27,7 @@ public class TradeAddClientPacketHandler(
         var trade = player.TradeSession;
         if (trade == null)
         {
-            logger.LogDebug("Player {Character} is not in a trade", player.Character.Name);
+            logger.LogDebug("Player {Character} is not in a trade", player.Character!.Name);
             return;
         }
 
@@ -56,12 +56,12 @@ public class TradeAddClientPacketHandler(
         if (itemData.Special == ItemSpecial.Lore)
         {
             logger.LogDebug("Player {Character} tried to trade lore item {ItemId}",
-                player.Character.Name, itemId);
+                player.Character!.Name, itemId);
             return;
         }
 
         // Check if player has enough of the item
-        var playerAmount = inventoryService.GetItemAmount(player.Character, itemId);
+        var playerAmount = inventoryService.GetItemAmount(player.Character!, itemId);
         if (playerAmount < amount)
         {
             amount = playerAmount;
@@ -77,7 +77,7 @@ public class TradeAddClientPacketHandler(
         var existingItem = trade.MyItems.FirstOrDefault(i => i.ItemId == itemId);
         if (existingItem == null && trade.MyItems.Count >= TradeSession.MaxTradeSlots)
         {
-            logger.LogDebug("Trade is full for player {Character}", player.Character.Name);
+            logger.LogDebug("Trade is full for player {Character}", player.Character!.Name);
             return;
         }
 
@@ -89,7 +89,7 @@ public class TradeAddClientPacketHandler(
         partnerTrade.IAccepted = false;
 
         logger.LogDebug("Player {Character} added {Amount}x item {ItemId} to trade",
-            player.Character.Name, amount, itemId);
+            player.Character!.Name, amount, itemId);
 
         // Send trade update to both players
         await SendTradeUpdate(player, trade.Partner, trade, partnerTrade);

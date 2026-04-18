@@ -18,13 +18,13 @@ public class BankOpenClientPacketHandler(
         if (npc is null) return;
 
         logger.LogInformation("Player {Character} opening bank",
-            player.Character.Name);
+            player.Character!.Name);
 
         await player.Send(new BankOpenServerPacket
         {
-            GoldBank = player.Character.GoldBank,
+            GoldBank = player.Character!.GoldBank,
             SessionId = player.SessionId,
-            LockerUpgrades = player.Character.BankMax / 5 // BankMax represents locker slots, upgrades are in increments of 5
+            LockerUpgrades = player.Character!.BankMax / 5 // BankMax represents locker slots, upgrades are in increments of 5
         });
     }
 

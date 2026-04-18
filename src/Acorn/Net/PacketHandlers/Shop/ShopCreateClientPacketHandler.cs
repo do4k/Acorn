@@ -39,7 +39,7 @@ public class ShopCreateClientPacketHandler(
         if (craft == null)
         {
             logger.LogWarning("Player {Character} tried to craft item {ItemId} not craftable at shop {Shop}",
-                player.Character.Name, craftItemId, shop.Name);
+                player.Character!.Name, craftItemId, shop.Name);
             return;
         }
 
@@ -47,10 +47,10 @@ public class ShopCreateClientPacketHandler(
         foreach (var ingredient in craft.Ingredients)
         {
             if (ingredient.ItemId > 0 &&
-                inventoryService.GetItemAmount(player.Character, ingredient.ItemId) < ingredient.Amount)
+                inventoryService.GetItemAmount(player.Character!, ingredient.ItemId) < ingredient.Amount)
             {
                 logger.LogDebug("Player {Character} missing ingredient {ItemId} for craft",
-                    player.Character.Name, ingredient.ItemId);
+                    player.Character!.Name, ingredient.ItemId);
                 return;
             }
         }
@@ -60,21 +60,21 @@ public class ShopCreateClientPacketHandler(
         {
             if (ingredient.ItemId > 0)
             {
-                if (!inventoryService.TryRemoveItem(player.Character, ingredient.ItemId, ingredient.Amount))
+                if (!inventoryService.TryRemoveItem(player.Character!, ingredient.ItemId, ingredient.Amount))
                 {
                     logger.LogError("Failed to remove ingredient {ItemId} from player {Character}",
-                        ingredient.ItemId, player.Character.Name);
+                        ingredient.ItemId, player.Character!.Name);
                     return;
                 }
             }
         }
 
         // Add crafted item
-        inventoryService.TryAddItem(player.Character, craftItemId, 1);
+        inventoryService.TryAddItem(player.Character!, craftItemId, 1);
 
         var itemData = dataFileRepository.Eif.GetItem(craftItemId);
         logger.LogInformation("Player {Character} crafted {ItemName}",
-            player.Character.Name, itemData?.Name ?? $"Item {craftItemId}");
+            player.Character!.Name, itemData?.Name ?? $"Item {craftItemId}");
 
         // Build response with remaining ingredient amounts
         // Pad to exactly 4 ingredients
@@ -90,29 +90,29 @@ public class ShopCreateClientPacketHandler(
             Weight = new Weight
             {
                 Current = CalculateCurrentWeight(player),
-                Max = player.Character.MaxWeight
+                Max = player.Character!.MaxWeight
             },
             Ingredients =
             [
                 new Moffat.EndlessOnline.SDK.Protocol.Net.Item
                 {
                     Id = ingredientAmounts[0].ItemId,
-                    Amount = inventoryService.GetItemAmount(player.Character, ingredientAmounts[0].ItemId)
+                    Amount = inventoryService.GetItemAmount(player.Character!, ingredientAmounts[0].ItemId)
                 },
                 new Moffat.EndlessOnline.SDK.Protocol.Net.Item
                 {
                     Id = ingredientAmounts[1].ItemId,
-                    Amount = inventoryService.GetItemAmount(player.Character, ingredientAmounts[1].ItemId)
+                    Amount = inventoryService.GetItemAmount(player.Character!, ingredientAmounts[1].ItemId)
                 },
                 new Moffat.EndlessOnline.SDK.Protocol.Net.Item
                 {
                     Id = ingredientAmounts[2].ItemId,
-                    Amount = inventoryService.GetItemAmount(player.Character, ingredientAmounts[2].ItemId)
+                    Amount = inventoryService.GetItemAmount(player.Character!, ingredientAmounts[2].ItemId)
                 },
                 new Moffat.EndlessOnline.SDK.Protocol.Net.Item
                 {
                     Id = ingredientAmounts[3].ItemId,
-                    Amount = inventoryService.GetItemAmount(player.Character, ingredientAmounts[3].ItemId)
+                    Amount = inventoryService.GetItemAmount(player.Character!, ingredientAmounts[3].ItemId)
                 }
             ]
         });
@@ -123,7 +123,7 @@ public class ShopCreateClientPacketHandler(
         if (player.Character == null) return 0;
 
         var totalWeight = 0;
-        foreach (var item in player.Character.Inventory.Items)
+        foreach (var item in player.Character!.Inventory.Items)
         {
             var itemData = dataFileRepository.Eif.GetItem(item.Id);
             if (itemData != null)

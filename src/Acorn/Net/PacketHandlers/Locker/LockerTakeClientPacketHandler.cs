@@ -24,7 +24,7 @@ public class LockerTakeClientPacketHandler(
     {
         var itemId = packet.TakeItemId;
 
-        var playerCoords = new Coords { X = player.Character.X, Y = player.Character.Y };
+        var playerCoords = new Coords { X = player.Character!.X, Y = player.Character!.Y };
 
         // Check if player is adjacent to a bank vault tile
         var adjacentCoords = new[]
@@ -37,23 +37,23 @@ public class LockerTakeClientPacketHandler(
 
         var hasAdjacentLocker = adjacentCoords.Any(coord =>
         {
-            var tile = mapTileService.GetTile(player.CurrentMap.Data, coord);
+            var tile = mapTileService.GetTile(player.CurrentMap!.Data, coord);
             return tile == MapTileSpec.BankVault;
         });
 
         if (!hasAdjacentLocker)
         {
             logger.LogWarning("Player {Character} tried to take from locker but is not adjacent to one",
-                player.Character.Name);
+                player.Character!.Name);
             return;
         }
 
         // Get amount in bank
-        var bankItem = player.Character.Bank.Items.FirstOrDefault(i => i.Id == itemId);
+        var bankItem = player.Character!.Bank.Items.FirstOrDefault(i => i.Id == itemId);
         if (bankItem == null || bankItem.Amount == 0)
         {
             logger.LogWarning("Player {Character} tried to take item {ItemId} not in locker",
-                player.Character.Name, itemId);
+                player.Character!.Name, itemId);
             return;
         }
 
@@ -65,7 +65,7 @@ public class LockerTakeClientPacketHandler(
         if (itemData != null && itemData.Weight > 0)
         {
             var currentWeight = CalculateCurrentWeight(player);
-            var availableWeight = player.Character.MaxWeight - currentWeight;
+            var availableWeight = player.Character!.MaxWeight - currentWeight;
             var canHold = availableWeight / itemData.Weight;
             amount = Math.Min(amount, canHold);
         }
@@ -73,21 +73,21 @@ public class LockerTakeClientPacketHandler(
         if (amount == 0)
         {
             logger.LogDebug("Player {Character} cannot hold any more of item {ItemId} (weight limit)",
-                player.Character.Name, itemId);
+                player.Character!.Name, itemId);
             return;
         }
 
         // Remove from bank
-        RemoveBankItem(player.Character, itemId, amount);
+        RemoveBankItem(player.Character!, itemId, amount);
 
         // Add to inventory
-        inventoryService.TryAddItem(player.Character, itemId, amount);
+        inventoryService.TryAddItem(player.Character!, itemId, amount);
 
         logger.LogInformation("Player {Character} took {Amount}x item {ItemId} from locker",
-            player.Character.Name, amount, itemId);
+            player.Character!.Name, amount, itemId);
 
         // Build locker items list
-        var lockerItems = player.Character.Bank.Items
+        var lockerItems = player.Character!.Bank.Items
             .Where(i => i.Amount > 0)
             .Select(item => new ThreeItem
             {
@@ -105,7 +105,7 @@ public class LockerTakeClientPacketHandler(
             Weight = new Weight
             {
                 Current = CalculateCurrentWeight(player),
-                Max = player.Character.MaxWeight
+                Max = player.Character!.MaxWeight
             },
             LockerItems = lockerItems
         });
@@ -133,7 +133,7 @@ public class LockerTakeClientPacketHandler(
         if (player.Character == null) return 0;
 
         var totalWeight = 0;
-        foreach (var item in player.Character.Inventory.Items)
+        foreach (var item in player.Character!.Inventory.Items)
         {
             var itemData = dataFileRepository.Eif.GetItem(item.Id);
             if (itemData != null)

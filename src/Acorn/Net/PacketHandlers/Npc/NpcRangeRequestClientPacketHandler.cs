@@ -13,7 +13,7 @@ public class NpcRangeRequestClientPacketHandler : IPacketHandler<NpcRangeRequest
     {
         await playerState.Send(new NpcAgreeServerPacket
         {
-            Npcs = playerState.CurrentMap.AsNpcMapInfo()
+            Npcs = playerState.CurrentMap!.AsNpcMapInfo()
         });
     }
 

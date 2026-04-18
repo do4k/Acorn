@@ -30,7 +30,7 @@ public class StatSkillRemoveClientPacketHandler(
             return;
         }
 
-        var character = player.Character;
+        var character = player.Character!;
 
         // Check if player knows this spell
         if (!character.Spells.Items.Any(s => s.Id == spellId))

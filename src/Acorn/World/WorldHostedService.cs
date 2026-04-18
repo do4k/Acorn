@@ -1,4 +1,4 @@
-﻿using System.Timers;
+using System.Timers;
 using Acorn.Options;
 using Acorn.World.Services.Marriage;
 using Microsoft.Extensions.Hosting;
@@ -36,7 +36,7 @@ internal class WorldHostedService : IHostedService
         return Task.CompletedTask;
     }
 
-    private async void OnTick(object sender, ElapsedEventArgs args)
+    private async void OnTick(object? sender, ElapsedEventArgs args)
     {
         try
         {

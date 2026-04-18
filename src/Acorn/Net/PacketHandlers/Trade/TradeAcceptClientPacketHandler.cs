@@ -22,14 +22,14 @@ public class TradeAcceptClientPacketHandler(
         // Can't accept if already in a trade
         if (player.TradeSession != null)
         {
-            logger.LogDebug("Player {Character} is already in a trade", player.Character.Name);
+            logger.LogDebug("Player {Character} is already in a trade", player.Character!.Name);
             return;
         }
 
         var partnerPlayerId = packet.PlayerId;
 
         // Find partner player who should have requested to trade with us
-        var partnerPlayer = player.CurrentMap.Players.Values.FirstOrDefault(p => p.SessionId == partnerPlayerId);
+        var partnerPlayer = player.CurrentMap!.Players.Values.FirstOrDefault(p => p.SessionId == partnerPlayerId);
         if (partnerPlayer?.Character == null)
         {
             logger.LogDebug("Partner player {PartnerId} not found on map", partnerPlayerId);
@@ -52,8 +52,8 @@ public class TradeAcceptClientPacketHandler(
 
         // Check if players are still in range
         var distance = Math.Max(
-            Math.Abs(player.Character.X - partnerPlayer.Character.X),
-            Math.Abs(player.Character.Y - partnerPlayer.Character.Y));
+            Math.Abs(player.Character!.X - partnerPlayer.Character.X),
+            Math.Abs(player.Character!.Y - partnerPlayer.Character.Y));
 
         if (distance > MaxTradeDistance)
         {
@@ -62,7 +62,7 @@ public class TradeAcceptClientPacketHandler(
         }
 
         logger.LogInformation("Player {Character} accepting trade with {Partner}",
-            player.Character.Name, partnerPlayer.Character.Name);
+            player.Character!.Name, partnerPlayer.Character.Name);
 
         // Clear the pending request
         partnerPlayer.PendingTradeRequestFromPlayerId = null;
@@ -86,13 +86,13 @@ public class TradeAcceptClientPacketHandler(
             PartnerPlayerId = partnerPlayer.SessionId,
             PartnerPlayerName = partnerPlayer.Character.Name,
             YourPlayerId = player.SessionId,
-            YourPlayerName = player.Character.Name
+            YourPlayerName = player.Character!.Name
         });
 
         await partnerPlayer.Send(new TradeOpenServerPacket
         {
             PartnerPlayerId = player.SessionId,
-            PartnerPlayerName = player.Character.Name,
+            PartnerPlayerName = player.Character!.Name,
             YourPlayerId = partnerPlayer.SessionId,
             YourPlayerName = partnerPlayer.Character.Name
         });

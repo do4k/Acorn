@@ -15,12 +15,12 @@ public class SpellRequestClientPacketHandler(
         if (packet.SpellId <= 0)
         {
             logger.LogWarning("Player {Character} attempted to cast invalid spell {SpellId}",
-                player.Character.Name, packet.SpellId);
+                player.Character!.Name, packet.SpellId);
             return;
         }
 
         logger.LogInformation("Player {Character} starting spell chant for spell {SpellId} at timestamp {Timestamp}",
-            player.Character.Name, packet.SpellId, packet.Timestamp);
+            player.Character!.Name, packet.SpellId, packet.Timestamp);
 
         // Update player state for tracking
         player.Timestamp = packet.Timestamp;

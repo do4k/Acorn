@@ -21,7 +21,7 @@ public class TradeCloseClientPacketHandler(
         {
             // Also clear any pending trade request
             player.PendingTradeRequestFromPlayerId = null;
-            logger.LogDebug("Player {Character} is not in a trade", player.Character.Name);
+            logger.LogDebug("Player {Character} is not in a trade", player.Character!.Name);
             return;
         }
 
@@ -29,7 +29,7 @@ public class TradeCloseClientPacketHandler(
         var partnerTrade = partner.TradeSession;
 
         logger.LogInformation("Player {Character} cancelled trade with {Partner}",
-            player.Character.Name, partner.Character?.Name ?? "unknown");
+            player.Character!.Name, partner.Character?.Name ?? "unknown");
 
         // Clear trade sessions
         player.TradeSession = null;

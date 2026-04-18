@@ -83,37 +83,7 @@ public class GuildService(
 
         _creationRecruits[player.SessionId] = [];
 
-        if (MinPlayersForCreation <= 1)
-        {
-            await SendGuildReply(player, GuildReply.CreateAddConfirm);
-        }
-        else
-        {
-            var unguildedCount = player.CurrentMap.Players.Values
-                .Count(p => p.Character?.GuildTag is null && p.SessionId != player.SessionId);
-
-            if (unguildedCount + 1 < MinPlayersForCreation)
-            {
-                await SendGuildReply(player, GuildReply.NoCandidates);
-                return;
-            }
-
-            await SendGuildReply(player, GuildReply.CreateBegin);
-
-            // Send create requests to unguilded players on the map
-            var guildIdentity = $"{Capitalize(player.Character.Name!)} ({guildTag})";
-            var requestPacket = new GuildRequestServerPacket
-            {
-                PlayerId = player.SessionId,
-                GuildIdentity = guildIdentity
-            };
-
-            foreach (var other in player.CurrentMap.Players.Values
-                .Where(p => p.SessionId != player.SessionId && p.Character?.GuildTag is null))
-            {
-                await other.Send(requestPacket);
-            }
-        }
+        await SendGuildReply(player, GuildReply.CreateAddConfirm);
     }
 
     public Task AcceptGuildCreation(PlayerState player, int inviterPlayerId)

@@ -25,7 +25,7 @@ public class BankTakeClientPacketHandler(
         if (requestedAmount <= 0)
         {
             logger.LogWarning("Player {Character} attempted to withdraw invalid amount {Amount}",
-                player.Character.Name, requestedAmount);
+                player.Character!.Name, requestedAmount);
             return;
         }
 
@@ -34,7 +34,7 @@ public class BankTakeClientPacketHandler(
         if (npc is null) return;
 
         // Get bank gold amount
-        var amount = Math.Min(requestedAmount, player.Character.GoldBank);
+        var amount = Math.Min(requestedAmount, player.Character!.GoldBank);
 
         if (amount <= 0)
         {
@@ -46,30 +46,30 @@ public class BankTakeClientPacketHandler(
         if (goldData != null && goldData.Weight > 0)
         {
             var currentWeight = CalculateCurrentWeight(player);
-            var availableWeight = player.Character.MaxWeight - currentWeight;
+            var availableWeight = player.Character!.MaxWeight - currentWeight;
             var canHold = availableWeight / goldData.Weight;
             amount = Math.Min(amount, canHold);
         }
 
         if (amount <= 0)
         {
-            logger.LogDebug("Player {Character} cannot hold any more gold (weight limit)", player.Character.Name);
+            logger.LogDebug("Player {Character} cannot hold any more gold (weight limit)", player.Character!.Name);
             return;
         }
 
         // Remove gold from bank
-        player.Character.GoldBank -= amount;
+        player.Character!.GoldBank -= amount;
 
         // Add gold to inventory
-        inventoryService.TryAddItem(player.Character, GoldItemId, amount);
+        inventoryService.TryAddItem(player.Character!, GoldItemId, amount);
 
         logger.LogInformation("Player {Character} withdrew {Amount} gold (Bank: {BankGold})",
-            player.Character.Name, amount, player.Character.GoldBank);
+            player.Character!.Name, amount, player.Character!.GoldBank);
 
         await player.Send(new BankReplyServerPacket
         {
-            GoldInventory = inventoryService.GetItemAmount(player.Character, GoldItemId),
-            GoldBank = player.Character.GoldBank
+            GoldInventory = inventoryService.GetItemAmount(player.Character!, GoldItemId),
+            GoldBank = player.Character!.GoldBank
         });
     }
 
@@ -78,7 +78,7 @@ public class BankTakeClientPacketHandler(
         if (player.Character == null) return 0;
 
         var totalWeight = 0;
-        foreach (var item in player.Character.Inventory.Items)
+        foreach (var item in player.Character!.Inventory.Items)
         {
             var itemData = dataFileRepository.Eif.GetItem(item.Id);
             if (itemData != null)

@@ -15,7 +15,7 @@ internal class TalkAdminClientPacketHandler(
 {
     public async Task HandleAsync(PlayerState playerState, TalkAdminClientPacket packet)
     {
-        if (playerState.Character.Admin < AdminLevel.Guardian)
+        if (playerState.Character!.Admin < AdminLevel.Guardian)
         {
             logger.LogDebug("Player tried to send an admin message without admin permissions {Player}",
                 playerState.Character.Name);

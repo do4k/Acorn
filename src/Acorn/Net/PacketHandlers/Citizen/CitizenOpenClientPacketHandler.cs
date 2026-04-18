@@ -29,12 +29,12 @@ public class CitizenOpenClientPacketHandler(
         }
 
         // Get current home inn
-        var currentHome = player.Character.Home ?? innDataRepository.DefaultHomeName;
+        var currentHome = player.Character!.Home ?? innDataRepository.DefaultHomeName;
         var currentInn = innDataRepository.GetInnByName(currentHome);
         var currentHomeId = currentInn?.BehaviorId ?? 0;
 
         logger.LogInformation("Player {Character} opening inn {InnName}",
-            player.Character.Name, inn.Name);
+            player.Character!.Name, inn.Name);
 
         // Build questions list (pad to 3 if needed)
         var questions = inn.Questions.Take(3).Select(q => q.Question).ToList();

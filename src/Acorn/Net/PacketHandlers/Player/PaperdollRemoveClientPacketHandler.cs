@@ -28,7 +28,7 @@ public class PaperdollRemoveClientPacketHandler : IPacketHandler<PaperdollRemove
 
     public async Task HandleAsync(PlayerState playerState, PaperdollRemoveClientPacket packet)
     {
-        var character = playerState.Character;
+        var character = playerState.Character!;
 
         // Use PlayerController to handle unequipping (includes stat recalculation)
         // SubLoc is only used for multi-slot items (Ring, Armlet, Bracer) as array index
@@ -63,7 +63,7 @@ public class PaperdollRemoveClientPacketHandler : IPacketHandler<PaperdollRemove
 
         // Broadcast avatar change to nearby players
         var broadcastPacket = new AvatarAgreeServerPacket { Change = avatarChange };
-        await playerState.CurrentMap.BroadcastPacket(broadcastPacket, playerState);
+        await playerState.CurrentMap!.BroadcastPacket(broadcastPacket, playerState);
     }
 
 }

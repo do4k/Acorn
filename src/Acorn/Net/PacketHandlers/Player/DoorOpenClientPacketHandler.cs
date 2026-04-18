@@ -21,13 +21,13 @@ public class DoorOpenClientPacketHandler : IPacketHandler<DoorOpenClientPacket>
             return;
         }
 
-        await playerState.CurrentMap.BroadcastPacket(new DoorOpenServerPacket
+        await playerState.CurrentMap!.BroadcastPacket(new DoorOpenServerPacket
         {
             Coords = doorCoords
         });
 
         // Register door for auto-close tracking
-        playerState.CurrentMap.RegisterOpenedDoor(doorCoords);
+        playerState.CurrentMap!.RegisterOpenedDoor(doorCoords);
     }
 
 }

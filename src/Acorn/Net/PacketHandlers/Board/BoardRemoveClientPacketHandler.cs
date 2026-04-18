@@ -25,13 +25,13 @@ public class BoardRemoveClientPacketHandler(
         var postId = packet.PostId;
 
         logger.LogInformation("Player {Character} attempting to remove post {PostId} from board {BoardId}",
-            player.Character.Name, postId, boardId);
+            player.Character!.Name, postId, boardId);
 
         // Only admins can remove posts (following reoserv behavior)
-        if ((int)player.Character.Admin < 1)
+        if ((int)player.Character!.Admin < 1)
         {
             logger.LogWarning("Player {Character} tried to remove post without admin privileges",
-                player.Character.Name);
+                player.Character!.Name);
             await RefreshBoard(player, boardId);
             return;
         }
@@ -40,7 +40,7 @@ public class BoardRemoveClientPacketHandler(
         if (boardId < 1 || boardId > 8)
         {
             logger.LogWarning("Player {Character} tried to remove post from invalid board {BoardId}",
-                player.Character.Name, boardId);
+                player.Character!.Name, boardId);
             return;
         }
 
@@ -52,10 +52,10 @@ public class BoardRemoveClientPacketHandler(
         }
 
         // Check if player is in range of the board tile
-        if (!tileService.PlayerInRangeOfTile(player.CurrentMap.Data, player.Character.AsCoords(), boardTileSpec.Value))
+        if (!tileService.PlayerInRangeOfTile(player.CurrentMap!.Data, player.Character!.AsCoords(), boardTileSpec.Value))
         {
             logger.LogWarning("Player {Character} tried to remove post from board {BoardId} but not in range",
-                player.Character.Name, boardId);
+                player.Character!.Name, boardId);
             return;
         }
 
@@ -63,7 +63,7 @@ public class BoardRemoveClientPacketHandler(
         await boardRepository.DeletePostAsync(postId);
 
         logger.LogInformation("Admin {Character} removed post {PostId} from board {BoardId}",
-            player.Character.Name, postId, boardId);
+            player.Character!.Name, postId, boardId);
 
         // Refresh the board
         await RefreshBoard(player, boardId);

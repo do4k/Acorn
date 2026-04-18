@@ -14,7 +14,7 @@ public class ChairRequestClientPacketHandler(
     public async Task HandleAsync(PlayerState player, ChairRequestClientPacket packet)
     {
         logger.LogInformation("Player {Character} chair action {SitAction}",
-            player.Character.Name, packet.SitAction);
+            player.Character!.Name, packet.SitAction);
 
         switch (packet.SitAction)
         {
@@ -22,13 +22,13 @@ public class ChairRequestClientPacketHandler(
                 // Extract coordinates from SitActionData
                 if (packet.SitActionData is ChairRequestClientPacket.SitActionDataSit sitData)
                 {
-                    await player.CurrentMap.SitInChair(player, sitData.Coords);
+                    await player.CurrentMap!.SitInChair(player, sitData.Coords);
                 }
 
                 break;
 
             case SitAction.Stand:
-                await player.CurrentMap.StandFromChair(player);
+                await player.CurrentMap!.StandFromChair(player);
                 break;
         }
     }

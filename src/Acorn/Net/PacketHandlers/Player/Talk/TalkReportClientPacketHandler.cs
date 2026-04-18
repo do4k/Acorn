@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
@@ -12,14 +11,13 @@ namespace Acorn.Net.PacketHandlers.Player.Talk;
 internal class TalkReportClientPacketHandler(
     IEnumerable<ITalkHandler> talkHandlers,
     IEnumerable<IPlayerCommandHandler> playerCommandHandlers,
-    WiseManTalkHandler wiseManHandler,
-    ILogger<TalkReportClientPacketHandler> logger)
+    WiseManTalkHandler wiseManHandler)
     : IPacketHandler<TalkReportClientPacket>
 {
     public async Task HandleAsync(PlayerState playerState,
         TalkReportClientPacket packet)
     {
-        var author = playerState.Character;
+        var author = playerState.Character!;
 
         if (author?.Admin > AdminLevel.Player && packet.Message.StartsWith("$"))
         {
@@ -62,7 +60,7 @@ internal class TalkReportClientPacketHandler(
             return;
         }
 
-        await playerState.CurrentMap.BroadcastPacket(new TalkPlayerServerPacket
+        await playerState.CurrentMap!.BroadcastPacket(new TalkPlayerServerPacket
         {
             Message = packet.Message,
             PlayerId = playerState.SessionId

@@ -12,7 +12,6 @@ namespace Acorn.Net.PacketHandlers.StatSkill;
 [RequiresCharacter]
 public class StatSkillTakeClientPacketHandler(
     ILogger<StatSkillTakeClientPacketHandler> logger,
-    IDataFileRepository dataFileRepository,
     ISkillMasterDataRepository skillMasterDataRepository,
     IInventoryService inventoryService,
     IDbRepository<Database.Models.Character> characterRepository,
@@ -49,7 +48,7 @@ public class StatSkillTakeClientPacketHandler(
             return;
         }
 
-        var character = player.Character;
+        var character = player.Character!;
 
         // Check if player already knows this spell
         if (character.Spells.Items.Any(s => s.Id == spellId))

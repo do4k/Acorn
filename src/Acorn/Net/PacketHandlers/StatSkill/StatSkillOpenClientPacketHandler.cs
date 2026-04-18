@@ -1,5 +1,4 @@
 using Acorn.Data;
-using Acorn.Database.Repository;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
@@ -10,7 +9,6 @@ namespace Acorn.Net.PacketHandlers.StatSkill;
 [RequiresCharacter]
 public class StatSkillOpenClientPacketHandler(
     ILogger<StatSkillOpenClientPacketHandler> logger,
-    IDataFileRepository dataFileRepository,
     ISkillMasterDataRepository skillMasterDataRepository)
     : IPacketHandler<StatSkillOpenClientPacket>
 {
@@ -27,7 +25,7 @@ public class StatSkillOpenClientPacketHandler(
         }
 
         logger.LogInformation("Player {Character} opening skill master {SkillMasterName}",
-            player.Character.Name, skillMaster.Name);
+            player.Character!.Name, skillMaster.Name);
 
         var skills = skillMaster.Skills.Select(s =>
         {

@@ -52,8 +52,8 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
 
         if (playerState.Character is not null)
         {
-            var nextCoords = playerState.Character.NextCoords();
-            var target = playerState.CurrentMap.Npcs.Values.FirstOrDefault(x =>
+            var nextCoords = playerState.Character!.NextCoords();
+            var target = playerState.CurrentMap!.Npcs.Values.FirstOrDefault(x =>
                 !x.IsDead &&
                 x.X == nextCoords.X && x.Y == nextCoords.Y &&
                 x.Data.Type is NpcType.Aggressive or NpcType.Passive);
@@ -208,7 +208,7 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
             }
         }
 
-        await playerState.CurrentMap.BroadcastPacket(new AttackPlayerServerPacket
+        await playerState.CurrentMap!.BroadcastPacket(new AttackPlayerServerPacket
         {
             Direction = playerState.Character?.Direction ?? Direction.Down,
             PlayerId = playerState.SessionId

@@ -16,7 +16,7 @@ public class SpellTargetOtherClientPacketHandler(
         if (player.SpellId != packet.SpellId)
         {
             logger.LogWarning("Player {Character} spell ID mismatch: expected {ExpectedId}, got {ActualId}",
-                player.Character.Name, player.SpellId, packet.SpellId);
+                player.Character!.Name, player.SpellId, packet.SpellId);
             return;
         }
 
@@ -24,12 +24,12 @@ public class SpellTargetOtherClientPacketHandler(
         if (!CheckTimestamp(player, packet.SpellId, packet.Timestamp))
         {
             logger.LogWarning("Player {Character} spell timestamp validation failed for spell {SpellId}",
-                player.Character.Name, packet.SpellId);
+                player.Character!.Name, packet.SpellId);
             return;
         }
 
         logger.LogInformation("Player {Character} casting spell {SpellId} on {TargetType} {VictimId}",
-            player.Character.Name, packet.SpellId, packet.TargetType, packet.VictimId);
+            player.Character!.Name, packet.SpellId, packet.TargetType, packet.VictimId);
 
         // Update player state
         player.Timestamp = packet.Timestamp;

@@ -49,7 +49,7 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
             return;
         }
 
-        playerState.Character.X = packet.WalkAction.Direction switch
+        playerState.Character!.X = packet.WalkAction.Direction switch
         {
             Direction.Left => playerState.Character.X - 1,
             Direction.Right => playerState.Character.X + 1,
@@ -70,7 +70,7 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
 
         // Get nearby NPCs for this player (within client range)
         var playerCoords = playerState.Character.AsCoords();
-        var nearbyNpcIndexes = playerState.CurrentMap.Npcs
+        var nearbyNpcIndexes = playerState.CurrentMap!.Npcs
             .Where(kvp => _mapTileService.InClientRange(playerCoords, new Coords { X = kvp.Value.X, Y = kvp.Value.Y }))
             .Select(kvp => kvp.Key)
             .ToList();

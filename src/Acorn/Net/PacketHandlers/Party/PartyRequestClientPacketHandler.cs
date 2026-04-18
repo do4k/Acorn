@@ -15,7 +15,7 @@ public class PartyRequestClientPacketHandler(
     public async Task HandleAsync(PlayerState player, PartyRequestClientPacket packet)
     {
         logger.LogDebug("Player {Character} sending party {Type} request to {Target}",
-            player.Character.Name, packet.RequestType, packet.PlayerId);
+            player.Character!.Name, packet.RequestType, packet.PlayerId);
 
         await partyService.RequestParty(player, packet.PlayerId, packet.RequestType);
     }

@@ -31,7 +31,7 @@ public class PaperdollAddClientPacketHandler : IPacketHandler<PaperdollAddClient
 
     public async Task HandleAsync(PlayerState playerState, PaperdollAddClientPacket packet)
     {
-        var character = playerState.Character;
+        var character = playerState.Character!;
 
         // Check if the player has the item
         var hasItem = _inventoryService.HasItem(character, packet.ItemId);
@@ -85,7 +85,7 @@ public class PaperdollAddClientPacketHandler : IPacketHandler<PaperdollAddClient
 
         // Broadcast avatar change to nearby players
         var broadcastPacket = new AvatarAgreeServerPacket { Change = avatarChange };
-        await playerState.CurrentMap.BroadcastPacket(broadcastPacket, playerState);
+        await playerState.CurrentMap!.BroadcastPacket(broadcastPacket, playerState);
     }
 
 }

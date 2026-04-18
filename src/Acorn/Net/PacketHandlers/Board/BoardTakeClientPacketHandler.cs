@@ -23,13 +23,13 @@ public class BoardTakeClientPacketHandler(
         var postId = packet.PostId;
 
         logger.LogInformation("Player {Character} reading post {PostId} from board {BoardId}",
-            player.Character.Name, postId, boardId);
+            player.Character!.Name, postId, boardId);
 
         // Validate board ID (1-8)
         if (boardId < 1 || boardId > 8)
         {
             logger.LogWarning("Player {Character} tried to read post from invalid board {BoardId}",
-                player.Character.Name, boardId);
+                player.Character!.Name, boardId);
             return;
         }
 
@@ -41,10 +41,10 @@ public class BoardTakeClientPacketHandler(
         }
 
         // Check if player is in range of the board tile
-        if (!tileService.PlayerInRangeOfTile(player.CurrentMap.Data, player.Character.AsCoords(), boardTileSpec.Value))
+        if (!tileService.PlayerInRangeOfTile(player.CurrentMap!.Data, player.Character!.AsCoords(), boardTileSpec.Value))
         {
             logger.LogWarning("Player {Character} tried to read post from board {BoardId} but not in range",
-                player.Character.Name, boardId);
+                player.Character!.Name, boardId);
             return;
         }
 
@@ -53,7 +53,7 @@ public class BoardTakeClientPacketHandler(
         if (post == null)
         {
             logger.LogWarning("Player {Character} tried to read non-existent post {PostId} from board {BoardId}",
-                player.Character.Name, postId, boardId);
+                player.Character!.Name, postId, boardId);
             return;
         }
 
@@ -65,7 +65,7 @@ public class BoardTakeClientPacketHandler(
         });
 
         logger.LogInformation("Player {Character} read post {PostId} from board {BoardId}",
-            player.Character.Name, postId, boardId);
+            player.Character!.Name, postId, boardId);
     }
 
     private static MapTileSpec? GetBoardTileSpec(int boardId) => boardId switch

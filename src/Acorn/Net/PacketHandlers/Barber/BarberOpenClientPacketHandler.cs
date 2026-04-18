@@ -17,7 +17,7 @@ public class BarberOpenClientPacketHandler(
         var npc = NpcInteractionHelper.ValidateAndStartInteraction(player, packet.NpcIndex, NpcType.Barber, logger);
         if (npc is null) return;
 
-        logger.LogInformation("Player {Character} opening barber", player.Character.Name);
+        logger.LogInformation("Player {Character} opening barber", player.Character!.Name);
 
         await player.Send(new BarberOpenServerPacket
         {

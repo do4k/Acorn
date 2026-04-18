@@ -30,7 +30,7 @@ public class StatSkillJunkClientPacketHandler(
         var npc = NpcInteractionHelper.ValidateInteraction(player, NpcType.Trainer, logger);
         if (npc is null) return;
 
-        var character = player.Character;
+        var character = player.Character!;
 
         // Reset all base stats to 0
         character.Str = 0;

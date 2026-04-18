@@ -12,7 +12,7 @@ internal class TalkRequestClientPacketHandler(IGuildService guildService) : IPac
 {
     public async Task HandleAsync(PlayerState playerState, TalkRequestClientPacket packet)
     {
-        if (playerState.Character.GuildTag is null) return;
+        if (playerState.Character!.GuildTag is null) return;
 
         await guildService.SendGuildMessage(playerState, packet.Message);
     }
