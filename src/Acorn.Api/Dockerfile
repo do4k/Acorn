@@ -14,6 +14,7 @@ ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
 # Copy project files and restore dependencies (better layer caching)
+COPY ["Directory.Build.props", "./"]
 COPY ["src/Acorn.Api/Acorn.Api.csproj", "src/Acorn.Api/"]
 COPY ["src/Acorn.Shared/Acorn.Shared.csproj", "src/Acorn.Shared/"]
 COPY ["src/Acorn.Database/Acorn.Database.csproj", "src/Acorn.Database/"]
