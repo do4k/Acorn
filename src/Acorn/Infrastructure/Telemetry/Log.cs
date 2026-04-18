@@ -64,4 +64,42 @@ public static partial class Log
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "Rate limited packet {Action}_{Family} from session {SessionId}")]
     public static partial void PacketRateLimited(this ILogger logger, object action, object family, int sessionId);
+
+    // --- Data loading ---
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Data directory not found at {Directory}, creating with sample")]
+    public static partial void DataDirectoryNotFound(this ILogger logger, string directory);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not create data directory at {Directory} (read-only filesystem?), continuing without data")]
+    public static partial void DataDirectoryCreateFailed(this ILogger logger, Exception exception, string directory);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "No data files found in {Directory}, creating sample")]
+    public static partial void DataDirectoryEmpty(this ILogger logger, string directory);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to parse data file: {File}")]
+    public static partial void DataFileParseFailed(this ILogger logger, string file);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Error loading data file: {File}")]
+    public static partial void DataFileLoadError(this ILogger logger, Exception exception, string file);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Created sample data file at {Path}")]
+    public static partial void SampleDataFileCreated(this ILogger logger, string path);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Loaded skill master: {Name} (BehaviorId: {BehaviorId}, {SkillCount} skills)")]
+    public static partial void SkillMasterLoaded(this ILogger logger, string name, int behaviorId, int skillCount);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Loaded {Count} skill masters")]
+    public static partial void SkillMastersLoaded(this ILogger logger, int count);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Loaded shop: {Name} (BehaviorId: {BehaviorId}, {TradeCount} trades, {CraftCount} crafts)")]
+    public static partial void ShopLoaded(this ILogger logger, string name, int behaviorId, int tradeCount, int craftCount);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Loaded {Count} shops")]
+    public static partial void ShopsLoaded(this ILogger logger, int count);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Loaded inn: {Name} (BehaviorId: {BehaviorId})")]
+    public static partial void InnLoaded(this ILogger logger, string name, int behaviorId);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Loaded {Count} inns")]
+    public static partial void InnsLoaded(this ILogger logger, int count);
 }

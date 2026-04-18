@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Acorn.Infrastructure.Telemetry;
 using Microsoft.Extensions.Logging;
 
 namespace Acorn.Data;
@@ -24,13 +25,13 @@ public class ShopDataRepository : IShopDataRepository
         {
             try
             {
-                _logger.LogWarning("Shops directory not found at {Directory}. Creating with sample shop.", ShopsDirectory);
+                _logger.DataDirectoryNotFound(ShopsDirectory);
                 Directory.CreateDirectory(ShopsDirectory);
                 CreateSampleShop();
             }
             catch (IOException ex)
             {
-                _logger.LogWarning(ex, "Could not create Shops directory at {Directory} (read-only filesystem?). Continuing with no shops.", ShopsDirectory);
+                _logger.DataDirectoryCreateFailed(ex, ShopsDirectory);
             }
             return;
         }
@@ -38,7 +39,7 @@ public class ShopDataRepository : IShopDataRepository
         var jsonFiles = Directory.GetFiles(ShopsDirectory, "*.json");
         if (jsonFiles.Length == 0)
         {
-            _logger.LogWarning("No shop files found in {Directory}. Creating sample shop.", ShopsDirectory);
+            _logger.DataDirectoryEmpty(ShopsDirectory);
             CreateSampleShop();
             return;
         }
@@ -55,7 +56,7 @@ public class ShopDataRepository : IShopDataRepository
 
                 if (shopJson == null)
                 {
-                    _logger.LogWarning("Failed to parse shop file: {File}", file);
+                    _logger.DataFileParseFailed(file);
                     continue;
                 }
 
@@ -78,16 +79,15 @@ public class ShopDataRepository : IShopDataRepository
                 );
 
                 _shops.Add(shop);
-                _logger.LogInformation("Loaded shop: {Name} (BehaviorId: {BehaviorId}, {TradeCount} trades, {CraftCount} crafts)",
-                    shop.Name, shop.BehaviorId, shop.Trades.Count, shop.Crafts.Count);
+                _logger.ShopLoaded(shop.Name, shop.BehaviorId, shop.Trades.Count, shop.Crafts.Count);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading shop file: {File}", file);
+                _logger.DataFileLoadError(ex, file);
             }
         }
 
-        _logger.LogInformation("Loaded {Count} shops", _shops.Count);
+        _logger.ShopsLoaded(_shops.Count);
     }
 
     private void CreateSampleShop()
@@ -109,7 +109,7 @@ public class ShopDataRepository : IShopDataRepository
         var json = JsonSerializer.Serialize(sampleShop, new JsonSerializerOptions { WriteIndented = true });
         var samplePath = Path.Combine(ShopsDirectory, "sample_shop.json");
         File.WriteAllText(samplePath, json);
-        _logger.LogInformation("Created sample shop file at {Path}", samplePath);
+        _logger.SampleDataFileCreated(samplePath);
     }
 
     public ShopData? GetShopByBehaviorId(int behaviorId)
