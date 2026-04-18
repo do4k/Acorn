@@ -22,9 +22,16 @@ public class SkillMasterDataRepository : ISkillMasterDataRepository
     {
         if (!Directory.Exists(SkillMastersDirectory))
         {
-            _logger.LogWarning("SkillMasters directory not found at {Directory}. Creating with sample.", SkillMastersDirectory);
-            Directory.CreateDirectory(SkillMastersDirectory);
-            CreateSample();
+            try
+            {
+                _logger.LogWarning("SkillMasters directory not found at {Directory}. Creating with sample.", SkillMastersDirectory);
+                Directory.CreateDirectory(SkillMastersDirectory);
+                CreateSample();
+            }
+            catch (IOException ex)
+            {
+                _logger.LogWarning(ex, "Could not create SkillMasters directory at {Directory} (read-only filesystem?). Continuing with no skill masters.", SkillMastersDirectory);
+            }
             return;
         }
 

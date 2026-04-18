@@ -22,9 +22,16 @@ public class ShopDataRepository : IShopDataRepository
     {
         if (!Directory.Exists(ShopsDirectory))
         {
-            _logger.LogWarning("Shops directory not found at {Directory}. Creating with sample shop.", ShopsDirectory);
-            Directory.CreateDirectory(ShopsDirectory);
-            CreateSampleShop();
+            try
+            {
+                _logger.LogWarning("Shops directory not found at {Directory}. Creating with sample shop.", ShopsDirectory);
+                Directory.CreateDirectory(ShopsDirectory);
+                CreateSampleShop();
+            }
+            catch (IOException ex)
+            {
+                _logger.LogWarning(ex, "Could not create Shops directory at {Directory} (read-only filesystem?). Continuing with no shops.", ShopsDirectory);
+            }
             return;
         }
 

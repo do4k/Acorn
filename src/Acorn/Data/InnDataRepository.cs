@@ -25,9 +25,16 @@ public class InnDataRepository : IInnDataRepository
     {
         if (!Directory.Exists(InnsDirectory))
         {
-            _logger.LogWarning("Inns directory not found at {Directory}. Creating with sample inn.", InnsDirectory);
-            Directory.CreateDirectory(InnsDirectory);
-            CreateSampleInn();
+            try
+            {
+                _logger.LogWarning("Inns directory not found at {Directory}. Creating with sample inn.", InnsDirectory);
+                Directory.CreateDirectory(InnsDirectory);
+                CreateSampleInn();
+            }
+            catch (IOException ex)
+            {
+                _logger.LogWarning(ex, "Could not create Inns directory at {Directory} (read-only filesystem?). Continuing with no inns.", InnsDirectory);
+            }
             return;
         }
 
