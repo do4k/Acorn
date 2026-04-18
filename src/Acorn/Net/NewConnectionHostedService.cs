@@ -123,6 +123,10 @@ public class NewConnectionHostedService(
                         async player => await OnClientDisposed(player, sessionId));
 
                     var added = worldState.TryAddPlayer(sessionId, playerState);
+                    if (!added)
+                    {
+                        logger.LogWarning("Failed to add player session {SessionId} to world state", sessionId);
+                    }
                     logger.LogInformation("Connection accepted. {PlayersConnected} players connected",
                         worldState.Players.Count);
                     UpdateConnectedCount();
@@ -204,7 +208,8 @@ public class NewConnectionHostedService(
         }
 
         worldState.TryRemovePlayer(sessionId, out _);
-        logger.LogInformation("Player disconnected");
+        logger.LogInformation("Player disconnected (Session {SessionId}, Character: {Character}). {PlayersConnected} players remaining",
+            sessionId, player.Character?.Name ?? "none", worldState.Players.Count);
         UpdateConnectedCount();
     }
 

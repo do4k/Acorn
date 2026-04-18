@@ -12,7 +12,7 @@ public class MessagePingClientPacketHandler(ILogger<MessagePingClientPacketHandl
 {
     public async Task HandleAsync(PlayerState player, MessagePingClientPacket packet)
     {
-        logger.LogInformation("Player {Character} sent ping",
+        logger.LogDebug("Player {Character} sent ping",
             player.Character!.Name);
 
         // TODO: Respond with pong packet

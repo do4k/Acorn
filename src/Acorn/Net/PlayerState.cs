@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Reflection;
 using Acorn.Database.Models;
 using Acorn.Infrastructure.Communicators;
+using Acorn.Infrastructure.Telemetry;
 using Acorn.Net.Models;
 using Acorn.Net.PacketHandlers;
 using Acorn.Net.PacketHandlers.Player.Warp;
@@ -29,6 +30,7 @@ public class PlayerState : IDisposable
     private readonly CancellationToken _cancellationToken;
     private readonly IEnumerable<IPacketHandler> _handlers;
     private readonly ILogger<PlayerState> _logger;
+    private readonly AcornMetrics _metrics;
     private readonly Action<PlayerState> _onDispose;
     private readonly PacketLog _packetLog = new();
     private readonly PacketResolver _resolver = new("Moffat.EndlessOnline.SDK.Protocol.Net.Client");
@@ -42,15 +44,19 @@ public class PlayerState : IDisposable
         ICommunicator communicator,
         ILogger<PlayerState> logger,
         IOptions<ServerOptions> serverOptions,
+        AcornMetrics metrics,
         int sessionId,
         Action<PlayerState> onDispose
     )
     {
         _logger = logger;
+        _metrics = metrics;
         _serverOptions = serverOptions.Value;
         _cancellationToken = _tokenSource.Token;
         _upcomingSequence = PingSequenceStart.Generate(Rnd);
-        _logger.LogInformation("New client connected from {Location}", communicator.GetConnectionOrigin());
+        _logger.PlayerConnected(sessionId, communicator.GetConnectionOrigin());
+        _metrics.ConnectionsTotal.Add(1);
+        _metrics.PlayersOnline.Add(1);
         _onDispose = onDispose;
         _handlers = handlers;
         SessionId = sessionId;
@@ -113,10 +119,9 @@ public class PlayerState : IDisposable
 
     public void Dispose()
     {
-        if (_disconnectReason != null)
-        {
-            _logger.LogInformation("Player disconnected: {Reason}", _disconnectReason);
-        }
+        _logger.PlayerDisconnected(SessionId, Account?.Username, Character?.Name, _disconnectReason ?? "unknown");
+        _metrics.DisconnectionsTotal.Add(1);
+        _metrics.PlayersOnline.Add(-1);
 
         _onDispose(this);
         // Fire and forget close - we're already in synchronous Dispose
@@ -182,7 +187,8 @@ public class PlayerState : IDisposable
                 // Rate limiting check
                 if (_packetLog.ShouldRateLimit(action, family))
                 {
-                    _logger.LogDebug("Rate limited: {Action}_{Family}", action, family);
+                    _logger.PacketRateLimited(action, family, SessionId);
+                    _metrics.PacketsRateLimited.Add(1);
                     // Send rate-limit response packet: 0xfe 0xfe <sequence>
                     var rateLimitResponse = new byte[3];
                     rateLimitResponse[0] = 0xfe;
@@ -220,6 +226,7 @@ public class PlayerState : IDisposable
                 {
                     _logger.LogError("Handler not registered for packet of type {PacketType} Skipping...",
                         packet.GetType());
+                    _metrics.PacketsUnhandled.Add(1);
                     continue;
                 }
 
@@ -246,7 +253,10 @@ public class PlayerState : IDisposable
                     return (handler, playerState, pkt) => (Task)method.Invoke(handler, [playerState, pkt])!;
                 });
                 
+                var sw = System.Diagnostics.Stopwatch.StartNew();
                 await invoker(resolvedHandler, this, packet);
+                sw.Stop();
+                _metrics.PacketProcessDuration.Record(sw.Elapsed.TotalMilliseconds);
             }
             catch (EndOfStreamException)
             {
@@ -307,7 +317,6 @@ public class PlayerState : IDisposable
         if (_serverOptions.EnforceSequence && serverSequence != clientSequence)
         {
             var message = $"Sending invalid sequence: Got {clientSequence}, expected {serverSequence}";
-            _logger.LogWarning(message);
             CloseWithReason(message);
             throw new InvalidOperationException(message);
         }

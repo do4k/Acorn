@@ -8,6 +8,7 @@ using Acorn.Game.Services;
 using Acorn.Infrastructure;
 using Acorn.Infrastructure.Communicators;
 using Acorn.Infrastructure.Gemini;
+using Acorn.Infrastructure.Telemetry;
 using Acorn.Net;
 using Acorn.Net.PacketHandlers.Player.Talk;
 using Acorn.Net.Services;
@@ -24,6 +25,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using OpenTelemetry.Metrics;
 using Refit;
 
 var GREEN = Console.IsOutputRedirected ? "" : "\x1b[92m";
@@ -96,7 +98,16 @@ var host = Host.CreateDefaultBuilder(args)
             .Configure<WiseManAgentOptions>(configuration.GetSection(WiseManAgentOptions.SectionName))
             .Configure<JukeboxOptions>(configuration.GetSection(JukeboxOptions.SectionName))
             .Configure<MarriageOptions>(configuration.GetSection(MarriageOptions.SectionName))
-            .AddSingleton<UtcNowDelegate>(() => DateTime.UtcNow);
+            .AddSingleton<UtcNowDelegate>(() => DateTime.UtcNow)
+            .AddSingleton<AcornMetrics>();
+
+        // Configure OpenTelemetry metrics export
+        services.AddOpenTelemetry()
+            .WithMetrics(metrics =>
+            {
+                metrics.AddMeter(AcornMetrics.MeterName);
+                metrics.AddOtlpExporter();
+            });
 
         // Configure DbContext based on database engine
         services.AddDbContext<AcornDbContext>((sp, options) =>

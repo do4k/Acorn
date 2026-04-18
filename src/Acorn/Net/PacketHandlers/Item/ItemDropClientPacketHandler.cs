@@ -7,6 +7,7 @@ using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+using Acorn.Infrastructure.Telemetry;
 using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Item;
@@ -19,7 +20,8 @@ public class ItemDropClientPacketHandler(
     IWeightCalculator weightCalculator,
     IInventoryService inventoryService,
     IDataFileRepository dataFileRepository,
-    IDbRepository<Database.Models.Character> characterRepository)
+    IDbRepository<Database.Models.Character> characterRepository,
+    AcornMetrics metrics)
     : IPacketHandler<ItemDropClientPacket>
 {
     public async Task HandleAsync(PlayerState player, ItemDropClientPacket packet)
@@ -57,6 +59,8 @@ public class ItemDropClientPacketHandler(
                     Max = maxWeight
                 }
             });
+
+            metrics.ItemsDropped.Add(1);
 
             logger.LogInformation("Player {Character} dropped item {ItemId} x{Amount} at ({X}, {Y})",
                 player.Character!.Name, packet.Item.Id, packet.Item.Amount, coords.X, coords.Y);

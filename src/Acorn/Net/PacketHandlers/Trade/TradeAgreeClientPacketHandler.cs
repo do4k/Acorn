@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+using Acorn.Infrastructure.Telemetry;
 using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Trade;
@@ -14,7 +15,8 @@ namespace Acorn.Net.PacketHandlers.Trade;
 [RequiresCharacter]
 public class TradeAgreeClientPacketHandler(
     ILogger<TradeAgreeClientPacketHandler> logger,
-    IInventoryService inventoryService)
+    IInventoryService inventoryService,
+    AcornMetrics metrics)
     : IPacketHandler<TradeAgreeClientPacket>
 {
     private const int MaxItemAmount = 2000000000;
@@ -163,6 +165,8 @@ public class TradeAgreeClientPacketHandler(
 
         // Show trade emote to nearby players (optional)
         // Can broadcast an emote packet here if desired
+
+        metrics.TradesCompleted.Add(1);
 
         logger.LogInformation("Trade completed between {Player} and {Partner}",
             player.Character!.Name, partner.Character.Name);

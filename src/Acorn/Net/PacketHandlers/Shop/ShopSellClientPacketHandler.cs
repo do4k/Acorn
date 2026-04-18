@@ -6,6 +6,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
+using Acorn.Infrastructure.Telemetry;
 using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Shop;
@@ -15,7 +16,8 @@ public class ShopSellClientPacketHandler(
     ILogger<ShopSellClientPacketHandler> logger,
     IDataFileRepository dataFileRepository,
     IShopDataRepository shopDataRepository,
-    IInventoryService inventoryService)
+    IInventoryService inventoryService,
+    AcornMetrics metrics)
     : IPacketHandler<ShopSellClientPacket>
 {
     private const int GoldItemId = 1;
@@ -92,6 +94,7 @@ public class ShopSellClientPacketHandler(
 
         // Add gold to inventory
         inventoryService.TryAddItem(player.Character!, GoldItemId, sellValue);
+        metrics.GoldEarned.Add(sellValue);
 
         logger.LogInformation("Player {Character} sold {Amount}x {ItemName} for {Value} gold",
             player.Character!.Name, amount, itemData.Name, sellValue);
