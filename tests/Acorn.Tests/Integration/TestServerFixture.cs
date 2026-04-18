@@ -148,7 +148,8 @@ public class TestServerFixture : IAsyncLifetime
                 // Hosted services
                 services
                     .AddHostedService<DropTableHostedService>()
-                    .AddHostedService<NewConnectionHostedService>()
+                    .AddHostedService<TcpListenerHostedService>()
+                    .AddHostedService<WebSocketListenerHostedService>()
                     .AddHostedService<WorldHostedService>()
                     .AddHostedService<PubFileCacheHostedService>()
                     .AddHostedService<MapCacheHostedService>()
@@ -170,6 +171,7 @@ public class TestServerFixture : IAsyncLifetime
                     .AddSingleton<TcpCommunicatorFactory>()
                     .AddSingleton<MapStateFactory>()
                     .AddSingleton<PlayerStateFactory>()
+                    .AddSingleton<ConnectionHandler>()
                     .AddHostedService<PlayerPingHostedService>()
                     .AddHostedService<ServerLinkNetworkPingHostedService>();
 

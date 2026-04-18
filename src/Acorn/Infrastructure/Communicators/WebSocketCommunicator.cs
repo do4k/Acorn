@@ -7,7 +7,9 @@ namespace Acorn.Infrastructure.Communicators;
 public class WebSocketCommunicator : ICommunicator
 {
     private readonly ILogger<WebSocketCommunicator> _logger;
+    private readonly SemaphoreSlim _sendLock = new(1, 1);
     private readonly WebSocket _webSocket;
+    private readonly WebSocketStream _stream;
     private readonly HttpListenerWebSocketContext _wsContext;
     private bool _disposed;
 
@@ -16,10 +18,12 @@ public class WebSocketCommunicator : ICommunicator
         _wsContext = wsContext;
         _webSocket = wsContext.WebSocket;
         _logger = logger;
+        _stream = new WebSocketStream(_webSocket);
     }
 
     public async Task Send(IEnumerable<byte> bytes)
     {
+        await _sendLock.WaitAsync();
         try
         {
             if (!IsConnected)
@@ -38,8 +42,17 @@ public class WebSocketCommunicator : ICommunicator
             _disposed = true;
             throw;
         }
+        finally
+        {
+            _sendLock.Release();
+        }
     }
 
+    /// <summary>
+    /// Returns the single WebSocketStream instance for this connection.
+    /// Unlike the previous implementation, this does NOT create a new stream per call,
+    /// so buffered data is preserved between reads.
+    /// </summary>
     public Stream Receive()
     {
         if (!IsConnected)
@@ -47,7 +60,7 @@ public class WebSocketCommunicator : ICommunicator
             throw new InvalidOperationException("Cannot receive data - WebSocket is not connected");
         }
 
-        return new WebSocketStream(_webSocket);
+        return _stream;
     }
 
     public async Task CloseAsync(CancellationToken cancellationToken = default)
@@ -73,6 +86,8 @@ public class WebSocketCommunicator : ICommunicator
         finally
         {
             _webSocket.Dispose();
+            _stream.Dispose();
+            _sendLock.Dispose();
         }
     }
 
@@ -91,7 +106,11 @@ public class WebSocketCommunicator : ICommunicator
     }
 }
 
-// Helper stream to read from WebSocket
+/// <summary>
+/// Adapts a WebSocket into a Stream for reading. A single instance is created per
+/// WebSocketCommunicator and reused for the lifetime of the connection, preserving
+/// any buffered data between read calls.
+/// </summary>
 public class WebSocketStream : Stream
 {
     private readonly MemoryStream _buffer = new();
@@ -116,7 +135,11 @@ public class WebSocketStream : Stream
 
     public override int Read(byte[] buffer, int offset, int count)
     {
-        return ReadAsync(buffer, offset, count, CancellationToken.None).GetAwaiter().GetResult();
+        // PlayerState.Listen() uses ReadAsync/ReadExactlyAsync exclusively.
+        // Throwing here ensures we catch any accidental sync usage rather than
+        // silently deadlocking via .GetAwaiter().GetResult().
+        throw new NotSupportedException(
+            "Synchronous Read is not supported on WebSocketStream. Use ReadAsync instead.");
     }
 
     public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)

@@ -5,10 +5,12 @@ namespace Acorn.Infrastructure.Communicators;
 
 public class TcpCommunicator(TcpClient client) : ICommunicator
 {
+    private readonly SemaphoreSlim _sendLock = new(1, 1);
     private bool _disposed;
 
     public async Task Send(IEnumerable<byte> bytes)
     {
+        await _sendLock.WaitAsync();
         try
         {
             if (!IsConnected)
@@ -22,6 +24,10 @@ public class TcpCommunicator(TcpClient client) : ICommunicator
         {
             _disposed = true;
             throw;
+        }
+        finally
+        {
+            _sendLock.Release();
         }
     }
 
@@ -58,6 +64,7 @@ public class TcpCommunicator(TcpClient client) : ICommunicator
         finally
         {
             client.Close();
+            _sendLock.Dispose();
         }
     }
 

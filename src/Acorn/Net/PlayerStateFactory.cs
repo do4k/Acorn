@@ -13,7 +13,7 @@ public class PlayerStateFactory(
     IOptions<ServerOptions> serverOptions,
     AcornMetrics metrics)
 {
-    public PlayerState CreatePlayerState(ICommunicator communicator, int sessionId, Action<PlayerState> onDispose)
+    public PlayerState CreatePlayerState(ICommunicator communicator, int sessionId, Func<PlayerState, Task> onDispose)
     {
         return new PlayerState(packetHandlers, communicator, logger, serverOptions, metrics, sessionId, onDispose);
     }

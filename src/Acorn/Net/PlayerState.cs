@@ -31,7 +31,7 @@ public class PlayerState : IDisposable
     private readonly IEnumerable<IPacketHandler> _handlers;
     private readonly ILogger<PlayerState> _logger;
     private readonly AcornMetrics _metrics;
-    private readonly Action<PlayerState> _onDispose;
+    private readonly Func<PlayerState, Task> _onDispose;
     private readonly PacketLog _packetLog = new();
     private readonly PacketResolver _resolver = new("Moffat.EndlessOnline.SDK.Protocol.Net.Client");
     private readonly ServerOptions _serverOptions;
@@ -46,7 +46,7 @@ public class PlayerState : IDisposable
         IOptions<ServerOptions> serverOptions,
         AcornMetrics metrics,
         int sessionId,
-        Action<PlayerState> onDispose
+        Func<PlayerState, Task> onDispose
     )
     {
         _logger = logger;
@@ -123,9 +123,7 @@ public class PlayerState : IDisposable
         _metrics.DisconnectionsTotal.Add(1);
         _metrics.PlayersOnline.Add(-1);
 
-        _onDispose(this);
-        // Fire and forget close - we're already in synchronous Dispose
-        _ = Communicator.CloseAsync(_cancellationToken);
+        _ = Communicator.CloseAsync(CancellationToken.None);
     }
 
     /// <summary>
@@ -151,8 +149,10 @@ public class PlayerState : IDisposable
 
                 var stream = Communicator.Receive();
 
-                var len1 = (byte)stream.ReadByte();
-                var len2 = (byte)stream.ReadByte();
+                var lenBuf = new byte[2];
+                await stream.ReadExactlyAsync(lenBuf, _cancellationToken);
+                var len1 = lenBuf[0];
+                var len2 = lenBuf[1];
 
                 var decodedLength = NumberEncoder.DecodeNumber([len1, len2]);
                 if (_serverOptions.LogPackets)
@@ -282,6 +282,16 @@ public class PlayerState : IDisposable
         }
 
         Disconnect();
+
+        try
+        {
+            await _onDispose(this);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during player disconnect cleanup for session {SessionId}", SessionId);
+        }
+
         Dispose();
     }
 
