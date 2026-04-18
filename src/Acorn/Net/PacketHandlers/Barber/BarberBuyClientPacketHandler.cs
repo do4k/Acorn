@@ -5,9 +5,11 @@ using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Barber;
 
+[RequiresCharacter]
 public class BarberBuyClientPacketHandler(
     ILogger<BarberBuyClientPacketHandler> logger,
     IDataFileRepository dataFileRepository,
@@ -22,12 +24,6 @@ public class BarberBuyClientPacketHandler(
 
     public async Task HandleAsync(PlayerState player, BarberBuyClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to buy haircut without character or map", player.SessionId);
-            return;
-        }
-
         var hairStyle = packet.HairStyle;
         var hairColor = packet.HairColor;
 

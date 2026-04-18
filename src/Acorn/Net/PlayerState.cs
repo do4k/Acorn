@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Reflection;
 using Acorn.Database.Models;
 using Acorn.Infrastructure.Communicators;
 using Acorn.Net.Models;
@@ -21,6 +22,9 @@ public class PlayerState : IDisposable
 {
     // Static cache for handler method invocation - avoids repeated reflection
     private static readonly ConcurrentDictionary<Type, Func<object, PlayerState, IPacket, Task>> _handlerInvokeCache = new();
+    
+    // Static cache for [RequiresCharacter] attribute check per handler type
+    private static readonly ConcurrentDictionary<Type, bool> _requiresCharacterCache = new();
     
     private readonly CancellationToken _cancellationToken;
     private readonly IEnumerable<IPacketHandler> _handlers;
@@ -93,8 +97,16 @@ public class PlayerState : IDisposable
     // Pending trade request - the player who has requested to trade with us
     public int? PendingTradeRequestFromPlayerId { get; set; }
 
+    // Admin state
+    public bool IsFrozen { get; set; }
+    public bool IsMuted { get; set; }
+    public bool IsJailed { get; set; }
+
     // Board interaction state
     public int? InteractingBoardId { get; set; }
+
+    // Guild interaction state - the player who has requested to join/trade with us
+    public int? InteractingPlayerId { get; set; }
 
     // Inn/Sleep state
     public int? SleepCost { get; set; }
@@ -213,6 +225,19 @@ public class PlayerState : IDisposable
 
                 // Record packet for rate limiting after successful processing
                 _packetLog.RecordPacket(action, family);
+
+                // Pipeline check: reject packets requiring a character if player hasn't loaded one
+                var requiresCharacter = _requiresCharacterCache.GetOrAdd(
+                    resolvedHandler.GetType(),
+                    type => type.GetCustomAttribute<RequiresCharacterAttribute>() != null);
+
+                if (requiresCharacter && (Character is null || CurrentMap is null))
+                {
+                    _logger.LogWarning(
+                        "Player {SessionId} attempted {PacketType} without character or map",
+                        SessionId, packet.GetType().Name);
+                    continue;
+                }
 
                 // Use cached reflection to invoke the typed HandleAsync method
                 var invoker = _handlerInvokeCache.GetOrAdd(packet.GetType(), packetType =>

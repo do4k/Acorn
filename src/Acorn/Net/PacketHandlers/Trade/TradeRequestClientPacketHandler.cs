@@ -2,9 +2,11 @@ using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Trade;
 
+[RequiresCharacter]
 public class TradeRequestClientPacketHandler(
     ILogger<TradeRequestClientPacketHandler> logger)
     : IPacketHandler<TradeRequestClientPacket>
@@ -13,12 +15,6 @@ public class TradeRequestClientPacketHandler(
 
     public async Task HandleAsync(PlayerState player, TradeRequestClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to trade without character or map", player.SessionId);
-            return;
-        }
-
         // Can't trade if already in a trade
         if (player.TradeSession != null)
         {

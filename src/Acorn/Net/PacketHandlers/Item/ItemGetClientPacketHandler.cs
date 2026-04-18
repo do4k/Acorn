@@ -7,9 +7,11 @@ using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Item;
 
+[RequiresCharacter]
 public class ItemGetClientPacketHandler(
     ILogger<ItemGetClientPacketHandler> logger,
     IMapItemService mapItemService,
@@ -21,12 +23,6 @@ public class ItemGetClientPacketHandler(
 {
     public async Task HandleAsync(PlayerState player, ItemGetClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to get item without character or map", player.SessionId);
-            return;
-        }
-
         logger.LogDebug("Player {Character} attempting to pick up item at index {ItemIndex}",
             player.Character.Name, packet.ItemIndex);
 

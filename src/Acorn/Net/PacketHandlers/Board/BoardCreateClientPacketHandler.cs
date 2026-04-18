@@ -7,9 +7,11 @@ using Moffat.EndlessOnline.SDK.Protocol.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Board;
 
+[RequiresCharacter]
 public class BoardCreateClientPacketHandler(
     ILogger<BoardCreateClientPacketHandler> logger,
     IMapTileService tileService,
@@ -25,12 +27,6 @@ public class BoardCreateClientPacketHandler(
 
     public async Task HandleAsync(PlayerState player, BoardCreateClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to create board post without character or map", player.SessionId);
-            return;
-        }
-
         var boardId = packet.BoardId;
 
         // Validate board ID (1-8)

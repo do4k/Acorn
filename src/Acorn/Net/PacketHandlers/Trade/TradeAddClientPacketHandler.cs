@@ -6,12 +6,14 @@ using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Trade;
 
 /// <summary>
 /// Handles adding an item to the trade
 /// </summary>
+[RequiresCharacter]
 public class TradeAddClientPacketHandler(
     ILogger<TradeAddClientPacketHandler> logger,
     IDataFileRepository dataFileRepository,
@@ -22,12 +24,6 @@ public class TradeAddClientPacketHandler(
 
     public async Task HandleAsync(PlayerState player, TradeAddClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to add trade item without character or map", player.SessionId);
-            return;
-        }
-
         var trade = player.TradeSession;
         if (trade == null)
         {

@@ -1,5 +1,6 @@
 ﻿using System.Timers;
 using Acorn.Options;
+using Acorn.World.Services.Marriage;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -11,11 +12,13 @@ internal class WorldHostedService : IHostedService
 {
     private readonly Timer _timer;
     private readonly WorldState _world;
+    private readonly IMarriageService _marriageService;
     private readonly ILogger<WorldHostedService> _logger;
 
-    public WorldHostedService(IOptions<ServerOptions> options, WorldState world, ILogger<WorldHostedService> logger)
+    public WorldHostedService(IOptions<ServerOptions> options, WorldState world, IMarriageService marriageService, ILogger<WorldHostedService> logger)
     {
         _world = world;
+        _marriageService = marriageService;
         _logger = logger;
         _timer = new Timer(options.Value.TickRate);
         _timer.Elapsed += OnTick;
@@ -42,6 +45,14 @@ internal class WorldHostedService : IHostedService
                 .Select(x => x.Value.Tick());
 
             await Task.WhenAll(tickTasks);
+
+            // Process wedding ceremonies on maps that have active weddings
+            var weddingTasks = _world
+                .Maps
+                .Where(x => x.Value.Wedding != null)
+                .Select(x => _marriageService.ProcessWeddingTickAsync(x.Value));
+
+            await Task.WhenAll(weddingTasks);
         }
         catch (Exception ex)
         {

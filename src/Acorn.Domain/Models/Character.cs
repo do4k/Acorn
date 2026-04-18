@@ -63,8 +63,14 @@ public class Character
     public required Paperdoll Paperdoll { get; set; }
     public required Spells Spells { get; set; }
 
-    //TODO: Add guilds
-    //TODO: Add quests
+    // Quest progress
+    public List<CharacterQuestProgress> Quests { get; set; } = [];
+
+    // Guild
+    public string? GuildTag { get; set; }
+    public string? GuildName { get; set; }
+    public int GuildRankIndex { get; set; }
+    public string? GuildRankName { get; set; }
 
     /// <summary>
     ///     Get inventory items as SDK Item objects.

@@ -9,8 +9,10 @@ using Moffat.EndlessOnline.SDK.Protocol.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+using Acorn.Net.PacketHandlers;
 namespace Acorn.Net.PacketHandlers.Locker;
 
+[RequiresCharacter]
 public class LockerTakeClientPacketHandler(
     ILogger<LockerTakeClientPacketHandler> logger,
     IDataFileRepository dataFileRepository,
@@ -20,12 +22,6 @@ public class LockerTakeClientPacketHandler(
 {
     public async Task HandleAsync(PlayerState player, LockerTakeClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to take from locker without character or map", player.SessionId);
-            return;
-        }
-
         var itemId = packet.TakeItemId;
 
         var playerCoords = new Coords { X = player.Character.X, Y = player.Character.Y };

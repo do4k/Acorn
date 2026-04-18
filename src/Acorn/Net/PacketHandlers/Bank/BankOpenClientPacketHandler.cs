@@ -5,9 +5,11 @@ using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Bank;
 
+[RequiresCharacter]
 public class BankOpenClientPacketHandler(
     ILogger<BankOpenClientPacketHandler> logger,
     IDataFileRepository dataFileRepository)
@@ -15,12 +17,6 @@ public class BankOpenClientPacketHandler(
 {
     public async Task HandleAsync(PlayerState player, BankOpenClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to open bank without character or map", player.SessionId);
-            return;
-        }
-
         // Find the NPC by index on the map
         var npcIndex = packet.NpcIndex;
         if (!player.CurrentMap.Npcs.TryGetValue(npcIndex, out var npc))

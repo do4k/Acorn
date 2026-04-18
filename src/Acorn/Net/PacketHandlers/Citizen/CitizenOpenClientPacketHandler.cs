@@ -5,9 +5,11 @@ using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Citizen;
 
+[RequiresCharacter]
 public class CitizenOpenClientPacketHandler(
     ILogger<CitizenOpenClientPacketHandler> logger,
     IInnDataRepository innDataRepository)
@@ -15,13 +17,6 @@ public class CitizenOpenClientPacketHandler(
 {
     public async Task HandleAsync(PlayerState player, CitizenOpenClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to open inn without character or map",
-                player.SessionId);
-            return;
-        }
-
         var npcIndex = packet.NpcIndex;
 
         // Find the NPC by index on the map

@@ -1,21 +1,17 @@
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Spell;
 
+[RequiresCharacter]
 public class SpellTargetGroupClientPacketHandler(
     ILogger<SpellTargetGroupClientPacketHandler> logger)
     : IPacketHandler<SpellTargetGroupClientPacket>
 {
     public async Task HandleAsync(PlayerState player, SpellTargetGroupClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to cast spell without character or map", player.SessionId);
-            return;
-        }
-
         // Validate spell_id matches what was requested
         if (player.SpellId != packet.SpellId)
         {

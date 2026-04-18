@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using Acorn.Database;
 using Acorn.Database.Repository;
@@ -95,6 +95,8 @@ var host = Host.CreateDefaultBuilder(args)
             .Configure<ArenaOptions>(configuration.GetSection(ArenaOptions.SectionName))
             .Configure<CacheOptions>(configuration.GetSection(CacheOptions.SectionName))
             .Configure<WiseManAgentOptions>(configuration.GetSection(WiseManAgentOptions.SectionName))
+            .Configure<JukeboxOptions>(configuration.GetSection(JukeboxOptions.SectionName))
+            .Configure<MarriageOptions>(configuration.GetSection(MarriageOptions.SectionName))
             .AddSingleton<UtcNowDelegate>(() => DateTime.UtcNow);
 
         // Configure DbContext based on database engine
@@ -166,6 +168,7 @@ var host = Host.CreateDefaultBuilder(args)
             .AddSingleton<WorldState>()
             .AddSingleton<IWorldQueries, WorldStateQueries>()
             .AddAllOfType<ITalkHandler>()
+            .AddAllOfType<IPlayerCommandHandler>()
             .AddPacketHandlers()
             .AddRepositories()
             .AddWorldServices()

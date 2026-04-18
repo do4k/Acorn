@@ -11,12 +11,13 @@ using Moffat.EndlessOnline.SDK.Protocol.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Player;
 
+[RequiresCharacter]
 internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPacket>
 {
-    private readonly ILogger<WalkPlayerClientPacketHandler> _logger;
     private readonly IMapTileService _mapTileService;
     private readonly IPlayerController _playerController;
     private readonly IWorldQueries _world;
@@ -31,7 +32,6 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
         ICharacterCacheService characterCache,
         IPaperdollService paperdollService)
     {
-        _logger = logger;
         _world = world;
         _playerController = playerController;
         _mapTileService = mapTileService;
@@ -42,10 +42,10 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
     public async Task HandleAsync(PlayerState playerState,
         WalkPlayerClientPacket packet)
     {
-        if (playerState.Character is null)
+        // Frozen players cannot move
+        if (playerState.IsFrozen)
         {
-            _logger.LogError(
-                "Tried to handler player walk, but the character associated with this connection has not been initialised");
+            await playerState.Send(new WalkCloseServerPacket());
             return;
         }
 
@@ -67,14 +67,6 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
 
         // Cache character state after position/direction update
         await playerState.CacheCharacterStateAsync(_characterCache, _paperdollService);
-
-        if (playerState.CurrentMap is null)
-        {
-            _logger.LogError(
-                "Tried to handle walk player packet, but the map for the player connection was not found. MapId: {MapId}, PlayerId: {PlayerId}",
-                playerState.Character.Map, playerState.SessionId);
-            return;
-        }
 
         // Get nearby NPCs for this player (within client range)
         var playerCoords = playerState.Character.AsCoords();

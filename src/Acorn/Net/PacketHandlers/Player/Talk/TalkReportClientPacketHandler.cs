@@ -1,13 +1,17 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
+using Acorn.Net.PacketHandlers;
+
 namespace Acorn.Net.PacketHandlers.Player.Talk;
 
+[RequiresCharacter]
 internal class TalkReportClientPacketHandler(
     IEnumerable<ITalkHandler> talkHandlers,
+    IEnumerable<IPlayerCommandHandler> playerCommandHandlers,
     WiseManTalkHandler wiseManHandler,
     ILogger<TalkReportClientPacketHandler> logger)
     : IPacketHandler<TalkReportClientPacket>
@@ -32,12 +36,29 @@ internal class TalkReportClientPacketHandler(
             return;
         }
 
+        // Handle player # commands (available to all players)
+        if (packet.Message.StartsWith('#'))
+        {
+            var args = packet.Message[1..].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (args.Length > 0)
+            {
+                var command = args[0];
+                var handler = playerCommandHandlers.FirstOrDefault(x => x.CanHandle(command));
+                if (handler is not null)
+                {
+                    await handler.HandleAsync(playerState, command, args[1..]);
+                    return;
+                }
+            }
+            // If no handler found, fall through to normal chat
+        }
+
         // Check if the message is directed at the Wise Man NPC
         wiseManHandler.TryHandleMessage(playerState, packet.Message);
 
-        if (playerState.CurrentMap is null)
+        // Muted players cannot chat
+        if (playerState.IsMuted)
         {
-            logger.LogError("Tried to handle talk report packet, but the map for the player connection was not found.");
             return;
         }
 

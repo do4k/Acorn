@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Trade;
 
@@ -10,6 +11,7 @@ namespace Acorn.Net.PacketHandlers.Trade;
 /// Handles when a player agrees/accepts the trade items.
 /// If both players have agreed, the trade completes.
 /// </summary>
+[RequiresCharacter]
 public class TradeAgreeClientPacketHandler(
     ILogger<TradeAgreeClientPacketHandler> logger,
     IInventoryService inventoryService)
@@ -19,12 +21,6 @@ public class TradeAgreeClientPacketHandler(
 
     public async Task HandleAsync(PlayerState player, TradeAgreeClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to agree trade without character or map", player.SessionId);
-            return;
-        }
-
         var trade = player.TradeSession;
         if (trade == null)
         {

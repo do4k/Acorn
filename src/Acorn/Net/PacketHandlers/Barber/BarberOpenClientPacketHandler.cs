@@ -4,9 +4,11 @@ using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Barber;
 
+[RequiresCharacter]
 public class BarberOpenClientPacketHandler(
     ILogger<BarberOpenClientPacketHandler> logger,
     IDataFileRepository dataFileRepository)
@@ -14,12 +16,6 @@ public class BarberOpenClientPacketHandler(
 {
     public async Task HandleAsync(PlayerState player, BarberOpenClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to open barber without character or map", player.SessionId);
-            return;
-        }
-
         var npcIndex = packet.NpcIndex;
         if (!player.CurrentMap.Npcs.TryGetValue(npcIndex, out var npc))
         {

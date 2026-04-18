@@ -5,9 +5,11 @@ using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Citizen;
 
+[RequiresCharacter]
 public class CitizenAcceptClientPacketHandler(
     ILogger<CitizenAcceptClientPacketHandler> logger,
     IInnDataRepository innDataRepository,
@@ -18,13 +20,6 @@ public class CitizenAcceptClientPacketHandler(
 
     public async Task HandleAsync(PlayerState player, CitizenAcceptClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted sleep accept without character or map",
-                player.SessionId);
-            return;
-        }
-
         var npcIndex = player.InteractingNpcIndex;
         if (npcIndex == null)
         {

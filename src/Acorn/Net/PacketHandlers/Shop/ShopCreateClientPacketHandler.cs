@@ -6,9 +6,11 @@ using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Shop;
 
+[RequiresCharacter]
 public class ShopCreateClientPacketHandler(
     ILogger<ShopCreateClientPacketHandler> logger,
     IDataFileRepository dataFileRepository,
@@ -18,12 +20,6 @@ public class ShopCreateClientPacketHandler(
 {
     public async Task HandleAsync(PlayerState player, ShopCreateClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to craft without character or map", player.SessionId);
-            return;
-        }
-
         var craftItemId = packet.CraftItemId;
 
         // Get the NPC we're interacting with

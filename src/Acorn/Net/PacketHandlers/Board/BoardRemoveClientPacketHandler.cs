@@ -6,9 +6,11 @@ using Moffat.EndlessOnline.SDK.Protocol.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Board;
 
+[RequiresCharacter]
 public class BoardRemoveClientPacketHandler(
     ILogger<BoardRemoveClientPacketHandler> logger,
     IMapTileService tileService,
@@ -19,12 +21,6 @@ public class BoardRemoveClientPacketHandler(
 
     public async Task HandleAsync(PlayerState player, BoardRemoveClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to remove board post without character or map", player.SessionId);
-            return;
-        }
-
         var boardId = packet.BoardId;
         var postId = packet.PostId;
 

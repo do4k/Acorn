@@ -1,28 +1,36 @@
-using Acorn.World;
+using Acorn.Net.PacketHandlers;
+using Acorn.World.Services.Marriage;
 using Microsoft.Extensions.Logging;
-using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 
 namespace Acorn.Net.PacketHandlers.Marriage;
 
+[RequiresCharacter]
 public class MarriageRequestClientPacketHandler(
+    IMarriageService marriageService,
     ILogger<MarriageRequestClientPacketHandler> logger)
     : IPacketHandler<MarriageRequestClientPacket>
 {
     public async Task HandleAsync(PlayerState player, MarriageRequestClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
+        if (player.SessionId != packet.SessionId)
         {
-            logger.LogWarning("Player {SessionId} attempted to marriage action without character or map",
-                player.SessionId);
             return;
         }
 
-        logger.LogInformation("Player {Character} marriage request type {RequestType}",
-            player.Character.Name, packet.RequestType);
+        var name = packet.Name.ToLowerInvariant();
 
-        // TODO: Implement map.MarriageRequest(player, requestType)
-        await Task.CompletedTask;
+        logger.LogDebug("Player {Character} marriage request type {RequestType} for {Name}",
+            player.Character!.Name, packet.RequestType, name);
+
+        switch (packet.RequestType)
+        {
+            case MarriageRequestType.MarriageApproval:
+                await marriageService.RequestMarriageApprovalAsync(player, name);
+                break;
+            case MarriageRequestType.Divorce:
+                await marriageService.RequestDivorceAsync(player, name);
+                break;
+        }
     }
-
 }

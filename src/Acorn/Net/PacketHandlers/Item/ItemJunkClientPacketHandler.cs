@@ -5,9 +5,11 @@ using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Item;
 
+[RequiresCharacter]
 public class ItemJunkClientPacketHandler(
     ILogger<ItemJunkClientPacketHandler> logger,
     IInventoryService inventoryService,
@@ -19,12 +21,6 @@ public class ItemJunkClientPacketHandler(
 {
     public async Task HandleAsync(PlayerState player, ItemJunkClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to junk item without character or map", player.SessionId);
-            return;
-        }
-
         // Validate player has the item
         if (!inventoryService.HasItem(player.Character, packet.Item.Id, packet.Item.Amount))
         {

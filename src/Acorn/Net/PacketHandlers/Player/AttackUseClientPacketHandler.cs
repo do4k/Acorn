@@ -1,4 +1,4 @@
-﻿using Acorn.Database.Repository;
+using Acorn.Database.Repository;
 using Acorn.Extensions;
 using Acorn.Game.Services;
 using Acorn.Options;
@@ -11,9 +11,11 @@ using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Player;
 
+[RequiresCharacter]
 internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPacket>
 {
     private readonly IDataFileRepository _dataFiles;
@@ -44,11 +46,6 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
     public async Task HandleAsync(PlayerState playerState, AttackUseClientPacket packet)
     {
         if ((_now() - _timeSinceLastAttack).TotalMilliseconds < 500)
-        {
-            return;
-        }
-
-        if (playerState.CurrentMap is null)
         {
             return;
         }

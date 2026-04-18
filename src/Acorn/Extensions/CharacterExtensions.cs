@@ -1,4 +1,4 @@
-﻿using Acorn.Domain.Models;
+using Acorn.Domain.Models;
 using Acorn.Game.Services;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
@@ -42,7 +42,7 @@ public static class CharacterExtensions
             },
             WarpEffect = wapEffect,
             Gender = c.Gender,
-            GuildTag = "   ", //todo: guilds
+            GuildTag = c.GuildTag ?? "   ",
             HairColor = c.HairColor,
             HairStyle = c.HairStyle,
             MapId = c.Map,
@@ -64,7 +64,7 @@ public static class CharacterExtensions
         return new OnlinePlayer
         {
             ClassId = c.Class,
-            GuildTag = "   ", //todo: guilds
+            GuildTag = c.GuildTag ?? "   ",
             Icon = (int)c.Admin switch
             {
                 0 => CharacterIcon.Player,

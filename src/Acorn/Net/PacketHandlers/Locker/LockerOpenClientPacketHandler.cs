@@ -6,9 +6,11 @@ using Moffat.EndlessOnline.SDK.Protocol.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Locker;
 
+[RequiresCharacter]
 public class LockerOpenClientPacketHandler(
     ILogger<LockerOpenClientPacketHandler> logger,
     IMapTileService mapTileService)
@@ -16,12 +18,6 @@ public class LockerOpenClientPacketHandler(
 {
     public async Task HandleAsync(PlayerState player, LockerOpenClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to open locker without character or map", player.SessionId);
-            return;
-        }
-
         var playerCoords = new Coords { X = player.Character.X, Y = player.Character.Y };
 
         // Check if player is adjacent to a bank vault tile

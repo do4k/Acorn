@@ -42,4 +42,29 @@ public interface IMapController
     ///     Warp a player to a specific location.
     /// </summary>
     Task WarpPlayerAsync(PlayerState player, int mapId, int x, int y, WarpEffect warpEffect);
+
+    /// <summary>
+    ///     Process spike tile damage for players standing on spike tiles.
+    /// </summary>
+    Task ProcessSpikeDamageAsync(MapState map);
+
+    /// <summary>
+    ///     Process auto-closing of doors that have been open too long.
+    /// </summary>
+    Task ProcessDoorAutoCloseAsync(MapState map);
+
+    /// <summary>
+    ///     Remove ground items that have exceeded their lifetime.
+    /// </summary>
+    void ProcessGroundItemCleanup(MapState map);
+
+    /// <summary>
+    ///     Recover HP for alive NPCs not currently in combat.
+    /// </summary>
+    void ProcessNpcRecovery(MapState map);
+
+    /// <summary>
+    ///     Process periodic quake effects on maps that have quake timed effects.
+    /// </summary>
+    Task ProcessQuakeAsync(MapState map);
 }

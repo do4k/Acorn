@@ -5,9 +5,11 @@ using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Bank;
 
+[RequiresCharacter]
 public class BankAddClientPacketHandler(
     ILogger<BankAddClientPacketHandler> logger,
     IDataFileRepository dataFileRepository,
@@ -19,12 +21,6 @@ public class BankAddClientPacketHandler(
 
     public async Task HandleAsync(PlayerState player, BankAddClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to deposit without character or map", player.SessionId);
-            return;
-        }
-
         var requestedAmount = packet.Amount;
 
         if (requestedAmount <= 0)

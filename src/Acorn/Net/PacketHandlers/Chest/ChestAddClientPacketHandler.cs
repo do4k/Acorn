@@ -7,9 +7,11 @@ using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Chest;
 
+[RequiresCharacter]
 public class ChestAddClientPacketHandler(
     ILogger<ChestAddClientPacketHandler> logger,
     IDataFileRepository dataFileRepository,
@@ -20,12 +22,6 @@ public class ChestAddClientPacketHandler(
 
     public async Task HandleAsync(PlayerState player, ChestAddClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to add to chest without character or map", player.SessionId);
-            return;
-        }
-
         var itemId = packet.AddItem.Id;
         var requestedAmount = packet.AddItem.Amount;
 

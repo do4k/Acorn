@@ -2,24 +2,20 @@ using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Trade;
 
 /// <summary>
 /// Handles when a player closes/cancels the trade
 /// </summary>
+[RequiresCharacter]
 public class TradeCloseClientPacketHandler(
     ILogger<TradeCloseClientPacketHandler> logger)
     : IPacketHandler<TradeCloseClientPacket>
 {
     public async Task HandleAsync(PlayerState player, TradeCloseClientPacket packet)
     {
-        if (player.Character == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to close trade without character", player.SessionId);
-            return;
-        }
-
         var trade = player.TradeSession;
         if (trade == null)
         {

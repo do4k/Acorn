@@ -4,9 +4,11 @@ using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Player.Talk;
 
+[RequiresCharacter]
 public class TalkAnnounceClientPacketHandler : IPacketHandler<TalkAnnounceClientPacket>
 {
     private readonly ILogger<TalkAnnounceClientPacketHandler> _logger;
@@ -21,11 +23,6 @@ public class TalkAnnounceClientPacketHandler : IPacketHandler<TalkAnnounceClient
     public async Task HandleAsync(PlayerState playerState,
         TalkAnnounceClientPacket packet)
     {
-        if (playerState.Character is null)
-        {
-            return;
-        }
-
         if (playerState.Character.Admin == AdminLevel.Player)
         {
             _logger.LogDebug("Player tried to send an announcement packet without admin permissions {Player}",

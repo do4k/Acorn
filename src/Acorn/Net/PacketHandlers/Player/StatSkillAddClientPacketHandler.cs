@@ -6,9 +6,11 @@ using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Player;
 
+[RequiresCharacter]
 internal class StatSkillAddClientPacketHandler(
     IDbRepository<Database.Models.Character> characterRepository,
     IStatCalculator statCalculator,
@@ -20,12 +22,6 @@ internal class StatSkillAddClientPacketHandler(
 {
     public async Task HandleAsync(PlayerState playerState, StatSkillAddClientPacket packet)
     {
-        if (playerState.Character is null)
-        {
-            logger.LogWarning("StatSkillAdd packet received but player has no character loaded");
-            return;
-        }
-
         switch (packet.ActionTypeData)
         {
             case StatSkillAddClientPacket.ActionTypeDataStat statData:

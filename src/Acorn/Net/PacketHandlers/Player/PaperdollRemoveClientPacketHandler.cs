@@ -5,9 +5,11 @@ using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Player;
 
+[RequiresCharacter]
 public class PaperdollRemoveClientPacketHandler : IPacketHandler<PaperdollRemoveClientPacket>
 {
     private readonly ILogger<PaperdollRemoveClientPacketHandler> _logger;
@@ -26,14 +28,6 @@ public class PaperdollRemoveClientPacketHandler : IPacketHandler<PaperdollRemove
 
     public async Task HandleAsync(PlayerState playerState, PaperdollRemoveClientPacket packet)
     {
-        if (playerState.Character is null || playerState.CurrentMap is null)
-        {
-            _logger.LogWarning(
-                "PaperdollRemove failed - Character is null: {CharIsNull}, CurrentMap is null: {MapIsNull}",
-                playerState.Character is null, playerState.CurrentMap is null);
-            return;
-        }
-
         var character = playerState.Character;
 
         // Use PlayerController to handle unequipping (includes stat recalculation)

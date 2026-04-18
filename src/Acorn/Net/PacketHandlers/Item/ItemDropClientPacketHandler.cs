@@ -7,9 +7,11 @@ using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Item;
 
+[RequiresCharacter]
 public class ItemDropClientPacketHandler(
     ILogger<ItemDropClientPacketHandler> logger,
     IMapItemService mapItemService,
@@ -22,12 +24,6 @@ public class ItemDropClientPacketHandler(
 {
     public async Task HandleAsync(PlayerState player, ItemDropClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to drop item without character or map", player.SessionId);
-            return;
-        }
-
         // Convert ByteCoords to Coords (ByteCoords are encoded with +1 offset)
         var coords = new Coords { X = packet.Coords.X - 1, Y = packet.Coords.Y - 1 };
 

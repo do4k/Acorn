@@ -1,28 +1,46 @@
-using Acorn.World;
+using Acorn.Database.Repository;
+using Acorn.Extensions;
+using Acorn.Game.Services;
+using Acorn.Options;
+using Acorn.World.Services.Map;
 using Microsoft.Extensions.Logging;
-using Moffat.EndlessOnline.SDK.Protocol.Net;
+using Microsoft.Extensions.Options;
+using Moffat.EndlessOnline.SDK.Protocol.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
+using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.Net.PacketHandlers.Jukebox;
 
-public class JukeboxOpenClientPacketHandler(ILogger<JukeboxOpenClientPacketHandler> logger)
+[RequiresCharacter]
+public class JukeboxOpenClientPacketHandler(
+    ILogger<JukeboxOpenClientPacketHandler> logger,
+    IMapTileService tileService)
     : IPacketHandler<JukeboxOpenClientPacket>
 {
     public async Task HandleAsync(PlayerState player, JukeboxOpenClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
+        if (player.CurrentMap is null || player.Character is null)
         {
-            logger.LogWarning("Player {SessionId} attempted to open jukebox without character or map",
-                player.SessionId);
             return;
         }
 
-        logger.LogInformation("Player {Character} opening jukebox at coords ({X}, {Y})",
-            player.Character.Name, packet.Coords.X, packet.Coords.Y);
+        if (!tileService.PlayerInRangeOfTile(player.CurrentMap.Data, player.Character.AsCoords(), MapTileSpec.Jukebox))
+        {
+            logger.LogDebug("Player {Character} not in range of jukebox tile", player.Character.Name);
+            return;
+        }
 
-        // TODO: Validate jukebox exists
-        // TODO: Send available music tracks
-        await Task.CompletedTask;
+        var jukeboxPlayer = player.CurrentMap.JukeboxTicks > 0
+            ? player.CurrentMap.JukeboxPlayerName ?? "Busy"
+            : string.Empty;
+
+        await player.Send(new JukeboxOpenServerPacket
+        {
+            MapId = player.CurrentMap.Id,
+            JukeboxPlayer = jukeboxPlayer
+        });
+
+        logger.LogInformation("Player {Character} opened jukebox on map {MapId}",
+            player.Character.Name, player.CurrentMap.Id);
     }
-
 }

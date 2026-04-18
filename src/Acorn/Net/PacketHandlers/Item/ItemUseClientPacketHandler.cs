@@ -5,9 +5,11 @@ using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Item;
 
+[RequiresCharacter]
 public class ItemUseClientPacketHandler(
     ILogger<ItemUseClientPacketHandler> logger,
     IWorldQueries worldQueries,
@@ -16,12 +18,6 @@ public class ItemUseClientPacketHandler(
 {
     public async Task HandleAsync(PlayerState player, ItemUseClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to use item without character or map", player.SessionId);
-            return;
-        }
-
         // Validate player has the item
         if (!inventoryService.HasItem(player.Character, packet.ItemId))
         {

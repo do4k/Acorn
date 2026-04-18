@@ -6,9 +6,11 @@ using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Shop;
 
+[RequiresCharacter]
 public class ShopBuyClientPacketHandler(
     ILogger<ShopBuyClientPacketHandler> logger,
     IDataFileRepository dataFileRepository,
@@ -21,13 +23,6 @@ public class ShopBuyClientPacketHandler(
 
     public async Task HandleAsync(PlayerState player, ShopBuyClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to buy from shop without character or map",
-                player.SessionId);
-            return;
-        }
-
         var itemId = packet.BuyItem.Id;
         var requestedAmount = packet.BuyItem.Amount;
 

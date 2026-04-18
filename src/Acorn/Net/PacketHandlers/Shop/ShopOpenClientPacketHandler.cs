@@ -5,9 +5,11 @@ using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Shop;
 
+[RequiresCharacter]
 public class ShopOpenClientPacketHandler(
     ILogger<ShopOpenClientPacketHandler> logger,
     IDataFileRepository dataFileRepository,
@@ -16,12 +18,6 @@ public class ShopOpenClientPacketHandler(
 {
     public async Task HandleAsync(PlayerState player, ShopOpenClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to open shop without character or map", player.SessionId);
-            return;
-        }
-
         // Find the NPC by index on the map
         var npcIndex = packet.NpcIndex;
         if (!player.CurrentMap.Npcs.TryGetValue(npcIndex, out var npc))

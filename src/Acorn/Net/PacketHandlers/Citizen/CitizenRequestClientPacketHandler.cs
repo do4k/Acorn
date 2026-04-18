@@ -4,9 +4,11 @@ using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Citizen;
 
+[RequiresCharacter]
 public class CitizenRequestClientPacketHandler(
     ILogger<CitizenRequestClientPacketHandler> logger,
     IInnDataRepository innDataRepository)
@@ -14,13 +16,6 @@ public class CitizenRequestClientPacketHandler(
 {
     public async Task HandleAsync(PlayerState player, CitizenRequestClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted citizen request without character or map",
-                player.SessionId);
-            return;
-        }
-
         var npcIndex = player.InteractingNpcIndex;
         if (npcIndex == null)
         {

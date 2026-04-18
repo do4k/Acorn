@@ -9,9 +9,11 @@ using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Chest;
 
+[RequiresCharacter]
 public class ChestOpenClientPacketHandler(
     ILogger<ChestOpenClientPacketHandler> logger,
     IDataFileRepository dataFileRepository,
@@ -21,12 +23,6 @@ public class ChestOpenClientPacketHandler(
 {
     public async Task HandleAsync(PlayerState player, ChestOpenClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to open chest without character or map", player.SessionId);
-            return;
-        }
-
         var chestCoords = packet.Coords;
         var playerCoords = new Coords { X = player.Character.X, Y = player.Character.Y };
 

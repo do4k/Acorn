@@ -7,9 +7,11 @@ using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Chest;
 
+[RequiresCharacter]
 public class ChestTakeClientPacketHandler(
     ILogger<ChestTakeClientPacketHandler> logger,
     IDataFileRepository dataFileRepository,
@@ -18,12 +20,6 @@ public class ChestTakeClientPacketHandler(
 {
     public async Task HandleAsync(PlayerState player, ChestTakeClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to take from chest without character or map", player.SessionId);
-            return;
-        }
-
         var itemId = packet.TakeItemId;
 
         // Check if player has a chest open

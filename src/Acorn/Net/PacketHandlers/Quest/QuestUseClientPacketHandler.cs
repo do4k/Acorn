@@ -1,27 +1,21 @@
-using Acorn.World;
+using Acorn.Net.PacketHandlers;
+using Acorn.World.Services.Quest;
 using Microsoft.Extensions.Logging;
-using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 
 namespace Acorn.Net.PacketHandlers.Quest;
 
-public class QuestUseClientPacketHandler(ILogger<QuestUseClientPacketHandler> logger)
+[RequiresCharacter]
+public class QuestUseClientPacketHandler(
+    IQuestService questService,
+    ILogger<QuestUseClientPacketHandler> logger)
     : IPacketHandler<QuestUseClientPacket>
 {
     public async Task HandleAsync(PlayerState player, QuestUseClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to interact with quest without character or map",
-                player.SessionId);
-            return;
-        }
+        logger.LogDebug("Player {Character} talking to quest NPC index {NpcIndex} (quest {QuestId})",
+            player.Character!.Name, packet.NpcIndex, packet.QuestId);
 
-        logger.LogInformation("Player {Character} using quest {QuestId}",
-            player.Character.Name, packet.QuestId);
-
-        // TODO: Implement map.UseQuest(player, questId)
-        await Task.CompletedTask;
+        await questService.TalkToQuestNpc(player, packet.NpcIndex, packet.QuestId);
     }
-
 }

@@ -6,6 +6,7 @@ using Acorn.Database.Repository;
 using Acorn.Game.Services;
 using Acorn.Net.PacketHandlers;
 using Acorn.Net.PacketHandlers.Account;
+using Acorn.Net.PacketHandlers.AdminInteract;
 using Acorn.Net.PacketHandlers.Bank;
 using Acorn.Net.PacketHandlers.Barber;
 using Acorn.Net.PacketHandlers.Board;
@@ -15,17 +16,30 @@ using Acorn.Net.PacketHandlers.Citizen;
 using Acorn.Net.PacketHandlers.Item;
 using Acorn.Net.PacketHandlers.Locker;
 using Acorn.Net.PacketHandlers.Npc;
+using Acorn.Net.PacketHandlers.Party;
 using Acorn.Net.PacketHandlers.Player;
 using Acorn.Net.PacketHandlers.Player.Talk;
 using Acorn.Net.PacketHandlers.Player.Warp;
 using Acorn.Net.PacketHandlers.Range;
 using Acorn.Net.PacketHandlers.Shop;
 using Acorn.Net.PacketHandlers.Spell;
+using Acorn.Net.PacketHandlers.StatSkill;
 using Acorn.Net.PacketHandlers.Trade;
+using Acorn.Net.PacketHandlers.Guild;
+using Acorn.Net.PacketHandlers.Jukebox;
+using Acorn.Net.PacketHandlers.Marriage;
+using Acorn.Net.PacketHandlers.Players;
+using Acorn.Net.PacketHandlers.Priest;
+using Acorn.Net.PacketHandlers.Quest;
 using Acorn.Shared.Caching;
+using Acorn.World.Services.Admin;
 using Acorn.World.Services.Map;
 using Acorn.World.Services.Arena;
+using Acorn.World.Services.Guild;
+using Acorn.World.Services.Marriage;
+using Acorn.World.Services.Quest;
 using Acorn.World.Services.Npc;
+using Acorn.World.Services.Party;
 using Acorn.World.Services.Player;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -77,7 +91,9 @@ internal static class IocRegistrations
             })
             .AddSingleton<IDataFileRepository, DataFileRepository>()
             .AddSingleton<IShopDataRepository, ShopDataRepository>()
+            .AddSingleton<ISkillMasterDataRepository, SkillMasterDataRepository>()
             .AddSingleton<IInnDataRepository, InnDataRepository>()
+            .AddSingleton<IQuestDataRepository, QuestDataRepository>()
             .AddScoped<IBoardRepository, BoardRepository>();
     }
 
@@ -92,7 +108,13 @@ internal static class IocRegistrations
             .AddSingleton<IPlayerController, PlayerController>()
             .AddSingleton<INpcController, NpcController>()
             .AddSingleton<IMapController, MapController>()
+            .AddSingleton<IMapEffectService, MapEffectService>()
             .AddSingleton<IArenaService, ArenaService>()
+            .AddSingleton<IPartyService, PartyService>()
+            .AddSingleton<IGuildService, GuildService>()
+            .AddSingleton<IQuestService, QuestService>()
+            .AddSingleton<IAdminService, AdminService>()
+            .AddSingleton<IMarriageService, MarriageService>()
             // Lazy<T> registration to break circular dependencies
             .AddTransient(typeof(Lazy<>), typeof(LazyServiceProvider<>));
     }
@@ -130,9 +152,13 @@ internal static class IocRegistrations
         AddPacketHandler<RangeRequestClientPacket, RangeRequestClientPacketHandler>();
         AddPacketHandler<WarpAcceptClientPacket, WarpAcceptClientPacketHandler>();
         AddPacketHandler<WarpTakeClientPacket, WarpTakeClientPacketHandler>();
+        AddPacketHandler<TalkAdminClientPacket, TalkAdminClientPacketHandler>();
         AddPacketHandler<TalkAnnounceClientPacket, TalkAnnounceClientPacketHandler>();
         AddPacketHandler<TalkMsgClientPacket, TalkMsgClientPacketHandler>();
+        AddPacketHandler<TalkOpenClientPacket, TalkOpenClientPacketHandler>();
         AddPacketHandler<TalkReportClientPacket, TalkReportClientPacketHandler>();
+        AddPacketHandler<TalkRequestClientPacket, TalkRequestClientPacketHandler>();
+        AddPacketHandler<TalkTellClientPacket, TalkTellClientPacketHandler>();
         AddPacketHandler<AttackUseClientPacket, AttackUseClientPacketHandler>();
         AddPacketHandler<ConnectionAcceptClientPacket, ConnectionAcceptClientPacketHandler>();
         AddPacketHandler<ConnectionPingClientPacket, ConnectionPingClientPacketHandler>();
@@ -145,6 +171,7 @@ internal static class IocRegistrations
         AddPacketHandler<PaperdollRemoveClientPacket, PaperdollRemoveClientPacketHandler>();
         AddPacketHandler<PlayerRangeRequestClientPacket, PlayerRangeRequestClientPacketHandler>();
         AddPacketHandler<PlayersRequestClientPacket, PlayersRequestClientPacketHandler>();
+        AddPacketHandler<PlayersAcceptClientPacket, PlayersAcceptClientPacketHandler>();
         AddPacketHandler<RefreshRequestClientPacket, RefreshRequestClientPacketHandler>();
         AddPacketHandler<WalkAdminClientPacket, WalkAdminClientPacketHandler>();
         AddPacketHandler<WalkPlayerClientPacket, WalkPlayerClientPacketHandler>();
@@ -161,6 +188,12 @@ internal static class IocRegistrations
         AddPacketHandler<SpellTargetOtherClientPacket, SpellTargetOtherClientPacketHandler>();
         AddPacketHandler<SpellTargetGroupClientPacket, SpellTargetGroupClientPacketHandler>();
         AddPacketHandler<StatSkillAddClientPacket, StatSkillAddClientPacketHandler>();
+
+        // Skill master handlers
+        AddPacketHandler<StatSkillOpenClientPacket, StatSkillOpenClientPacketHandler>();
+        AddPacketHandler<StatSkillTakeClientPacket, StatSkillTakeClientPacketHandler>();
+        AddPacketHandler<StatSkillRemoveClientPacket, StatSkillRemoveClientPacketHandler>();
+        AddPacketHandler<StatSkillJunkClientPacket, StatSkillJunkClientPacketHandler>();
 
         // Shop handlers
         AddPacketHandler<ShopOpenClientPacket, ShopOpenClientPacketHandler>();
@@ -206,6 +239,53 @@ internal static class IocRegistrations
         AddPacketHandler<CitizenRequestClientPacket, CitizenRequestClientPacketHandler>();
         AddPacketHandler<CitizenReplyClientPacket, CitizenReplyClientPacketHandler>();
         AddPacketHandler<CitizenAcceptClientPacket, CitizenAcceptClientPacketHandler>();
+
+        // Party handlers
+        AddPacketHandler<PartyRequestClientPacket, PartyRequestClientPacketHandler>();
+        AddPacketHandler<PartyAcceptClientPacket, PartyAcceptClientPacketHandler>();
+        AddPacketHandler<PartyRemoveClientPacket, PartyRemoveClientPacketHandler>();
+        AddPacketHandler<PartyTakeClientPacket, PartyTakeClientPacketHandler>();
+
+        // Guild handlers
+        AddPacketHandler<GuildOpenClientPacket, GuildOpenClientPacketHandler>();
+        AddPacketHandler<GuildRequestClientPacket, GuildRequestClientPacketHandler>();
+        AddPacketHandler<GuildAcceptClientPacket, GuildAcceptClientPacketHandler>();
+        AddPacketHandler<GuildCreateClientPacket, GuildCreateClientPacketHandler>();
+        AddPacketHandler<GuildPlayerClientPacket, GuildPlayerClientPacketHandler>();
+        AddPacketHandler<GuildUseClientPacket, GuildUseClientPacketHandler>();
+        AddPacketHandler<GuildKickClientPacket, GuildKickClientPacketHandler>();
+        AddPacketHandler<GuildRemoveClientPacket, GuildRemoveClientPacketHandler>();
+        AddPacketHandler<GuildBuyClientPacket, GuildBuyClientPacketHandler>();
+        AddPacketHandler<GuildAgreeClientPacket, GuildAgreeClientPacketHandler>();
+        AddPacketHandler<GuildRankClientPacket, GuildRankClientPacketHandler>();
+        AddPacketHandler<GuildTakeClientPacket, GuildTakeClientPacketHandler>();
+        AddPacketHandler<GuildTellClientPacket, GuildTellClientPacketHandler>();
+        AddPacketHandler<GuildReportClientPacket, GuildReportClientPacketHandler>();
+        AddPacketHandler<GuildJunkClientPacket, GuildJunkClientPacketHandler>();
+
+        // Quest handlers
+        AddPacketHandler<QuestUseClientPacket, QuestUseClientPacketHandler>();
+        AddPacketHandler<QuestAcceptClientPacket, QuestAcceptClientPacketHandler>();
+        AddPacketHandler<QuestListClientPacket, QuestListClientPacketHandler>();
+
+        // Admin interact handlers
+        AddPacketHandler<AdminInteractTellClientPacket, AdminInteractTellClientPacketHandler>();
+        AddPacketHandler<AdminInteractReportClientPacket, AdminInteractReportClientPacketHandler>();
+
+        // Jukebox handlers
+        AddPacketHandler<JukeboxOpenClientPacket, JukeboxOpenClientPacketHandler>();
+        AddPacketHandler<JukeboxMsgClientPacket, JukeboxMsgClientPacketHandler>();
+        AddPacketHandler<JukeboxUseClientPacket, JukeboxUseClientPacketHandler>();
+
+        // Priest handlers (wedding ceremony)
+        AddPacketHandler<PriestOpenClientPacket, PriestOpenClientPacketHandler>();
+        AddPacketHandler<PriestRequestClientPacket, PriestRequestClientPacketHandler>();
+        AddPacketHandler<PriestAcceptClientPacket, PriestAcceptClientPacketHandler>();
+        AddPacketHandler<PriestUseClientPacket, PriestUseClientPacketHandler>();
+
+        // Marriage handlers (law office)
+        AddPacketHandler<MarriageOpenClientPacket, MarriageOpenClientPacketHandler>();
+        AddPacketHandler<MarriageRequestClientPacket, MarriageRequestClientPacketHandler>();
 
         return services;
     }

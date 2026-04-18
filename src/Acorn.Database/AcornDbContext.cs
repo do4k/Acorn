@@ -15,10 +15,12 @@ public class AcornDbContext : DbContext
     public DbSet<Account> Accounts { get; set; }
     public DbSet<Character> Characters { get; set; }
     public DbSet<Guild> Guilds { get; set; }
+    public DbSet<GuildMember> GuildMembers { get; set; }
     public DbSet<CharacterItem> CharacterItems { get; set; }
     public DbSet<CharacterPaperdoll> CharacterPaperdolls { get; set; }
     public DbSet<CharacterSpell> CharacterSpells { get; set; }
     public DbSet<BoardPost> BoardPosts { get; set; }
+    public DbSet<QuestProgress> QuestProgress { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -97,6 +99,11 @@ public class AcornDbContext : DbContext
                 .WithOne(p => p.Character)
                 .HasForeignKey<CharacterPaperdoll>(p => p.CharacterName)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(e => e.QuestProgress)
+                .WithOne()
+                .HasForeignKey(q => q.CharacterName)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // Configure CharacterItem entity
@@ -137,9 +144,27 @@ public class AcornDbContext : DbContext
         {
             entity.HasKey(e => e.Tag);
             entity.Property(e => e.Tag).IsRequired().HasMaxLength(3);
-            entity.Property(e => e.Name).HasMaxLength(100);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Description).HasMaxLength(500);
-            entity.Property(e => e.Ranks).HasMaxLength(500);
+            entity.Property(e => e.Ranks).IsRequired().HasMaxLength(500);
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            entity.HasMany(e => e.Members)
+                .WithOne(m => m.Guild)
+                .HasForeignKey(m => m.GuildTag)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Configure GuildMember entity
+        modelBuilder.Entity<GuildMember>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.CharacterName).IsRequired().HasMaxLength(16);
+            entity.Property(e => e.GuildTag).IsRequired().HasMaxLength(3);
+            entity.Property(e => e.RankIndex).IsRequired();
+
+            entity.HasIndex(e => e.CharacterName).IsUnique();
+            entity.HasIndex(e => e.GuildTag);
         });
 
         // Configure BoardPost entity
@@ -155,6 +180,21 @@ public class AcornDbContext : DbContext
             // Create index for faster board listing queries
             entity.HasIndex(e => new { e.BoardId, e.Id });
             entity.HasIndex(e => e.CharacterName);
+        });
+
+        // Configure QuestProgress entity
+        modelBuilder.Entity<QuestProgress>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.CharacterName).IsRequired().HasMaxLength(16);
+            entity.Property(e => e.QuestId).IsRequired();
+            entity.Property(e => e.State).IsRequired();
+            entity.Property(e => e.NpcKillsJson).IsRequired().HasMaxLength(1024);
+            entity.Property(e => e.PlayerKills).IsRequired();
+            entity.Property(e => e.Completions).IsRequired();
+
+            entity.HasIndex(e => e.CharacterName);
+            entity.HasIndex(e => new { e.CharacterName, e.QuestId }).IsUnique();
         });
 
         // Seed default account

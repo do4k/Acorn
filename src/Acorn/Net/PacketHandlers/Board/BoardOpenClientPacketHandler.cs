@@ -6,9 +6,11 @@ using Moffat.EndlessOnline.SDK.Protocol.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Board;
 
+[RequiresCharacter]
 public class BoardOpenClientPacketHandler(
     ILogger<BoardOpenClientPacketHandler> logger,
     IMapTileService tileService,
@@ -20,12 +22,6 @@ public class BoardOpenClientPacketHandler(
 
     public async Task HandleAsync(PlayerState player, BoardOpenClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to open board without character or map", player.SessionId);
-            return;
-        }
-
         logger.LogInformation("Player {Character} opening board {BoardId}",
             player.Character.Name, packet.BoardId);
 

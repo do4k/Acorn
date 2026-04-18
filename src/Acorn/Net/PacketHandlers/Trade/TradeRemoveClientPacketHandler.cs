@@ -2,24 +2,20 @@ using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Trade;
 
 /// <summary>
 /// Handles removing an item from the trade
 /// </summary>
+[RequiresCharacter]
 public class TradeRemoveClientPacketHandler(
     ILogger<TradeRemoveClientPacketHandler> logger)
     : IPacketHandler<TradeRemoveClientPacket>
 {
     public async Task HandleAsync(PlayerState player, TradeRemoveClientPacket packet)
     {
-        if (player.Character == null || player.CurrentMap == null)
-        {
-            logger.LogWarning("Player {SessionId} attempted to remove trade item without character or map", player.SessionId);
-            return;
-        }
-
         var trade = player.TradeSession;
         if (trade == null)
         {
