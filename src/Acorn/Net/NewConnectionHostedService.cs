@@ -232,13 +232,28 @@ public class NewConnectionHostedService(
 
     public override void Dispose()
     {
-        _listener.Stop();
+        try
+        {
+            _listener.Stop();
+        }
+        catch (ObjectDisposedException)
+        {
+            // Already disposed
+        }
+
         _listener.Dispose();
 
         if (_wsListener != null)
         {
-            _wsListener.Stop();
-            _wsListener.Close();
+            try
+            {
+                _wsListener.Stop();
+                _wsListener.Close();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Already disposed
+            }
         }
 
         base.Dispose();

@@ -27,7 +27,7 @@ public class MapController : IMapController
     private readonly IMapTileService _tileService;
     private readonly ICharacterCacheService _characterCache;
     private readonly IPaperdollService _paperdollService;
-    private readonly WorldState _worldState;
+    private readonly Lazy<WorldState> _worldState;
 
     // Per-map quake state is tracked on MapController since it's shared
     private readonly Dictionary<int, int> _quakeTicks = new();
@@ -45,7 +45,7 @@ public class MapController : IMapController
         ILogger<MapController> logger,
         ICharacterCacheService characterCache,
         IPaperdollService paperdollService,
-        WorldState worldState)
+        Lazy<WorldState> worldState)
     {
         _tileService = tileService;
         _npcCombatService = npcCombatService;
@@ -348,7 +348,7 @@ public class MapController : IMapController
 
     public async Task WarpPlayerAsync(PlayerState player, int mapId, int x, int y, WarpEffect warpEffect)
     {
-        var targetMap = _worldState.MapForId(mapId);
+        var targetMap = _worldState.Value.MapForId(mapId);
         if (targetMap == null)
         {
             _logger.LogWarning("Cannot warp player to map {MapId} - map not found", mapId);

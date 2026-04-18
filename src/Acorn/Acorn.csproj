@@ -20,6 +20,11 @@
         <WarningsAsErrors>$(WarningsAsErrors);IDE0051;IDE0052</WarningsAsErrors>
     </PropertyGroup>
 
+    <!-- Allow test project to access internal types -->
+    <ItemGroup>
+        <InternalsVisibleTo Include="Acorn.Tests" />
+    </ItemGroup>
+
     <ItemGroup>
         <ProjectReference Include="..\Acorn.Shared\Acorn.Shared.csproj" />
         <ProjectReference Include="..\Acorn.Database\Acorn.Database.csproj" />
