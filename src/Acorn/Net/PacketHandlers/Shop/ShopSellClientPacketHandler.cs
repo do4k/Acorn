@@ -43,20 +43,8 @@ public class ShopSellClientPacketHandler(
         }
 
         // Get the NPC we're interacting with
-        if (player.InteractingNpcIndex == null)
-        {
-            logger.LogWarning("Player {Character} attempted to sell without interacting with NPC",
-                player.Character.Name);
-            return;
-        }
-
-        var npcIndex = player.InteractingNpcIndex.Value;
-        if (!player.CurrentMap.Npcs.TryGetValue(npcIndex, out var npc) || npc.Data.Type != NpcType.Shop)
-        {
-            logger.LogWarning("Player {Character} tried to sell to invalid shop NPC",
-                player.Character.Name);
-            return;
-        }
+        var npc = NpcInteractionHelper.ValidateInteraction(player, NpcType.Shop, logger);
+        if (npc is null) return;
 
         // Get shop data
         var shop = shopDataRepository.GetShopByBehaviorId(npc.Data.BehaviorId);

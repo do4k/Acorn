@@ -1,9 +1,9 @@
 using Acorn.Database.Models;
 using Acorn.Database.Repository;
-using Acorn.Domain.Models;
+using Acorn.Game.Models;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
-using Character = Acorn.Domain.Models.Character;
-using ItemWithAmount = Acorn.Domain.Models.ItemWithAmount;
+using Character = Acorn.Game.Models.Character;
+using ItemWithAmount = Acorn.Game.Models.ItemWithAmount;
 
 namespace Acorn.Game.Models;
 

@@ -1,7 +1,8 @@
-﻿using System.Text;
+using System.Text;
 using Acorn.Database.Models;
 using Acorn.Database.Repository;
 using Acorn.Extensions;
+using Acorn.Game.Mappers;
 using Acorn.Game.Services;
 using Acorn.Infrastructure.Security;
 using Acorn.World;
@@ -72,7 +73,7 @@ public class LoginRequestClientPacketHandler(
             ReplyCodeData = new LoginReplyServerPacket.ReplyCodeDataOk
             {
                 Characters = playerState.Account.Characters
-                    .Select((x, id) => x.AsGameModel().AsCharacterListEntry(id, _paperdollService)).ToList()
+                    .Select((x, id) => CharacterMapper.FromDatabaseModel(x).AsCharacterListEntry(id, _paperdollService)).ToList()
             }
         });
     }

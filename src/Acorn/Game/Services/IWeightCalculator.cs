@@ -1,4 +1,4 @@
-using Acorn.Domain.Models;
+using Acorn.Game.Models;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
 
 namespace Acorn.Game.Services;

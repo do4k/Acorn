@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 using Acorn.Database.Repository;
-using Acorn.Domain.Models;
+using Acorn.Game.Models;
 using Acorn.Game.Services;
 using Acorn.World.Services.Map;
 using Microsoft.Extensions.Logging;
@@ -120,7 +120,7 @@ public class LockerAddClientPacketHandler(
         });
     }
 
-    private void AddBankItem(Domain.Models.Character character, int itemId, int amount)
+    private void AddBankItem(Game.Models.Character character, int itemId, int amount)
     {
         var existingItem = character.Bank.Items.FirstOrDefault(i => i.Id == itemId);
         if (existingItem != null)

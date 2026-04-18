@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 using Acorn.Database.Repository;
-using Acorn.Domain.Models;
+using Acorn.Game.Models;
 using Acorn.Game.Services;
 using Acorn.World.Services.Map;
 using Microsoft.Extensions.Logging;
@@ -111,7 +111,7 @@ public class LockerTakeClientPacketHandler(
         });
     }
 
-    private void RemoveBankItem(Domain.Models.Character character, int itemId, int amount)
+    private void RemoveBankItem(Game.Models.Character character, int itemId, int amount)
     {
         var existingItem = character.Bank.Items.FirstOrDefault(i => i.Id == itemId);
         if (existingItem != null)
@@ -123,7 +123,7 @@ public class LockerTakeClientPacketHandler(
                 var newItems = new ConcurrentBag<ItemWithAmount>(
                     character.Bank.Items.Where(i => i.Id != itemId || i.Amount > 0)
                 );
-                character.Bank = new Domain.Models.Bank(newItems);
+                character.Bank = new Game.Models.Bank(newItems);
             }
         }
     }

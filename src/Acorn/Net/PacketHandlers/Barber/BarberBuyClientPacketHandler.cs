@@ -36,20 +36,8 @@ public class BarberBuyClientPacketHandler(
         }
 
         // Verify player is interacting with a barber NPC
-        if (player.InteractingNpcIndex == null)
-        {
-            logger.LogWarning("Player {Character} attempted to buy haircut without interacting with NPC",
-                player.Character.Name);
-            return;
-        }
-
-        var npcIndex = player.InteractingNpcIndex.Value;
-        if (!player.CurrentMap.Npcs.TryGetValue(npcIndex, out var npc) || npc.Data.Type != NpcType.Barber)
-        {
-            logger.LogWarning("Player {Character} tried to buy haircut from invalid barber NPC",
-                player.Character.Name);
-            return;
-        }
+        var npc = NpcInteractionHelper.ValidateInteraction(player, NpcType.Barber, logger);
+        if (npc is null) return;
 
         // Calculate cost based on level
         var cost = BaseCost + Math.Max(1, player.Character.Level) * CostPerLevel;

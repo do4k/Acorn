@@ -20,14 +20,6 @@ public class CitizenAcceptClientPacketHandler(
 
     public async Task HandleAsync(PlayerState player, CitizenAcceptClientPacket packet)
     {
-        var npcIndex = player.InteractingNpcIndex;
-        if (npcIndex == null)
-        {
-            logger.LogWarning("Player {Character} attempted sleep accept without interacting NPC",
-                player.Character.Name);
-            return;
-        }
-
         // Check if there's a pending sleep cost
         var cost = player.SleepCost;
         if (cost == null || cost <= 0)
@@ -37,21 +29,8 @@ public class CitizenAcceptClientPacketHandler(
             return;
         }
 
-        // Find the NPC by index on the map
-        if (!player.CurrentMap.Npcs.TryGetValue(npcIndex.Value, out var npc))
-        {
-            logger.LogWarning("Player {Character} tried to accept sleep at invalid NPC index {NpcIndex}",
-                player.Character.Name, npcIndex);
-            return;
-        }
-
-        // Verify it's an Inn NPC
-        if (npc.Data.Type != NpcType.Inn)
-        {
-            logger.LogWarning("Player {Character} tried to accept sleep at non-inn NPC {NpcId}",
-                player.Character.Name, npc.Id);
-            return;
-        }
+        var npc = NpcInteractionHelper.ValidateInteraction(player, NpcType.Inn, logger);
+        if (npc is null) return;
 
         // Get inn data by NPC's behavior ID
         var inn = innDataRepository.GetInnByBehaviorId(npc.Data.BehaviorId);

@@ -1,6 +1,7 @@
-﻿using Acorn.Database.Models;
+using Acorn.Database.Models;
 using Acorn.Database.Repository;
 using Acorn.Extensions;
+using Acorn.Game.Mappers;
 using Acorn.Game.Services;
 using Acorn.Options;
 using Microsoft.Extensions.Logging;
@@ -96,7 +97,7 @@ internal class CharacterCreateClientPacketHandler(
             ReplyCodeData = new CharacterReplyServerPacket.ReplyCodeDataOk
             {
                 Characters = playerState.Account.Characters
-                    .Select((c, id) => c.AsGameModel().AsCharacterListEntry(id, _paperdollService)).ToList()
+                    .Select((c, id) => CharacterMapper.FromDatabaseModel(c).AsCharacterListEntry(id, _paperdollService)).ToList()
             }
         });
     }

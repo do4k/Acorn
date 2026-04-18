@@ -30,20 +30,8 @@ public class BankTakeClientPacketHandler(
         }
 
         // Verify player is interacting with a bank NPC
-        if (player.InteractingNpcIndex == null)
-        {
-            logger.LogWarning("Player {Character} attempted to withdraw without interacting with NPC",
-                player.Character.Name);
-            return;
-        }
-
-        var npcIndex = player.InteractingNpcIndex.Value;
-        if (!player.CurrentMap.Npcs.TryGetValue(npcIndex, out var npc) || npc.Data.Type != NpcType.Bank)
-        {
-            logger.LogWarning("Player {Character} tried to withdraw from invalid bank NPC",
-                player.Character.Name);
-            return;
-        }
+        var npc = NpcInteractionHelper.ValidateInteraction(player, NpcType.Bank, logger);
+        if (npc is null) return;
 
         // Get bank gold amount
         var amount = Math.Min(requestedAmount, player.Character.GoldBank);

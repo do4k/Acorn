@@ -3,7 +3,7 @@ using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
-namespace Acorn.Domain.Models;
+namespace Acorn.Game.Models;
 
 /// <summary>
 ///     Represents an in-game character. This is a pure data model.

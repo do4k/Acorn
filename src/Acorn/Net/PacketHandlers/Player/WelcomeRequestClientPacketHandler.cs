@@ -2,6 +2,7 @@ using Acorn.Database;
 using Acorn.Database.Models;
 using Acorn.Database.Repository;
 using Acorn.Extensions;
+using Acorn.Game.Mappers;
 using Acorn.Game.Services;
 using Acorn.World.Services.Quest;
 using Microsoft.EntityFrameworkCore;
@@ -58,7 +59,7 @@ internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequest
             return;
         }
 
-        playerState.Character = character.AsGameModel();
+        playerState.Character = CharacterMapper.FromDatabaseModel(character);
 
         // Load guild membership data
         using (var scope = _scopeFactory.CreateScope())

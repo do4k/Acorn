@@ -1,5 +1,4 @@
 using Acorn.Database.Repository;
-using Acorn.Game.Services;
 using Acorn.World.Map;
 using Acorn.World.Services.Map;
 using Microsoft.Extensions.Logging;
@@ -17,8 +16,7 @@ namespace Acorn.Net.PacketHandlers.Chest;
 public class ChestOpenClientPacketHandler(
     ILogger<ChestOpenClientPacketHandler> logger,
     IDataFileRepository dataFileRepository,
-    IMapTileService mapTileService,
-    IInventoryService inventoryService)
+    IMapTileService mapTileService)
     : IPacketHandler<ChestOpenClientPacket>
 {
     public async Task HandleAsync(PlayerState player, ChestOpenClientPacket packet)

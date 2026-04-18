@@ -1,5 +1,3 @@
-using Acorn.Database.Repository;
-using Acorn.Game.Services;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
@@ -11,34 +9,16 @@ namespace Acorn.Net.PacketHandlers.Bank;
 
 [RequiresCharacter]
 public class BankOpenClientPacketHandler(
-    ILogger<BankOpenClientPacketHandler> logger,
-    IDataFileRepository dataFileRepository)
+    ILogger<BankOpenClientPacketHandler> logger)
     : IPacketHandler<BankOpenClientPacket>
 {
     public async Task HandleAsync(PlayerState player, BankOpenClientPacket packet)
     {
-        // Find the NPC by index on the map
-        var npcIndex = packet.NpcIndex;
-        if (!player.CurrentMap.Npcs.TryGetValue(npcIndex, out var npc))
-        {
-            logger.LogWarning("Player {Character} tried to open bank at invalid NPC index {NpcIndex}",
-                player.Character.Name, npcIndex);
-            return;
-        }
-
-        // Verify it's a bank NPC
-        if (npc.Data.Type != NpcType.Bank)
-        {
-            logger.LogWarning("Player {Character} tried to open bank at non-bank NPC {NpcId}",
-                player.Character.Name, npc.Id);
-            return;
-        }
+        var npc = NpcInteractionHelper.ValidateAndStartInteraction(player, packet.NpcIndex, NpcType.Bank, logger);
+        if (npc is null) return;
 
         logger.LogInformation("Player {Character} opening bank",
             player.Character.Name);
-
-        // Store the NPC index for subsequent deposit/withdraw operations
-        player.InteractingNpcIndex = npcIndex;
 
         await player.Send(new BankOpenServerPacket
         {

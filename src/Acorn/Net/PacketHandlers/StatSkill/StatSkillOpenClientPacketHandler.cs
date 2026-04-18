@@ -16,20 +16,8 @@ public class StatSkillOpenClientPacketHandler(
 {
     public async Task HandleAsync(PlayerState player, StatSkillOpenClientPacket packet)
     {
-        var npcIndex = packet.NpcIndex;
-        if (!player.CurrentMap.Npcs.TryGetValue(npcIndex, out var npc))
-        {
-            logger.LogWarning("Player {Character} tried to open skill master at invalid NPC index {NpcIndex}",
-                player.Character.Name, npcIndex);
-            return;
-        }
-
-        if (npc.Data.Type != NpcType.Trainer)
-        {
-            logger.LogWarning("Player {Character} tried to open skill master at non-trainer NPC {NpcId}",
-                player.Character.Name, npc.Id);
-            return;
-        }
+        var npc = NpcInteractionHelper.ValidateAndStartInteraction(player, packet.NpcIndex, NpcType.Trainer, logger);
+        if (npc is null) return;
 
         var skillMaster = skillMasterDataRepository.GetByBehaviorId(npc.Data.BehaviorId);
         if (skillMaster == null)
@@ -40,8 +28,6 @@ public class StatSkillOpenClientPacketHandler(
 
         logger.LogInformation("Player {Character} opening skill master {SkillMasterName}",
             player.Character.Name, skillMaster.Name);
-
-        player.InteractingNpcIndex = npcIndex;
 
         var skills = skillMaster.Skills.Select(s =>
         {

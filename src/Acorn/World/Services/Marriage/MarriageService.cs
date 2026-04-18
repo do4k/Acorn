@@ -602,7 +602,7 @@ public class MarriageService(
         });
     }
 
-    private bool IsDressedForWedding(Domain.Models.Character character)
+    private bool IsDressedForWedding(Game.Models.Character character)
     {
         return character.Gender switch
         {

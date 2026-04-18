@@ -1,4 +1,4 @@
-namespace Acorn.Domain.Models;
+namespace Acorn.Game.Models;
 
 /// <summary>
 ///     Represents a single drop entry in an NPC's loot table.

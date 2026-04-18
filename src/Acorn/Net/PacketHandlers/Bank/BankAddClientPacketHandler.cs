@@ -1,4 +1,3 @@
-using Acorn.Database.Repository;
 using Acorn.Game.Services;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
@@ -12,7 +11,6 @@ namespace Acorn.Net.PacketHandlers.Bank;
 [RequiresCharacter]
 public class BankAddClientPacketHandler(
     ILogger<BankAddClientPacketHandler> logger,
-    IDataFileRepository dataFileRepository,
     IInventoryService inventoryService)
     : IPacketHandler<BankAddClientPacket>
 {
@@ -31,20 +29,8 @@ public class BankAddClientPacketHandler(
         }
 
         // Verify player is interacting with a bank NPC
-        if (player.InteractingNpcIndex == null)
-        {
-            logger.LogWarning("Player {Character} attempted to deposit without interacting with NPC",
-                player.Character.Name);
-            return;
-        }
-
-        var npcIndex = player.InteractingNpcIndex.Value;
-        if (!player.CurrentMap.Npcs.TryGetValue(npcIndex, out var npc) || npc.Data.Type != NpcType.Bank)
-        {
-            logger.LogWarning("Player {Character} tried to deposit at invalid bank NPC",
-                player.Character.Name);
-            return;
-        }
+        var npc = NpcInteractionHelper.ValidateInteraction(player, NpcType.Bank, logger);
+        if (npc is null) return;
 
         // Get player's gold amount
         var playerGold = inventoryService.GetItemAmount(player.Character, GoldItemId);

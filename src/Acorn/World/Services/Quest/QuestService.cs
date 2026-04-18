@@ -9,8 +9,8 @@ using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
-using GameCharacter = Acorn.Domain.Models.Character;
-using CharacterQuestProgress = Acorn.Domain.Models.CharacterQuestProgress;
+using GameCharacter = Acorn.Game.Models.Character;
+using CharacterQuestProgress = Acorn.Game.Models.CharacterQuestProgress;
 
 namespace Acorn.World.Services.Quest;
 

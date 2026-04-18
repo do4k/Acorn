@@ -122,7 +122,7 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
     }
 
 
-    private bool TryGetWarpTile(MapState map, Acorn.Domain.Models.Character character, out MapWarpRowTile? tile)
+    private bool TryGetWarpTile(MapState map, Acorn.Game.Models.Character character, out MapWarpRowTile? tile)
     {
         var possibleY = map.Data.WarpRows.Where(wr => wr.Y == character.Y);
         var mapWarpRows = possibleY as MapWarpRow[] ?? possibleY.ToArray();

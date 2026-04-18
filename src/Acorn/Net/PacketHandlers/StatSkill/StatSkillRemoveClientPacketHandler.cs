@@ -21,21 +21,8 @@ public class StatSkillRemoveClientPacketHandler(
             return;
         }
 
-        if (player.InteractingNpcIndex is null)
-        {
-            return;
-        }
-
-        var npcIndex = player.InteractingNpcIndex.Value;
-        if (!player.CurrentMap.Npcs.TryGetValue(npcIndex, out var npc))
-        {
-            return;
-        }
-
-        if (npc.Data.Type != NpcType.Trainer)
-        {
-            return;
-        }
+        var npc = NpcInteractionHelper.ValidateInteraction(player, NpcType.Trainer, logger);
+        if (npc is null) return;
 
         var spellId = packet.SpellId;
         if (spellId <= 0)
@@ -55,7 +42,7 @@ public class StatSkillRemoveClientPacketHandler(
         var updatedSpells = character.Spells.Items
             .Where(s => s.Id != spellId)
             .ToList();
-        character.Spells = new Domain.Models.Spells(new System.Collections.Concurrent.ConcurrentBag<Domain.Models.Spell>(updatedSpells));
+        character.Spells = new Game.Models.Spells(new System.Collections.Concurrent.ConcurrentBag<Game.Models.Spell>(updatedSpells));
 
         // Save to database
         await characterRepository.UpdateAsync(characterMapper.ToDatabase(character));

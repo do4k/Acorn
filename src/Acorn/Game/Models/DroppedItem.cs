@@ -1,4 +1,4 @@
-namespace Acorn.Domain.Models;
+namespace Acorn.Game.Models;
 
 /// <summary>
 ///     Represents an item dropped on the ground.

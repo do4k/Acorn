@@ -20,8 +20,8 @@ public interface IQuestService
     Task ViewQuestHistory(PlayerState player);
 
     /// <summary>Load quest progress from DB for a character.</summary>
-    Task LoadQuestProgress(string characterName, Domain.Models.Character character);
+    Task LoadQuestProgress(string characterName, Game.Models.Character character);
 
     /// <summary>Save quest progress to DB for a character.</summary>
-    Task SaveQuestProgress(Domain.Models.Character character);
+    Task SaveQuestProgress(Game.Models.Character character);
 }

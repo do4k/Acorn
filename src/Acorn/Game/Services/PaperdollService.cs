@@ -1,5 +1,5 @@
 using Acorn.Database.Repository;
-using Acorn.Domain.Models;
+using Acorn.Game.Models;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 

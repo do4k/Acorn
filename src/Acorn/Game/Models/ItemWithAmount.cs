@@ -1,4 +1,4 @@
-namespace Acorn.Database.Models;
+namespace Acorn.Game.Models;
 
 public class ItemWithAmount
 {

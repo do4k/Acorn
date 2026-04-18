@@ -23,20 +23,8 @@ public class ShopCreateClientPacketHandler(
         var craftItemId = packet.CraftItemId;
 
         // Get the NPC we're interacting with
-        if (player.InteractingNpcIndex == null)
-        {
-            logger.LogWarning("Player {Character} attempted to craft without interacting with NPC",
-                player.Character.Name);
-            return;
-        }
-
-        var npcIndex = player.InteractingNpcIndex.Value;
-        if (!player.CurrentMap.Npcs.TryGetValue(npcIndex, out var npc) || npc.Data.Type != NpcType.Shop)
-        {
-            logger.LogWarning("Player {Character} tried to craft at invalid shop NPC",
-                player.Character.Name);
-            return;
-        }
+        var npc = NpcInteractionHelper.ValidateInteraction(player, NpcType.Shop, logger);
+        if (npc is null) return;
 
         // Get shop data
         var shop = shopDataRepository.GetShopByBehaviorId(npc.Data.BehaviorId);

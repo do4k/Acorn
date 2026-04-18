@@ -17,23 +17,8 @@ public class CitizenOpenClientPacketHandler(
 {
     public async Task HandleAsync(PlayerState player, CitizenOpenClientPacket packet)
     {
-        var npcIndex = packet.NpcIndex;
-
-        // Find the NPC by index on the map
-        if (!player.CurrentMap.Npcs.TryGetValue(npcIndex, out var npc))
-        {
-            logger.LogWarning("Player {Character} tried to open inn at invalid NPC index {NpcIndex}",
-                player.Character.Name, npcIndex);
-            return;
-        }
-
-        // Verify it's an Inn NPC
-        if (npc.Data.Type != NpcType.Inn)
-        {
-            logger.LogWarning("Player {Character} tried to open inn at non-inn NPC {NpcId}",
-                player.Character.Name, npc.Id);
-            return;
-        }
+        var npc = NpcInteractionHelper.ValidateAndStartInteraction(player, packet.NpcIndex, NpcType.Inn, logger);
+        if (npc is null) return;
 
         // Get inn data by NPC's behavior ID
         var inn = innDataRepository.GetInnByBehaviorId(npc.Data.BehaviorId);
@@ -47,9 +32,6 @@ public class CitizenOpenClientPacketHandler(
         var currentHome = player.Character.Home ?? innDataRepository.DefaultHomeName;
         var currentInn = innDataRepository.GetInnByName(currentHome);
         var currentHomeId = currentInn?.BehaviorId ?? 0;
-
-        // Store the NPC index for subsequent operations
-        player.InteractingNpcIndex = npcIndex;
 
         logger.LogInformation("Player {Character} opening inn {InnName}",
             player.Character.Name, inn.Name);

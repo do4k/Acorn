@@ -27,21 +27,8 @@ public class StatSkillJunkClientPacketHandler(
             return;
         }
 
-        if (player.InteractingNpcIndex is null)
-        {
-            return;
-        }
-
-        var npcIndex = player.InteractingNpcIndex.Value;
-        if (!player.CurrentMap.Npcs.TryGetValue(npcIndex, out var npc))
-        {
-            return;
-        }
-
-        if (npc.Data.Type != NpcType.Trainer)
-        {
-            return;
-        }
+        var npc = NpcInteractionHelper.ValidateInteraction(player, NpcType.Trainer, logger);
+        if (npc is null) return;
 
         var character = player.Character;
 
@@ -54,7 +41,7 @@ public class StatSkillJunkClientPacketHandler(
         character.Cha = 0;
 
         // Remove all spells
-        character.Spells = new Domain.Models.Spells(new System.Collections.Concurrent.ConcurrentBag<Domain.Models.Spell>());
+        character.Spells = new Game.Models.Spells(new System.Collections.Concurrent.ConcurrentBag<Game.Models.Spell>());
 
         // Return all stat and skill points
         character.StatPoints = character.Level * StatPointsPerLevel;

@@ -28,21 +28,8 @@ public class StatSkillTakeClientPacketHandler(
             return;
         }
 
-        if (player.InteractingNpcIndex is null)
-        {
-            return;
-        }
-
-        var npcIndex = player.InteractingNpcIndex.Value;
-        if (!player.CurrentMap.Npcs.TryGetValue(npcIndex, out var npc))
-        {
-            return;
-        }
-
-        if (npc.Data.Type != NpcType.Trainer)
-        {
-            return;
-        }
+        var npc = NpcInteractionHelper.ValidateInteraction(player, NpcType.Trainer, logger);
+        if (npc is null) return;
 
         var skillMaster = skillMasterDataRepository.GetByBehaviorId(npc.Data.BehaviorId);
         if (skillMaster == null)
@@ -117,7 +104,7 @@ public class StatSkillTakeClientPacketHandler(
         inventoryService.TryRemoveItem(character, GoldItemId, skill.Price);
 
         // Add spell
-        character.Spells.Items.Add(new Domain.Models.Spell(spellId, 0));
+        character.Spells.Items.Add(new Game.Models.Spell(spellId, 0));
 
         // Save to database
         await characterRepository.UpdateAsync(characterMapper.ToDatabase(character));
