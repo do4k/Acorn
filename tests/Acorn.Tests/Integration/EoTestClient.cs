@@ -72,19 +72,12 @@ public sealed class EoTestClient : IAsyncDisposable
         writer.AddByte((int)packet.Family);
 
         // Sequence handling — must mirror server's HandleSequence logic
-        var isInitInit = packet.Family == PacketFamily.Init && packet.Action == PacketAction.Init;
         var isInitFamily = packet.Family == PacketFamily.Init;
 
-        if (isInitInit)
+        if (isInitFamily)
         {
-            // Init.Init has no sequence bytes; advance sequencer to stay in sync
+            // Init family: advance sequencer but never send a sequence byte
             _sequencer.NextSequence();
-        }
-        else if (isInitFamily)
-        {
-            // Other Init-family packets have a 1-byte char sequence
-            var seq = _sequencer.NextSequence();
-            writer.AddChar(seq);
         }
         else
         {

@@ -31,8 +31,7 @@ internal class AccountRequestClientPacketHandler(
         {
             _logger.LogDebug("Account \"{username}\" does not exist", packet.Username);
 
-            playerState.StartSequence = ConstrainedSequence.GenerateInitStart(playerState.Rnd);
-
+            // Send back the current sequence start (matches reoserv: get_start(), no regeneration)
             await playerState.Send(new AccountReplyServerPacket
             {
                 ReplyCode = (AccountReply)playerState.SessionId,

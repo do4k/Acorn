@@ -297,19 +297,12 @@ public class PlayerState : IDisposable
 
     private int HandleSequence(PacketFamily family, PacketAction action, ref EoReader reader)
     {
-        // Init.Init packets have no sequence at all
-        if (family == PacketFamily.Init && action == PacketAction.Init)
+        // Init family packets: advance sequencer but never read/validate a sequence byte.
+        // Matches reoserv — the Init family never includes a client sequence byte.
+        if (family == PacketFamily.Init)
         {
             PacketSequencer.NextSequence();
             return 0;
-        }
-
-        // Other Init packets do have sequence bytes - always consume them
-        if (family == PacketFamily.Init)
-        {
-            _ = reader.GetChar(); // Consume sequence byte
-            var seq = PacketSequencer.NextSequence();
-            return seq;
         }
 
         if (family == PacketFamily.Connection && action == PacketAction.Ping)
