@@ -9,7 +9,7 @@ using Microsoft.Extensions.Options;
 namespace Acorn.Infrastructure;
 
 /// <summary>
-///     Hosted service that periodically caches map state to Redis.
+///     Hosted service that periodically caches map state.
 /// </summary>
 public class MapCacheHostedService : BackgroundService
 {
@@ -127,7 +127,7 @@ public class MapCacheHostedService : BackgroundService
 
         if (_cacheOptions.LogOperations)
         {
-            _logger.LogDebug("Cached {Count} maps to Redis", cachedCount);
+            _logger.LogDebug("Cached {Count} maps", cachedCount);
         }
     }
 }

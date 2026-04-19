@@ -3,7 +3,7 @@ using Acorn.Shared.Models.Online;
 namespace Acorn.Shared.Caching;
 
 /// <summary>
-/// Redis-based online character cache service.
+/// Online character cache service.
 /// </summary>
 public class CharacterCacheService : ICharacterCacheService
 {

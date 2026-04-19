@@ -14,48 +14,36 @@ public static class OnlinePlayersFeature
         group.MapGet("/", GetOnlinePlayers)
             .WithName("GetOnlinePlayers")
             .WithDescription("Get summary of all online players")
-            .Produces<OnlinePlayersRecord>()
-            .Produces<ServiceUnavailableError>(StatusCodes.Status503ServiceUnavailable);
+            .Produces<OnlinePlayersRecord>();
 
         group.MapGet("/characters", GetAllOnlineCharacters)
             .WithName("GetAllOnlineCharacters")
             .WithDescription("Get detailed info for all online characters")
-            .Produces<IReadOnlyList<OnlineCharacterRecord>>()
-            .Produces<ServiceUnavailableError>(StatusCodes.Status503ServiceUnavailable);
+            .Produces<IReadOnlyList<OnlineCharacterRecord>>();
 
         group.MapGet("/character/{name}", GetCharacterByName)
             .WithName("GetOnlineCharacterByName")
             .WithDescription("Get an online character by name")
             .Produces<OnlineCharacterRecord>()
-            .Produces<NotFoundError>(StatusCodes.Status404NotFound)
-            .Produces<ServiceUnavailableError>(StatusCodes.Status503ServiceUnavailable);
+            .Produces<NotFoundError>(StatusCodes.Status404NotFound);
 
         return group;
     }
 
-    private static async Task<IResult> GetOnlinePlayers(ICharacterCacheService characterCache, ICacheService cache)
+    private static async Task<IResult> GetOnlinePlayers(ICharacterCacheService characterCache)
     {
-        if (cache is InMemoryCacheService)
-            return RedisUnavailable();
-
         var players = await characterCache.GetOnlinePlayersAsync();
         return Results.Ok(players);
     }
 
-    private static async Task<IResult> GetAllOnlineCharacters(ICharacterCacheService characterCache, ICacheService cache)
+    private static async Task<IResult> GetAllOnlineCharacters(ICharacterCacheService characterCache)
     {
-        if (cache is InMemoryCacheService)
-            return RedisUnavailable();
-
         var characters = await characterCache.GetAllOnlineCharactersAsync();
         return Results.Ok(characters);
     }
 
-    private static async Task<IResult> GetCharacterByName(string name, ICharacterCacheService characterCache, ICacheService cache)
+    private static async Task<IResult> GetCharacterByName(string name, ICharacterCacheService characterCache)
     {
-        if (cache is InMemoryCacheService)
-            return RedisUnavailable();
-
         var character = await characterCache.GetCharacterByNameAsync(name);
         if (character == null)
             return Results.NotFound(new NotFoundError
@@ -68,12 +56,4 @@ public static class OnlinePlayersFeature
 
         return Results.Ok(character);
     }
-
-    private static IResult RedisUnavailable() => Results.Json(new ServiceUnavailableError
-    {
-        Error = "Redis is not available",
-        Message = "The API requires Redis to access game server data. In-memory cache cannot be shared between processes.",
-        Service = "Redis"
-    }, statusCode: StatusCodes.Status503ServiceUnavailable);
 }
-

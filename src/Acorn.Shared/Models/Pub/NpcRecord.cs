@@ -1,7 +1,7 @@
 namespace Acorn.Shared.Models.Pub;
 
 /// <summary>
-/// NPC record for caching in Redis.
+/// NPC record for caching.
 /// </summary>
 public record NpcRecord
 {

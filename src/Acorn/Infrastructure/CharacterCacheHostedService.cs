@@ -9,7 +9,7 @@ using Microsoft.Extensions.Options;
 namespace Acorn.Infrastructure;
 
 /// <summary>
-///     Hosted service that periodically caches online character data to Redis.
+///     Hosted service that periodically caches online character data.
 /// </summary>
 public class CharacterCacheHostedService : BackgroundService
 {
@@ -117,7 +117,7 @@ public class CharacterCacheHostedService : BackgroundService
 
         if (_cacheOptions.LogOperations)
         {
-            _logger.LogDebug("Cached {Count} online characters to Redis", cachedCount);
+            _logger.LogDebug("Cached {Count} online characters", cachedCount);
         }
     }
 }

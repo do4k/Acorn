@@ -12,17 +12,13 @@ public static class HealthFeature
         group.MapGet("/", GetHealth)
             .WithName("GetHealth")
             .WithDescription("Health check endpoint showing cache status")
-            .Produces<HealthResponse>()
-            .Produces<HealthResponse>(StatusCodes.Status503ServiceUnavailable);
+            .Produces<HealthResponse>();
 
         return group;
     }
 
     private static async Task<IResult> GetHealth(ICacheService cache)
     {
-        var cacheType = cache.GetType().Name;
-        var isRedis = cacheType == "RedisCacheService";
-
         // Test cache connectivity
         bool cacheHealthy;
         try
@@ -43,12 +39,8 @@ public static class HealthFeature
             Status = cacheHealthy ? "Healthy" : "Degraded",
             Cache = new CacheStatus
             {
-                Type = cacheType,
-                IsRedis = isRedis,
-                Healthy = cacheHealthy,
-                Warning = !isRedis
-                    ? "In-memory cache is active. API cannot access game server data without Redis."
-                    : null
+                Type = cache.GetType().Name,
+                Healthy = cacheHealthy
             },
             Timestamp = DateTime.UtcNow
         };
@@ -69,8 +61,5 @@ public record HealthResponse
 public record CacheStatus
 {
     public required string Type { get; init; }
-    public bool IsRedis { get; init; }
     public bool Healthy { get; init; }
-    public string? Warning { get; init; }
 }
-

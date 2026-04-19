@@ -16,8 +16,7 @@ public static class CharactersFeature
             .WithName("GetCharacter")
             .WithDescription("Get character details by name - checks cache first, then database")
             .Produces<object>()
-            .Produces<NotFoundError>(StatusCodes.Status404NotFound)
-            .Produces<ServiceUnavailableError>(StatusCodes.Status503ServiceUnavailable);
+            .Produces<NotFoundError>(StatusCodes.Status404NotFound);
 
         return group;
     }
@@ -31,10 +30,6 @@ public static class CharactersFeature
         var character = await cache.GetAsync<object>($"character:name:{name.ToLower()}");
         if (character != null)
             return Results.Ok(character);
-
-        // If not in cache, check if Redis is unavailable vs character just offline
-        if (cache is InMemoryCacheService)
-            return RedisUnavailable();
 
         // Fall back to database for offline characters
         try
@@ -72,12 +67,4 @@ public static class CharactersFeature
             });
         }
     }
-
-    private static IResult RedisUnavailable() => Results.Json(new ServiceUnavailableError
-    {
-        Error = "Redis is not available",
-        Message = "The API requires Redis to access game server data. In-memory cache cannot be shared between processes.",
-        Service = "Redis"
-    }, statusCode: StatusCodes.Status503ServiceUnavailable);
 }
-
