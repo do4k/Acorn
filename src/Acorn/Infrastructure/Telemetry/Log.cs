@@ -41,6 +41,9 @@ public static partial class Log
     [LoggerMessage(Level = LogLevel.Warning, Message = "Login failed for {Username}: {Reason}")]
     public static partial void LoginFailed(this ILogger logger, string username, string reason);
 
+    [LoggerMessage(Level = LogLevel.Information, Message = "Password changed for account: {Username}")]
+    public static partial void PasswordChanged(this ILogger logger, string username);
+
     // --- Combat ---
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "NPC {NpcName} (ID {NpcId}) killed by {PlayerName} on map {MapId}")]
