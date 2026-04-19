@@ -1,4 +1,5 @@
 using Acorn.Net;
+using Acorn.Net.Models;
 using Acorn.World;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -15,7 +16,10 @@ public class PlayerPingHostedService(
     WorldState worldState
 ) : BackgroundService
 {
-    private const int PingIntervalSeconds = 3;
+    /// <summary>
+    /// Ping interval in seconds. Reoserv uses 60 ticks × 125ms = 7.5 seconds.
+    /// </summary>
+    private const int PingIntervalSeconds = 8;
 
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
@@ -48,11 +52,17 @@ public class PlayerPingHostedService(
         {
             try
             {
+                // Skip uninitialized connections (matches reoserv ping.rs:12-14)
+                if (player.ClientState == ClientState.Uninitialized)
+                {
+                    continue;
+                }
+
                 // Check if player needs a pong response
                 if (player.NeedPong)
                 {
                     logger.LogWarning("Player {SessionId} did not respond to ping, disconnecting", player.SessionId);
-                    player.Dispose();
+                    player.Disconnect();
                     continue;
                 }
 
