@@ -1,7 +1,7 @@
 namespace Acorn.Shared.Models.Pub;
 
 /// <summary>
-/// Spell record for caching in Redis.
+/// Spell record for caching.
 /// </summary>
 public record SpellRecord
 {

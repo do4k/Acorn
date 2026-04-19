@@ -32,7 +32,7 @@ builder.Services.AddDbContext<AcornDbContext>((sp, options) =>
 // Register repositories for database access
 builder.Services.AddScoped<IDbRepository<Character>, CharacterRepository>();
 
-// Configure Caching (Redis or In-Memory) - same as Acorn core
+// Configure Caching (In-Memory) - same as Acorn core
 builder.Services.AddCaching();
 
 var app = builder.Build();

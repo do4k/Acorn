@@ -3,8 +3,7 @@ using System.Text.RegularExpressions;
 namespace Acorn.Shared.Caching;
 
 /// <summary>
-/// In-memory cache service for when Redis is not available.
-/// Uses simple Dictionary with manual expiration tracking.
+/// In-memory cache service using a simple Dictionary with manual expiration tracking.
 /// </summary>
 public class InMemoryCacheService : ICacheService
 {

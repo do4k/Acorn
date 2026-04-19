@@ -3,7 +3,7 @@ using Acorn.Shared.Models.Maps;
 namespace Acorn.Shared.Caching;
 
 /// <summary>
-/// Redis-based map state cache service.
+/// Map state cache service.
 /// </summary>
 public class MapCacheService : IMapCacheService
 {

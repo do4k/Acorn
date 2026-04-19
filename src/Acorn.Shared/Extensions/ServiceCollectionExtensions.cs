@@ -3,45 +3,30 @@ using Acorn.Shared.Options;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using StackExchange.Redis;
 
 namespace Acorn.Shared.Extensions;
 
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Adds caching services (Redis or In-Memory) based on configuration.
+    /// Adds in-memory caching services.
     /// </summary>
     public static IServiceCollection AddCaching(this IServiceCollection services)
     {
         services.AddSingleton<ICacheService>(sp =>
         {
             var cacheOptions = sp.GetRequiredService<IOptions<CacheOptions>>().Value;
-            var logger = sp.GetRequiredService<ILogger<RedisCacheService>>();
+            var logger = sp.GetRequiredService<ILogger<InMemoryCacheService>>();
 
             if (!cacheOptions.Enabled)
             {
                 logger.LogInformation("Caching is disabled");
-                return new InMemoryCacheService();
             }
-
-            if (cacheOptions.UseRedis)
+            else
             {
-                try
-                {
-                    var redis = ConnectionMultiplexer.Connect(cacheOptions.ConnectionString);
-                    logger.LogInformation("Connected to Redis at {ConnectionString} (LogOperations: {LogOperations})",
-                        cacheOptions.ConnectionString, cacheOptions.LogOperations);
-                    return new RedisCacheService(redis, logger, cacheOptions.LogOperations);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogWarning(ex, "Failed to connect to Redis, falling back to in-memory cache");
-                    return new InMemoryCacheService();
-                }
+                logger.LogInformation("Using in-memory cache");
             }
 
-            logger.LogInformation("Using in-memory cache");
             return new InMemoryCacheService();
         });
 
@@ -57,4 +42,3 @@ public static class ServiceCollectionExtensions
         return services;
     }
 }
-

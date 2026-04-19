@@ -3,7 +3,7 @@ using Acorn.Shared.Models.Pub;
 namespace Acorn.Shared.Caching;
 
 /// <summary>
-/// Redis-based pub file cache service.
+/// Pub file cache service.
 /// </summary>
 public class PubCacheService : IPubCacheService
 {

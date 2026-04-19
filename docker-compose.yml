@@ -27,14 +27,10 @@ services:
       - Database__Engine=${DATABASE_ENGINE}
       - Database__ConnectionString=${DATABASE_CONNECTION_STRING}
       - Cache__Enabled=${CACHE_ENABLED}
-      - Cache__UseRedis=${CACHE_USE_REDIS}
-      - Cache__ConnectionString=${CACHE_CONNECTION_STRING}
       - Server__SLN__Enabled=${SERVER_SLN_ENABLED}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
     depends_on:
       mysql:
-        condition: service_healthy
-      redis:
         condition: service_healthy
       aspire-dashboard:
         condition: service_started
@@ -64,25 +60,7 @@ services:
     networks:
       - acorn-network
 
-  # Redis Cache
-  redis:
-    image: redis:7-alpine
-    container_name: acorn-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis-data:/data
-    command: redis-server --appendonly yes
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-    networks:
-      - acorn-network
-
-  # Acorn API (reads from Redis cache)
+  # Acorn API
   acorn-api:
     build:
       context: .
@@ -95,10 +73,8 @@ services:
       - Database__Engine=${DATABASE_ENGINE}
       - Database__ConnectionString=${DATABASE_CONNECTION_STRING}
       - Cache__Enabled=${CACHE_ENABLED}
-      - Cache__UseRedis=${CACHE_USE_REDIS}
-      - Cache__ConnectionString=${CACHE_CONNECTION_STRING}
     depends_on:
-      redis:
+      mysql:
         condition: service_healthy
     restart: unless-stopped
     networks:
@@ -119,11 +95,8 @@ services:
     environment:
       - Database__Engine=SQLite
       - Database__ConnectionString=Data Source=/app/mnt/Acorn.db;
-      - Cache__ConnectionString=redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
     depends_on:
-      redis:
-        condition: service_healthy
       aspire-dashboard:
         condition: service_started
     restart: unless-stopped
@@ -146,12 +119,9 @@ services:
     environment:
       - Database__Engine=PostgreSQL
       - Database__ConnectionString=Host=postgres;Port=5432;Database=acorn;Username=acorn;Password=acornpassword
-      - Cache__ConnectionString=redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
     depends_on:
       postgres:
-        condition: service_healthy
-      redis:
         condition: service_healthy
       aspire-dashboard:
         condition: service_started
@@ -198,12 +168,9 @@ services:
     environment:
       - Database__Engine=SqlServer
       - Database__ConnectionString=Server=sqlserver;Database=acorn;User Id=sa;Password=AcornPassword123!;TrustServerCertificate=True
-      - Cache__ConnectionString=redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
     depends_on:
       sqlserver:
-        condition: service_healthy
-      redis:
         condition: service_healthy
       aspire-dashboard:
         condition: service_started
@@ -240,7 +207,6 @@ volumes:
   postgres-data:
   mysql-data:
   sqlserver-data:
-  redis-data:
 
 networks:
   acorn-network:

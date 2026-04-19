@@ -12,7 +12,7 @@ namespace Acorn.Extensions;
 public static class CharacterCacheExtensions
 {
     /// <summary>
-    /// Cache a character's current state to Redis.
+    /// Cache a character's current state.
     /// Call this whenever a character's important data changes (position, level, stats, etc.)
     /// </summary>
     public static async Task CacheCharacterStateAsync(

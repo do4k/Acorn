@@ -71,10 +71,8 @@ public class TestServerFixture : IAsyncLifetime
             ["Server:NewCharacter:X"] = "6",
             ["Server:NewCharacter:Y"] = "6",
             ["Server:NewCharacter:Map"] = "1",
-            // Cache — in-memory only, no Redis
+            // Cache — in-memory, disabled for tests
             ["Cache:Enabled"] = "false",
-            ["Cache:UseRedis"] = "false",
-            ["Cache:ConnectionString"] = "",
             ["Cache:DefaultExpirationMinutes"] = "5",
             ["Cache:LogOperations"] = "false",
             // WiseMan / Gemini — disabled

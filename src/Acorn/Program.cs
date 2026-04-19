@@ -125,7 +125,7 @@ var host = Host.CreateDefaultBuilder(args)
             options.UseDatabaseEngine(dbEngine, connectionString);
         });
 
-        // Configure Caching (Redis or In-Memory)
+        // Configure Caching (In-Memory)
         services.AddCaching();
 
         services

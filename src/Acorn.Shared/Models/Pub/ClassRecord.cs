@@ -1,7 +1,7 @@
 namespace Acorn.Shared.Models.Pub;
 
 /// <summary>
-/// Class record for caching in Redis.
+/// Class record for caching.
 /// </summary>
 public record ClassRecord
 {

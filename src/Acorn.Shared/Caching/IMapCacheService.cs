@@ -3,7 +3,7 @@ using Acorn.Shared.Models.Maps;
 namespace Acorn.Shared.Caching;
 
 /// <summary>
-/// Service for caching and retrieving map state data from Redis.
+/// Service for caching and retrieving map state data.
 /// </summary>
 public interface IMapCacheService
 {
