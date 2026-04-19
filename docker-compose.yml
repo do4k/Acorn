@@ -27,7 +27,7 @@ services:
       - Database__Engine=${DATABASE_ENGINE}
       - Database__ConnectionString=${DATABASE_CONNECTION_STRING}
       - Cache__Enabled=${CACHE_ENABLED}
-      - Server__SLN__Enabled=${SERVER_SLN_ENABLED}
+      - Server__Hosting__SLN__Enabled=${SERVER_SLN_ENABLED}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
     depends_on:
       mysql:
