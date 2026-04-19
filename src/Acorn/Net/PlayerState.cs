@@ -13,6 +13,8 @@ using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Data;
 using Moffat.EndlessOnline.SDK.Packet;
 using Moffat.EndlessOnline.SDK.Protocol;
+// Note: PacketSequencer from the SDK uses post-increment (matching eolib-ts for clients).
+// Our custom Sequencer uses pre-increment (matching eolib-rs for servers).
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Character = Acorn.Game.Models.Character;
@@ -37,7 +39,7 @@ public class PlayerState : IDisposable
     private readonly ServerOptions _serverOptions;
     private readonly CancellationTokenSource _tokenSource = new();
     private string? _disconnectReason;
-    private PingSequenceStart _upcomingSequence;
+    private int _upcomingSequenceStart;
 
     public PlayerState(
         IEnumerable<IPacketHandler> handlers,
@@ -53,7 +55,7 @@ public class PlayerState : IDisposable
         _metrics = metrics;
         _serverOptions = serverOptions.Value;
         _cancellationToken = _tokenSource.Token;
-        _upcomingSequence = ConstrainedSequence.GeneratePingStart(Rnd);
+        _upcomingSequenceStart = 0;
         _logger.PlayerConnected(sessionId, communicator.GetConnectionOrigin());
         _metrics.ConnectionsTotal.Add(1);
         _metrics.PlayersOnline.Add(1);
@@ -71,7 +73,7 @@ public class PlayerState : IDisposable
     public bool NeedPong { get; set; } = false;
     public int ClientEncryptionMulti { get; set; } = 0;
     public int ServerEncryptionMulti { get; set; } = 0;
-    public PacketSequencer PacketSequencer { get; set; } = new(ZeroSequence.Instance);
+    public Sequencer Sequencer { get; } = new(0);
     public InitSequenceStart StartSequence { get; set; }
     public ICommunicator Communicator { get; }
     public Account? Account { get; set; }
@@ -127,12 +129,13 @@ public class PlayerState : IDisposable
     }
 
     /// <summary>
-    ///     Updates the upcoming ping sequence. This should be called before sending a CONNECTION_PLAYER ping.
+    ///     Updates the upcoming ping sequence start value.
+    ///     Called before sending a CONNECTION_PLAYER ping.
     ///     The sequencer will be updated when the client responds with CONNECTION_PING.
     /// </summary>
-    public void SetUpcomingPingSequence(PingSequenceStart newSequence)
+    public void SetUpcomingPingSequence(int start)
     {
-        _upcomingSequence = newSequence;
+        _upcomingSequenceStart = start;
     }
 
     public async Task Listen()
@@ -297,20 +300,29 @@ public class PlayerState : IDisposable
 
     private int HandleSequence(PacketFamily family, PacketAction action, ref EoReader reader)
     {
+        // Skip all sequence handling when Uninitialized (matches reoserv handle_packet.rs:31).
+        // The Init_Init handshake arrives before sequencing is set up.
+        if (ClientState == ClientState.Uninitialized)
+        {
+            return 0;
+        }
+
         // Init family packets: advance sequencer but never read/validate a sequence byte.
         // Matches reoserv — the Init family never includes a client sequence byte.
         if (family == PacketFamily.Init)
         {
-            PacketSequencer.NextSequence();
+            Sequencer.NextSequence();
             return 0;
         }
 
+        // On ping response, update the sequencer start before reading the sequence.
+        // Matches reoserv: sequencer.set_start(upcoming_sequence_start)
         if (family == PacketFamily.Connection && action == PacketAction.Ping)
         {
-            PacketSequencer = PacketSequencer.WithSequenceStart(_upcomingSequence);
+            Sequencer.SetStart(_upcomingSequenceStart);
         }
 
-        var serverSequence = PacketSequencer.NextSequence();
+        var serverSequence = Sequencer.NextSequence();
         var clientSequence = reader.GetChar();
 
         if (serverSequence != clientSequence)
@@ -321,13 +333,12 @@ public class PlayerState : IDisposable
                 family, action, SessionId, clientSequence, serverSequence, ClientState);
         }
 
-        // TODO: Re-enable enforcement after diagnosing sequence drift
-        // if (_serverOptions.EnforceSequence && serverSequence != clientSequence)
-        // {
-        //     var message = $"Sending invalid sequence: Got {clientSequence}, expected {serverSequence}";
-        //     CloseWithReason(message);
-        //     throw new InvalidOperationException(message);
-        // }
+        if (_serverOptions.EnforceSequence && serverSequence != clientSequence)
+        {
+            var message = $"Sending invalid sequence: Got {clientSequence}, expected {serverSequence}";
+            CloseWithReason(message);
+            throw new InvalidOperationException(message);
+        }
 
         return serverSequence;
     }

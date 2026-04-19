@@ -1,4 +1,4 @@
-﻿using Acorn.Net.Models;
+using Acorn.Net.Models;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Data;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
@@ -14,8 +14,7 @@ internal class InitInitClientPacketHandler(ILogger<InitInitClientPacketHandler> 
 
     public async Task HandleAsync(PlayerState playerState, InitInitClientPacket packet)
     {
-        playerState.PacketSequencer =
-            playerState.PacketSequencer.WithSequenceStart(playerState.StartSequence);
+        playerState.Sequencer.SetStart(playerState.StartSequence.Value);
         playerState.ClientEncryptionMulti = playerState.Rnd.Next(7) + 6;
         playerState.ServerEncryptionMulti = playerState.Rnd.Next(7) + 6;
 

@@ -59,8 +59,8 @@ public class PlayerPingHostedService(
                 // Generate new ping sequence
                 var upcomingSequence = ConstrainedSequence.GeneratePingStart(player.Rnd);
 
-                // Store the upcoming sequence - it will be used when client responds with CONNECTION_PING
-                player.SetUpcomingPingSequence(upcomingSequence);
+                // Store the upcoming sequence start value — used when client responds with CONNECTION_PING
+                player.SetUpcomingPingSequence(upcomingSequence.Value);
 
                 // Send ping packet
                 player.NeedPong = true;
