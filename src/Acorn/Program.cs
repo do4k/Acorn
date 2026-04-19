@@ -25,6 +25,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using Refit;
 
@@ -101,13 +102,13 @@ var host = Host.CreateDefaultBuilder(args)
             .AddSingleton<UtcNowDelegate>(() => DateTime.UtcNow)
             .AddSingleton<AcornMetrics>();
 
-        // Configure OpenTelemetry metrics export
+        // Configure OpenTelemetry metrics and logging export via OTLP
         services.AddOpenTelemetry()
             .WithMetrics(metrics =>
             {
                 metrics.AddMeter(AcornMetrics.MeterName);
-                metrics.AddOtlpExporter();
-            });
+            })
+            .UseOtlpExporter();
 
         // Configure DbContext based on database engine
         services.AddDbContext<AcornDbContext>((sp, options) =>
