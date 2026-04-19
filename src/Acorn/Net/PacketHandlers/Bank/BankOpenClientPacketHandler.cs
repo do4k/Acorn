@@ -24,7 +24,7 @@ public class BankOpenClientPacketHandler(
         {
             GoldBank = player.Character!.GoldBank,
             SessionId = player.SessionId,
-            LockerUpgrades = player.Character!.BankMax / 5 // BankMax represents locker slots, upgrades are in increments of 5
+            LockerUpgrades = player.Character!.BankMax
         });
     }
 
