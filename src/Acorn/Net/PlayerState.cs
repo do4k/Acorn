@@ -313,12 +313,21 @@ public class PlayerState : IDisposable
         var serverSequence = PacketSequencer.NextSequence();
         var clientSequence = reader.GetChar();
 
-        if (_serverOptions.EnforceSequence && serverSequence != clientSequence)
+        if (serverSequence != clientSequence)
         {
-            var message = $"Sending invalid sequence: Got {clientSequence}, expected {serverSequence}";
-            CloseWithReason(message);
-            throw new InvalidOperationException(message);
+            _logger.LogWarning(
+                "Sequence mismatch on {Family}_{Action} for session {SessionId}: " +
+                "client={ClientSeq}, server={ServerSeq}, state={ClientState}",
+                family, action, SessionId, clientSequence, serverSequence, ClientState);
         }
+
+        // TODO: Re-enable enforcement after diagnosing sequence drift
+        // if (_serverOptions.EnforceSequence && serverSequence != clientSequence)
+        // {
+        //     var message = $"Sending invalid sequence: Got {clientSequence}, expected {serverSequence}";
+        //     CloseWithReason(message);
+        //     throw new InvalidOperationException(message);
+        // }
 
         return serverSequence;
     }
