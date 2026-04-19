@@ -37,7 +37,7 @@ internal class AccountRequestClientPacketHandler(
                 ReplyCode = (AccountReply)playerState.SessionId,
                 ReplyCodeData = new AccountReplyServerPacket.ReplyCodeDataDefault
                 {
-                    SequenceStart = playerState.StartSequence.Seq1
+                    SequenceStart = playerState.StartSequence.Value
                 }
             });
         }

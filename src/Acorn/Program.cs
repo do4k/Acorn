@@ -27,6 +27,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
 using Refit;
 
 var GREEN = Console.IsOutputRedirected ? "" : "\x1b[92m";
@@ -104,6 +105,7 @@ var host = Host.CreateDefaultBuilder(args)
 
         // Configure OpenTelemetry metrics and logging export via OTLP
         services.AddOpenTelemetry()
+            .ConfigureResource(resource => resource.AddService("acorn"))
             .WithMetrics(metrics =>
             {
                 metrics.AddMeter(AcornMetrics.MeterName);
