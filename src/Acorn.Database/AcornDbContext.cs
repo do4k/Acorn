@@ -197,15 +197,14 @@ public class AcornDbContext : DbContext
             entity.HasIndex(e => new { e.CharacterName, e.QuestId }).IsUnique();
         });
 
-        // Seed default account
-        // Note: Salt is stored as a Base64-encoded string. The password hash was generated using Hash.HashPassword("acorn", "acorn", out salt)
-        // with salt bytes: [188, 115, 125, 37, 197, 39, 213, 15, 169, 108, 40, 66, 176, 253, 213, 172]
+        // Seed default account (username: acorn, password: acorn)
+        // Hash generated with Hash.HashPassword("acorn", "acorn", out salt) on .NET 10
         modelBuilder.Entity<Account>().HasData(
             new Account
             {
                 Username = "acorn",
-                Password = "1I+dieTmkT9qbF9YjSt1pkRvgAkAHqcStjRxOzuHwSc=",
-                Salt = "vHN9JcUn1Q+pbChCsP3VrA==",
+                Password = "l2uuwqOA+JT79Sn4krs+c+CE87lqoVHy5MzUglPcvG4=",
+                Salt = "6GupmJ2ZuWb2hoakg9QNLg==",
                 FullName = "acorn",
                 Location = "acorn",
                 Email = "acorn@acorn-eo.dev",
