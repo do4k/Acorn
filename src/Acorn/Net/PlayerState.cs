@@ -53,14 +53,14 @@ public class PlayerState : IDisposable
         _metrics = metrics;
         _serverOptions = serverOptions.Value;
         _cancellationToken = _tokenSource.Token;
-        _upcomingSequence = PingSequenceStart.Generate(Rnd);
+        _upcomingSequence = ConstrainedSequence.GeneratePingStart(Rnd);
         _logger.PlayerConnected(sessionId, communicator.GetConnectionOrigin());
         _metrics.ConnectionsTotal.Add(1);
         _metrics.PlayersOnline.Add(1);
         _onDispose = onDispose;
         _handlers = handlers;
         SessionId = sessionId;
-        StartSequence = InitSequenceStart.Generate(Rnd);
+        StartSequence = ConstrainedSequence.GenerateInitStart(Rnd);
         Communicator = communicator;
         Task.Run(Listen);
     }
@@ -318,11 +318,7 @@ public class PlayerState : IDisposable
         }
 
         var serverSequence = PacketSequencer.NextSequence();
-        var clientSequence = serverSequence switch
-        {
-            >= (int)EoNumericLimits.CHAR_MAX => reader.GetShort(),
-            _ => reader.GetChar()
-        };
+        var clientSequence = reader.GetChar();
 
         if (_serverOptions.EnforceSequence && serverSequence != clientSequence)
         {

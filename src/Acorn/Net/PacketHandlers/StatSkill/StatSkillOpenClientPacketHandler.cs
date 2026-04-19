@@ -43,7 +43,7 @@ public class StatSkillOpenClientPacketHandler(
                 ClassRequirement = s.ClassRequirement,
                 Cost = s.Price,
                 SkillRequirements = [reqs[0], reqs[1], reqs[2], reqs[3]],
-                StatRequirements = new CharacterBaseStats
+                StatRequirements = new SkillStatRequirements
                 {
                     Str = s.StrRequirement,
                     Intl = s.IntRequirement,

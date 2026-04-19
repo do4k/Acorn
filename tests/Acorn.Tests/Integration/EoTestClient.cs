@@ -88,16 +88,9 @@ public sealed class EoTestClient : IAsyncDisposable
         }
         else
         {
-            // Normal packets: char if < CHAR_MAX, short otherwise
+            // Normal packets: always a single char for the sequence
             var seq = _sequencer.NextSequence();
-            if (seq >= (int)EoNumericLimits.CHAR_MAX)
-            {
-                writer.AddShort(seq);
-            }
-            else
-            {
-                writer.AddChar(seq);
-            }
+            writer.AddChar(seq);
         }
 
         packet.Serialize(writer);

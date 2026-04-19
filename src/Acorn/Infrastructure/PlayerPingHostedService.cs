@@ -1,7 +1,7 @@
+using Acorn.Net;
 using Acorn.World;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Moffat.EndlessOnline.SDK.Packet;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.Infrastructure;
@@ -57,7 +57,7 @@ public class PlayerPingHostedService(
                 }
 
                 // Generate new ping sequence
-                var upcomingSequence = PingSequenceStart.Generate(player.Rnd);
+                var upcomingSequence = ConstrainedSequence.GeneratePingStart(player.Rnd);
 
                 // Store the upcoming sequence - it will be used when client responds with CONNECTION_PING
                 player.SetUpcomingPingSequence(upcomingSequence);

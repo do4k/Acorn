@@ -1,7 +1,5 @@
-﻿using Acorn.Database.Repository;
+using Acorn.Database.Repository;
 using Microsoft.Extensions.Logging;
-using Moffat.EndlessOnline.SDK.Data;
-using Moffat.EndlessOnline.SDK.Packet;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
@@ -33,10 +31,7 @@ internal class AccountRequestClientPacketHandler(
         {
             _logger.LogDebug("Account \"{username}\" does not exist", packet.Username);
 
-            if (playerState.StartSequence.Value > EoNumericLimits.CHAR_MAX)
-            {
-                playerState.StartSequence = InitSequenceStart.Generate(playerState.Rnd);
-            }
+            playerState.StartSequence = ConstrainedSequence.GenerateInitStart(playerState.Rnd);
 
             await playerState.Send(new AccountReplyServerPacket
             {
