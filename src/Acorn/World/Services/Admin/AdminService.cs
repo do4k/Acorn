@@ -218,12 +218,12 @@ public class AdminService(
                 MaxTp = c.MaxTp,
                 BaseStats = new CharacterBaseStats
                 {
-                    Str = c.Str,
-                    Intl = c.Int,
-                    Wis = c.Wis,
-                    Agi = c.Agi,
-                    Con = c.Con,
-                    Cha = c.Cha
+                    Str = c.AdjStr,
+                    Intl = c.AdjInt,
+                    Wis = c.AdjWis,
+                    Agi = c.AdjAgi,
+                    Con = c.AdjCon,
+                    Cha = c.AdjCha
                 },
                 SecondaryStats = new CharacterSecondaryStatsInfoLookup
                 {

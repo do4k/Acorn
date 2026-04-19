@@ -95,12 +95,12 @@ public static class CharacterExtensions
     {
         return new CharacterBaseStats
         {
-            Agi = c.Agi,
-            Cha = c.Cha,
-            Con = c.Con,
-            Str = c.Str,
-            Wis = c.Wis,
-            Intl = c.Int
+            Agi = c.AdjAgi,
+            Cha = c.AdjCha,
+            Con = c.AdjCon,
+            Str = c.AdjStr,
+            Wis = c.AdjWis,
+            Intl = c.AdjInt
         };
     }
 
@@ -186,7 +186,7 @@ public static class CharacterExtensions
 
     /// <summary>
     ///     Get character stats for equipment change response.
-    ///     Returns current stat values including equipment bonuses.
+    ///     Returns adjusted stat values (base + class + equipment) matching reoserv behavior.
     /// </summary>
     public static CharacterStatsEquipmentChange GetCharacterStatsEquipmentChange(this Character character)
     {
@@ -196,12 +196,12 @@ public static class CharacterExtensions
             MaxTp = character.MaxTp,
             BaseStats = new CharacterBaseStats
             {
-                Str = character.Str,
-                Intl = character.Int,
-                Wis = character.Wis,
-                Agi = character.Agi,
-                Con = character.Con,
-                Cha = character.Cha
+                Str = character.AdjStr,
+                Intl = character.AdjInt,
+                Wis = character.AdjWis,
+                Agi = character.AdjAgi,
+                Con = character.AdjCon,
+                Cha = character.AdjCha
             },
             SecondaryStats = new CharacterSecondaryStats
             {

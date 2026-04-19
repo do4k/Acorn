@@ -118,12 +118,12 @@ internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequest
                 {
                     Base = new CharacterBaseStatsWelcome
                     {
-                        Agi = playerState.Character.Agi,
-                        Cha = playerState.Character.Cha,
-                        Con = playerState.Character.Con,
-                        Str = playerState.Character.Str,
-                        Wis = playerState.Character.Wis,
-                        Intl = playerState.Character.Int
+                        Agi = playerState.Character.AdjAgi,
+                        Cha = playerState.Character.AdjCha,
+                        Con = playerState.Character.AdjCon,
+                        Str = playerState.Character.AdjStr,
+                        Wis = playerState.Character.AdjWis,
+                        Intl = playerState.Character.AdjInt
                     },
                     Secondary = new CharacterSecondaryStats
                     {

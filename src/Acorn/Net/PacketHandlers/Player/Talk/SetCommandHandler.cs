@@ -1,4 +1,4 @@
-﻿using Acorn.Extensions;
+using Acorn.Extensions;
 using Acorn.Game.Services;
 using Acorn.Net.Services;
 using Acorn.Shared.Caching;
@@ -140,12 +140,12 @@ public class SetCommandHandler : ITalkHandler
                 MaxSp = character.MaxSp,
                 BaseStats = new CharacterBaseStats
                 {
-                    Str = character.Str,
-                    Intl = character.Int,
-                    Wis = character.Wis,
-                    Agi = character.Agi,
-                    Con = character.Con,
-                    Cha = character.Cha
+                    Str = character.AdjStr,
+                    Intl = character.AdjInt,
+                    Wis = character.AdjWis,
+                    Agi = character.AdjAgi,
+                    Con = character.AdjCon,
+                    Cha = character.AdjCha
                 },
                 SecondaryStats = new CharacterSecondaryStats
                 {

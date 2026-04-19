@@ -43,6 +43,15 @@ public class Character
     public int Agi { get; set; }
     public int Con { get; set; }
     public int Cha { get; set; }
+
+    // Adjusted stats (base + class + equipment). Not persisted to DB.
+    // Set by IStatCalculator.RecalculateStats() after any stat or equipment change.
+    public int AdjStr { get; set; }
+    public int AdjInt { get; set; }
+    public int AdjWis { get; set; }
+    public int AdjAgi { get; set; }
+    public int AdjCon { get; set; }
+    public int AdjCha { get; set; }
     public int MinDamage { get; set; }
     public int MaxDamage { get; set; }
     public int MaxWeight { get; set; }

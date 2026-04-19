@@ -68,13 +68,13 @@ public class StatSkillTakeClientPacketHandler(
             return;
         }
 
-        // Check stat requirements
-        if (character.Str < skill.StrRequirement ||
-            character.Int < skill.IntRequirement ||
-            character.Wis < skill.WisRequirement ||
-            character.Agi < skill.AgiRequirement ||
-            character.Con < skill.ConRequirement ||
-            character.Cha < skill.ChaRequirement)
+        // Check stat requirements using adjusted stats (base + class + equipment)
+        if (character.AdjStr < skill.StrRequirement ||
+            character.AdjInt < skill.IntRequirement ||
+            character.AdjWis < skill.WisRequirement ||
+            character.AdjAgi < skill.AgiRequirement ||
+            character.AdjCon < skill.ConRequirement ||
+            character.AdjCha < skill.ChaRequirement)
         {
             return;
         }

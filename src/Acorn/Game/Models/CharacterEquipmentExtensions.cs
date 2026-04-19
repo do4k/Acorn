@@ -57,33 +57,34 @@ public static class CharacterEquipmentExtensions
             return EquipResult.Failed;
         }
 
-        // Check stat requirements if defined
-        if (itemRecord.StrRequirement > 0 && character.Str < itemRecord.StrRequirement)
+        // Check stat requirements using adjusted stats (base + class + equipment)
+        // Matches reoserv equip.rs:26-33 which uses adj_strength, etc.
+        if (itemRecord.StrRequirement > 0 && character.AdjStr < itemRecord.StrRequirement)
         {
             return EquipResult.Failed;
         }
 
-        if (itemRecord.IntRequirement > 0 && character.Int < itemRecord.IntRequirement)
+        if (itemRecord.IntRequirement > 0 && character.AdjInt < itemRecord.IntRequirement)
         {
             return EquipResult.Failed;
         }
 
-        if (itemRecord.WisRequirement > 0 && character.Wis < itemRecord.WisRequirement)
+        if (itemRecord.WisRequirement > 0 && character.AdjWis < itemRecord.WisRequirement)
         {
             return EquipResult.Failed;
         }
 
-        if (itemRecord.AgiRequirement > 0 && character.Agi < itemRecord.AgiRequirement)
+        if (itemRecord.AgiRequirement > 0 && character.AdjAgi < itemRecord.AgiRequirement)
         {
             return EquipResult.Failed;
         }
 
-        if (itemRecord.ConRequirement > 0 && character.Con < itemRecord.ConRequirement)
+        if (itemRecord.ConRequirement > 0 && character.AdjCon < itemRecord.ConRequirement)
         {
             return EquipResult.Failed;
         }
 
-        if (itemRecord.ChaRequirement > 0 && character.Cha < itemRecord.ChaRequirement)
+        if (itemRecord.ChaRequirement > 0 && character.AdjCha < itemRecord.ChaRequirement)
         {
             return EquipResult.Failed;
         }
