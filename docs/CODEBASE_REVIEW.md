@@ -97,6 +97,72 @@ Legend: ✅ implemented · ◑ partial · ❌ missing/broken
 
 ---
 
+## 2A. eoserv Parity (Handlers + Commands)
+
+Compared against the reference implementation
+[eoserv/eoserv](https://github.com/eoserv/eoserv) `master` — specifically its
+`src/handlers/*.cpp` packet-handler families and its `admin.ini` command set.
+
+### 2A.1 Packet-handler families — essentially at parity
+
+eoserv ships **38 client-facing handler families** (a 39th, `Internal.cpp`, is
+eoserv's server-to-server bus and not a client protocol). **Acorn implements all
+38 families.** The differences are *within* families, not missing categories:
+
+| eoserv family | Acorn | Note |
+|---|---|---|
+| Account, Login, Connection, Init, Welcome, Refresh | ✅ | Login/handshake fully covered + tested |
+| Walk, Warp, Face, Sit, Chair, Door | ✅ | |
+| Attack | ◑ | NPC combat only — **no PvP** (eoserv supports PK maps) |
+| Spell | ❌ | eoserv casts attack/heal/group spells; Acorn's are stubs |
+| Item, Paperdoll, Bank, Locker, Chest, Shop, Trade | ✅ | Item *use* effects partial (see §4.1) |
+| Character, StatSkill, Players, Talk, Global, Party, Guild | ✅ | Talk/admin command surface is rich |
+| Bank, Barber, Board, Book, Citizen, Jukebox, Quest | ✅/◑ | Book request is a stub; Citizen sleep-warp TODO |
+| Emote | ❌ | eoserv broadcasts emotes; Acorn's handler throws |
+| Message | ◑ | ping/pong not answered |
+| AdminInteract | ✅ | report/tell |
+
+**Acorn additionally has** systems eoserv folds elsewhere or lacks as discrete
+handlers: dedicated **Marriage/Priest** + tick-driven wedding, **Arena**,
+**Npc/Range** request handlers, and the **WiseMan (Gemini) AI NPC**.
+
+**Takeaway:** category coverage is *not* the gap. The eoserv diff confirms the
+same four intra-family holes my review already flagged — **Spell, PvP Attack,
+Emote, item-use feedback** — which is reassuring corroboration that the roadmap
+is aimed at the right targets.
+
+### 2A.2 Admin/player commands — the real coverage gap
+
+eoserv's `admin.ini` defines ~70 commands across access levels 1–4. Acorn
+implements the high-frequency moderation and debug set, and elegantly collapses
+eoserv's ~25 `setX` commands into one generic `$set <player> <attr> <value>`
+(supports admin, class, gender, level, exp, hp/maxhp, tp/maxtp, sp/maxsp, skin…).
+
+**Covered:** info/player, inventory, kick, jail, free (unjail), ban, mute/unmute,
+freeze/unfreeze, warp, hide, evacuate, quake, set (≈ the whole `setX` family),
+spawnitem (sitem/ditem), spawnnpc (snpc/dnpc), addspell (learn), global,
+location, usage.
+
+**Missing vs eoserv (candidate backlog):**
+
+| Command(s) | Purpose | Priority |
+|---|---|---|
+| `warptome` / `warpmeto` | Pull a player to you / go to a player | High (common GM tool) |
+| `uptime` | Server uptime readout | Low |
+| `remap` | Hot-reload a single map | Med |
+| `shutdown`, `rehash`, `repub`, `request` | Server control / config & pub reload | Med |
+| `strip` / `dress` / `undress` / `dress2` | Force-equip/unequip a player | Low |
+| `qstate` | Inspect/force a player's quest state | Med (debug) |
+| `item`/`npc`/`spell`/`class`/`paperdoll`/`book` | In-game data lookups | Low |
+| Privilege flags: `nowall`, `seehide`, `killnpc`, `cmdprotect`, `unlimitedweight` | GM toggles | Low |
+| Silent variants: `skick`, `sjail`, `sban`, `smute` | Act without announcing | Low |
+
+None of these are gameplay-critical, but `warptome`/`warpmeto` and the
+server-control trio (`rehash`/`repub`/`shutdown`) are the ones operators will
+miss first.
+
+---
+
 ## 3. Strengths
 
 1. **Clean, testable design.** Interfaces + DI everywhere; logic lives in
@@ -215,6 +281,7 @@ M = 1–3 days, L = a week+.
 | 3.3 | Quest engine breadth: validate against a meaningful set of real EO quest files | L |
 | 3.4 | Map effects parity (spikes/timed spikes, lava, healing tiles) audit | M |
 | 3.5 | Book/`MessagePing` and remaining minor handler TODOs | S |
+| 3.6 | Admin command parity vs eoserv (§2A.2): add `warptome`/`warpmeto` first, then `rehash`/`repub`/`shutdown`, then the lower-priority lookups/flags | M |
 
 ### Phase 4 — Scale & operability
 
