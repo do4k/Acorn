@@ -1,3 +1,4 @@
+using Acorn.World.Services.Spell;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
@@ -7,6 +8,7 @@ namespace Acorn.Net.PacketHandlers.Spell;
 
 [RequiresCharacter]
 public class SpellTargetOtherClientPacketHandler(
+    ISpellCastService spellCastService,
     ILogger<SpellTargetOtherClientPacketHandler> logger)
     : IPacketHandler<SpellTargetOtherClientPacket>
 {
@@ -21,7 +23,7 @@ public class SpellTargetOtherClientPacketHandler(
         }
 
         // Validate timestamp
-        if (!CheckTimestamp(player, packet.SpellId, packet.Timestamp))
+        if (!spellCastService.ValidateCastTime(player, packet.SpellId, packet.Timestamp))
         {
             logger.LogWarning("Player {Character} spell timestamp validation failed for spell {SpellId}",
                 player.Character!.Name, packet.SpellId);
@@ -35,16 +37,19 @@ public class SpellTargetOtherClientPacketHandler(
         player.Timestamp = packet.Timestamp;
         player.SpellId = null;
 
-        // TODO: Implement map.CastSpell(player, spellId, SpellTarget.OtherPlayer/Npc(victimId))
-        // Handle packet.TargetType (Player or Npc)
-        await Task.CompletedTask;
+        var target = packet.TargetType switch
+        {
+            SpellTargetType.Player => SpellCastTarget.Player(packet.VictimId),
+            SpellTargetType.Npc => SpellCastTarget.Npc(packet.VictimId),
+            _ => (SpellCastTarget?)null
+        };
+
+        if (target is null)
+        {
+            return;
+        }
+
+        await spellCastService.CastAsync(player, packet.SpellId, target.Value);
     }
 
-
-    private bool CheckTimestamp(PlayerState player, int spellId, int timestamp)
-    {
-        // TODO: Load spell data from database and validate cast time
-        // For now, just do basic validation that timestamp has progressed
-        return timestamp >= player.Timestamp;
-    }
 }

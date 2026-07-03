@@ -1,3 +1,4 @@
+using Acorn.World.Services.Spell;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
@@ -7,6 +8,7 @@ namespace Acorn.Net.PacketHandlers.Spell;
 
 [RequiresCharacter]
 public class SpellTargetSelfClientPacketHandler(
+    ISpellCastService spellCastService,
     ILogger<SpellTargetSelfClientPacketHandler> logger)
     : IPacketHandler<SpellTargetSelfClientPacket>
 {
@@ -21,7 +23,7 @@ public class SpellTargetSelfClientPacketHandler(
         }
 
         // Validate timestamp
-        if (!CheckTimestamp(player, packet.SpellId, packet.Timestamp))
+        if (!spellCastService.ValidateCastTime(player, packet.SpellId, packet.Timestamp))
         {
             logger.LogWarning("Player {Character} spell timestamp validation failed for spell {SpellId}",
                 player.Character!.Name, packet.SpellId);
@@ -35,15 +37,7 @@ public class SpellTargetSelfClientPacketHandler(
         player.Timestamp = packet.Timestamp;
         player.SpellId = null;
 
-        // TODO: Implement map.CastSpell(player, spellId, SpellTarget.Player)
-        await Task.CompletedTask;
+        await spellCastService.CastAsync(player, packet.SpellId, SpellCastTarget.Self());
     }
 
-
-    private bool CheckTimestamp(PlayerState player, int spellId, int timestamp)
-    {
-        // TODO: Load spell data from database and validate cast time
-        // For now, just do basic validation that timestamp has progressed
-        return timestamp >= player.Timestamp;
-    }
 }

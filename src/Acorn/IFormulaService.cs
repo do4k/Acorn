@@ -25,8 +25,10 @@ public interface IFormulaService
 
     /// <summary>
     ///     Calculate damage dealt to an NPC.
+    ///     Optional bonus min/max damage is added before rolling (e.g. from a spell's own damage range).
     /// </summary>
-    int CalculateDamageToNpc(Character character, EnfRecord npcData, bool attackingBackOrSide = false);
+    int CalculateDamageToNpc(Character character, EnfRecord npcData, bool attackingBackOrSide = false,
+        int bonusMinDamage = 0, int bonusMaxDamage = 0);
 
     /// <summary>
     ///     Calculate damage dealt by an NPC to a player.
@@ -35,8 +37,10 @@ public interface IFormulaService
 
     /// <summary>
     ///     Calculate damage dealt to a player.
+    ///     Optional bonus min/max damage is added before rolling (e.g. from a spell's own damage range).
     /// </summary>
-    int CalculateDamageToPlayer(Character attacker, Character target, bool attackingBackOrSide = false);
+    int CalculateDamageToPlayer(Character attacker, Character target, bool attackingBackOrSide = false,
+        int bonusMinDamage = 0, int bonusMaxDamage = 0);
 
     /// <summary>
     ///     Calculate max HP.

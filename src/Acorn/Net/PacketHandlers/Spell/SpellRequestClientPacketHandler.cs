@@ -1,3 +1,4 @@
+using Acorn.World.Services.Spell;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
@@ -7,6 +8,7 @@ namespace Acorn.Net.PacketHandlers.Spell;
 
 [RequiresCharacter]
 public class SpellRequestClientPacketHandler(
+    ISpellCastService spellCastService,
     ILogger<SpellRequestClientPacketHandler> logger)
     : IPacketHandler<SpellRequestClientPacket>
 {
@@ -26,8 +28,7 @@ public class SpellRequestClientPacketHandler(
         player.Timestamp = packet.Timestamp;
         player.SpellId = packet.SpellId;
 
-        // TODO: Implement map.StartSpellChant(player.Id, spellId)
-        await Task.CompletedTask;
+        await spellCastService.StartChantAsync(player, packet.SpellId);
     }
 
 }

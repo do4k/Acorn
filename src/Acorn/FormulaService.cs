@@ -75,8 +75,10 @@ public class FormulaService : IFormulaService
 
     /// <summary>
     ///     Calculate damage dealt to an NPC.
+    ///     Optional bonus min/max damage is added before rolling (e.g. from a spell's own damage range).
     /// </summary>
-    public int CalculateDamageToNpc(Character character, EnfRecord npcData, bool attackingBackOrSide = false)
+    public int CalculateDamageToNpc(Character character, EnfRecord npcData, bool attackingBackOrSide = false,
+        int bonusMinDamage = 0, int bonusMaxDamage = 0)
     {
         // Check if attack hits
         if (!DoesAttackHit(character.Accuracy, npcData.Evade))
@@ -85,7 +87,7 @@ public class FormulaService : IFormulaService
         }
 
         // Roll damage between min and max
-        var rawDamage = _random.Next(character.MinDamage, character.MaxDamage + 1);
+        var rawDamage = _random.Next(character.MinDamage + bonusMinDamage, character.MaxDamage + bonusMaxDamage + 1);
 
         // Critical hit if NPC is at full HP or attacking from back/side
         var critical = npcData.Hp == npcData.Hp || attackingBackOrSide;
@@ -115,8 +117,10 @@ public class FormulaService : IFormulaService
 
     /// <summary>
     ///     Calculate damage dealt to a player.
+    ///     Optional bonus min/max damage is added before rolling (e.g. from a spell's own damage range).
     /// </summary>
-    public int CalculateDamageToPlayer(Character attacker, Character target, bool attackingBackOrSide = false)
+    public int CalculateDamageToPlayer(Character attacker, Character target, bool attackingBackOrSide = false,
+        int bonusMinDamage = 0, int bonusMaxDamage = 0)
     {
         // Check if attack hits
         if (!DoesAttackHit(attacker.Accuracy, target.Evade))
@@ -125,7 +129,7 @@ public class FormulaService : IFormulaService
         }
 
         // Roll damage between min and max
-        var rawDamage = _random.Next(attacker.MinDamage, attacker.MaxDamage + 1);
+        var rawDamage = _random.Next(attacker.MinDamage + bonusMinDamage, attacker.MaxDamage + bonusMaxDamage + 1);
 
         // Critical hit if target is at full HP or attacking from back/side
         var critical = target.Hp == target.MaxHp || attackingBackOrSide;
