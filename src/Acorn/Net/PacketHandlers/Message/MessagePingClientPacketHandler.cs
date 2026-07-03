@@ -2,6 +2,7 @@ using Acorn.World;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
+using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Message;
@@ -15,8 +16,7 @@ public class MessagePingClientPacketHandler(ILogger<MessagePingClientPacketHandl
         logger.LogDebug("Player {Character} sent ping",
             player.Character!.Name);
 
-        // TODO: Respond with pong packet
-        await Task.CompletedTask;
+        await player.Send(new MessagePongServerPacket());
     }
 
 }
