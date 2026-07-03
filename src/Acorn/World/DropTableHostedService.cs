@@ -31,6 +31,9 @@ internal class DropTableHostedService : IHostedService
         var dropFilePath = Path.Combine(AppContext.BaseDirectory, "Data", "drops.txt");
         _dropFileLoader.LoadDrops(_lootService, dropFilePath);
 
+        var globalDropFilePath = Path.Combine(AppContext.BaseDirectory, "Data", "global_drops.txt");
+        _dropFileLoader.LoadGlobalDrops(_lootService, globalDropFilePath);
+
         return Task.CompletedTask;
     }
 

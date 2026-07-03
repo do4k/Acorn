@@ -126,7 +126,8 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
                     await playerState.CacheCharacterStateAsync(_characterCache, _paperdollService);
                 }
 
-                // Roll for item drop
+                // Roll for a drop (item or gold — gold is item ID 1, rolled from the NPC's
+                // specific loot table plus the global drop table)
                 var dropItem = _lootService.RollDrop(target.Id);
                 var dropId = 0;
                 var dropAmount = 0;
@@ -207,8 +208,6 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
                         NpcKilledData = npcKilledData
                     }, playerState);
                 }
-
-                // TODO: Handle NPC drops (items, gold)
             }
         }
 

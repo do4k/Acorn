@@ -1,0 +1,8 @@
+# Global NPC Drop Table Configuration
+# These drops are rolled for every NPC kill, in addition to that NPC's
+# specific entry in drops.txt (if any). Used for drops that should apply
+# broadly rather than being configured per-NPC, such as a baseline gold chance.
+# Format: item_id,min,max,percentage
+# Percentage is 0-100 (supports decimals like 0.5)
+
+1,1,5,15

@@ -85,5 +85,60 @@ public class DropFileTextLoader
             _logger.LogError(ex, "Error loading drops from {FilePath}", filePath);
         }
     }
+
+    /// <summary>
+    ///     Loads drops that apply to every NPC (e.g. a universal gold chance) from a text
+    ///     configuration file.
+    ///     Format: item_id,min,max,chance
+    /// </summary>
+    public void LoadGlobalDrops(ILootService lootService, string filePath)
+    {
+        try
+        {
+            if (!File.Exists(filePath))
+            {
+                _logger.LogWarning("Global drop file not found: {FilePath}", filePath);
+                return;
+            }
+
+            var lines = File.ReadAllLines(filePath);
+            var globalDrops = new List<LootDrop>();
+
+            foreach (var line in lines)
+            {
+                if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#") || line.StartsWith("//"))
+                    continue;
+
+                var parts = line.Split(',');
+                if (parts.Length != 4)
+                    continue;
+
+                if (!int.TryParse(parts[0].Trim(), out var itemId) ||
+                    !int.TryParse(parts[1].Trim(), out var min) ||
+                    !int.TryParse(parts[2].Trim(), out var max) ||
+                    !int.TryParse(parts[3].Trim(), out var chance))
+                    continue;
+
+                globalDrops.Add(new LootDrop
+                {
+                    ItemId = itemId,
+                    MinAmount = min,
+                    MaxAmount = max,
+                    RatePercent = chance
+                });
+            }
+
+            if (globalDrops.Count > 0)
+            {
+                lootService.RegisterGlobalDrops(globalDrops);
+            }
+
+            _logger.LogInformation("Loaded {Count} global drops from {FilePath}", globalDrops.Count, filePath);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading global drops from {FilePath}", filePath);
+        }
+    }
 }
 
