@@ -18,8 +18,16 @@ public interface ILootService
     void RegisterNpcLootTable(NpcLootTable lootTable);
 
     /// <summary>
+    ///     Register drops that apply to every NPC kill, in addition to that NPC's
+    ///     specific loot table (e.g. a universal gold chance). Matches reoserv's
+    ///     GlobalDrops concept.
+    /// </summary>
+    void RegisterGlobalDrops(IEnumerable<LootDrop> drops);
+
+    /// <summary>
     ///     Calculate a drop for an NPC kill (returns null if no drop occurs)
-    ///     Uses probability-based random selection with weighted rates
+    ///     Uses probability-based random selection with weighted rates.
+    ///     Considers both the NPC's specific loot table and the global drop table.
     /// </summary>
     LootDrop? RollDrop(int npcId);
 
@@ -35,6 +43,7 @@ public interface ILootService
 public class LootService : ILootService
 {
     private readonly Dictionary<int, NpcLootTable> _npcLootTables = new();
+    private readonly List<LootDrop> _globalDrops = new();
     private readonly Random _random = new();
 
     public NpcLootTable? GetNpcLootTable(int npcId)
@@ -47,16 +56,22 @@ public class LootService : ILootService
         _npcLootTables[lootTable.NpcId] = lootTable;
     }
 
+    public void RegisterGlobalDrops(IEnumerable<LootDrop> drops)
+    {
+        _globalDrops.AddRange(drops);
+    }
+
     public LootDrop? RollDrop(int npcId)
     {
-        var lootTable = GetNpcLootTable(npcId);
-        if (lootTable == null || lootTable.Drops.Count == 0)
+        var npcDrops = GetNpcLootTable(npcId)?.Drops ?? [];
+        var combinedDrops = npcDrops.Concat(_globalDrops).ToList();
+        if (combinedDrops.Count == 0)
         {
             return null;
         }
 
         // Sort drops by rate for proper probability weighting
-        var sortedDrops = lootTable.Drops
+        var sortedDrops = combinedDrops
             .OrderBy(d => d.RatePercent)
             .ToList();
 
