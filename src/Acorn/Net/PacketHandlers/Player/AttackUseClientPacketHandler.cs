@@ -4,6 +4,9 @@ using Acorn.Game.Services;
 using Acorn.Options;
 using Acorn.Shared.Caching;
 using Acorn.World.Map;
+using Acorn.World.Services.Arena;
+using Acorn.World.Services.Party;
+using Acorn.World.Services.Player;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Protocol;
@@ -28,12 +31,16 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
     private readonly UtcNowDelegate _now;
     private readonly ICharacterCacheService _characterCache;
     private readonly IPaperdollService _paperdollService;
+    private readonly IArenaService _arenaService;
+    private readonly IPartyService _partyService;
+    private readonly IPlayerController _playerController;
     private DateTime _timeSinceLastAttack;
 
     public AttackUseClientPacketHandler(UtcNowDelegate now, ILogger<AttackUseClientPacketHandler> logger,
         IFormulaService formulaService, IDataFileRepository dataFiles, ILootService lootService,
         IOptions<ServerOptions> serverOptions, ICharacterCacheService characterCache,
-        IPaperdollService paperdollService, AcornMetrics metrics)
+        IPaperdollService paperdollService, IArenaService arenaService, IPartyService partyService,
+        IPlayerController playerController, AcornMetrics metrics)
     {
         _now = now;
         _logger = logger;
@@ -43,6 +50,9 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
         _dropProtectionTicks = serverOptions.Value.DropProtectionTicks;
         _characterCache = characterCache;
         _paperdollService = paperdollService;
+        _arenaService = arenaService;
+        _partyService = partyService;
+        _playerController = playerController;
         _metrics = metrics;
     }
 
@@ -63,6 +73,23 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
 
             if (target is null)
             {
+                var targetPlayer = playerState.CurrentMap.Players.Values.FirstOrDefault(p =>
+                    p.SessionId != playerState.SessionId &&
+                    p.Character != null && !p.Character.Hidden &&
+                    p.Character.X == nextCoords.X && p.Character.Y == nextCoords.Y);
+
+                if (targetPlayer is not null)
+                {
+                    await HandlePlayerAttack(playerState, targetPlayer);
+                }
+
+                await playerState.CurrentMap!.BroadcastPacket(new AttackPlayerServerPacket
+                {
+                    Direction = playerState.Character?.Direction ?? Direction.Down,
+                    PlayerId = playerState.SessionId
+                }, playerState);
+
+                _timeSinceLastAttack = DateTime.UtcNow;
                 return;
             }
 
@@ -219,6 +246,72 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
         }, playerState);
 
         _timeSinceLastAttack = DateTime.UtcNow;
+    }
+
+    private async Task HandlePlayerAttack(PlayerState attacker, PlayerState target)
+    {
+        if (attacker.Character is null || target.Character is null || attacker.CurrentMap is null)
+        {
+            return;
+        }
+
+        var map = attacker.CurrentMap;
+
+        var isArenaMatch = map.IsArenaMap &&
+                            map.ArenaPlayers.Any(p => p.SessionId == attacker.SessionId && !p.IsDead) &&
+                            map.ArenaPlayers.Any(p => p.SessionId == target.SessionId && !p.IsDead);
+
+        if (isArenaMatch)
+        {
+            await _arenaService.HandleArenaAttackAsync(attacker, target);
+            return;
+        }
+
+        if (map.Data.Type != Moffat.EndlessOnline.SDK.Protocol.Map.MapType.Pk)
+        {
+            return;
+        }
+
+        var party = _partyService.GetPlayerParty(attacker.SessionId);
+        if (party is not null && party.Members.Contains(target.SessionId))
+        {
+            return;
+        }
+
+        var attackingBackOrSide =
+            Math.Abs((int)target.Character.Direction - (int)attacker.Character.Direction) != 2;
+
+        var damage = _formulaService.CalculateDamageToPlayer(attacker.Character, target.Character, attackingBackOrSide);
+        target.Character.Hp = Math.Max(0, target.Character.Hp - damage);
+
+        var dead = target.Character.Hp == 0;
+        var hpPercentage = (int)Math.Round(target.Character.Hp * 100.0 / target.Character.MaxHp);
+
+        await map.BroadcastPacket(new AvatarReplyServerPacket
+        {
+            PlayerId = attacker.SessionId,
+            VictimId = target.SessionId,
+            Damage = damage,
+            Direction = attacker.Character.Direction,
+            HpPercentage = hpPercentage,
+            Dead = dead
+        });
+
+        _logger.LogInformation("Player {Attacker} dealt {Damage} PvP damage to {Target} on map {MapId}",
+            attacker.Character.Name, damage, target.Character.Name, map.Id);
+
+        if (dead)
+        {
+            await _playerController.DieAsync(target);
+        }
+
+        await target.Send(new RecoverPlayerServerPacket
+        {
+            Hp = target.Character.Hp,
+            Tp = target.Character.Tp
+        });
+
+        await _partyService.BroadcastHpUpdate(target);
     }
 
 }
