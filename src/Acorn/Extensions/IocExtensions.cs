@@ -15,6 +15,7 @@ using Acorn.World.Services.Quest;
 using Acorn.World.Services.Npc;
 using Acorn.World.Services.Party;
 using Acorn.World.Services.Player;
+using Acorn.World.Services.Spell;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -88,6 +89,7 @@ internal static class IocRegistrations
             .AddSingleton<IAdminService, AdminService>()
             .AddSingleton<IMarriageService, MarriageService>()
             .AddSingleton<IMapItemService, MapItemService>()
+            .AddSingleton<ISpellCastService, SpellCastService>()
             // Lazy<T> registration to break circular dependencies
             .AddTransient(typeof(Lazy<>), typeof(LazyServiceProvider<>));
     }
