@@ -1,9 +1,16 @@
+using Acorn.Data;
 using Acorn.Database.Repository;
+using Acorn.Extensions;
+using Acorn.Game.Mappers;
 using Acorn.Game.Services;
+using Acorn.Shared.Caching;
 using Acorn.World;
+using Acorn.World.Services.Player;
 using Microsoft.Extensions.Logging;
+using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
+using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
 using Acorn.Net.PacketHandlers;
 
@@ -13,7 +20,15 @@ namespace Acorn.Net.PacketHandlers.Item;
 public class ItemUseClientPacketHandler(
     ILogger<ItemUseClientPacketHandler> logger,
     IWorldQueries worldQueries,
-    IInventoryService inventoryService)
+    IInventoryService inventoryService,
+    IWeightCalculator weightCalculator,
+    IFormulaService formulaService,
+    IPlayerController playerController,
+    IInnDataRepository innDataRepository,
+    ICharacterCacheService characterCache,
+    IPaperdollService paperdollService,
+    ICharacterMapper characterMapper,
+    IDbRepository<Database.Models.Character> characterRepository)
     : IPacketHandler<ItemUseClientPacket>
 {
     public async Task HandleAsync(PlayerState player, ItemUseClientPacket packet)
@@ -38,23 +53,24 @@ public class ItemUseClientPacketHandler(
             player.Character!.Name, packet.ItemId, itemData.Name, itemData.Type);
 
         var consumed = true;
+        ItemReplyServerPacket.IItemTypeData? itemTypeData = null;
 
         switch (itemData.Type)
         {
             case ItemType.Heal:
-                await HandleHealItem(player, itemData);
+                itemTypeData = await HandleHealItem(player, itemData);
                 break;
 
             case ItemType.Teleport:
-                await HandleTeleportItem(player, itemData);
+                consumed = await HandleTeleportItem(player, itemData);
                 break;
 
             case ItemType.HairDye:
-                await HandleHairDye(player, itemData);
+                itemTypeData = await HandleHairDye(player, itemData);
                 break;
 
             case ItemType.ExpReward:
-                await HandleExpReward(player, itemData);
+                itemTypeData = await HandleExpReward(player, itemData);
                 break;
 
             default:
@@ -67,18 +83,36 @@ public class ItemUseClientPacketHandler(
         if (consumed)
         {
             inventoryService.TryRemoveItem(player.Character!, packet.ItemId);
-            // TODO: Send updated inventory packet
-        }
 
-        await Task.CompletedTask;
+            var remainingAmount = inventoryService.GetItemAmount(player.Character!, packet.ItemId);
+            var currentWeight = weightCalculator.GetCurrentWeight(player.Character!, worldQueries.DataRepository.Eif);
+
+            await player.Send(new ItemReplyServerPacket
+            {
+                ItemType = itemData.Type,
+                UsedItem = new Moffat.EndlessOnline.SDK.Protocol.Net.Item
+                {
+                    Id = packet.ItemId,
+                    Amount = remainingAmount
+                },
+                Weight = new Weight
+                {
+                    Current = currentWeight,
+                    Max = player.Character!.MaxWeight
+                },
+                ItemTypeData = itemTypeData
+            });
+
+            await characterRepository.UpdateAsync(characterMapper.ToDatabase(player.Character!));
+        }
     }
 
 
-    private async Task HandleHealItem(PlayerState player, EifRecord item)
+    private async Task<ItemReplyServerPacket.IItemTypeData?> HandleHealItem(PlayerState player, EifRecord item)
     {
         if (player.Character == null)
         {
-            return;
+            return null;
         }
 
         var hpBefore = player.Character!.Hp;
@@ -102,32 +136,53 @@ public class ItemUseClientPacketHandler(
         logger.LogInformation("Player {Character} healed {HpGain} HP and {TpGain} TP",
             player.Character!.Name, hpGain, tpGain);
 
-        // TODO: Broadcast RecoverAgree packet to nearby players
-        // if (hpGain > 0 || tpGain > 0) { await player.CurrentMap!.BroadcastPacket(...); }
-    }
-
-    private async Task HandleTeleportItem(PlayerState player, EifRecord item)
-    {
-        if (player.Character == null)
+        if (hpGain > 0 && player.CurrentMap != null)
         {
-            return;
+            var hpPercentage = (int)Math.Round(player.Character!.Hp * 100.0 / player.Character!.MaxHp);
+
+            await player.CurrentMap.BroadcastPacket(new RecoverAgreeServerPacket
+            {
+                PlayerId = player.SessionId,
+                HealHp = hpGain,
+                HpPercentage = hpPercentage
+            }, player);
         }
 
-        // Check if map allows scrolling
-        // TODO: Add CanScroll property to map data
-        // if (!player.CurrentMap!.Data.CanScroll) return;
+        return new ItemReplyServerPacket.ItemTypeDataHeal
+        {
+            HpGain = hpGain,
+            Hp = player.Character!.Hp,
+            Tp = player.Character!.Tp
+        };
+    }
+
+    private async Task<bool> HandleTeleportItem(PlayerState player, EifRecord item)
+    {
+        if (player.Character == null || player.CurrentMap == null)
+        {
+            return false;
+        }
 
         int targetMapId;
         int targetX, targetY;
 
         if (item.Spec1 == 0)
         {
-            // Teleport to home (inn)
-            // TODO: Get home coordinates from INN database
-            targetMapId = 1; // Default home map
-            targetX = 12;
-            targetY = 6;
-            logger.LogInformation("Player {Character} using scroll to teleport home", player.Character!.Name);
+            // Teleport home
+            var homeName = player.Character!.Home ?? innDataRepository.DefaultHomeName;
+            var inn = innDataRepository.GetInnByName(homeName);
+            if (inn == null)
+            {
+                logger.LogWarning("Player {Character} tried to scroll home but home inn '{Home}' was not found",
+                    player.Character!.Name, homeName);
+                return false;
+            }
+
+            targetMapId = inn.SpawnMap;
+            targetX = inn.SpawnX;
+            targetY = inn.SpawnY;
+            logger.LogInformation("Player {Character} using scroll to teleport home ({Home})",
+                player.Character!.Name, homeName);
         }
         else
         {
@@ -139,17 +194,24 @@ public class ItemUseClientPacketHandler(
                 player.Character!.Name, targetMapId, targetX, targetY);
         }
 
-        // TODO: Implement warp with scroll effect
-        // await worldQueries.WarpPlayer(player, targetMapId, targetX, targetY, WarpEffect.Scroll);
+        var targetMap = worldQueries.FindMap(targetMapId);
+        if (targetMap == null)
+        {
+            logger.LogError("Player {Character} tried to scroll to unknown map {MapId}",
+                player.Character!.Name, targetMapId);
+            return false;
+        }
 
-        await Task.CompletedTask;
+        await playerController.WarpAsync(player, targetMap, targetX, targetY, WarpEffect.Scroll);
+
+        return true;
     }
 
-    private async Task HandleHairDye(PlayerState player, EifRecord item)
+    private async Task<ItemReplyServerPacket.IItemTypeData?> HandleHairDye(PlayerState player, EifRecord item)
     {
         if (player.Character == null)
         {
-            return;
+            return null;
         }
 
         player.Character!.HairColor = item.Spec1;
@@ -157,26 +219,61 @@ public class ItemUseClientPacketHandler(
         logger.LogInformation("Player {Character} changed hair color to {Color}",
             player.Character!.Name, item.Spec1);
 
-        // TODO: Broadcast AvatarAgree packet to nearby players
-        // await player.CurrentMap!.BroadcastPacket(new AvatarAgreeServerPacket { ... });
+        if (player.CurrentMap != null)
+        {
+            var avatarChange = new AvatarChange
+            {
+                PlayerId = player.SessionId,
+                ChangeType = AvatarChangeType.HairColor,
+                ChangeTypeData = new AvatarChange.ChangeTypeDataHairColor
+                {
+                    HairColor = item.Spec1
+                }
+            };
+
+            await player.CurrentMap.BroadcastPacket(new AvatarAgreeServerPacket { Change = avatarChange }, player);
+        }
+
+        return new ItemReplyServerPacket.ItemTypeDataHairDye
+        {
+            HairColor = item.Spec1
+        };
     }
 
-    private async Task HandleExpReward(PlayerState player, EifRecord item)
+    private async Task<ItemReplyServerPacket.IItemTypeData?> HandleExpReward(PlayerState player, EifRecord item)
     {
         if (player.Character == null)
         {
-            return;
+            return null;
         }
 
         var expGain = item.Spec1;
-        player.Character!.Exp += expGain;
+        player.Character!.GainExperience(expGain);
 
         logger.LogInformation("Player {Character} gained {Exp} experience from item",
             player.Character!.Name, expGain);
 
-        // TODO: Check for level up
-        // TODO: Send experience update packet
+        var levelsGained = 0;
+        while (formulaService.CanLevelUp(player.Character!))
+        {
+            formulaService.LevelUp(player.Character!, worldQueries.DataRepository.Ecf);
+            levelsGained++;
+        }
 
-        await Task.CompletedTask;
+        if (levelsGained > 0)
+        {
+            await player.CacheCharacterStateAsync(characterCache, paperdollService);
+        }
+
+        return new ItemReplyServerPacket.ItemTypeDataExpReward
+        {
+            Experience = player.Character!.Exp,
+            LevelUp = levelsGained > 0 ? player.Character!.Level : 0,
+            StatPoints = player.Character!.StatPoints,
+            SkillPoints = player.Character!.SkillPoints,
+            MaxHp = player.Character!.MaxHp,
+            MaxTp = player.Character!.MaxTp,
+            MaxSp = player.Character!.MaxSp
+        };
     }
 }
