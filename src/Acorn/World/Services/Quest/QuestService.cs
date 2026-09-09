@@ -84,7 +84,7 @@ public class QuestService(
 
         // Generate a new session ID
         var sessionId = player.Rnd.Next(1, int.MaxValue);
-        player.SessionId = sessionId;
+        player.DialogSessionId = sessionId;
 
         await player.Send(new QuestDialogServerPacket
         {
@@ -128,7 +128,7 @@ public class QuestService(
         var map = player.CurrentMap!;
 
         // Validate session
-        if (player.SessionId != sessionId)
+        if (player.DialogSessionId != sessionId)
         {
             logger.LogWarning("Player {Character} sent quest reply with invalid session", character.Name);
             return;
@@ -183,7 +183,7 @@ public class QuestService(
 
         // Generate new session
         var newSessionId = player.Rnd.Next(1, int.MaxValue);
-        player.SessionId = newSessionId;
+        player.DialogSessionId = newSessionId;
 
         await player.Send(new QuestDialogServerPacket
         {

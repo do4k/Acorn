@@ -9,11 +9,7 @@ internal class CharacterRequestClientPacketHandler : IPacketHandler<CharacterReq
     public async Task HandleAsync(PlayerState playerState,
         CharacterRequestClientPacket packet)
     {
-        if (string.Equals(packet.RequestString, "new", StringComparison.OrdinalIgnoreCase) is false)
-        {
-        }
-
-        if (playerState.Account?.Characters.Count() >= 3)
+        if (playerState.Account?.Characters.Count >= 3)
         {
             await playerState.Send(new CharacterReplyServerPacket
             {

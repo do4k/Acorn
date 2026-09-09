@@ -94,6 +94,7 @@ var host = Host.CreateDefaultBuilder(args)
         services
             .AddSingleton<IConfiguration>(configuration)
             .Configure<DatabaseOptions>(configuration.GetSection(DatabaseOptions.SectionName))
+            .Configure<DataOptions>(configuration.GetSection(DataOptions.SectionName))
             .Configure<ServerOptions>(configuration.GetSection(ServerOptions.SectionName))
             .Configure<ArenaOptions>(configuration.GetSection(ArenaOptions.SectionName))
             .Configure<CacheOptions>(configuration.GetSection(CacheOptions.SectionName))

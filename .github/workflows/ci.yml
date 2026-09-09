@@ -7,7 +7,7 @@ on:
     branches: [ main, master, develop ]
 
 env:
-  DOTNET_VERSION: '10.0.x'
+  DOTNET_VERSION: '11.0.100-rc.1.26425.128'
 
 jobs:
   build:
@@ -21,6 +21,7 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
+        include-prerelease: true
 
     - name: Restore dependencies
       run: dotnet restore

@@ -34,7 +34,6 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
     private readonly IArenaService _arenaService;
     private readonly IPartyService _partyService;
     private readonly IPlayerController _playerController;
-    private DateTime _timeSinceLastAttack;
 
     public AttackUseClientPacketHandler(UtcNowDelegate now, ILogger<AttackUseClientPacketHandler> logger,
         IFormulaService formulaService, IDataFileRepository dataFiles, ILootService lootService,
@@ -58,7 +57,7 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
 
     public async Task HandleAsync(PlayerState playerState, AttackUseClientPacket packet)
     {
-        if ((_now() - _timeSinceLastAttack).TotalMilliseconds < 500)
+        if ((_now() - playerState.LastAttackTime).TotalMilliseconds < 500)
         {
             return;
         }
@@ -89,11 +88,11 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
                     PlayerId = playerState.SessionId
                 }, playerState);
 
-                _timeSinceLastAttack = DateTime.UtcNow;
+                playerState.LastAttackTime = _now();
                 return;
             }
 
-            var damage = _formulaService.CalculateDamageToNpc(playerState.Character, target.Data);
+            var damage = _formulaService.CalculateDamageToNpc(playerState.Character, target.Data, target.Hp);
             target.Hp -= damage;
             target.Hp = Math.Max(target.Hp, 0);
 
@@ -244,7 +243,7 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
             PlayerId = playerState.SessionId
         }, playerState);
 
-        _timeSinceLastAttack = DateTime.UtcNow;
+        playerState.LastAttackTime = _now();
     }
 
     private async Task HandlePlayerAttack(PlayerState attacker, PlayerState target)

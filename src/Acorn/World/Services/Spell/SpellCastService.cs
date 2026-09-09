@@ -317,7 +317,7 @@ public class SpellCastService(
 
         character.Tp -= spell.TpCost;
 
-        var damage = formulaService.CalculateDamageToNpc(character, npc.Data,
+        var damage = formulaService.CalculateDamageToNpc(character, npc.Data, npc.Hp,
             bonusMinDamage: spell.MinDamage, bonusMaxDamage: spell.MaxDamage);
         npc.Hp = Math.Max(0, npc.Hp - damage);
 

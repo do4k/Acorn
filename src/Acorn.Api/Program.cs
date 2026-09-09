@@ -16,7 +16,7 @@ builder.Services.AddSwaggerGen();
 var configuration = builder.Configuration;
 
 // Configure options
-builder.Services.Configure<CacheOptions>(configuration.GetSection("Cache"));
+builder.Services.Configure<CacheOptions>(configuration.GetSection(CacheOptions.SectionName));
 builder.Services.Configure<DatabaseOptions>(configuration.GetSection(DatabaseOptions.SectionName));
 
 // Configure Database (same as Acorn core)

@@ -1,5 +1,5 @@
 # Stage 1: Base runtime image
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS base
+FROM mcr.microsoft.com/dotnet/aspnet:11.0-alpine AS base
 WORKDIR /app
 EXPOSE 8080
 
@@ -9,7 +9,7 @@ RUN addgroup -g 1000 acorn && \
     chown -R acorn:acorn /app
 
 # Stage 2: Build image
-FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
+FROM mcr.microsoft.com/dotnet/sdk:11.0-alpine AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 

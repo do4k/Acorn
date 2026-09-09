@@ -82,6 +82,9 @@ public class PlayerState : IDisposable
     public int SessionId { get; set; }
     public WarpSession? WarpSession { get; set; }
 
+    // Validates dialog/quest replies; kept separate from SessionId (the player's identity key)
+    public int? DialogSessionId { get; set; }
+
     public Character? Character { get; set; }
 
     public MapState? CurrentMap { get; set; }
@@ -89,6 +92,9 @@ public class PlayerState : IDisposable
     // Spell casting state
     public int Timestamp { get; set; }
     public int? SpellId { get; set; }
+
+    // Attack cooldown timestamp (per-connection, not shared handler state)
+    public DateTime LastAttackTime { get; set; }
 
     // Character deletion state
     public int? CharacterIdToDelete { get; set; }

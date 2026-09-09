@@ -11,7 +11,6 @@ namespace Acorn;
 /// </summary>
 public class FormulaService : IFormulaService
 {
-    private static readonly Random _random = new();
     private readonly IStatCalculator _statCalculator;
 
     public FormulaService(IStatCalculator statCalculator)
@@ -45,7 +44,7 @@ public class FormulaService : IFormulaService
     public bool DoesAttackHit(int accuracy, int targetEvade, bool targetSitting = false)
     {
         var hitRate = CalculateHitRate(accuracy, targetEvade, targetSitting);
-        return _random.NextDouble() < hitRate;
+        return Random.Shared.NextDouble() < hitRate;
     }
 
     /// <summary>
@@ -77,7 +76,7 @@ public class FormulaService : IFormulaService
     ///     Calculate damage dealt to an NPC.
     ///     Optional bonus min/max damage is added before rolling (e.g. from a spell's own damage range).
     /// </summary>
-    public int CalculateDamageToNpc(Character character, EnfRecord npcData, bool attackingBackOrSide = false,
+    public int CalculateDamageToNpc(Character character, EnfRecord npcData, int currentHp, bool attackingBackOrSide = false,
         int bonusMinDamage = 0, int bonusMaxDamage = 0)
     {
         // Check if attack hits
@@ -87,10 +86,10 @@ public class FormulaService : IFormulaService
         }
 
         // Roll damage between min and max
-        var rawDamage = _random.Next(character.MinDamage + bonusMinDamage, character.MaxDamage + bonusMaxDamage + 1);
+        var rawDamage = Random.Shared.Next(character.MinDamage + bonusMinDamage, character.MaxDamage + bonusMaxDamage + 1);
 
         // Critical hit if NPC is at full HP or attacking from back/side
-        var critical = npcData.Hp == npcData.Hp || attackingBackOrSide;
+        var critical = currentHp >= npcData.Hp || attackingBackOrSide;
 
         return CalculateDamage(rawDamage, npcData.Armor, critical);
     }
@@ -107,7 +106,7 @@ public class FormulaService : IFormulaService
         }
 
         // Roll damage between NPC's min and max
-        var rawDamage = _random.Next(npcData.MinDamage, npcData.MaxDamage + 1);
+        var rawDamage = Random.Shared.Next(npcData.MinDamage, npcData.MaxDamage + 1);
 
         // Critical hit if NPC is attacking from back or side
         var critical = attackingBackOrSide;
@@ -129,7 +128,7 @@ public class FormulaService : IFormulaService
         }
 
         // Roll damage between min and max
-        var rawDamage = _random.Next(attacker.MinDamage + bonusMinDamage, attacker.MaxDamage + bonusMaxDamage + 1);
+        var rawDamage = Random.Shared.Next(attacker.MinDamage + bonusMinDamage, attacker.MaxDamage + bonusMaxDamage + 1);
 
         // Critical hit if target is at full HP or attacking from back/side
         var critical = target.Hp == target.MaxHp || attackingBackOrSide;
