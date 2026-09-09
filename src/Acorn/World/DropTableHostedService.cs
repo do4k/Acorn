@@ -34,6 +34,9 @@ internal class DropTableHostedService : IHostedService
         var globalDropFilePath = Path.Combine(AppContext.BaseDirectory, "Data", "global_drops.txt");
         _dropFileLoader.LoadGlobalDrops(_lootService, globalDropFilePath);
 
+        // Freeze loot tables once loaded - the hot-path lookup becomes immutable.
+        _lootService.Seal();
+
         return Task.CompletedTask;
     }
 

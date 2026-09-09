@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using Acorn.Game.Models;
 
 namespace Acorn.Game.Services;
@@ -25,6 +26,12 @@ public interface ILootService
     void RegisterGlobalDrops(IEnumerable<LootDrop> drops);
 
     /// <summary>
+    ///     Freezes loot tables for read-only hot-path use. Registration methods will
+    ///     throw after this is called. Invoked once at startup after all drops load.
+    /// </summary>
+    void Seal();
+
+    /// <summary>
     ///     Calculate a drop for an NPC kill (returns null if no drop occurs)
     ///     Uses probability-based random selection with weighted rates.
     ///     Considers both the NPC's specific loot table and the global drop table.
@@ -44,21 +51,38 @@ public class LootService : ILootService
 {
     private readonly Dictionary<int, NpcLootTable> _npcLootTables = new();
     private readonly List<LootDrop> _globalDrops = new();
-    private readonly Random _random = new();
+    private FrozenDictionary<int, NpcLootTable>? _frozenNpcLootTables;
 
     public NpcLootTable? GetNpcLootTable(int npcId)
     {
-        return _npcLootTables.TryGetValue(npcId, out var table) ? table : null;
+        if (_frozenNpcLootTables is { } frozen)
+        {
+            return frozen.TryGetValue(npcId, out var table) ? table : null;
+        }
+
+        return _npcLootTables.TryGetValue(npcId, out var mutableTable) ? mutableTable : null;
     }
 
     public void RegisterNpcLootTable(NpcLootTable lootTable)
     {
+        ThrowIfSealed();
         _npcLootTables[lootTable.NpcId] = lootTable;
     }
 
     public void RegisterGlobalDrops(IEnumerable<LootDrop> drops)
     {
+        ThrowIfSealed();
         _globalDrops.AddRange(drops);
+    }
+
+    public void Seal()
+    {
+        if (_frozenNpcLootTables is not null)
+        {
+            return;
+        }
+
+        _frozenNpcLootTables = _npcLootTables.ToFrozenDictionary();
     }
 
     public LootDrop? RollDrop(int npcId)
@@ -79,7 +103,7 @@ public class LootService : ILootService
         foreach (var drop in sortedDrops)
         {
             // Generate random value from 0-64000
-            var roll = _random.Next(0, 64001);
+            var roll = Random.Shared.Next(0, 64001);
             var internalRate = drop.GetInternalRate();
 
             if (roll <= internalRate)
@@ -93,6 +117,14 @@ public class LootService : ILootService
 
     public int RollDropAmount(LootDrop drop)
     {
-        return _random.Next(drop.MinAmount, drop.MaxAmount + 1);
+        return Random.Shared.Next(drop.MinAmount, drop.MaxAmount + 1);
+    }
+
+    private void ThrowIfSealed()
+    {
+        if (_frozenNpcLootTables is not null)
+        {
+            throw new InvalidOperationException("Loot tables have been sealed and can no longer be modified.");
+        }
     }
 }

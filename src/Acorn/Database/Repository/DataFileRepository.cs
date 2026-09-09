@@ -1,6 +1,8 @@
 ﻿using System.IO.Hashing;
 using System.Text.RegularExpressions;
+using Acorn.Options;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Data;
 using Moffat.EndlessOnline.SDK.Protocol.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
@@ -9,15 +11,22 @@ namespace Acorn.Database.Repository;
 
 public class DataFileRepository : IDataFileRepository
 {
-    private readonly string _ecfFile = "Data/Pub/dat001.ecf";
-    private readonly string _eifFile = "Data/Pub/dat001.eif";
-    private readonly string _enfFile = "Data/Pub/dtn001.enf";
-    private readonly string _esfFile = "Data/Pub/dsl001.esf";
+    private readonly string _ecfFile;
+    private readonly string _eifFile;
+    private readonly string _enfFile;
+    private readonly string _esfFile;
+    private readonly string _mapsPath;
     private readonly ILogger<DataFileRepository> _logger;
 
-    public DataFileRepository(ILogger<DataFileRepository> logger)
+    public DataFileRepository(IOptions<DataOptions> dataOptions, ILogger<DataFileRepository> logger)
     {
         _logger = logger;
+        var options = dataOptions.Value;
+        _ecfFile = options.EcfFile;
+        _eifFile = options.EifFile;
+        _enfFile = options.EnfFile;
+        _esfFile = options.EsfFile;
+        _mapsPath = options.MapsPath;
 
         if (File.Exists(_ecfFile))
         {
@@ -43,9 +52,9 @@ public class DataFileRepository : IDataFileRepository
             RecalculateRid(Esf);
         }
 
-        if (Directory.Exists("Data/Maps/"))
+        if (Directory.Exists(_mapsPath))
         {
-            Maps = Directory.GetFiles("Data/Maps/").ToList().Where(f => Regex.IsMatch(f, @"\d+\.emf")).Select(mapFile =>
+            Maps = Directory.GetFiles(_mapsPath).ToList().Where(f => Regex.IsMatch(f, @"\d+\.emf")).Select(mapFile =>
             {
                 var emf = new Emf();
                 emf.Deserialize(new EoReader(File.ReadAllBytes(mapFile)));

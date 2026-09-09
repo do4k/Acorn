@@ -74,4 +74,37 @@ public class LootServiceTests
             amount.Should().BeInRange(3, 7);
         }
     }
+
+    [Fact]
+    public void Seal_ThenRegisterNpcLootTable_ShouldThrow()
+    {
+        _sut.RegisterNpcLootTable(new NpcLootTable
+        {
+            NpcId = 1,
+            Drops = [new LootDrop(itemId: 100, minAmount: 1, maxAmount: 1, ratePercent: 100)]
+        });
+        _sut.Seal();
+
+        var act = () => _sut.RegisterNpcLootTable(new NpcLootTable
+        {
+            NpcId = 2,
+            Drops = [new LootDrop(itemId: 200, minAmount: 1, maxAmount: 1, ratePercent: 100)]
+        });
+
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void Seal_StillAllowsLookupAndRolls()
+    {
+        _sut.RegisterNpcLootTable(new NpcLootTable
+        {
+            NpcId = 1,
+            Drops = [new LootDrop(itemId: 100, minAmount: 1, maxAmount: 1, ratePercent: 100)]
+        });
+        _sut.Seal();
+
+        _sut.GetNpcLootTable(1).Should().NotBeNull();
+        _sut.RollDrop(npcId: 1).Should().NotBeNull();
+    }
 }
