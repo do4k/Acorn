@@ -1,5 +1,4 @@
 using System.Reflection;
-using System.Text.RegularExpressions;
 using Acorn.Database;
 using Acorn.Database.Repository;
 using Acorn.Extensions;
@@ -13,13 +12,11 @@ using Acorn.Net;
 using Acorn.Net.PacketHandlers.Player.Talk;
 using Acorn.Net.Services;
 using Acorn.Options;
-using Acorn.Shared.Extensions;
 using Acorn.Shared.Options;
 using Acorn.SLN;
 using Acorn.World;
 using Acorn.World.Map;
 using Acorn.World.Services;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -34,28 +31,6 @@ var GREEN = Console.IsOutputRedirected ? "" : "\x1b[92m";
 var NORMAL = Console.IsOutputRedirected ? "" : "\x1b[39m";
 var BOLD = Console.IsOutputRedirected ? "" : "\x1b[1m";
 var NOBOLD = Console.IsOutputRedirected ? "" : "\x1b[22m";
-
-// Helper function to mask sensitive connection string information
-static string MaskConnectionString(string? connectionString)
-{
-    if (string.IsNullOrEmpty(connectionString))
-    {
-        return "[empty]";
-    }
-
-    // For simple display, just show if it contains a password and mask the password value
-    if (connectionString.Contains("Password", StringComparison.OrdinalIgnoreCase) ||
-        connectionString.Contains("pwd", StringComparison.OrdinalIgnoreCase))
-    {
-        return Regex.Replace(
-            connectionString,
-            @"Password\s*=\s*[^;]*",
-            "Password=***",
-            RegexOptions.IgnoreCase);
-    }
-
-    return connectionString;
-}
 
 Console.WriteLine($"""
                    {GREEN}          _       {BOLD}Acorn Endless-Online Server Software{NOBOLD}
@@ -93,16 +68,16 @@ var host = Host.CreateDefaultBuilder(args)
     {
         services
             .AddSingleton<IConfiguration>(configuration)
-            .Configure<DatabaseOptions>(configuration.GetSection(DatabaseOptions.SectionName))
             .Configure<DataOptions>(configuration.GetSection(DataOptions.SectionName))
             .Configure<ServerOptions>(configuration.GetSection(ServerOptions.SectionName))
             .Configure<ArenaOptions>(configuration.GetSection(ArenaOptions.SectionName))
-            .Configure<CacheOptions>(configuration.GetSection(CacheOptions.SectionName))
             .Configure<WiseManAgentOptions>(configuration.GetSection(WiseManAgentOptions.SectionName))
             .Configure<JukeboxOptions>(configuration.GetSection(JukeboxOptions.SectionName))
             .Configure<MarriageOptions>(configuration.GetSection(MarriageOptions.SectionName))
             .AddSingleton<UtcNowDelegate>(() => DateTime.UtcNow)
-            .AddSingleton<AcornMetrics>();
+            .AddSingleton<AcornMetrics>()
+            // Database + caching infrastructure: options binding, DbContext and in-memory cache
+            .AddAcornDataInfrastructure(configuration);
 
         // Configure OpenTelemetry metrics and logging export via OTLP
         services.AddOpenTelemetry()
@@ -112,25 +87,6 @@ var host = Host.CreateDefaultBuilder(args)
                 metrics.AddMeter(AcornMetrics.MeterName);
             })
             .UseOtlpExporter();
-
-        // Configure DbContext based on database engine
-        services.AddDbContext<AcornDbContext>((sp, options) =>
-        {
-            var dbOptions = sp.GetRequiredService<IOptions<DatabaseOptions>>().Value;
-            var connectionString = dbOptions.ConnectionString;
-            var dbEngine = dbOptions.Engine?.ToLower() ?? "sqlite";
-            var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger("Database");
-
-            logger.LogInformation(
-                "Configuring database context - Engine: {Engine}, ConnectionString: {ConnectionString}",
-                dbEngine, MaskConnectionString(connectionString));
-
-            logger.LogInformation("Using {Engine} database provider", dbEngine);
-            options.UseDatabaseEngine(dbEngine, connectionString);
-        });
-
-        // Configure Caching (In-Memory)
-        services.AddCaching();
 
         services
             .AddSingleton<IStatsReporter, StatsReporter>()

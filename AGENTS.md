@@ -35,9 +35,8 @@ acorn/
 │   │   ├── SLN/                # Server Link Network integration
 │   │   └── World/              # World state, maps, NPCs, services
 │   ├── Acorn.Api/              # REST API for game state queries
-│   ├── Acorn.Database/         # EF Core DbContext and repositories
-│   ├── Acorn.Domain/           # Domain models (Character, Items, etc.)
-│   └── Acorn.Shared/           # Shared utilities, caching, options
+│   ├── Acorn.Database/         # EF Core DbContext, entities and repositories
+│   └── Acorn.Shared/           # Shared contract models, caching, extensions, options
 ├── tests/
 │   └── Acorn.Tests/            # Unit tests
 ├── docs/                       # Documentation
@@ -144,9 +143,9 @@ public void MethodName_WhenCondition_ShouldExpectedBehavior()
 
 ### Project References
 
-- `Acorn` depends on `Acorn.Shared`, `Acorn.Domain`, `Acorn.Database`
+- `Acorn` depends on `Acorn.Shared`, `Acorn.Database`
 - `Acorn.Api` depends on `Acorn.Shared`, `Acorn.Database`
-- `Acorn.Database` depends on `Acorn.Domain`
+- `Acorn.Database` depends on `Acorn.Shared`
 - `Acorn.Shared` is standalone
 
 ## Common Tasks
