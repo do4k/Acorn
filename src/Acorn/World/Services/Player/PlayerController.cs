@@ -1,6 +1,7 @@
 using Acorn.Extensions;
 using Acorn.Game.Models;
 using Acorn.Game.Services;
+using Acorn.Infrastructure.Telemetry;
 using Acorn.Shared.Caching;
 using Acorn.Net;
 using Acorn.Net.PacketHandlers.Player.Warp;
@@ -23,6 +24,7 @@ public class PlayerController : IPlayerController
     private readonly Lazy<IWorldQueries> _worldQueries;
     private readonly ICharacterCacheService _characterCache;
     private readonly IPaperdollService _paperdollService;
+    private readonly AcornMetrics _metrics;
 
     public PlayerController(
         ILogger<PlayerController> logger,
@@ -31,7 +33,8 @@ public class PlayerController : IPlayerController
         IStatCalculator statCalculator,
         IOptions<ServerOptions> serverOptions,
         ICharacterCacheService characterCache,
-        IPaperdollService paperdollService)
+        IPaperdollService paperdollService,
+        AcornMetrics metrics)
     {
         _logger = logger;
         _broadcastService = broadcastService;
@@ -40,6 +43,7 @@ public class PlayerController : IPlayerController
         _serverOptions = serverOptions.Value;
         _characterCache = characterCache;
         _paperdollService = paperdollService;
+        _metrics = metrics;
     }
 
     public async Task WarpAsync(PlayerState player, MapState targetMap, int x, int y,
@@ -177,6 +181,8 @@ public class PlayerController : IPlayerController
         }
 
         _logger.LogInformation("Player {CharacterName} died", player.Character.Name);
+
+        _metrics.Deaths.Add(1);
 
         // Get rescue spawn location (fall back to new character spawn if not configured)
         var rescue = _serverOptions.Rescue ?? new RescueOptions

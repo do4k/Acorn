@@ -1,6 +1,7 @@
 using Acorn.Database.Repository;
 using Acorn.Extensions;
 using Acorn.Game.Services;
+using Acorn.Infrastructure.Telemetry;
 using Acorn.Net;
 using Acorn.Options;
 using Acorn.Shared.Caching;
@@ -27,6 +28,7 @@ public class SpellCastService(
     ICharacterCacheService characterCache,
     IPaperdollService paperdollService,
     IOptions<ServerOptions> serverOptions,
+    AcornMetrics metrics,
     ILogger<SpellCastService> logger)
     : ISpellCastService
 {
@@ -399,16 +401,26 @@ public class SpellCastService(
             dropId = dropItem.ItemId;
 
             var itemIndex = map.GetNextItemIndex();
-            map.Items.TryAdd(itemIndex, new MapItem
-            {
-                Id = dropId,
-                Amount = dropAmount,
-                Coords = new Coords { X = npc.X, Y = npc.Y },
-                OwnerId = player.SessionId,
-                ProtectedTicks = _dropProtectionTicks
-            });
-            dropIndex = itemIndex;
-        }
+                map.Items.TryAdd(itemIndex, new MapItem
+                {
+                    Id = dropId,
+                    Amount = dropAmount,
+                    Coords = new Coords { X = npc.X, Y = npc.Y },
+                    OwnerId = player.SessionId,
+                    ProtectedTicks = _dropProtectionTicks
+                });
+                dropIndex = itemIndex;
+
+                // Gold is item ID 1; count NPC gold separately from item loot.
+                if (dropId == 1)
+                {
+                    metrics.NpcGoldDropped.Add(dropAmount);
+                }
+                else
+                {
+                    metrics.NpcItemsDropped.Add(dropAmount);
+                }
+            }
 
         var npcKilledData = new NpcKilledData
         {
@@ -519,6 +531,7 @@ public class SpellCastService(
 
         if (dead)
         {
+            metrics.PvPKills.Add(1);
             await playerController.DieAsync(targetPlayer);
         }
 

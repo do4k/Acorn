@@ -60,7 +60,9 @@ public class ItemDropClientPacketHandler(
                 }
             });
 
-            metrics.ItemsDropped.Add(1);
+            metrics.ItemsDropped.Add(1,
+                new("item_id", packet.Item.Id),
+                new("source", "player"));
 
             logger.LogInformation("Player {Character} dropped item {ItemId} x{Amount} at ({X}, {Y})",
                 player.Character!.Name, packet.Item.Id, packet.Item.Amount, coords.X, coords.Y);
