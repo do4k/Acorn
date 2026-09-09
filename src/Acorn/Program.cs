@@ -7,6 +7,7 @@ using Acorn.Game.Services;
 using Acorn.Infrastructure;
 using Acorn.Infrastructure.Communicators;
 using Acorn.Infrastructure.Gemini;
+using Acorn.Infrastructure.Logging;
 using Acorn.Infrastructure.Telemetry;
 using Acorn.Net;
 using Acorn.Net.PacketHandlers.Player.Talk;
@@ -152,6 +153,14 @@ var host = Host.CreateDefaultBuilder(args)
 #pragma warning disable CS0618
         builder.AddConsole(options => { options.TimestampFormat = "[HH:mm:ss] "; });
 #pragma warning restore CS0618
+
+        // File fallback so logs are always tailable even if the Aspire
+        // dashboard resource-log view is unavailable.
+        var logPath = configuration["Logging:File:Path"] ?? "acorn.log";
+        var logLevel = Enum.TryParse<LogLevel>(configuration["Logging:File:MinimumLevel"], true, out var fileMin)
+            ? fileMin
+            : LogLevel.Information;
+        builder.AddFileLogger(logPath, logLevel);
     })
     .Build();
 
