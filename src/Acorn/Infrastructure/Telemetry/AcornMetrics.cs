@@ -55,6 +55,14 @@ public sealed class AcornMetrics : IDisposable
             "acorn.levelups.total",
             description: "Total player level-ups");
 
+        PvPKills = _meter.CreateCounter<long>(
+            "acorn.pvp.kills",
+            description: "Total players killed by other players");
+
+        Deaths = _meter.CreateCounter<long>(
+            "acorn.deaths.total",
+            description: "Total player deaths");
+
         // --- Economy ---
         GoldEarned = _meter.CreateCounter<long>(
             "acorn.gold.earned",
@@ -81,6 +89,21 @@ public sealed class AcornMetrics : IDisposable
         TradesCompleted = _meter.CreateCounter<long>(
             "acorn.trades.completed",
             description: "Total trades completed between players");
+
+        NpcItemsDropped = _meter.CreateCounter<long>(
+            "acorn.npc.items_dropped",
+            "{items}",
+            "Total items dropped by killed NPCs (loot)");
+
+        NpcGoldDropped = _meter.CreateCounter<long>(
+            "acorn.npc.gold_dropped",
+            "{gold}",
+            "Total gold dropped by killed NPCs (loot)");
+
+        // --- Progression ---
+        QuestsCompleted = _meter.CreateCounter<long>(
+            "acorn.quests.completed",
+            description: "Total quests completed");
 
         // --- Performance ---
         MapTickDuration = _meter.CreateHistogram<double>(
@@ -116,6 +139,8 @@ public sealed class AcornMetrics : IDisposable
     public Counter<long> NpcKills { get; }
     public Counter<long> ExperienceGained { get; }
     public Counter<long> LevelUps { get; }
+    public Counter<long> PvPKills { get; }
+    public Counter<long> Deaths { get; }
 
     // Economy
     public Counter<long> GoldEarned { get; }
@@ -124,6 +149,11 @@ public sealed class AcornMetrics : IDisposable
     public Counter<long> ItemsPickedUp { get; }
     public Counter<long> ItemsJunked { get; }
     public Counter<long> TradesCompleted { get; }
+    public Counter<long> NpcItemsDropped { get; }
+    public Counter<long> NpcGoldDropped { get; }
+
+    // Progression
+    public Counter<long> QuestsCompleted { get; }
 
     // Performance
     public Histogram<double> MapTickDuration { get; }

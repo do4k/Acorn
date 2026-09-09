@@ -122,7 +122,9 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
                 target.DeathTime = DateTime.UtcNow;
                 target.Opponents.Clear();
 
-                _metrics.NpcKills.Add(1);
+                _metrics.NpcKills.Add(1,
+                    new("npc_id", target.Id),
+                    new("map_id", playerState.Character.Map));
 
                 _logger.NpcKilled(target.Data.Name, target.Id, playerState.Character.Name!, playerState.Character.Map);
 
@@ -177,6 +179,16 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
 
                     playerState.CurrentMap.Items.TryAdd(itemIndex, mapItem);
                     dropIndex = itemIndex;
+
+                    // Gold is item ID 1; count NPC gold separately from item loot.
+                    if (dropId == 1)
+                    {
+                        _metrics.NpcGoldDropped.Add(dropAmount);
+                    }
+                    else
+                    {
+                        _metrics.NpcItemsDropped.Add(dropAmount);
+                    }
 
                     _logger.LogInformation(
                         "Item drop spawned: ItemId={ItemId}, Amount={Amount}, Location=({X},{Y}), Owner={OwnerId}",
@@ -300,6 +312,7 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
 
         if (dead)
         {
+            _metrics.PvPKills.Add(1);
             await _playerController.DieAsync(target);
         }
 

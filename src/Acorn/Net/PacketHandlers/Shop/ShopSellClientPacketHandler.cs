@@ -94,7 +94,7 @@ public class ShopSellClientPacketHandler(
 
         // Add gold to inventory
         inventoryService.TryAddItem(player.Character!, GoldItemId, sellValue);
-        metrics.GoldEarned.Add(sellValue);
+        metrics.GoldEarned.Add(sellValue, [new("source", "shop")]);
 
         logger.LogInformation("Player {Character} sold {Amount}x {ItemName} for {Value} gold",
             player.Character!.Name, amount, itemData.Name, sellValue);

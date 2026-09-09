@@ -2,6 +2,7 @@ using System.Text.Json;
 using Acorn.Data;
 using Acorn.Database;
 using Acorn.Database.Models;
+using Acorn.Infrastructure.Telemetry;
 using Acorn.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,6 +18,7 @@ namespace Acorn.World.Services.Quest;
 public class QuestService(
     IQuestDataRepository questDataRepository,
     IServiceScopeFactory scopeFactory,
+    AcornMetrics metrics,
     ILogger<QuestService> logger) : IQuestService
 {
     public async Task TalkToQuestNpc(PlayerState player, int npcIndex, int questId)
@@ -411,6 +413,7 @@ public class QuestService(
 
                 case "End":
                     progress.DoneAt = DateTime.UtcNow;
+                    metrics.QuestsCompleted.Add(1);
                     break;
 
                 case "ResetDaily":
