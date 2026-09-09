@@ -79,12 +79,16 @@ var host = Host.CreateDefaultBuilder(args)
             // Database + caching infrastructure: options binding, DbContext and in-memory cache
             .AddAcornDataInfrastructure(configuration);
 
-        // Configure OpenTelemetry metrics and logging export via OTLP
+        // Configure OpenTelemetry metrics, traces and logging export via OTLP
         services.AddOpenTelemetry()
             .ConfigureResource(resource => resource.AddService("acorn"))
             .WithMetrics(metrics =>
             {
                 metrics.AddMeter(AcornMetrics.MeterName);
+            })
+            .WithTracing(tracing =>
+            {
+                tracing.AddSource(AcornMetrics.MeterName);
             })
             .UseOtlpExporter();
 

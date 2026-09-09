@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Acorn.Shared", "src\Acorn.S
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Acorn.Database", "src\Acorn.Database\Acorn.Database.csproj", "{F4120B47-12E1-43D0-AFD4-ADF603ECDD07}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Acorn.AppHost", "src\Acorn.AppHost\Acorn.AppHost.csproj", "{1B5817AE-1A21-451A-B12F-1B8B86286623}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{F4120B47-12E1-43D0-AFD4-ADF603ECDD07}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F4120B47-12E1-43D0-AFD4-ADF603ECDD07}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F4120B47-12E1-43D0-AFD4-ADF603ECDD07}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1B5817AE-1A21-451A-B12F-1B8B86286623}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1B5817AE-1A21-451A-B12F-1B8B86286623}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1B5817AE-1A21-451A-B12F-1B8B86286623}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1B5817AE-1A21-451A-B12F-1B8B86286623}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
