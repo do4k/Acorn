@@ -33,7 +33,6 @@ public class MapController : IMapController
     private readonly Dictionary<int, int> _quakeTicks = new();
     private readonly Dictionary<int, int> _quakeRate = new();
     private readonly Dictionary<int, int> _quakeStrength = new();
-    private readonly Random _random = new();
 
     public MapController(
         IMapTileService tileService,
@@ -528,8 +527,8 @@ public class MapController : IMapController
         // Initialize rate if needed
         if (!_quakeRate.ContainsKey(map.Id))
         {
-            _quakeRate[map.Id] = _random.Next(minTicks, maxTicks + 1);
-            _quakeStrength[map.Id] = _random.Next(minStrength, maxStrength + 1);
+            _quakeRate[map.Id] = Random.Shared.Next(minTicks, maxTicks + 1);
+            _quakeStrength[map.Id] = Random.Shared.Next(minStrength, maxStrength + 1);
             _quakeTicks[map.Id] = 0;
         }
 
@@ -549,8 +548,8 @@ public class MapController : IMapController
             });
 
             // Reset for next quake
-            _quakeRate[map.Id] = _random.Next(minTicks, maxTicks + 1);
-            _quakeStrength[map.Id] = _random.Next(minStrength, maxStrength + 1);
+            _quakeRate[map.Id] = Random.Shared.Next(minTicks, maxTicks + 1);
+            _quakeStrength[map.Id] = Random.Shared.Next(minStrength, maxStrength + 1);
             _quakeTicks[map.Id] = 0;
         }
     }

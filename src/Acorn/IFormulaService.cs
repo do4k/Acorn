@@ -25,9 +25,10 @@ public interface IFormulaService
 
     /// <summary>
     ///     Calculate damage dealt to an NPC.
+    ///     <paramref name="currentHp"/> is the NPC's current hit points (its max is <paramref name="npcData"/>.Hp).
     ///     Optional bonus min/max damage is added before rolling (e.g. from a spell's own damage range).
     /// </summary>
-    int CalculateDamageToNpc(Character character, EnfRecord npcData, bool attackingBackOrSide = false,
+    int CalculateDamageToNpc(Character character, EnfRecord npcData, int currentHp, bool attackingBackOrSide = false,
         int bonusMinDamage = 0, int bonusMaxDamage = 0);
 
     /// <summary>

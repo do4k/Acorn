@@ -397,16 +397,20 @@ public class MapState
 
     public void LeaveArenaQueue(int sessionId)
     {
-        // Simple approach: recreate queue without the player
-        var newQueue = new ConcurrentQueue<int>();
+        // Remove only the target player while preserving the rest of the queue order
+        var survivors = new List<int>();
         while (ArenaQueue.TryDequeue(out var id))
         {
             if (id != sessionId)
             {
-                newQueue.Enqueue(id);
+                survivors.Add(id);
             }
         }
-        // Note: This is a bit racy but acceptable for game logic
+
+        foreach (var id in survivors)
+        {
+            ArenaQueue.Enqueue(id);
+        }
     }
 
     /// <summary>

@@ -87,7 +87,7 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
         {
             PlayerIds = nearbyPlayerIds,
             NpcIndexes = nearbyNpcIndexes,
-            Items = new List<ItemMapInfo>() // TODO: Add nearby items when item system is implemented
+            Items = [] // TODO: Add nearby items when item system is implemented
         });
 
         // Broadcast WalkPlayer to other players on the map
