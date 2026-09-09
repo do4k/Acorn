@@ -123,6 +123,16 @@ public class MapState
                 BehaviorType = npc.SpawnType == 7 ? NpcBehaviorType.Stationary : NpcBehaviorType.Wander
             };
 
+            // Add spawn variance for mobile NPCs so they don't stack on top of each
+            // other at map load, while staying off walls and inside NPC boundaries.
+            if (npcController.ShouldUseSpawnVariance(npcState))
+            {
+                var (spawnX, spawnY) = npcController.FindSpawnPosition(npcState, npcState.SpawnX, npcState.SpawnY,
+                    Enumerable.Empty<PlayerState>(), Npcs.Values, data.Map);
+                npcState.X = spawnX;
+                npcState.Y = spawnY;
+            }
+
             var npcIndex = Npcs.Count;
             Npcs.TryAdd(npcIndex, npcState);
         }
