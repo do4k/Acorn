@@ -31,6 +31,25 @@ public sealed class EoTestClient : IAsyncDisposable
 
     public int PlayerId { get; private set; }
 
+    /// <summary>
+    ///     The single-byte sequence value sent with the most recent non-Init packet.
+    ///     Used by tests to verify monotonically advancing sequence progression.
+    /// </summary>
+    public int LastSequence { get; private set; } = -1;
+
+    /// <summary>
+    ///     Set to <c>true</c> the first time the server pushes a Connection_Player
+    ///     ping; the outbound sequencer is resynced automatically so that the
+    ///     Connection_Ping response lines up with the server's expectation.
+    /// </summary>
+    public bool PingReceived { get; private set; }
+
+    /// <summary>
+    ///     Whether the underlying transport is still connected to the server.
+    /// </summary>
+    public bool IsConnected =>
+        _tcp?.Connected == true || (_ws is not null && _ws.State == WebSocketState.Open);
+
     // --- Construction / Factory ---
 
     private EoTestClient(TcpClient tcp)
@@ -83,6 +102,7 @@ public sealed class EoTestClient : IAsyncDisposable
         {
             // Normal packets: always a single char for the sequence
             var seq = _sequencer.NextSequence();
+            LastSequence = seq;
             writer.AddChar(seq);
         }
 
@@ -141,6 +161,17 @@ public sealed class EoTestClient : IAsyncDisposable
         var dataReader = reader.Slice();
         var packet = _resolver.Create(family, action);
         packet.Deserialize(dataReader);
+
+        // Server-initiated Connection_Player ping: resync the outbound sequencer.
+        // The server pre-increments and sets its start to the ping value (seq1 - seq2),
+        // so resetting our start (which preserves the counter offset) makes the
+        // Connection_Ping response and every subsequent packet line up exactly.
+        if (packet is ConnectionPlayerServerPacket ping)
+        {
+            PingReceived = true;
+            var pingStart = PingSequenceStart.FromPingValues(ping.Seq1, ping.Seq2);
+            _sequencer = _sequencer.WithSequenceStart(pingStart);
+        }
 
         return packet;
     }
@@ -232,7 +263,7 @@ public sealed class EoTestClient : IAsyncDisposable
     }
 
     /// <summary>
-    /// Sends LoginRequestClientPacket and returns the full reply.
+    ///     Sends LoginRequestClientPacket and returns the full reply.
     /// </summary>
     public async Task<LoginReplyServerPacket> LoginAsync(string username, string password)
     {
@@ -244,6 +275,35 @@ public sealed class EoTestClient : IAsyncDisposable
 
         var response = await ReceivePacketAsync();
         return (LoginReplyServerPacket)response;
+    }
+
+    /// <summary>
+    ///     Responds to a server Connection_Player ping with a Connection_PingClientPacket.
+    ///     The outbound sequencer is resynced automatically when the ping was received.
+    /// </summary>
+    public async Task SendConnectionPingAsync()
+    {
+        await SendPacketAsync(new ConnectionPingClientPacket());
+    }
+
+    /// <summary>
+    ///     Sends a CharacterCreateClientPacket and returns the reply code.
+    /// </summary>
+    public async Task<CharacterReply> CreateCharacterAsync(int sessionId, string name)
+    {
+        await SendPacketAsync(new CharacterCreateClientPacket
+        {
+            SessionId = sessionId,
+            Name = name,
+            Gender = Gender.Male,
+            HairStyle = 1,
+            HairColor = 1,
+            Skin = 1
+        });
+
+        var response = await ReceivePacketAsync();
+        var reply = (CharacterReplyServerPacket)response;
+        return reply.ReplyCode;
     }
 
     // --- Transport helpers ---
