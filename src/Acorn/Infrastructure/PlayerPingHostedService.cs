@@ -1,8 +1,10 @@
 using Acorn.Net;
 using Acorn.Net.Models;
+using Acorn.Options;
 using Acorn.World;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.Infrastructure;
@@ -13,23 +15,21 @@ namespace Acorn.Infrastructure;
 /// </summary>
 public class PlayerPingHostedService(
     ILogger<PlayerPingHostedService> logger,
-    WorldState worldState
+    WorldState worldState,
+    IOptions<ServerOptions> serverOptions
 ) : BackgroundService
 {
-    /// <summary>
-    /// Ping interval in seconds. Reoserv uses 60 ticks × 125ms = 7.5 seconds.
-    /// </summary>
-    private const int PingIntervalSeconds = 8;
+    private readonly ServerOptions _serverOptions = serverOptions.Value;
 
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
         // Wait a bit before starting to allow server to initialize
-        await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+        await Task.Delay(TimeSpan.FromSeconds(_serverOptions.PlayerPingInitialDelaySeconds), cancellationToken);
 
         logger.LogInformation("Player ping service started. Sending pings every {Interval} seconds",
-            PingIntervalSeconds);
+            _serverOptions.PlayerPingIntervalSeconds);
 
-        var timer = new PeriodicTimer(TimeSpan.FromSeconds(PingIntervalSeconds));
+        var timer = new PeriodicTimer(TimeSpan.FromSeconds(_serverOptions.PlayerPingIntervalSeconds));
 
         while (!cancellationToken.IsCancellationRequested && await timer.WaitForNextTickAsync(cancellationToken))
         {

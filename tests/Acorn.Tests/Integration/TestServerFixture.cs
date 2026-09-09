@@ -25,6 +25,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Moffat.EndlessOnline.SDK.Data;
+using Moffat.EndlessOnline.SDK.Packet;
+using Moffat.EndlessOnline.SDK.Protocol.Map;
+using Moffat.EndlessOnline.SDK.Protocol.Pub;
 using Refit;
 using Xunit;
 
@@ -38,14 +42,32 @@ public class TestServerFixture : IAsyncLifetime
 {
     private IHost? _host;
     private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"acorn_test_{Guid.NewGuid():N}.db");
+    private readonly string _mapsPath = Path.Combine(Path.GetTempPath(), $"acorn_test_maps_{Guid.NewGuid():N}");
+    private readonly string _pubPath = Path.Combine(Path.GetTempPath(), $"acorn_test_pub_{Guid.NewGuid():N}");
 
     public int TcpPort { get; private set; }
     public int WsPort { get; private set; }
+
+    /// <summary>
+    ///     Number of players currently connected to the server's world state.
+    ///     Lets tests assert that disconnects clean up world state.
+    /// </summary>
+    public int OnlinePlayerCount =>
+        _host?.Services.GetRequiredService<WorldState>().Players.Count ?? 0;
+
+    /// <summary>
+    ///     Looks up a connected player's server-side state so tests can inspect
+    ///     in-game position, client state, etc.
+    /// </summary>
+    public Acorn.Net.PlayerState? GetPlayer(int sessionId) =>
+        _host?.Services.GetRequiredService<WorldState>().GetPlayer(sessionId);
 
     public async Task InitializeAsync()
     {
         TcpPort = GetAvailablePort();
         WsPort = GetAvailablePort();
+        WriteTestMap(_mapsPath);
+        WriteTestPubFiles(_pubPath);
 
         // Mirror the DI registrations from Program.cs with test-safe overrides
         var configValues = new Dictionary<string, string?>
@@ -71,6 +93,16 @@ public class TestServerFixture : IAsyncLifetime
             ["Server:NewCharacter:X"] = "6",
             ["Server:NewCharacter:Y"] = "6",
             ["Server:NewCharacter:Map"] = "1",
+            // Ping cadence — short initial delay and interval so the ping tests
+            // run quickly while still being slower than the login/sequence flows.
+            ["Server:PlayerPingInitialDelaySeconds"] = "3",
+            ["Server:PlayerPingIntervalSeconds"] = "1",
+            // Map + pub data — minimal generated files so enter-game/walk can be tested
+            ["Data:EcfFile"] = Path.Combine(_pubPath, "dat001.ecf"),
+            ["Data:EifFile"] = Path.Combine(_pubPath, "dat001.eif"),
+            ["Data:EnfFile"] = Path.Combine(_pubPath, "dtn001.enf"),
+            ["Data:EsfFile"] = Path.Combine(_pubPath, "dsl001.esf"),
+            ["Data:MapsPath"] = _mapsPath,
             // Cache — in-memory, disabled for tests
             ["Cache:Enabled"] = "false",
             ["Cache:DefaultExpirationMinutes"] = "5",
@@ -112,6 +144,7 @@ public class TestServerFixture : IAsyncLifetime
                     .AddSingleton<IConfiguration>(cfg)
                     .Configure<DatabaseOptions>(cfg.GetSection(DatabaseOptions.SectionName))
                     .Configure<ServerOptions>(cfg.GetSection(ServerOptions.SectionName))
+                    .Configure<DataOptions>(cfg.GetSection(DataOptions.SectionName))
                     .Configure<ArenaOptions>(cfg.GetSection(ArenaOptions.SectionName))
                     .Configure<CacheOptions>(cfg.GetSection(CacheOptions.SectionName))
                     .Configure<WiseManAgentOptions>(cfg.GetSection(WiseManAgentOptions.SectionName))
@@ -234,6 +267,30 @@ public class TestServerFixture : IAsyncLifetime
         {
             // Best effort cleanup
         }
+
+        try
+        {
+            if (Directory.Exists(_mapsPath))
+            {
+                Directory.Delete(_mapsPath, recursive: true);
+            }
+        }
+        catch
+        {
+            // Best effort cleanup
+        }
+
+        try
+        {
+            if (Directory.Exists(_pubPath))
+            {
+                Directory.Delete(_pubPath, recursive: true);
+            }
+        }
+        catch
+        {
+            // Best effort cleanup
+        }
     }
 
     /// <summary>
@@ -243,7 +300,7 @@ public class TestServerFixture : IAsyncLifetime
     public bool IsWebSocketAvailable { get; private set; } = true;
 
     /// <summary>
-    /// Finds an available TCP port by binding to port 0 and reading the assigned port.
+    ///     Finds an available TCP port by binding to port 0 and reading the assigned port.
     /// </summary>
     private static int GetAvailablePort()
     {
@@ -252,6 +309,93 @@ public class TestServerFixture : IAsyncLifetime
         var port = ((IPEndPoint)listener.LocalEndpoint).Port;
         listener.Stop();
         return port;
+    }
+
+    /// <summary>
+    ///     Writes a minimal, valid Endless Online map (1.emf) into <paramref name="dir"/>
+    ///     so the server loads a map into world state. Real .emf files are gitignored
+    ///     copyright data, so integration tests generate a small empty map instead.
+    /// </summary>
+    private static void WriteTestMap(string dir)
+    {
+        Directory.CreateDirectory(dir);
+        var emf = new Emf
+        {
+            Name = "TestMap",
+            Width = 20,
+            Height = 20,
+            FillTile = 1,
+            MapAvailable = true,
+            CanScroll = true,
+            RelogX = 2,
+            RelogY = 2,
+            Type = MapType.Normal,
+            TimedEffect = MapTimedEffect.None,
+            MusicId = 0,
+            MusicControl = MapMusicControl.InterruptPlayNothing,
+            AmbientSoundId = 0,
+            Npcs = new List<MapNpc>(),
+            Items = new List<Moffat.EndlessOnline.SDK.Protocol.Map.MapItem>(),
+            TileSpecRows = new List<MapTileSpecRow>(),
+            WarpRows = new List<MapWarpRow>(),
+            GraphicLayers = Enumerable.Range(0, 9)
+                .Select(_ => new MapGraphicLayer { GraphicRows = new List<MapGraphicRow>() })
+                .ToList(),
+            Signs = new List<MapSign>(),
+            LegacyDoorKeys = new List<MapLegacyDoorKey>(),
+            Rid = new List<int> { 1, 2 }
+        };
+
+        var writer = new EoWriter();
+        emf.Serialize(writer);
+        File.WriteAllBytes(Path.Combine(dir, "1.emf"), writer.ToByteArray());
+    }
+
+    /// <summary>
+    ///     Writes minimal, valid pub files (ECF/EIF/ENF/ESF) with zero records into
+    ///     <paramref name="dir"/>. The WelcomeReply packet requires each RID to be a
+    ///     2-element list, which empty in-memory pubs don't satisfy, so enter-game
+    ///     integration tests host these tiny files and point the server at them.
+    /// </summary>
+    private static void WriteTestPubFiles(string dir)
+    {
+        Directory.CreateDirectory(dir);
+
+        WritePub(dir, "dat001.ecf", new Ecf
+        {
+            Rid = new List<int> { 1, 2 },
+            Version = 1,
+            TotalClassesCount = 0,
+            Classes = new List<EcfRecord>()
+        });
+        WritePub(dir, "dat001.eif", new Eif
+        {
+            Rid = new List<int> { 1, 2 },
+            Version = 1,
+            TotalItemsCount = 0,
+            Items = new List<EifRecord>()
+        });
+        WritePub(dir, "dtn001.enf", new Enf
+        {
+            Rid = new List<int> { 1, 2 },
+            Version = 1,
+            TotalNpcsCount = 0,
+            Npcs = new List<EnfRecord>()
+        });
+        WritePub(dir, "dsl001.esf", new Esf
+        {
+            Rid = new List<int> { 1, 2 },
+            Version = 1,
+            TotalSkillsCount = 0,
+            Skills = new List<EsfRecord>()
+        });
+    }
+
+    private static void WritePub(string dir, string fileName, object pub)
+    {
+        var writer = new EoWriter();
+        pub.GetType().GetMethod("Serialize")!.Invoke(pub, [writer]);
+        File.WriteAllBytes(Path.Combine(dir, fileName), writer.ToByteArray());
     }
 
     /// <summary>
