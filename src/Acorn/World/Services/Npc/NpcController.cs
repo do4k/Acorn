@@ -86,24 +86,40 @@ public class NpcController : INpcController
         var playerList = players.ToList();
         var npcList = npcs.ToList();
 
+        // Tiles are 0-indexed, so the last valid coordinate is Width-1 / Height-1.
+        var maxX = Math.Max(0, mapData.Width - 1);
+        var maxY = Math.Max(0, mapData.Height - 1);
+
+        var clampedX = Math.Clamp(baseX, 0, maxX);
+        var clampedY = Math.Clamp(baseY, 0, maxY);
+
+        // Track the last walkable candidate so a crowded spawn area still avoids
+        // placing the NPC on a wall or outside the NPC boundary.
+        var fallbackX = clampedX;
+        var fallbackY = clampedY;
+
         for (var attempt = 0; attempt < MAX_SPAWN_ATTEMPTS; attempt++)
         {
-            var x = Math.Clamp(baseX + Random.Shared.Next(-SPAWN_VARIANCE, SPAWN_VARIANCE + 1), 0, mapData.Width);
-            var y = Math.Clamp(baseY + Random.Shared.Next(-SPAWN_VARIANCE, SPAWN_VARIANCE + 1), 0, mapData.Height);
+            var x = Math.Clamp(clampedX + Random.Shared.Next(-SPAWN_VARIANCE, SPAWN_VARIANCE + 1), 0, maxX);
+            var y = Math.Clamp(clampedY + Random.Shared.Next(-SPAWN_VARIANCE, SPAWN_VARIANCE + 1), 0, maxY);
 
-            // Check if tile is walkable for NPCs
+            // Skip unwalkable tiles (walls, NPC boundaries, edges, etc.)
             if (!IsTileWalkableForNpc(x, y, mapData))
             {
                 continue;
             }
 
-            // Check if tile is occupied by another NPC
+            // Remember this walkable position in case no empty one is found.
+            fallbackX = x;
+            fallbackY = y;
+
+            // Avoid stacking on another NPC
             if (npcList.Any(n => n != npc && !n.IsDead && n.X == x && n.Y == y))
             {
                 continue;
             }
 
-            // Check if tile is occupied by a player
+            // Avoid spawning on top of a player
             if (playerList.Any(p => p.Character?.X == x && p.Character?.Y == y))
             {
                 continue;
@@ -112,8 +128,11 @@ public class NpcController : INpcController
             return (x, y);
         }
 
-        // Fallback to base spawn position if no valid position found
-        return (baseX, baseY);
+        // Never place an NPC on an unwalkable tile. If every candidate was occupied,
+        // prefer the last walkable position over the base which may be a wall.
+        return IsTileWalkableForNpc(fallbackX, fallbackY, mapData)
+            ? (fallbackX, fallbackY)
+            : (clampedX, clampedY);
     }
 
     public bool ShouldUseSpawnVariance(NpcState npc)
@@ -341,8 +360,8 @@ public class NpcController : INpcController
     {
         var nextCoords = npc.NextCoords(direction);
 
-        // Boundary check
-        if (nextCoords.X < 0 || nextCoords.Y < 0 || nextCoords.X > mapData.Width || nextCoords.Y > mapData.Height)
+        // Boundary check (tiles are 0-indexed, so Width/Height are exclusive upper bounds)
+        if (nextCoords.X < 0 || nextCoords.Y < 0 || nextCoords.X >= mapData.Width || nextCoords.Y >= mapData.Height)
         {
             return false;
         }
