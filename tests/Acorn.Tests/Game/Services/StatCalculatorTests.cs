@@ -47,8 +47,8 @@ public class StatCalculatorTests
             MaxHp = 10,
             Tp = 10,
             MaxTp = 10,
-            Sp = 10,
-            MaxSp = 10,
+            Sp = 20,
+            MaxSp = 20,
             Inventory = new Inventory(new ConcurrentBag<ItemWithAmount>()),
             Bank = new Bank(new ConcurrentBag<ItemWithAmount>()),
             Paperdoll = new Paperdoll(),
@@ -75,8 +75,57 @@ public class StatCalculatorTests
 
         _sut.RecalculateStats(character, _ecf);
 
-        // SP formula: Level/4 + 50 + AdjAgi*2 + Class.Agi*Level/10 = 0 + 50 + 0 + 0
-        character.MaxSp.Should().Be(50);
-        character.Sp.Should().Be(10, "current SP is clamped down but never reduced from creation");
+        // SP formula (reoserv default): 20.0 + 2.0 * level = 20 + 0 = 20
+        character.MaxSp.Should().Be(20);
+        character.Sp.Should().Be(20, "a new character spawns with full stamina");
+    }
+
+    [Fact]
+    public void RecalculateStats_WhenPeasantAtLevelZero_ShouldComputeExpectedMaxHpAndMaxTp()
+    {
+        var character = CreateNewCharacter();
+
+        _sut.RecalculateStats(character, _ecf);
+
+        // HP: 10.0 + 2.5*0 + 2.5*0 = 10, TP: 10.0 + 2.5*0 + 2.5*0 + 1.5*0 = 10
+        character.MaxHp.Should().Be(10);
+        character.MaxTp.Should().Be(10);
+        character.MaxWeight.Should().Be(70);
+    }
+
+    [Fact]
+    public void RecalculateStats_WhenLevelIncreases_ShouldScaleMaxSpAndMaxHp()
+    {
+        var character = CreateNewCharacter();
+        character.Level = 5;
+
+        _sut.RecalculateStats(character, _ecf);
+
+        // SP: 20 + 2*5 = 30, HP: floor(10 + 2.5*5 + 0) = floor(22.5) = 22
+        character.MaxSp.Should().Be(30);
+        character.MaxHp.Should().Be(22);
+        character.MaxTp.Should().Be(22);
+    }
+
+    [Fact]
+    public void RecalculateStats_WhenWearingEquipment_ShouldIncreaseMaxHpButNotMaxSp()
+    {
+        // Arrange - an item with HP/TP/Str bonuses, equipped in the Armor slot
+        var dataFileRepository = Substitute.For<IDataFileRepository>();
+        dataFileRepository.Eif.Returns(new Eif
+        {
+            Items = new List<EifRecord> { new() { Name = "TestArmor", Hp = 50, Tp = 10, Str = 5, Agi = 3 } }
+        });
+        var sut = new StatCalculator(dataFileRepository);
+
+        var character = CreateNewCharacter();
+        character.Paperdoll.Armor = 1; // item id = index + 1
+
+        // Act
+        sut.RecalculateStats(character, _ecf);
+
+        // Assert - equipment HP is added to MaxHp, but SP (stamina) is level-only
+        character.MaxHp.Should().Be(50 + 10);
+        character.MaxSp.Should().Be(20);
     }
 }

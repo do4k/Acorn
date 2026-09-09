@@ -97,21 +97,22 @@ public class StatCalculator : IStatCalculator
             character.Armor += item.Armor;
         }
 
-        // Formula-based stats using adjusted values (matches reoserv formula evaluation)
-        // HP formula: EOSERV default: Level / 2 + 10 + (Con * 5) + (Class.Con * Level / 10)
-        character.MaxHp += character.Level / 2 + 10 + character.AdjCon * 5 + @class.Con * character.Level / 10;
-        character.MaxHp = Math.Min(character.MaxHp, 32767);
+        // Formula-based stats using adjusted values (matches reoserv config/Formulas.ron)
+        // HP: 10.0 + 2.5 * level + 2.5 * con (con = adjusted constitution)
+        character.MaxHp += (int)Math.Floor(10.0 + 2.5 * character.Level + 2.5 * character.AdjCon);
+        character.MaxHp = Math.Min(character.MaxHp, 64000);
 
-        // TP formula: EOSERV default: Level + (Intl * 2) + (Class.Wis * Level / 10)
-        character.MaxTp += character.Level + character.AdjInt * 2 + @class.Wis * character.Level / 10;
-        character.MaxTp = Math.Min(character.MaxTp, 32767);
+        // TP: 10.0 + 2.5 * level + 2.5 * int + 1.5 * wis
+        character.MaxTp += (int)Math.Floor(10.0 + 2.5 * character.Level + 2.5 * character.AdjInt + 1.5 * character.AdjWis);
+        character.MaxTp = Math.Min(character.MaxTp, 64000);
 
-        // SP formula: EOSERV default: Level / 4 + 50 + (Agi * 2) + (Class.Agi * Level / 10)
-        character.MaxSp += character.Level / 4 + 50 + character.AdjAgi * 2 + @class.Agi * character.Level / 10;
-        character.MaxSp = Math.Min(character.MaxSp, 32767);
+        // SP: 20.0 + 2.0 * level. Stamina scales with level only; agility affects the SP
+        // recovery rate, not the maximum (matches reoserv).
+        character.MaxSp += (int)Math.Floor(20.0 + 2.0 * character.Level);
+        character.MaxSp = Math.Min(character.MaxSp, 64000);
 
-        // MaxWeight formula: EOSERV: 70 + (Str * 5) + (Class.Str * Level / 10)
-        character.MaxWeight = 70 + character.AdjStr * 5 + @class.Str * character.Level / 10;
+        // MaxWeight: 70.0 + str (str = adjusted strength)
+        character.MaxWeight = (int)Math.Floor(70.0 + character.AdjStr);
         character.MaxWeight = Math.Min(character.MaxWeight, 250);
 
         // Class-based damage formula (matches reoserv class_formulas.damage)

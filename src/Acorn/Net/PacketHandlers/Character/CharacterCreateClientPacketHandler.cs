@@ -76,8 +76,8 @@ internal class CharacterCreateClientPacketHandler(
             MaxHp = 10,
             Tp = 10,
             MaxTp = 10,
-            Sp = 10,
-            MaxSp = 10,
+            Sp = 20,
+            MaxSp = 20,
             Items = new List<CharacterItem>(),
             Spells = new List<CharacterSpell>(),
             Paperdoll = new CharacterPaperdoll
