@@ -71,10 +71,13 @@ internal class CharacterCreateClientPacketHandler(
             HairColor = packet.HairColor,
             HairStyle = packet.HairStyle,
             Gender = packet.Gender,
+            Class = 1,
             Hp = 10,
             MaxHp = 10,
             Tp = 10,
             MaxTp = 10,
+            Sp = 10,
+            MaxSp = 10,
             Items = new List<CharacterItem>(),
             Spells = new List<CharacterSpell>(),
             Paperdoll = new CharacterPaperdoll
