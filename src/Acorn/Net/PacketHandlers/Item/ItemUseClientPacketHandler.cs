@@ -2,9 +2,11 @@ using Acorn.Data;
 using Acorn.Database.Repository;
 using Acorn.Extensions;
 using Acorn.Game.Mappers;
+using Acorn.Game.Models;
 using Acorn.Game.Services;
 using Acorn.Shared.Caching;
 using Acorn.World;
+using Acorn.World.Services.Map;
 using Acorn.World.Services.Player;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol;
@@ -28,6 +30,8 @@ public class ItemUseClientPacketHandler(
     ICharacterCacheService characterCache,
     IPaperdollService paperdollService,
     ICharacterMapper characterMapper,
+    IStatCalculator statCalculator,
+    IMapEffectService mapEffectService,
     IDbRepository<Database.Models.Character> characterRepository)
     : IPacketHandler<ItemUseClientPacket>
 {
@@ -71,6 +75,25 @@ public class ItemUseClientPacketHandler(
 
             case ItemType.ExpReward:
                 itemTypeData = await HandleExpReward(player, itemData);
+                break;
+
+            case ItemType.Alcohol:
+                // Beer is consumed and the client plays the drunk animation itself.
+                itemTypeData = null;
+                break;
+
+            case ItemType.EffectPotion:
+                itemTypeData = await HandleEffectPotion(player, itemData);
+                break;
+
+            case ItemType.CureCurse:
+                itemTypeData = await HandleCureCurse(player, itemData);
+                // Only consume the item when something was actually cured.
+                if (itemTypeData == null)
+                {
+                    consumed = false;
+                }
+
                 break;
 
             default:
@@ -163,6 +186,14 @@ public class ItemUseClientPacketHandler(
             return false;
         }
 
+        // The current map must permit scroll-based teleports.
+        if (!player.CurrentMap.Data.CanScroll)
+        {
+            logger.LogWarning("Player {Character} tried to use a teleport item on a map that disallows scrolls",
+                player.Character!.Name);
+            return false;
+        }
+
         int targetMapId;
         int targetX, targetY;
 
@@ -194,6 +225,16 @@ public class ItemUseClientPacketHandler(
                 player.Character!.Name, targetMapId, targetX, targetY);
         }
 
+        // Refuse to consume the scroll if the player is already standing on the destination.
+        if (player.Character!.Map == targetMapId &&
+            player.Character!.X == targetX &&
+            player.Character!.Y == targetY)
+        {
+            logger.LogInformation("Player {Character} is already at the teleport destination",
+                player.Character!.Name);
+            return false;
+        }
+
         var targetMap = worldQueries.FindMap(targetMapId);
         if (targetMap == null)
         {
@@ -205,6 +246,72 @@ public class ItemUseClientPacketHandler(
         await playerController.WarpAsync(player, targetMap, targetX, targetY, WarpEffect.Scroll);
 
         return true;
+    }
+
+    private async Task<ItemReplyServerPacket.IItemTypeData?> HandleEffectPotion(PlayerState player, EifRecord item)
+    {
+        if (player.Character == null)
+        {
+            return null;
+        }
+
+        var effectId = item.Spec1;
+
+        logger.LogInformation("Player {Character} used an effect potion (effect {EffectId})",
+            player.Character!.Name, effectId);
+
+        if (player.CurrentMap != null)
+        {
+            await mapEffectService.EffectOnPlayersAsync(player.CurrentMap, [player.SessionId], effectId,
+                excludePlayerId: player.SessionId);
+        }
+
+        return new ItemReplyServerPacket.ItemTypeDataEffectPotion
+        {
+            EffectId = effectId
+        };
+    }
+
+    private async Task<ItemReplyServerPacket.IItemTypeData?> HandleCureCurse(PlayerState player, EifRecord item)
+    {
+        if (player.Character == null)
+        {
+            return null;
+        }
+
+        // Destroy every cursed item on the paperdoll. If there is nothing to
+        // cure, the item is not consumed.
+        var removed = player.Character!.RemoveCursedEquipment(worldQueries.DataRepository);
+        if (!removed)
+        {
+            logger.LogInformation("Player {Character} used a cure curse item but had no cursed equipment",
+                player.Character!.Name);
+            return null;
+        }
+
+        statCalculator.RecalculateStats(player.Character!, worldQueries.DataRepository.Ecf);
+
+        logger.LogInformation("Player {Character} removed cursed equipment", player.Character!.Name);
+
+        if (player.CurrentMap != null)
+        {
+            var avatarChange = new AvatarChange
+            {
+                PlayerId = player.SessionId,
+                ChangeType = AvatarChangeType.Equipment,
+                ChangeTypeData = new AvatarChange.ChangeTypeDataEquipment
+                {
+                    Equipment = player.Character!.Equipment().AsEquipmentChange(paperdollService)
+                }
+            };
+
+            await player.CurrentMap.BroadcastPacket(new AvatarAgreeServerPacket { Change = avatarChange }, player);
+        }
+
+        return new ItemReplyServerPacket.ItemTypeDataCureCurse
+        {
+            Stats = player.Character!.GetCharacterStatsEquipmentChange()
+        };
     }
 
     private async Task<ItemReplyServerPacket.IItemTypeData?> HandleHairDye(PlayerState player, EifRecord item)

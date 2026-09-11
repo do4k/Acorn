@@ -1,5 +1,7 @@
 using System.Collections.Concurrent;
+using Acorn.Database.Repository;
 using Acorn.Game.Models;
+using Moffat.EndlessOnline.SDK.Protocol.Pub;
 
 namespace Acorn.Game.Services;
 
@@ -8,9 +10,24 @@ namespace Acorn.Game.Services;
 /// </summary>
 public class InventoryService : IInventoryService
 {
+    private readonly IDataFileRepository? _dataRepository;
+    private readonly IWeightCalculator _weightCalculator;
+
+    public InventoryService(IWeightCalculator? weightCalculator = null, IDataFileRepository? dataRepository = null)
+    {
+        _weightCalculator = weightCalculator ?? new WeightCalculator();
+        _dataRepository = dataRepository;
+    }
+
     public bool TryAddItem(Character character, int itemId, int amount = 1)
     {
         if (amount <= 0)
+        {
+            return false;
+        }
+
+        // Enforce the carry weight limit when the item database is available.
+        if (_dataRepository != null && !CanHoldItem(character, _dataRepository.Eif, itemId, amount))
         {
             return false;
         }
@@ -28,6 +45,23 @@ public class InventoryService : IInventoryService
         // Note: No hard slot limit enforced here, limited by 2000 char serialization
         character.Inventory.Items.Add(new ItemWithAmount { Id = itemId, Amount = amount });
         return true;
+    }
+
+    public bool CanHoldItem(Character character, Eif items, int itemId, int amount = 1)
+    {
+        if (amount <= 0)
+        {
+            return false;
+        }
+
+        var itemData = items.GetItem(itemId);
+        // Unknown items and weightless items can always be held.
+        if (itemData == null || itemData.Weight <= 0)
+        {
+            return true;
+        }
+
+        return _weightCalculator.CanCarry(character, items, itemId, amount);
     }
 
     public bool TryRemoveItem(Character character, int itemId, int amount = 1)

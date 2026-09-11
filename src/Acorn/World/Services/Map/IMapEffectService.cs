@@ -18,8 +18,9 @@ public interface IMapEffectService
     /// <summary>
     ///     Play a visual effect on specific players.
     ///     Only sent to players in client range of any of the target players.
+    ///     Optionally excludes a player (typically the caster) from receiving the packet.
     /// </summary>
-    Task EffectOnPlayersAsync(MapState map, IReadOnlyList<int> playerIds, int effectId);
+    Task EffectOnPlayersAsync(MapState map, IReadOnlyList<int> playerIds, int effectId, int? excludePlayerId = null);
 
     /// <summary>
     ///     Trigger a map-wide quake effect with the specified magnitude (1-8).
