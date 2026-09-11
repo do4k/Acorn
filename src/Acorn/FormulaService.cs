@@ -1,6 +1,8 @@
 using Acorn.Database.Repository;
 using Acorn.Game.Models;
 using Acorn.Game.Services;
+using Acorn.Options;
+using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
 
@@ -12,10 +14,12 @@ namespace Acorn;
 public class FormulaService : IFormulaService
 {
     private readonly IStatCalculator _statCalculator;
+    private readonly ServerOptions _options;
 
-    public FormulaService(IStatCalculator statCalculator)
+    public FormulaService(IStatCalculator statCalculator, IOptions<ServerOptions> serverOptions)
     {
         _statCalculator = statCalculator;
+        _options = serverOptions.Value;
     }
 
     /// <summary>
@@ -317,11 +321,9 @@ public class FormulaService : IFormulaService
         // Increment level
         character.Level++;
 
-        // Three stat points per level
-        character.StatPoints += 3;
-
-        // One skill point per level
-        character.SkillPoints += 1;
+        // Grant the configured stat/skill points for the new level (defaults match eoserv)
+        character.StatPoints += _options.StatPerLevel;
+        character.SkillPoints += _options.SkillPerLevel;
 
         // Recalculate stats
         _statCalculator.RecalculateStats(character, classes);
