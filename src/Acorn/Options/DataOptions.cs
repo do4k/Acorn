@@ -21,4 +21,7 @@ public class DataOptions
 
     /// <summary>Directory containing the .emf map files.</summary>
     public string MapsPath { get; set; } = "Data/maps";
+
+    /// <summary>Path to the news/motd file shown after entering the game.</summary>
+    public string NewsFile { get; set; } = "Data/news.txt";
 }

@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
+using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Xunit;
 
@@ -103,6 +104,44 @@ public class LoginFlowTests : IClassFixture<TestServerFixture>
             okData.Should().NotBeNull();
             okData!.Characters.Should().BeEmpty();
         }
+    }
+
+    [Fact]
+    public async Task Tcp_EnterGame_ShouldSendRealWeightAndSpellList()
+    {
+        await using var client = await EoTestClient.ConnectTcpAsync(_fixture.TcpPort);
+
+        await client.InitAsync();
+        await client.SendConnectionAcceptAsync();
+
+        var username = $"wg_{Guid.NewGuid():N}"[..20];
+        var password = "testpassword123";
+        var sessionId = await client.AccountRequestAsync(username);
+        (await client.AccountCreateAsync(username, password, sessionId)).Should().Be(AccountReply.Created);
+        (await client.LoginAsync(username, password)).ReplyCode.Should().Be(LoginReply.Ok);
+
+        var charName = $"wg{Guid.NewGuid():N}"[..10];
+        (await client.CreateCharacterAsync(sessionId, charName)).Should().Be(CharacterReply.Ok);
+
+        await client.SendPacketAsync(new WelcomeRequestClientPacket { CharacterId = 0 });
+        var welcome = (WelcomeReplyServerPacket)await client.ReceivePacketAsync();
+        welcome.WelcomeCode.Should().Be(WelcomeCode.SelectCharacter);
+
+        await client.SendPacketAsync(new WelcomeMsgClientPacket
+        {
+            SessionId = client.PlayerId,
+            CharacterId = 0
+        });
+        var enter = (WelcomeReplyServerPacket)await client.ReceivePacketAsync();
+        enter.WelcomeCode.Should().Be(WelcomeCode.EnterGame);
+
+        var data = (WelcomeReplyServerPacket.WelcomeCodeDataEnterGame)enter.WelcomeCodeData;
+        data.Spells.Should().NotBeNull();
+
+        // Weight must come from the character, not the old hardcoded 0/100.
+        var player = _fixture.GetPlayer(client.PlayerId);
+        player.Should().NotBeNull();
+        data.Weight.Max.Should().Be(player!.Character!.MaxWeight);
     }
 
     [Fact]

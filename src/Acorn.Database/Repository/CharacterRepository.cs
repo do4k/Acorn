@@ -53,6 +53,7 @@ public class CharacterRepository : IDbRepository<Character>
             var character = await _context.Characters
                 .Include(c => c.Items)
                 .Include(c => c.Paperdoll)
+                .Include(c => c.Spells)
                 .FirstOrDefaultAsync(c => c.Name == name);
 
             if (character is null)
