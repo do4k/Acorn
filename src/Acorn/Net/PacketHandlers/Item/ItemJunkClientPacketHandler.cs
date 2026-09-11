@@ -25,6 +25,12 @@ public class ItemJunkClientPacketHandler(
 {
     public async Task HandleAsync(PlayerState player, ItemJunkClientPacket packet)
     {
+        // Block junking items while trading (mirrors eoserv Item.cpp)
+        if (player.IsTrading)
+        {
+            return;
+        }
+
         // Validate player has the item
         if (!inventoryService.HasItem(player.Character!, packet.Item.Id, packet.Item.Amount))
         {

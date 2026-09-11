@@ -107,7 +107,13 @@ public class PlayerState : IDisposable
 
     // Trade state
     public TradeSession? TradeSession { get; set; }
-    
+
+    /// <summary>
+    ///     True while the player is in an active trade session. Item/bank/chest/locker
+    ///     interactions are blocked while trading (mirrors eoserv's <c>character->trading</c> guard).
+    /// </summary>
+    public bool IsTrading => TradeSession is not null;
+
     // Pending trade request - the player who has requested to trade with us
     public int? PendingTradeRequestFromPlayerId { get; set; }
 

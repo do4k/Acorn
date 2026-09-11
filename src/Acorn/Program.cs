@@ -104,6 +104,7 @@ var host = Host.CreateDefaultBuilder(args)
             .AddSingleton<IBankService, BankService>()
             .AddSingleton<IPaperdollService, PaperdollService>()
             .AddSingleton<IWeightCalculator, WeightCalculator>()
+            .AddSingleton<ITradeService, TradeService>()
             .AddSingleton<ICharacterMapper, CharacterMapper>()
             .AddSingleton<DropFileTextLoader>()
             // Notification services

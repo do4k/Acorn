@@ -20,6 +20,12 @@ public class BankTakeClientPacketHandler(
 
     public async Task HandleAsync(PlayerState player, BankTakeClientPacket packet)
     {
+        // Block bank withdrawals while trading (mirrors eoserv Bank.cpp)
+        if (player.IsTrading)
+        {
+            return;
+        }
+
         var requestedAmount = packet.Amount;
 
         if (requestedAmount <= 0)

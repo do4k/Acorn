@@ -24,6 +24,17 @@ public class WeightCalculator : IWeightCalculator
         return totalWeight;
     }
 
+    public int GetWeight(Eif items, int itemId, int amount)
+    {
+        if (amount <= 0)
+        {
+            return 0;
+        }
+
+        var itemData = items.GetItem(itemId);
+        return itemData == null ? 0 : itemData.Weight * amount;
+    }
+
     public bool CanCarry(Character character, Eif items, int itemId, int amount = 1)
     {
         var itemData = items.GetItem(itemId);

@@ -22,6 +22,12 @@ public class LockerTakeClientPacketHandler(
 {
     public async Task HandleAsync(PlayerState player, LockerTakeClientPacket packet)
     {
+        // Block locker withdrawals while trading (mirrors eoserv Locker.cpp)
+        if (player.IsTrading)
+        {
+            return;
+        }
+
         var itemId = packet.TakeItemId;
 
         var playerCoords = new Coords { X = player.Character!.X, Y = player.Character!.Y };

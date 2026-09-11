@@ -1,5 +1,6 @@
 using Acorn.Game.Services;
 using Microsoft.Extensions.Logging;
+using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
@@ -16,13 +17,11 @@ namespace Acorn.Net.PacketHandlers.Trade;
 [RequiresCharacter]
 public class TradeAgreeClientPacketHandler(
     ILogger<TradeAgreeClientPacketHandler> logger,
-    IInventoryService inventoryService,
+    ITradeService tradeService,
     IQuestService questService,
     AcornMetrics metrics)
     : IPacketHandler<TradeAgreeClientPacket>
 {
-    private const int MaxItemAmount = 2000000000;
-
     public async Task HandleAsync(PlayerState player, TradeAgreeClientPacket packet)
     {
         var trade = player.TradeSession;
@@ -83,42 +82,31 @@ public class TradeAgreeClientPacketHandler(
         logger.LogInformation("Trade completing between {Player} and {Partner}",
             player.Character!.Name, partner.Character!.Name);
 
-        // Collect items to exchange
-        var playerItems = playerTrade.MyItems.ToList();
-        var partnerItems = partnerTrade.MyItems.ToList();
+        // Snapshot the offers so they can be validated and swapped atomically.
+        var playerItems = playerTrade.MyItems
+            .Select(i => new TradeOffer(i.ItemId, i.Amount))
+            .ToList();
+        var partnerItems = partnerTrade.MyItems
+            .Select(i => new TradeOffer(i.ItemId, i.Amount))
+            .ToList();
 
-        // Remove items from player's inventory
-        foreach (var item in playerItems)
-        {
-            inventoryService.TryRemoveItem(player.Character!, item.ItemId, item.Amount);
-        }
+        var result = tradeService.TryCompleteTrade(
+            player.Character!, playerItems,
+            partner.Character!, partnerItems);
 
-        // Remove items from partner's inventory
-        foreach (var item in partnerItems)
+        if (!result.Success)
         {
-            inventoryService.TryRemoveItem(partner.Character, item.ItemId, item.Amount);
-        }
+            // The trade is no longer valid (missing items / over weight). Abort it
+            // without moving any items and reset both players' agreement.
+            logger.LogWarning("Trade between {Player} and {Partner} aborted: {Reason}",
+                player.Character!.Name, partner.Character!.Name, result.Status);
 
-        // Add partner's items to player
-        foreach (var item in partnerItems)
-        {
-            var currentAmount = inventoryService.GetItemAmount(player.Character!, item.ItemId);
-            var canAdd = Math.Min(item.Amount, MaxItemAmount - currentAmount);
-            if (canAdd > 0)
-            {
-                inventoryService.TryAddItem(player.Character!, item.ItemId, canAdd);
-            }
-        }
+            playerTrade.IAccepted = false;
+            partnerTrade.IAccepted = false;
 
-        // Add player's items to partner
-        foreach (var item in playerItems)
-        {
-            var currentAmount = inventoryService.GetItemAmount(partner.Character, item.ItemId);
-            var canAdd = Math.Min(item.Amount, MaxItemAmount - currentAmount);
-            if (canAdd > 0)
-            {
-                inventoryService.TryAddItem(partner.Character, item.ItemId, canAdd);
-            }
+            await player.Send(new TradeSpecServerPacket { Agree = false });
+            await partner.Send(new TradeSpecServerPacket { Agree = false });
+            return;
         }
 
         // Build final trade data packets
@@ -165,17 +153,31 @@ public class TradeAgreeClientPacketHandler(
             TradeData = partnerTradeData
         });
 
-        // Show trade emote to nearby players (optional)
-        // Can broadcast an emote packet here if desired
+        // Show the trade emote to nearby players
+        await BroadcastTradeEmote(player);
+        await BroadcastTradeEmote(partner);
+
+        // Re-evaluate quest rules now that inventories have changed
+        await questService.CheckQuestRules(player);
+        await questService.CheckQuestRules(partner);
 
         metrics.TradesCompleted.Add(1);
 
         logger.LogInformation("Trade completed between {Player} and {Partner}",
             player.Character!.Name, partner.Character.Name);
-
-        // Inventory contents changed for both players - re-check quest rules
-        await questService.CheckQuestRules(player);
-        await questService.CheckQuestRules(partner);
     }
 
+    private static Task BroadcastTradeEmote(PlayerState player)
+    {
+        if (player.CurrentMap is null)
+        {
+            return Task.CompletedTask;
+        }
+
+        return player.CurrentMap.BroadcastPacket(new EmotePlayerServerPacket
+        {
+            PlayerId = player.SessionId,
+            Emote = Emote.Trade
+        }, player);
+    }
 }

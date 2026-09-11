@@ -35,6 +35,12 @@ public class ItemDropClientPacketHandler(
 
     public async Task HandleAsync(PlayerState player, ItemDropClientPacket packet)
     {
+        // Block dropping items while trading (mirrors eoserv Item.cpp)
+        if (player.IsTrading)
+        {
+            return;
+        }
+
         // eoserv: 255/255 means "drop at the player's current tile" instead of a target tile.
         var dropAtPlayer = packet.Coords.X == DropAtPlayerSentinel && packet.Coords.Y == DropAtPlayerSentinel;
 
