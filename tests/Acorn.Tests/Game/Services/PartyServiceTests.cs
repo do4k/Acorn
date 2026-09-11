@@ -130,6 +130,7 @@ public class PartyServiceTests
             Substitute.For<IMapBroadcastService>(),
             Substitute.For<IMapController>(),
             Substitute.For<INpcController>(),
+            Substitute.For<IMapTileService>(),
             Substitute.For<IPaperdollService>(),
             playerRecoverRate: 90,
             isArenaEnabled: false,

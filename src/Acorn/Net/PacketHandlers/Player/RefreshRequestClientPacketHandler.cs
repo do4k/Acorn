@@ -13,7 +13,7 @@ public class RefreshRequestClientPacketHandler : IPacketHandler<RefreshRequestCl
         {
             Nearby = playerState.CurrentMap switch
             {
-                { } map => map.AsNearbyInfo(),
+                { } map => map.AsNearbyInfo(playerState),
                 _ => new NearbyInfo()
             }
         });

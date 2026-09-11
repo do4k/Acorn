@@ -131,6 +131,7 @@ internal static class MapTestData
             Substitute.For<IMapBroadcastService>(),
             Substitute.For<IMapController>(),
             npcController,
+            Substitute.For<IMapTileService>(),
             Substitute.For<IPaperdollService>(),
             playerRecoverRate: 90,
             isArenaEnabled: false,

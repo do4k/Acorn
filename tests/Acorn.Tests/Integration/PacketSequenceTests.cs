@@ -123,7 +123,8 @@ public class PacketSequenceTests : IClassFixture<TestServerFixture>
     {
         // Wait for the world to quiesce so a prior session still being removed by an
         // asynchronous disconnect cleanup can't skew the count.
-        await WaitUntilAsync(() => _fixture.OnlinePlayerCount == 0, TimeSpan.FromSeconds(30));
+        await WaitForNoPlayersAsync();
+        var baseline = _fixture.OnlinePlayerCount;
 
         EoTestClient client;
         try
@@ -137,7 +138,12 @@ public class PacketSequenceTests : IClassFixture<TestServerFixture>
         }
 
         await EnterGameAsync(client);
+        // Poll rather than assert immediately: the enter-game packet can reach the client
+        // before the world-state count is observable under load.
+        await WaitUntilAsync(() => _fixture.OnlinePlayerCount >= baseline + 1,
+            TimeSpan.FromSeconds(30));
         var connected = _fixture.OnlinePlayerCount;
+        connected.Should().Be(baseline + 1);
 
         await client.DisposeAsync();
         await WaitUntilAsync(() => _fixture.OnlinePlayerCount == connected - 1,
@@ -149,8 +155,12 @@ public class PacketSequenceTests : IClassFixture<TestServerFixture>
 
     // --- Flow helpers ---
 
-    private static async Task<EoTestClient> LoginAndCreateAsync(int tcpPort, string prefix)
+    private async Task<EoTestClient> LoginAndCreateAsync(int tcpPort, string prefix)
     {
+        // Ensure no player from a previous test is still connected: otherwise the server may
+        // send unsolicited view/removal packets that don't belong to this test's flow.
+        await WaitForNoPlayersAsync();
+
         var client = await EoTestClient.ConnectTcpAsync(tcpPort);
 
         await client.InitAsync();
@@ -221,6 +231,18 @@ public class PacketSequenceTests : IClassFixture<TestServerFixture>
         }
 
         throw new TimeoutException("Did not receive expected packet within the timeout");
+    }
+
+    private async Task WaitForNoPlayersAsync()
+    {
+        // Best-effort: disconnect cleanup is asynchronous, so give the world a moment
+        // to drain before connecting. Never fail the test if a prior session is still
+        // being torn down - each connection now has its own DI scope/DbContext (#76).
+        var deadline = DateTime.UtcNow.AddSeconds(30);
+        while (_fixture.OnlinePlayerCount > 0 && DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(25);
+        }
     }
 
     private static async Task WaitUntilAsync(Func<bool> condition, TimeSpan timeout)

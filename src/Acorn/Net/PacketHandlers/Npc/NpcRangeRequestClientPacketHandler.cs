@@ -11,10 +11,15 @@ public class NpcRangeRequestClientPacketHandler : IPacketHandler<NpcRangeRequest
     public async Task HandleAsync(PlayerState playerState,
         NpcRangeRequestClientPacket packet)
     {
+        if (playerState.CurrentMap is null)
+        {
+            return;
+        }
+
+        // Only return the NPCs the client actually asked for (and that are still in view).
         await playerState.Send(new NpcAgreeServerPacket
         {
-            Npcs = playerState.CurrentMap!.AsNpcMapInfo()
+            Npcs = playerState.CurrentMap.AsNearbyInfo(playerState, [], packet.NpcIndexes).Npcs
         });
     }
-
 }
