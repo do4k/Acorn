@@ -119,3 +119,12 @@ csharp_space_around_binary_operators = before_and_after
 # Attribute formatting - place each attribute on separate lines
 csharp_style_attributes_on_same_line = false:warning
 csharp_prefer_separate_attribute_groups = true:warning
+
+# File organization: one top-level type per file.
+# Enforced by StyleCop.Analyzers:
+#   SA1402 = file may only contain a single type
+#   SA1649 = file name must match the first type name
+# Kept at "suggestion" until the existing multi-type files are split up; raise to
+# warning/error afterwards. Add the StyleCop.Analyzers package to activate these.
+dotnet_diagnostic.SA1402.severity = suggestion
+dotnet_diagnostic.SA1649.severity = suggestion
