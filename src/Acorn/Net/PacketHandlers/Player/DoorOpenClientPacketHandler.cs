@@ -1,33 +1,20 @@
-using Acorn.Extensions;
 using Acorn.Net;
 using Acorn.Net.PacketHandlers;
-using Acorn.World;
+using Acorn.World.Services.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
-using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 [RequiresCharacter]
-public class DoorOpenClientPacketHandler : IPacketHandler<DoorOpenClientPacket>
+public class DoorOpenClientPacketHandler(IDoorService doorService) : IPacketHandler<DoorOpenClientPacket>
 {
-    public DoorOpenClientPacketHandler(IWorldQueries world)
-    {
-    }
-
     public async Task HandleAsync(PlayerState playerState, DoorOpenClientPacket packet)
     {
-        var doorCoords = playerState.Character?.NextCoords();
-        if (doorCoords == null)
+        if (playerState.CurrentMap is null || playerState.Character is null)
         {
             return;
         }
 
-        await playerState.CurrentMap!.BroadcastPacket(new DoorOpenServerPacket
-        {
-            Coords = doorCoords
-        });
-
-        // Register door for auto-close tracking
-        playerState.CurrentMap!.RegisterOpenedDoor(doorCoords);
+        // Use the coordinates the client actually sent rather than the player's facing tile.
+        await doorService.OpenDoorAsync(playerState, packet.Coords, playerState.CurrentMap);
     }
-
 }

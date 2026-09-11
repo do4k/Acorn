@@ -24,9 +24,17 @@ public interface IMapTileService
     bool IsTileWalkable(Emf map, Coords coords);
 
     /// <summary>
-    ///     Calculate Manhattan distance between two coordinates.
+    ///     Calculate Chebyshev distance between two coordinates (the number of
+    ///     king-moves between them, i.e. <c>max(|dx|, |dy|)</c>). This matches the
+    ///     client's notion of range for rendering and interactions.
     /// </summary>
     int GetDistance(Coords a, Coords b);
+
+    /// <summary>
+    ///     Calculate Manhattan distance between two coordinates
+    ///     (<c>|dx| + |dy|</c>). Used for adjacency checks such as chests and doors.
+    /// </summary>
+    int GetManhattanDistance(Coords a, Coords b);
 
     /// <summary>
     ///     Check if two coordinates are within client render range.

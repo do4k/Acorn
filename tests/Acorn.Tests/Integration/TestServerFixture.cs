@@ -27,6 +27,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Data;
 using Moffat.EndlessOnline.SDK.Packet;
+using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
 using Refit;
@@ -61,6 +62,12 @@ public class TestServerFixture : IAsyncLifetime
     /// </summary>
     public Acorn.Net.PlayerState? GetPlayer(int sessionId) =>
         _host?.Services.GetRequiredService<WorldState>().GetPlayer(sessionId);
+
+    /// <summary>
+    ///     Looks up a loaded map's server-side state so tests can inspect chests, doors, etc.
+    /// </summary>
+    public Acorn.World.Map.MapState? GetMap(int mapId) =>
+        _host?.Services.GetRequiredService<WorldState>().MapForId(mapId);
 
     public async Task InitializeAsync()
     {
@@ -348,9 +355,59 @@ public class TestServerFixture : IAsyncLifetime
                     {
                         new() { X = 6, TileSpec = MapTileSpec.ChairAll }
                     }
+                },
+                // A chest for map interaction tests, directly left of the spawn point.
+                new()
+                {
+                    Y = 6,
+                    Tiles = new List<MapTileSpecRowTile>
+                    {
+                        new() { X = 5, TileSpec = MapTileSpec.Chest }
+                    }
+                },
+                // A second chest far from spawn, used to verify range rejection.
+                new()
+                {
+                    Y = 15,
+                    Tiles = new List<MapTileSpecRowTile>
+                    {
+                        new() { X = 15, TileSpec = MapTileSpec.Chest }
+                    }
                 }
             },
-            WarpRows = new List<MapWarpRow>(),
+            WarpRows = new List<MapWarpRow>
+            {
+                // Doors above the spawn point: (6,5) is unlocked, (5,5) is locked.
+                new()
+                {
+                    Y = 5,
+                    Tiles = new List<MapWarpRowTile>
+                    {
+                        new()
+                        {
+                            X = 5,
+                            Warp = new MapWarp
+                            {
+                                DestinationMap = 0,
+                                DestinationCoords = new Coords { X = 0, Y = 0 },
+                                LevelRequired = 0,
+                                Door = 2
+                            }
+                        },
+                        new()
+                        {
+                            X = 6,
+                            Warp = new MapWarp
+                            {
+                                DestinationMap = 0,
+                                DestinationCoords = new Coords { X = 0, Y = 0 },
+                                LevelRequired = 0,
+                                Door = 1
+                            }
+                        }
+                    }
+                }
+            },
             GraphicLayers = Enumerable.Range(0, 9)
                 .Select(_ => new MapGraphicLayer { GraphicRows = new List<MapGraphicRow>() })
                 .ToList(),

@@ -1,13 +1,14 @@
 using System.Collections.Concurrent;
 using Acorn.Database.Repository;
 using Acorn.Game.Services;
+using Acorn.Net.PacketHandlers;
 using Acorn.World.Map;
+using Acorn.World.Services.Map;
 using Microsoft.Extensions.Logging;
-using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using Acorn.Net.PacketHandlers;
+using Moffat.EndlessOnline.SDK.Protocol.Pub;
 
 namespace Acorn.Net.PacketHandlers.Chest;
 
@@ -15,13 +16,28 @@ namespace Acorn.Net.PacketHandlers.Chest;
 public class ChestAddClientPacketHandler(
     ILogger<ChestAddClientPacketHandler> logger,
     IDataFileRepository dataFileRepository,
-    IInventoryService inventoryService)
+    IInventoryService inventoryService,
+    IChestService chestService)
     : IPacketHandler<ChestAddClientPacket>
 {
+    /// <summary>Maximum amount of a single item stack a chest may hold (matches eoserv's MaxChest).</summary>
     private const int MaxChestItem = 2000000000;
 
     public async Task HandleAsync(PlayerState player, ChestAddClientPacket packet)
     {
+        if (player.Character is null || player.CurrentMap is null)
+        {
+            return;
+        }
+
+        // Trading players must not mutate chest contents.
+        if (player.TradeSession is not null)
+        {
+            logger.LogWarning("Player {Character} attempted to add to a chest while trading",
+                player.Character.Name);
+            return;
+        }
+
         var itemId = packet.AddItem.Id;
         var requestedAmount = packet.AddItem.Amount;
 
@@ -30,64 +46,76 @@ public class ChestAddClientPacketHandler(
             return;
         }
 
-        // Check if player has a chest open
-        if (player.InteractingChestCoords == null)
+        var chestCoords = packet.Coords;
+        var map = player.CurrentMap;
+
+        if (!chestService.IsInBounds(map, chestCoords) || !chestService.IsChestTile(map, chestCoords))
         {
-            logger.LogWarning("Player {Character} attempted to add to chest without opening one",
-                player.Character!.Name);
+            logger.LogWarning("Player {Character} attempted to add to a non-chest tile ({X}, {Y})",
+                player.Character.Name, chestCoords.X, chestCoords.Y);
             return;
         }
 
-        var chestCoords = player.InteractingChestCoords;
-
-        // Check if player is still in range
-        var playerCoords = new Coords { X = player.Character!.X, Y = player.Character!.Y };
-        var distance = Math.Max(Math.Abs(playerCoords.X - chestCoords.X), Math.Abs(playerCoords.Y - chestCoords.Y));
-        if (distance > 1)
+        if (!chestService.IsAdjacent(player.Character, chestCoords))
         {
-            logger.LogWarning("Player {Character} is too far from chest", player.Character!.Name);
+            logger.LogWarning("Player {Character} is too far from chest ({X}, {Y})",
+                player.Character.Name, chestCoords.X, chestCoords.Y);
             return;
         }
 
-        // Get chest
-        if (!player.CurrentMap!.Chests.TryGetValue(chestCoords, out var chest))
+        var itemData = dataFileRepository.Eif.GetItem(itemId);
+        if (itemData is null)
         {
-            logger.LogWarning("Chest not found at ({X}, {Y})", chestCoords.X, chestCoords.Y);
             return;
         }
 
-        // Check chest capacity
-        if (chest.Items.Count >= chest.MaxSlots)
+        // Lore items can never be stored in a chest.
+        if (itemData.Special == ItemSpecial.Lore)
         {
-            logger.LogDebug("Chest is full");
+            logger.LogDebug("Player {Character} tried to store Lore item {ItemId} in a chest",
+                player.Character.Name, itemId);
+            return;
+        }
+
+        var chest = chestService.GetOrCreateChest(map, chestCoords);
+        var existingItem = chest.Items.FirstOrDefault(i => i.ItemId == itemId);
+        var existingAmount = existingItem?.Amount ?? 0;
+
+        // Slot cap only applies when a new stack would be created.
+        if (existingItem is null && chest.Items.Count >= chest.MaxSlots)
+        {
+            logger.LogDebug("Chest at ({X}, {Y}) is full", chestCoords.X, chestCoords.Y);
             await player.Send(new ChestSpecServerPacket());
             return;
         }
 
-        // Get amount player has
-        var playerAmount = inventoryService.GetItemAmount(player.Character!, itemId);
-        var amount = Math.Min(requestedAmount, playerAmount);
+        // Per-item cap (matches eoserv: amount = min(requested, MaxChest - existing)).
+        var capacity = MaxChestItem - existingAmount;
+        if (capacity <= 0)
+        {
+            await player.Send(new ChestSpecServerPacket());
+            return;
+        }
 
-        if (amount == 0)
+        var playerAmount = inventoryService.GetItemAmount(player.Character, itemId);
+        var amount = Math.Min(requestedAmount, Math.Min(playerAmount, capacity));
+
+        if (amount <= 0)
         {
             return;
         }
 
-        // Remove from player inventory
-        if (!inventoryService.TryRemoveItem(player.Character!, itemId, amount))
+        if (!inventoryService.TryRemoveItem(player.Character, itemId, amount))
         {
             return;
         }
 
-        // Add to chest
-        var existingItem = chest.Items.FirstOrDefault(i => i.ItemId == itemId);
-        if (existingItem != null)
+        if (existingItem is not null)
         {
-            // Update existing - need to rebuild the bag
-            var newItems = new ConcurrentBag<ChestItem>(
-                chest.Items.Where(i => i.ItemId != itemId)
-            );
-            newItems.Add(new ChestItem(itemId, existingItem.Amount + amount));
+            var newItems = new ConcurrentBag<ChestItem>(chest.Items.Where(i => i.ItemId != itemId))
+            {
+                new(itemId, existingAmount + amount)
+            };
             chest.Items = newItems;
         }
         else
@@ -96,49 +124,39 @@ public class ChestAddClientPacketHandler(
         }
 
         logger.LogInformation("Player {Character} added {Amount}x item {ItemId} to chest",
-            player.Character!.Name, amount, itemId);
+            player.Character.Name, amount, itemId);
 
-        // Build chest items list
-        var chestItems = chest.Items.Select(item => new ThreeItem
-        {
-            Id = item.ItemId,
-            Amount = item.Amount
-        }).ToList();
+        var chestItems = chestService.ToThreeItems(chest);
 
-        // Send response to player
         await player.Send(new ChestReplyServerPacket
         {
             AddedItemId = itemId,
-            RemainingAmount = inventoryService.GetItemAmount(player.Character!, itemId),
+            RemainingAmount = inventoryService.GetItemAmount(player.Character, itemId),
             Weight = new Weight
             {
                 Current = CalculateCurrentWeight(player),
-                Max = player.Character!.MaxWeight
+                Max = player.Character.MaxWeight
             },
             Items = chestItems
         });
 
-        // Notify other players near the chest
+        // Notify nearby observers (not just players who have this chest open).
         var agreePacket = new ChestAgreeServerPacket { Items = chestItems };
-        foreach (var otherPlayer in player.CurrentMap!.Players.Values.Where(p => p != player))
+        foreach (var observer in chestService.GetNearbyObservers(map, chestCoords, player))
         {
-            if (otherPlayer.Character == null) continue;
-
-            var otherCoords = new Coords { X = otherPlayer.Character.X, Y = otherPlayer.Character.Y };
-            var otherDistance = Math.Max(Math.Abs(otherCoords.X - chestCoords.X), Math.Abs(otherCoords.Y - chestCoords.Y));
-            if (otherDistance <= 1 && otherPlayer.InteractingChestCoords == chestCoords)
-            {
-                await otherPlayer.Send(agreePacket);
-            }
+            await observer.Send(agreePacket);
         }
     }
 
     private int CalculateCurrentWeight(PlayerState player)
     {
-        if (player.Character == null) return 0;
+        if (player.Character == null)
+        {
+            return 0;
+        }
 
         var totalWeight = 0;
-        foreach (var item in player.Character!.Inventory.Items)
+        foreach (var item in player.Character.Inventory.Items)
         {
             var itemData = dataFileRepository.Eif.GetItem(item.Id);
             if (itemData != null)
@@ -149,5 +167,4 @@ public class ChestAddClientPacketHandler(
 
         return totalWeight;
     }
-
 }
