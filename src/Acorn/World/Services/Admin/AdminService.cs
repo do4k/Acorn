@@ -1,7 +1,11 @@
+using Acorn.Database.Models;
+using Acorn.Database.Repository;
 using Acorn.Net;
+using Acorn.Net.PacketHandlers.Board;
 using Acorn.Net.Services;
 using Acorn.Options;
 using Acorn.World.Services.Player;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Protocol;
@@ -15,8 +19,13 @@ public class AdminService(
     IPlayerController playerController,
     INotificationService notifications,
     IOptions<ServerOptions> serverOptions,
+    IServiceScopeFactory scopeFactory,
     ILogger<AdminService> logger) : IAdminService
 {
+    // Minimum admin level that receives help requests and player reports.
+    // Matches the threshold used for admin chat (TalkAdminClientPacketHandler).
+    private const AdminLevel MinRequestRecipientLevel = AdminLevel.Guardian;
+
     // Jail location - falls back to the rescue/spawn location when not explicitly configured
     private int JailMap => serverOptions.Value.Jail?.Map ?? serverOptions.Value.Rescue?.Map ?? serverOptions.Value.NewCharacter.Map;
     private int JailX => serverOptions.Value.Jail?.X ?? serverOptions.Value.Rescue?.X ?? serverOptions.Value.NewCharacter.X;
@@ -189,6 +198,94 @@ public class AdminService(
         await notifications.SystemMessage(admin, $"Player '{targetName}' has been unmuted.");
     }
 
+    public async Task SendHelpRequestAsync(PlayerState sender, string message)
+    {
+        if (sender.Character is null)
+        {
+            return;
+        }
+
+        var playerName = sender.Character.Name ?? string.Empty;
+        logger.LogInformation("Player {Character} requested admin help: {Message}", playerName, message);
+
+        // Any player may ask for help; deliver the request to online admins as an
+        // AdminInteract/Reply (Message) packet so the client shows the help popup.
+        await BroadcastToAdmins(new AdminInteractReplyServerPacket
+        {
+            MessageType = AdminMessageType.Message,
+            MessageTypeData = new AdminInteractReplyServerPacket.MessageTypeDataMessage
+            {
+                PlayerName = playerName,
+                Message = message
+            }
+        });
+
+        await notifications.SystemMessage(sender, "Your help request has been sent to the online admins.");
+    }
+
+    public async Task SendReportAsync(PlayerState sender, string reportee, string message)
+    {
+        if (sender.Character is null)
+        {
+            return;
+        }
+
+        var reporter = sender.Character.Name ?? string.Empty;
+        logger.LogInformation("Player {Character} reported {Reportee}: {Message}", reporter, reportee, message);
+
+        // Deliver the report to online admins as an AdminInteract/Reply (Report) packet.
+        await BroadcastToAdmins(new AdminInteractReplyServerPacket
+        {
+            MessageType = AdminMessageType.Report,
+            MessageTypeData = new AdminInteractReplyServerPacket.MessageTypeDataReport
+            {
+                PlayerName = reporter,
+                Message = message,
+                ReporteeName = reportee
+            }
+        });
+
+        await PersistReportAsync(reporter, reportee, message);
+
+        await notifications.SystemMessage(sender, $"Your report about {reportee} has been submitted.");
+    }
+
+    private async Task BroadcastToAdmins(IPacket packet)
+    {
+        var sends = world.GetAllPlayers()
+            .Where(p => p.Character is not null && p.Character.Admin >= MinRequestRecipientLevel)
+            .Select(p => p.Send(packet));
+
+        await Task.WhenAll(sends);
+    }
+
+    private async Task PersistReportAsync(string reporter, string reportee, string message)
+    {
+        try
+        {
+            using var scope = scopeFactory.CreateScope();
+            var boardRepository = scope.ServiceProvider.GetRequiredService<IBoardRepository>();
+
+            await boardRepository.CreatePostAsync(new BoardPost
+            {
+                BoardId = BoardRules.AdminBoardId,
+                CharacterName = Truncate(reporter, 16),
+                Subject = Truncate($"[Report] {reporter} reports: {reportee}", 64),
+                Body = Truncate(message, 2048)
+            });
+        }
+        catch (Exception e)
+        {
+            // Persisting is best effort - never let a DB failure break the live notification.
+            logger.LogError(e, "Failed to persist report from {Reporter} about {Reportee}", reporter, reportee);
+        }
+    }
+
+    private static string Truncate(string value, int maxLength)
+    {
+        return value.Length <= maxLength ? value : value[..maxLength];
+    }
+
     public async Task GetPlayerInfoAsync(PlayerState admin, string targetName)
     {
         if (!RequireAdminLevel(admin, AdminLevel.LightGuide))
@@ -332,28 +429,28 @@ public class AdminService(
         logger.LogInformation("Admin {Admin} is now {State}",
             admin.Character.Name, admin.Character.Hidden ? "hidden" : "visible");
 
-        if (admin.Character.Hidden)
+        if (admin.CurrentMap is not null)
         {
-            // Remove from other players' view
-            if (admin.CurrentMap is not null)
+            if (admin.Character.Hidden)
             {
-                await admin.CurrentMap.NotifyLeave(admin);
-                // Re-add to map players list so they can still see others
-                admin.CurrentMap.Players.TryAdd(admin.SessionId, admin);
-                admin.CurrentMap = admin.CurrentMap;
-            }
+                // AdminInteract/Remove tells nearby clients this player has disappeared.
+                await admin.CurrentMap.BroadcastPacket(new AdminInteractRemoveServerPacket
+                {
+                    PlayerId = admin.SessionId
+                });
 
-            await notifications.SystemMessage(admin, "You are now hidden.");
-        }
-        else
-        {
-            // Show to other players
-            if (admin.CurrentMap is not null)
+                await notifications.SystemMessage(admin, "You are now hidden.");
+            }
+            else
             {
-                await admin.CurrentMap.NotifyAppear(admin, WarpEffect.Admin);
-            }
+                // AdminInteract/Agree tells nearby clients this player has appeared.
+                await admin.CurrentMap.BroadcastPacket(new AdminInteractAgreeServerPacket
+                {
+                    PlayerId = admin.SessionId
+                });
 
-            await notifications.SystemMessage(admin, "You are now visible.");
+                await notifications.SystemMessage(admin, "You are now visible.");
+            }
         }
     }
 

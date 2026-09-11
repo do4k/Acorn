@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Sockets;
 using Acorn.Database;
+using Acorn.Database.Models;
 using Acorn.Database.Repository;
 using Acorn.Extensions;
 using Acorn.Game.Mappers;
@@ -75,6 +76,17 @@ public class TestServerFixture : IAsyncLifetime
     /// </summary>
     public Acorn.World.Map.MapState? GetMap(int mapId) =>
         _host?.Services.GetRequiredService<WorldState>().MapForId(mapId);
+
+    /// <summary>
+    ///     Reads persisted board posts so tests can assert that reports/help requests
+    ///     were stored to the admin board.
+    /// </summary>
+    public async Task<IReadOnlyList<BoardPost>> GetBoardPostsAsync(int boardId, int limit = 50)
+    {
+        using var scope = _host!.Services.CreateScope();
+        var repository = scope.ServiceProvider.GetRequiredService<IBoardRepository>();
+        return (await repository.GetPostsAsync(boardId, limit)).ToList();
+    }
 
     public async Task InitializeAsync()
     {

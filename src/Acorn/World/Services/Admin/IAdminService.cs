@@ -31,6 +31,17 @@ public interface IAdminService
     /// <summary>Unmute a player, restoring chat.</summary>
     Task UnmutePlayerAsync(PlayerState admin, string targetName);
 
+    /// <summary>
+    ///     Relay a player's help request to online admins and confirm receipt to the sender.
+    /// </summary>
+    Task SendHelpRequestAsync(PlayerState sender, string message);
+
+    /// <summary>
+    ///     Relay a player report to online admins, persist it to the admin board, and
+    ///     confirm receipt to the sender.
+    /// </summary>
+    Task SendReportAsync(PlayerState sender, string reportee, string message);
+
     /// <summary>Send player info (stats, location) to the requesting admin.</summary>
     Task GetPlayerInfoAsync(PlayerState admin, string targetName);
 
