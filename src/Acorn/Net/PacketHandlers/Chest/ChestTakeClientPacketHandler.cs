@@ -26,8 +26,8 @@ public class ChestTakeClientPacketHandler(
             return;
         }
 
-        // Trading players must not mutate chest contents.
-        if (player.TradeSession is not null)
+        // Block chest withdrawals while trading (mirrors eoserv Chest.cpp)
+        if (player.IsTrading)
         {
             logger.LogWarning("Player {Character} attempted to take from a chest while trading",
                 player.Character.Name);

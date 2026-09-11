@@ -26,6 +26,12 @@ public class LockerAddClientPacketHandler(
 
     public async Task HandleAsync(PlayerState player, LockerAddClientPacket packet)
     {
+        // Block locker deposits while trading (mirrors eoserv Locker.cpp)
+        if (player.IsTrading)
+        {
+            return;
+        }
+
         var itemId = packet.DepositItem.Id;
         var requestedAmount = packet.DepositItem.Amount;
 

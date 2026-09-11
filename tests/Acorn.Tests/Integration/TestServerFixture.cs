@@ -180,6 +180,7 @@ public class TestServerFixture : IAsyncLifetime
                     .AddSingleton<IBankService, BankService>()
                     .AddSingleton<IPaperdollService, PaperdollService>()
                     .AddSingleton<IWeightCalculator, WeightCalculator>()
+                    .AddSingleton<ITradeService, TradeService>()
                     .AddSingleton<ICharacterMapper, CharacterMapper>()
                     .AddSingleton<DropFileTextLoader>()
                     .AddSingleton<INotificationService, NotificationService>()

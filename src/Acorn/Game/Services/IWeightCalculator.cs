@@ -14,6 +14,12 @@ public interface IWeightCalculator
     int GetCurrentWeight(Character character, Eif items);
 
     /// <summary>
+    ///     Calculates the total weight of a given quantity of an item.
+    ///     Returns 0 when the item is not present in the item file.
+    /// </summary>
+    int GetWeight(Eif items, int itemId, int amount);
+
+    /// <summary>
     ///     Checks if adding an item would exceed weight limit.
     /// </summary>
     bool CanCarry(Character character, Eif items, int itemId, int amount = 1);

@@ -30,8 +30,8 @@ public class ChestAddClientPacketHandler(
             return;
         }
 
-        // Trading players must not mutate chest contents.
-        if (player.TradeSession is not null)
+        // Block chest deposits while trading (mirrors eoserv Chest.cpp)
+        if (player.IsTrading)
         {
             logger.LogWarning("Player {Character} attempted to add to a chest while trading",
                 player.Character.Name);

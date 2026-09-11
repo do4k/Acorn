@@ -24,6 +24,12 @@ internal class LockerBuyClientPacketHandler(
 
     public async Task HandleAsync(PlayerState player, LockerBuyClientPacket packet)
     {
+        // Block locker purchases while trading (mirrors eoserv Locker.cpp)
+        if (player.IsTrading)
+        {
+            return;
+        }
+
         var npc = NpcInteractionHelper.ValidateInteraction(player, NpcType.Bank, logger);
         if (npc is null) return;
 

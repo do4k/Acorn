@@ -28,6 +28,12 @@ public class PaperdollRemoveClientPacketHandler : IPacketHandler<PaperdollRemove
 
     public async Task HandleAsync(PlayerState playerState, PaperdollRemoveClientPacket packet)
     {
+        // Block unequipping while trading (mirrors eoserv Paperdoll.cpp)
+        if (playerState.IsTrading)
+        {
+            return;
+        }
+
         var character = playerState.Character!;
 
         // Use PlayerController to handle unequipping (includes stat recalculation)

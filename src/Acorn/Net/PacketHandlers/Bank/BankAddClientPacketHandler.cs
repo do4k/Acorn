@@ -19,6 +19,12 @@ public class BankAddClientPacketHandler(
 
     public async Task HandleAsync(PlayerState player, BankAddClientPacket packet)
     {
+        // Block bank deposits while trading (mirrors eoserv Bank.cpp)
+        if (player.IsTrading)
+        {
+            return;
+        }
+
         var requestedAmount = packet.Amount;
 
         if (requestedAmount <= 0)

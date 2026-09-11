@@ -37,6 +37,12 @@ public class ItemUseClientPacketHandler(
 {
     public async Task HandleAsync(PlayerState player, ItemUseClientPacket packet)
     {
+        // Block item use while trading (mirrors eoserv Item.cpp)
+        if (player.IsTrading)
+        {
+            return;
+        }
+
         // Validate player has the item
         if (!inventoryService.HasItem(player.Character!, packet.ItemId))
         {

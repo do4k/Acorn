@@ -31,6 +31,12 @@ public class PaperdollAddClientPacketHandler : IPacketHandler<PaperdollAddClient
 
     public async Task HandleAsync(PlayerState playerState, PaperdollAddClientPacket packet)
     {
+        // Block equipping while trading (mirrors eoserv Paperdoll.cpp)
+        if (playerState.IsTrading)
+        {
+            return;
+        }
+
         var character = playerState.Character!;
 
         // Check if the player has the item
