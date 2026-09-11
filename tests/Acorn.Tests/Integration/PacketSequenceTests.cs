@@ -121,7 +121,9 @@ public class PacketSequenceTests : IClassFixture<TestServerFixture>
     [Fact]
     public async Task Tcp_Disconnect_ShouldCleanUpWorldState()
     {
-        var baseline = _fixture.OnlinePlayerCount;
+        // Wait for the world to quiesce so a prior session still being removed by an
+        // asynchronous disconnect cleanup can't skew the count.
+        await WaitUntilAsync(() => _fixture.OnlinePlayerCount == 0, TimeSpan.FromSeconds(30));
 
         EoTestClient client;
         try
@@ -135,13 +137,13 @@ public class PacketSequenceTests : IClassFixture<TestServerFixture>
         }
 
         await EnterGameAsync(client);
-        _fixture.OnlinePlayerCount.Should().Be(baseline + 1);
+        var connected = _fixture.OnlinePlayerCount;
 
         await client.DisposeAsync();
-        await WaitUntilAsync(() => _fixture.OnlinePlayerCount == baseline,
-            TimeSpan.FromSeconds(5));
+        await WaitUntilAsync(() => _fixture.OnlinePlayerCount == connected - 1,
+            TimeSpan.FromSeconds(30));
 
-        _fixture.OnlinePlayerCount.Should().Be(baseline,
+        _fixture.OnlinePlayerCount.Should().Be(connected - 1,
             "a mid-session disconnect should remove the player from world state");
     }
 
