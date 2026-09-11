@@ -39,7 +39,8 @@ public class MapEffectService(
             effectId, coords.Count, map.Id);
     }
 
-    public async Task EffectOnPlayersAsync(MapState map, IReadOnlyList<int> playerIds, int effectId)
+    public async Task EffectOnPlayersAsync(MapState map, IReadOnlyList<int> playerIds, int effectId,
+        int? excludePlayerId = null)
     {
         if (playerIds.Count == 0)
         {
@@ -58,6 +59,7 @@ public class MapEffectService(
         // Only send to players who are in client range of any of the target players
         var tasks = map.Players.Values
             .Where(p => p.Character is not null)
+            .Where(p => p.SessionId != excludePlayerId)
             .Where(observer => playerIds.Any(targetId =>
             {
                 var target = map.Players.Values.FirstOrDefault(t => t.SessionId == targetId);

@@ -46,6 +46,25 @@ public class ServerOptions
     public bool LogPackets { get; set; } = false;
 
     /// <summary>
+    ///     Maximum distance (in tiles) a ranged attack can reach. Matches eoserv's
+    ///     RangedDistance default. Melee attacks always use a range of 1.
+    /// </summary>
+    public int RangedDistance { get; set; } = 5;
+
+    /// <summary>
+    ///     Minimum time between attacks, in milliseconds. Replaces the previously
+    ///     hard-coded 500ms cooldown.
+    /// </summary>
+    public int AttackCooldownMs { get; set; } = 500;
+
+    /// <summary>
+    ///     Whether the first hit against a full-health target is always a critical hit.
+    ///     Matches eoserv's CriticalFirstHit (default false). When false, critical hits
+    ///     only occur when attacking a target from behind or the side.
+    /// </summary>
+    public bool CriticalFirstHit { get; set; } = false;
+
+    /// <summary>
     ///     Maximum value a single base stat (Str/Int/Wis/Agi/Con/Cha) can reach.
     ///     Matches eoserv's MaxStat default.
     /// </summary>
