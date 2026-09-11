@@ -55,8 +55,8 @@ public class WarpTests : IClassFixture<TestServerFixture>
 
         await AcceptWarpAsync(client, TargetMap);
 
-        // The warp session is cleared and the player is on the target map only.
-        player.WarpSession.Should().BeNull("the warp session must be cleared after a map switch");
+        // The warp session is cleared asynchronously as the server handles Warp/Accept.
+        await WaitUntilAsync(() => player.WarpSession is null, TimeSpan.FromSeconds(10));
         _fixture.GetMap(TargetMap)!.Players.Should().ContainKey(client.PlayerId);
         _fixture.GetMap(1)!.Players.Should().NotContainKey(client.PlayerId);
     }
@@ -239,10 +239,13 @@ public class WarpTests : IClassFixture<TestServerFixture>
 
     private async Task WaitForNoPlayersAsync()
     {
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        while (!cts.IsCancellationRequested && _fixture.OnlinePlayerCount > 0)
+        // Best-effort: disconnect cleanup is asynchronous, so give the world a moment to
+        // drain before connecting. Never fail the test if a prior session is still being
+        // torn down - each connection now has its own DI scope/DbContext (#76).
+        var deadline = DateTime.UtcNow.AddSeconds(30);
+        while (_fixture.OnlinePlayerCount > 0 && DateTime.UtcNow < deadline)
         {
-            await Task.Delay(25, cts.Token);
+            await Task.Delay(25);
         }
     }
 }
