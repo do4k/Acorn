@@ -12,14 +12,11 @@ namespace Acorn.Net.PacketHandlers.StatSkill;
 public class StatSkillJunkClientPacketHandler(
     ILogger<StatSkillJunkClientPacketHandler> logger,
     IDataFileRepository dataFileRepository,
-    IStatCalculator statCalculator,
+    IStatSkillService statSkillService,
     IDbRepository<Database.Models.Character> characterRepository,
     ICharacterMapper characterMapper)
     : IPacketHandler<StatSkillJunkClientPacket>
 {
-    private const int StatPointsPerLevel = 3;
-    private const int SkillPointsPerLevel = 3;
-
     public async Task HandleAsync(PlayerState player, StatSkillJunkClientPacket packet)
     {
         if (packet.SessionId != player.SessionId)
@@ -32,23 +29,8 @@ public class StatSkillJunkClientPacketHandler(
 
         var character = player.Character!;
 
-        // Reset all base stats to 0
-        character.Str = 0;
-        character.Int = 0;
-        character.Wis = 0;
-        character.Agi = 0;
-        character.Con = 0;
-        character.Cha = 0;
-
-        // Remove all spells
-        character.Spells = new Game.Models.Spells(new System.Collections.Concurrent.ConcurrentBag<Game.Models.Spell>());
-
-        // Return all stat and skill points
-        character.StatPoints = character.Level * StatPointsPerLevel;
-        character.SkillPoints = character.Level * SkillPointsPerLevel;
-
-        // Recalculate secondary stats
-        statCalculator.RecalculateStats(character, dataFileRepository.Ecf);
+        // Reset base stats/skills and return the points earned for the level.
+        statSkillService.Reset(character, dataFileRepository.Ecf);
 
         // Save to database
         await characterRepository.UpdateAsync(characterMapper.ToDatabase(character));

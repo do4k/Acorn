@@ -50,52 +50,19 @@ public class StatSkillTakeClientPacketHandler(
 
         var character = player.Character!;
 
-        // Check if player already knows this spell
-        if (character.Spells.Items.Any(s => s.Id == spellId))
-        {
-            return;
-        }
+        // Validate every requirement (already known, gold, level, stats, prerequisites,
+        // class). Failures are no longer silent: the client expects a Reply packet.
+        var validation = SkillLearnValidator.Validate(
+            character, skill, inventoryService.GetItemAmount(character, GoldItemId));
 
-        // Check gold
-        if (inventoryService.GetItemAmount(character, GoldItemId) < skill.Price)
+        if (!validation.CanLearn)
         {
-            return;
-        }
-
-        // Check level requirement
-        if (skill.LevelRequirement > 0 && character.Level < skill.LevelRequirement)
-        {
-            return;
-        }
-
-        // Check stat requirements using adjusted stats (base + class + equipment)
-        if (character.AdjStr < skill.StrRequirement ||
-            character.AdjInt < skill.IntRequirement ||
-            character.AdjWis < skill.WisRequirement ||
-            character.AdjAgi < skill.AgiRequirement ||
-            character.AdjCon < skill.ConRequirement ||
-            character.AdjCha < skill.ChaRequirement)
-        {
-            return;
-        }
-
-        // Check skill prerequisites
-        if (skill.SkillRequirements.Any(req => req > 0 && !character.Spells.Items.Any(s => s.Id == req)))
-        {
-            return;
-        }
-
-        // Check class requirement
-        if (skill.ClassRequirement > 0 && character.Class != skill.ClassRequirement)
-        {
-            await player.Send(new StatSkillReplyServerPacket
+            // Already knowing the spell is a no-op, not a user-facing failure.
+            if (validation.Failure != SkillLearnFailure.AlreadyKnown)
             {
-                ReplyCode = SkillMasterReply.WrongClass,
-                ReplyCodeData = new StatSkillReplyServerPacket.ReplyCodeDataWrongClass
-                {
-                    ClassId = skill.ClassRequirement
-                }
-            });
+                await player.Send(StatSkillPacketMapper.ToWrongClassReply(validation.WrongClassId));
+            }
+
             return;
         }
 

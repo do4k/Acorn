@@ -45,5 +45,28 @@ public class ServerOptions
     /// </summary>
     public bool LogPackets { get; set; } = false;
 
+    /// <summary>
+    ///     Maximum value a single base stat (Str/Int/Wis/Agi/Con/Cha) can reach.
+    ///     Matches eoserv's MaxStat default.
+    /// </summary>
+    public int MaxStat { get; set; } = 10000;
+
+    /// <summary>
+    ///     Maximum level a single learned skill/spell can reach.
+    ///     Matches eoserv's MaxSkillLevel default.
+    /// </summary>
+    public int MaxSkillLevel { get; set; } = 100;
+
+    /// <summary>
+    ///     Number of stat points granted per character level.
+    /// </summary>
+    public int StatPerLevel { get; set; } = 3;
+
+    /// <summary>
+    ///     Number of skill points granted per character level.
+    ///     Matches eoserv's SkillPerLevel default.
+    /// </summary>
+    public int SkillPerLevel { get; set; } = 4;
+
     public static string SectionName => "Server";
 }
