@@ -63,7 +63,12 @@ public class SitStandTests : IClassFixture<TestServerFixture>
         reply.Should().NotBeNull();
         reply!.PlayerId.Should().Be(client.PlayerId);
 
-        _fixture.GetPlayer(client.PlayerId)!.Character!.SitState.Should().Be(SitState.Stand);
+        var character = _fixture.GetPlayer(client.PlayerId)!.Character!;
+        character.SitState.Should().Be(SitState.Stand);
+        character.X.Should().Be(StartX, "standing up from the floor does not move the player");
+        character.Y.Should().Be(StartY);
+        reply.Coords.X.Should().Be(StartX);
+        reply.Coords.Y.Should().Be(StartY);
     }
 
     [Fact]
