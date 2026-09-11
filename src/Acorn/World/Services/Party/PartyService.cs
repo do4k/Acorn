@@ -1,6 +1,11 @@
 using System.Collections.Concurrent;
+using Acorn.Database.Repository;
+using Acorn.Extensions;
 using Acorn.Net;
+using Acorn.Options;
+using Acorn.World.Services.Map;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
@@ -11,9 +16,13 @@ namespace Acorn.World.Services.Party;
 /// </summary>
 public class PartyService(
     WorldState worldState,
+    IFormulaService formulaService,
+    IDataFileRepository dataFiles,
+    IOptions<PartyOptions> partyOptions,
+    IMapTileService tileService,
     ILogger<PartyService> logger) : IPartyService
 {
-    private const int MaxPartySize = 9;
+    private readonly PartyOptions _options = partyOptions.Value;
 
     private readonly ConcurrentBag<Party> _parties = [];
 
@@ -33,8 +42,16 @@ public class PartyService(
         }
 
         var target = requester.CurrentMap.Players.Values.FirstOrDefault(p => p.SessionId == targetSessionId);
-        if (target?.Character is null)
+        if (target?.Character is null || target.SessionId == requester.SessionId)
         {
+            return;
+        }
+
+        // Party requests are only valid between players who can see each other (matches eoserv).
+        if (!tileService.InClientRange(requester.Character.AsCoords(), target.Character.AsCoords()))
+        {
+            logger.LogDebug("Party {Type} request from {Requester} to {Target} rejected: out of range",
+                type, requester.Character.Name, target.Character.Name);
             return;
         }
 
@@ -73,7 +90,7 @@ public class PartyService(
             }
 
             // Check if inviter's party is full
-            if (requesterParty is not null && requesterParty.MemberCount >= MaxPartySize)
+            if (requesterParty is not null && requesterParty.MemberCount >= _options.MaxPartySize)
             {
                 await requester.Send(new PartyReplyServerPacket
                 {
@@ -100,7 +117,7 @@ public class PartyService(
             }
 
             // Check if target's party is full
-            if (targetParty is not null && targetParty.MemberCount >= MaxPartySize)
+            if (targetParty is not null && targetParty.MemberCount >= _options.MaxPartySize)
             {
                 await requester.Send(new PartyReplyServerPacket
                 {
@@ -146,6 +163,15 @@ public class PartyService(
         var requester = worldState.GetPlayer(requesterSessionId);
         if (requester?.Character is null)
         {
+            return;
+        }
+
+        // Both players must still be on the same map and in range to accept (matches eoserv).
+        if (player.Character.Map != requester.Character.Map ||
+            !tileService.InClientRange(player.Character.AsCoords(), requester.Character.AsCoords()))
+        {
+            logger.LogDebug("Party {Type} accept from {Player} to {Requester} rejected: out of range",
+                type, player.Character.Name, requester.Character.Name);
             return;
         }
 
@@ -271,18 +297,37 @@ public class PartyService(
             return;
         }
 
-        var expPerMember = Math.Max(1, totalExp / membersOnMap.Count);
+        // eoserv treats a level-0 character as level 1 when weighting the share.
+        var sumOfLevels = membersOnMap.Sum(p => p!.Character!.Level == 0 ? 1 : p.Character.Level);
 
         var gains = new List<PartyExpShare>();
         foreach (var member in membersOnMap)
         {
             if (member?.Character is null) continue;
 
-            member.Character.Exp += expPerMember;
+            var character = member.Character;
+            var reward = PartyExpCalculator.CalculateShare(
+                totalExp, character.Level, sumOfLevels, membersOnMap.Count, _options.ShareMode);
+
+            if (reward <= 0) continue;
+
+            character.Exp += reward;
+
+            // Level up once for every threshold crossed (eoserv only levels once per kill,
+            // but looping is safe because share amounts are small relative to thresholds).
+            var leveledUp = false;
+            while (formulaService.CanLevelUp(character))
+            {
+                formulaService.LevelUp(character, dataFiles.Ecf);
+                leveledUp = true;
+            }
+
             gains.Add(new PartyExpShare
             {
                 PlayerId = member.SessionId,
-                Experience = expPerMember
+                Experience = reward,
+                // The protocol defines level_up as the new level, with 0 meaning no level up.
+                LevelUp = leveledUp ? character.Level : 0
             });
         }
 
@@ -442,12 +487,6 @@ public class PartyService(
 
     private async Task DisbandParty(Party party)
     {
-        // Remove party from list - rebuild bag without it
-        var removePacket = new PartyRemoveServerPacket
-        {
-            PlayerId = party.LeaderSessionId
-        };
-
         var members = party.Members;
 
         // Remove all members so party is empty (won't match GetPlayerParty anymore)
@@ -456,10 +495,13 @@ public class PartyService(
             party.RemoveMember(memberId);
         }
 
+        // A disbanded party closes the window for every member (matches eoserv's ~Party).
+        var closePacket = new PartyCloseServerPacket();
+
         var tasks = members
             .Select(worldState.GetPlayer)
             .Where(p => p is not null)
-            .Select(p => p!.Send(removePacket));
+            .Select(p => p!.Send(closePacket));
 
         await Task.WhenAll(tasks);
 
