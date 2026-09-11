@@ -383,7 +383,7 @@ public class TestServerFixture : IAsyncLifetime
         Directory.CreateDirectory(dir);
 
         // Map 1 is where every test character starts. It has the door tiles at
-        // (5,5)/(6,5) and a warp tile at (6,3) leading to map 2, placed off the paths
+        // (5,5)/(6,5) and a warp tile at (7,8) leading to map 2, placed off the paths
         // the other integration tests walk.
         WriteMap(dir, 1, "TestMap", new List<MapWarpRow>
         {
@@ -419,12 +419,12 @@ public class TestServerFixture : IAsyncLifetime
             },
             new()
             {
-                Y = 3,
+                Y = 8,
                 Tiles = new List<MapWarpRowTile>
                 {
                     new()
                     {
-                        X = 6,
+                        X = 7,
                         Warp = new MapWarp
                         {
                             DestinationMap = 2,

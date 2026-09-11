@@ -18,8 +18,9 @@ public class WarpTests : IClassFixture<TestServerFixture>
     private const int StartX = 6;
     private const int StartY = 6;
 
-    // The fixture places a map-switch warp to map 2 at (6,3).
-    private const int WarpTileY = 3;
+    // The fixture places a map-switch warp to map 2 at (7,8).
+    private const int WarpTileX = 7;
+    private const int WarpTileY = 8;
     private const int TargetMap = 2;
     private const int TargetX = 5;
     private const int TargetY = 5;
@@ -37,11 +38,11 @@ public class WarpTests : IClassFixture<TestServerFixture>
         await WaitForNoPlayersAsync();
         await using var client = await LoginAndEnterAsync("warp");
 
-        // Walk up to the tile just before the warp, then step onto it.
-        await WalkAsync(client, Direction.Up, StartX, StartY - 1);
-        await WalkAsync(client, Direction.Up, StartX, StartY - 2);
+        // Walk around to the tile just before the warp, then step onto it.
+        await WalkAsync(client, Direction.Right, WarpTileX, StartY);
+        await WalkAsync(client, Direction.Down, WarpTileX, StartY + 1);
 
-        var request = await WalkAndReceiveWarpRequestAsync(client, Direction.Up, StartX, WarpTileY);
+        var request = await WalkAndReceiveWarpRequestAsync(client, Direction.Down, WarpTileX, WarpTileY);
         request.WarpType.Should().Be(WarpType.MapSwitch);
         request.MapId.Should().Be(TargetMap);
 
@@ -152,10 +153,10 @@ public class WarpTests : IClassFixture<TestServerFixture>
 
     private static async Task WarpToTargetMapAsync(EoTestClient client)
     {
-        await WalkAsync(client, Direction.Up, StartX, StartY - 1);
-        await WalkAsync(client, Direction.Up, StartX, StartY - 2);
+        await WalkAsync(client, Direction.Right, WarpTileX, StartY);
+        await WalkAsync(client, Direction.Down, WarpTileX, StartY + 1);
 
-        var request = await WalkAndReceiveWarpRequestAsync(client, Direction.Up, StartX, WarpTileY);
+        var request = await WalkAndReceiveWarpRequestAsync(client, Direction.Down, WarpTileX, WarpTileY);
         request.MapId.Should().Be(TargetMap);
 
         await AcceptWarpAsync(client, TargetMap);
