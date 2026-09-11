@@ -71,6 +71,13 @@ public static class PacketRateLimits
 
         // Sit/stand
         new() { Action = PacketAction.Request, Family = PacketFamily.Sit, LimitMs = 500 },
-        new() { Action = PacketAction.Close, Family = PacketFamily.Sit, LimitMs = 500 }
+        new() { Action = PacketAction.Close, Family = PacketFamily.Sit, LimitMs = 500 },
+
+        // Guild packets (mirrors eoserv's per-handler rates)
+        new() { Action = PacketAction.Request, Family = PacketFamily.Guild, LimitMs = 1000 },
+        new() { Action = PacketAction.Create, Family = PacketFamily.Guild, LimitMs = 1000 },
+        new() { Action = PacketAction.Player, Family = PacketFamily.Guild, LimitMs = 500 },
+        new() { Action = PacketAction.Tell, Family = PacketFamily.Guild, LimitMs = 500 },
+        new() { Action = PacketAction.Report, Family = PacketFamily.Guild, LimitMs = 500 }
     ];
 }

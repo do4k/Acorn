@@ -151,6 +151,7 @@ public class TestServerFixture : IAsyncLifetime
                     .Configure<JukeboxOptions>(cfg.GetSection(JukeboxOptions.SectionName))
                     .Configure<MarriageOptions>(cfg.GetSection(MarriageOptions.SectionName))
                     .Configure<PartyOptions>(cfg.GetSection(PartyOptions.SectionName))
+                    .Configure<GuildOptions>(cfg.GetSection(GuildOptions.SectionName))
                     .AddSingleton<UtcNowDelegate>(() => DateTime.UtcNow)
                     .AddSingleton<AcornMetrics>();
 
