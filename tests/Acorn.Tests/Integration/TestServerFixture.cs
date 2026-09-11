@@ -336,7 +336,18 @@ public class TestServerFixture : IAsyncLifetime
             AmbientSoundId = 0,
             Npcs = new List<MapNpc>(),
             Items = new List<Moffat.EndlessOnline.SDK.Protocol.Map.MapItem>(),
-            TileSpecRows = new List<MapTileSpecRow>(),
+            TileSpecRows = new List<MapTileSpecRow>
+            {
+                // A chair for sit/stand tests, placed off the paths other tests walk.
+                new()
+                {
+                    Y = 11,
+                    Tiles = new List<MapTileSpecRowTile>
+                    {
+                        new() { X = 6, TileSpec = MapTileSpec.ChairAll }
+                    }
+                }
+            },
             WarpRows = new List<MapWarpRow>(),
             GraphicLayers = Enumerable.Range(0, 9)
                 .Select(_ => new MapGraphicLayer { GraphicRows = new List<MapGraphicRow>() })

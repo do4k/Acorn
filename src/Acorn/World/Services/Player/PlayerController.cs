@@ -11,6 +11,7 @@ using Acorn.World.Services.Map;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Protocol;
+using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.World.Services.Player;
@@ -24,6 +25,7 @@ public class PlayerController : IPlayerController
     private readonly Lazy<IWorldQueries> _worldQueries;
     private readonly ICharacterCacheService _characterCache;
     private readonly IPaperdollService _paperdollService;
+    private readonly IMapTileService _tileService;
     private readonly AcornMetrics _metrics;
 
     public PlayerController(
@@ -34,6 +36,7 @@ public class PlayerController : IPlayerController
         IOptions<ServerOptions> serverOptions,
         ICharacterCacheService characterCache,
         IPaperdollService paperdollService,
+        IMapTileService tileService,
         AcornMetrics metrics)
     {
         _logger = logger;
@@ -43,6 +46,7 @@ public class PlayerController : IPlayerController
         _serverOptions = serverOptions.Value;
         _characterCache = characterCache;
         _paperdollService = paperdollService;
+        _tileService = tileService;
         _metrics = metrics;
     }
 
@@ -141,16 +145,31 @@ public class PlayerController : IPlayerController
             return;
         }
 
-        player.Character.SitState = SitState.Floor;
+        // Already sitting (on the floor or a chair).
+        if (player.Character.SitState != SitState.Stand)
+        {
+            return;
+        }
 
-        await _broadcastService.BroadcastPacket(
-            player.CurrentMap.Players.Values,
-            new SitPlayerServerPacket
-            {
-                PlayerId = player.SessionId,
-                Coords = new Coords { X = player.Character.X, Y = player.Character.Y },
-                Direction = player.Character.Direction
-            });
+        player.Character.SitState = SitState.Floor;
+        await player.CacheCharacterStateAsync(_characterCache, _paperdollService);
+
+        var coords = new Coords { X = player.Character.X, Y = player.Character.Y };
+
+        // The acting player gets Sit/Reply, nearby players get Sit/Player.
+        await player.Send(new SitReplyServerPacket
+        {
+            PlayerId = player.SessionId,
+            Coords = coords,
+            Direction = player.Character.Direction
+        });
+
+        await BroadcastToInRangePlayersAsync(player, coords, new SitPlayerServerPacket
+        {
+            PlayerId = player.SessionId,
+            Coords = coords,
+            Direction = player.Character.Direction
+        });
     }
 
     public async Task StandAsync(PlayerState player)
@@ -160,16 +179,51 @@ public class PlayerController : IPlayerController
             return;
         }
 
-        player.Character.SitState = SitState.Stand;
+        // Only a player sitting on the floor can stand with the Sit packet.
+        if (player.Character.SitState != SitState.Floor)
+        {
+            return;
+        }
 
-        await _broadcastService.BroadcastPacket(
-            player.CurrentMap.Players.Values,
-            new SitPlayerServerPacket
-            {
-                PlayerId = player.SessionId,
-                Coords = new Coords { X = player.Character.X, Y = player.Character.Y },
-                Direction = player.Character.Direction
-            });
+        player.Character.SitState = SitState.Stand;
+        await player.CacheCharacterStateAsync(_characterCache, _paperdollService);
+
+        var coords = new Coords { X = player.Character.X, Y = player.Character.Y };
+
+        // The acting player gets Sit/Close, nearby players get Sit/Remove.
+        await player.Send(new SitCloseServerPacket
+        {
+            PlayerId = player.SessionId,
+            Coords = coords
+        });
+
+        await BroadcastToInRangePlayersAsync(player, coords, new SitRemoveServerPacket
+        {
+            PlayerId = player.SessionId,
+            Coords = coords
+        });
+    }
+
+    /// <summary>
+    ///     Sends a packet to every player on the acting player's map that is within the
+    ///     client view range of <paramref name="origin" /> (the acting player is excluded).
+    /// </summary>
+    private async Task BroadcastToInRangePlayersAsync(PlayerState actor, Coords origin, IPacket packet)
+    {
+        if (actor.CurrentMap is null)
+        {
+            return;
+        }
+
+        var recipients = actor.CurrentMap.Players.Values
+            .Where(p => p.SessionId != actor.SessionId && p.Character is not null)
+            .Where(p => _tileService.InClientRange(origin, p.Character!.AsCoords()))
+            .ToList();
+
+        foreach (var recipient in recipients)
+        {
+            await recipient.Send(packet);
+        }
     }
 
     public async Task DieAsync(PlayerState player)

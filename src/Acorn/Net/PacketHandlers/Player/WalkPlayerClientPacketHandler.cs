@@ -49,6 +49,12 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
             return;
         }
 
+        // Sitting players cannot move (matches eoserv).
+        if (playerState.Character!.SitState != SitState.Stand)
+        {
+            return;
+        }
+
         playerState.Character!.X = packet.WalkAction.Direction switch
         {
             Direction.Left => playerState.Character.X - 1,

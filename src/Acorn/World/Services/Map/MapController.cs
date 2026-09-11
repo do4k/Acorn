@@ -8,6 +8,7 @@ using Acorn.World.Services.Player;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Map;
+using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.World.Services.Map;
@@ -99,6 +100,10 @@ public class MapController : IMapController
             MapTileSpec.ChairUp when playerCoords.Y == coords.Y - 1 && playerCoords.X == coords.X => Direction.Up,
             MapTileSpec.ChairLeft when playerCoords.X == coords.X + 1 && playerCoords.Y == coords.Y => Direction.Left,
             MapTileSpec.ChairRight when playerCoords.X == coords.X - 1 && playerCoords.Y == coords.Y => Direction.Right,
+            MapTileSpec.ChairDownRight when playerCoords.Y == coords.Y && playerCoords.X == coords.X + 1 => Direction.Right,
+            MapTileSpec.ChairDownRight when playerCoords.Y == coords.Y + 1 && playerCoords.X == coords.X => Direction.Down,
+            MapTileSpec.ChairUpLeft when playerCoords.Y == coords.Y && playerCoords.X == coords.X - 1 => Direction.Left,
+            MapTileSpec.ChairUpLeft when playerCoords.Y == coords.Y - 1 && playerCoords.X == coords.X => Direction.Up,
             MapTileSpec.ChairAll => playerCoords.Y == coords.Y + 1 ? Direction.Down
                 : playerCoords.Y == coords.Y - 1 ? Direction.Up
                 : playerCoords.X == coords.X + 1 ? Direction.Left
@@ -122,8 +127,15 @@ public class MapController : IMapController
         // Cache character state after position and sit state change
         await player.CacheCharacterStateAsync(_characterCache, _paperdollService);
 
-        // Broadcast sit action
-        await map.BroadcastPacket(new SitPlayerServerPacket
+        // The acting player gets Chair/Reply, nearby players get Chair/Player.
+        await player.Send(new ChairReplyServerPacket
+        {
+            PlayerId = player.SessionId,
+            Coords = coords,
+            Direction = sitDirection.Value
+        });
+
+        await BroadcastToInRangePlayersAsync(map, player, coords, new ChairPlayerServerPacket
         {
             PlayerId = player.SessionId,
             Coords = coords,
@@ -148,18 +160,62 @@ public class MapController : IMapController
             return false;
         }
 
+        // Standing up moves the player one tile in the direction they are facing.
+        switch (player.Character.Direction)
+        {
+            case Direction.Up:
+                player.Character.Y--;
+                break;
+            case Direction.Right:
+                player.Character.X++;
+                break;
+            case Direction.Down:
+                player.Character.Y++;
+                break;
+            case Direction.Left:
+                player.Character.X--;
+                break;
+        }
+
         player.Character.SitState = SitState.Stand;
 
-        await map.BroadcastPacket(new SitPlayerServerPacket
+        await player.CacheCharacterStateAsync(_characterCache, _paperdollService);
+
+        var coords = player.Character.AsCoords();
+
+        // The acting player gets Chair/Close, nearby players get Chair/Remove.
+        await player.Send(new ChairCloseServerPacket
         {
             PlayerId = player.SessionId,
-            Coords = player.Character.AsCoords(),
-            Direction = player.Character.Direction
+            Coords = coords
+        });
+
+        await BroadcastToInRangePlayersAsync(map, player, coords, new ChairRemoveServerPacket
+        {
+            PlayerId = player.SessionId,
+            Coords = coords
         });
 
         _logger.LogInformation("Player {Character} stood from chair", player.Character.Name);
 
         return true;
+    }
+
+    /// <summary>
+    ///     Sends a packet to every player on <paramref name="map" /> that is within the client
+    ///     view range of <paramref name="origin" /> (the acting player is excluded).
+    /// </summary>
+    private async Task BroadcastToInRangePlayersAsync(MapState map, PlayerState actor, Coords origin, IPacket packet)
+    {
+        var recipients = map.Players.Values
+            .Where(p => p.SessionId != actor.SessionId && p.Character is not null)
+            .Where(p => _tileService.InClientRange(origin, p.Character!.AsCoords()))
+            .ToList();
+
+        foreach (var recipient in recipients)
+        {
+            await recipient.Send(packet);
+        }
     }
 
     public async Task ProcessNpcRespawnsAsync(MapState map)
