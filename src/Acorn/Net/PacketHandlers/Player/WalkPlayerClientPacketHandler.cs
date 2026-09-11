@@ -89,12 +89,25 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
             .Select(p => p.SessionId)
             .ToList();
 
+        // Get nearby ground items (within client range) so items that came into
+        // view are rendered without waiting for a refresh.
+        var nearbyItems = playerState.CurrentMap.Items
+            .Where(kvp => _mapTileService.InClientRange(playerCoords, kvp.Value.Coords))
+            .Select(kvp => new ItemMapInfo
+            {
+                Uid = kvp.Key,
+                Id = kvp.Value.Id,
+                Coords = kvp.Value.Coords,
+                Amount = kvp.Value.Amount
+            })
+            .ToList();
+
         // Send WalkReply to the walking player with nearby entities
         await playerState.Send(new WalkReplyServerPacket
         {
             PlayerIds = nearbyPlayerIds,
             NpcIndexes = nearbyNpcIndexes,
-            Items = [] // TODO: Add nearby items when item system is implemented
+            Items = nearbyItems
         });
 
         // Broadcast WalkPlayer to other players on the map
