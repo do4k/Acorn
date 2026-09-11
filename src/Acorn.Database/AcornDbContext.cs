@@ -173,6 +173,7 @@ public class AcornDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.BoardId).IsRequired();
             entity.Property(e => e.CharacterName).IsRequired().HasMaxLength(16);
+            entity.Property(e => e.AuthorAdmin).IsRequired();
             entity.Property(e => e.Subject).IsRequired().HasMaxLength(64);
             entity.Property(e => e.Body).IsRequired().HasMaxLength(2048);
             entity.Property(e => e.CreatedAt).IsRequired();

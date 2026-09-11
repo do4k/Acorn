@@ -3,7 +3,6 @@ using Acorn.Database.Repository;
 using Acorn.Extensions;
 using Acorn.World.Services.Map;
 using Microsoft.Extensions.Logging;
-using Moffat.EndlessOnline.SDK.Protocol.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
@@ -18,19 +17,12 @@ public class BoardCreateClientPacketHandler(
     IBoardRepository boardRepository)
     : IPacketHandler<BoardCreateClientPacket>
 {
-    private const int MaxPosts = 20;
-    private const int MaxSubjectLength = 64;
-    private const int MaxBodyLength = 2048;
-    private const int MaxRecentPosts = 2; // Max posts within recent time window
-    private const int MaxUserPosts = 3; // Max posts by user on board
-    private static readonly TimeSpan RecentPostWindow = TimeSpan.FromMinutes(10);
-
     public async Task HandleAsync(PlayerState player, BoardCreateClientPacket packet)
     {
         var boardId = packet.BoardId;
 
-        // Validate board ID (1-8)
-        if (boardId < 1 || boardId > 8)
+        // Validate board ID (0-7, where 0 maps to Board1)
+        if (!BoardRules.IsValidBoardId(boardId))
         {
             logger.LogWarning("Player {Character} tried to post to invalid board {BoardId}",
                 player.Character!.Name, boardId);
@@ -38,7 +30,7 @@ public class BoardCreateClientPacketHandler(
         }
 
         // Get corresponding MapTileSpec for the board
-        var boardTileSpec = GetBoardTileSpec(boardId);
+        var boardTileSpec = BoardRules.GetTileSpec(boardId);
         if (boardTileSpec == null)
         {
             await RefreshBoard(player, boardId);
@@ -54,14 +46,9 @@ public class BoardCreateClientPacketHandler(
             return;
         }
 
-        // Truncate subject and body if too long
-        var subject = packet.PostSubject?.Length > MaxSubjectLength
-            ? packet.PostSubject[..MaxSubjectLength]
-            : packet.PostSubject ?? "";
-
-        var body = packet.PostBody?.Length > MaxBodyLength
-            ? packet.PostBody[..MaxBodyLength]
-            : packet.PostBody ?? "";
+        // Sanitize (replace the reserved 0xFF byte) and truncate subject and body
+        var subject = BoardRules.SanitizeContent(packet.PostSubject, BoardRules.MaxSubjectLength);
+        var body = BoardRules.SanitizeContent(packet.PostBody, BoardRules.MaxBodyLength);
 
         // Check for empty content
         if (string.IsNullOrWhiteSpace(subject) || string.IsNullOrWhiteSpace(body))
@@ -73,10 +60,10 @@ public class BoardCreateClientPacketHandler(
         }
 
         // Check rate limits
-        var recentPosts = await boardRepository.GetRecentPostCountAsync(boardId, player.Character!.Name!, RecentPostWindow);
-        var totalPosts = await boardRepository.GetTotalPostCountAsync(boardId, player.Character!.Name!, MaxPosts);
+        var recentPosts = await boardRepository.GetRecentPostCountAsync(boardId, player.Character!.Name!, BoardRules.RecentPostWindow);
+        var totalPosts = await boardRepository.GetTotalPostCountAsync(boardId, player.Character!.Name!);
 
-        if (recentPosts >= MaxRecentPosts || totalPosts >= MaxUserPosts)
+        if (recentPosts >= BoardRules.MaxRecentPosts || totalPosts >= BoardRules.MaxUserPosts)
         {
             logger.LogWarning("Player {Character} hit post limit on board {BoardId} (recent: {Recent}, total: {Total})",
                 player.Character!.Name, boardId, recentPosts, totalPosts);
@@ -89,6 +76,7 @@ public class BoardCreateClientPacketHandler(
         {
             BoardId = boardId,
             CharacterName = player.Character!.Name!,
+            AuthorAdmin = player.Character!.Admin,
             Subject = subject,
             Body = body,
             CreatedAt = DateTime.UtcNow
@@ -103,22 +91,9 @@ public class BoardCreateClientPacketHandler(
         await RefreshBoard(player, boardId);
     }
 
-    private static MapTileSpec? GetBoardTileSpec(int boardId) => boardId switch
-    {
-        1 => MapTileSpec.Board1,
-        2 => MapTileSpec.Board2,
-        3 => MapTileSpec.Board3,
-        4 => MapTileSpec.Board4,
-        5 => MapTileSpec.Board5,
-        6 => MapTileSpec.Board6,
-        7 => MapTileSpec.Board7,
-        8 => MapTileSpec.Board8,
-        _ => null
-    };
-
     private async Task RefreshBoard(PlayerState player, int boardId)
     {
-        var posts = await boardRepository.GetPostsAsync(boardId, MaxPosts);
+        var posts = await boardRepository.GetPostsAsync(boardId, BoardRules.GetPostLimit(boardId));
         var postListings = posts.Select(p => new BoardPostListing
         {
             PostId = p.Id,

@@ -2,7 +2,6 @@ using Acorn.Database.Repository;
 using Acorn.Extensions;
 using Acorn.World.Services.Map;
 using Microsoft.Extensions.Logging;
-using Moffat.EndlessOnline.SDK.Protocol.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
@@ -17,16 +16,13 @@ public class BoardOpenClientPacketHandler(
     IBoardRepository boardRepository)
     : IPacketHandler<BoardOpenClientPacket>
 {
-    private const int MaxPosts = 20;
-    private const int AdminBoardId = 8; // Board 8 is typically admin-only
-
     public async Task HandleAsync(PlayerState player, BoardOpenClientPacket packet)
     {
         logger.LogInformation("Player {Character} opening board {BoardId}",
             player.Character!.Name, packet.BoardId);
 
-        // Validate board ID (1-8)
-        if (packet.BoardId < 1 || packet.BoardId > 8)
+        // Validate board ID (0-7, where 0 maps to Board1)
+        if (!BoardRules.IsValidBoardId(packet.BoardId))
         {
             logger.LogWarning("Player {Character} tried to open invalid board {BoardId}",
                 player.Character!.Name, packet.BoardId);
@@ -34,7 +30,8 @@ public class BoardOpenClientPacketHandler(
         }
 
         // Check admin board permissions
-        if (packet.BoardId == AdminBoardId && (int)player.Character!.Admin < 1)
+        if (BoardRules.IsAdminBoard(packet.BoardId) &&
+            !BoardRules.CanAccessAdminBoard((int)player.Character!.Admin))
         {
             logger.LogWarning("Player {Character} tried to open admin board without permission",
                 player.Character!.Name);
@@ -42,19 +39,7 @@ public class BoardOpenClientPacketHandler(
         }
 
         // Get corresponding MapTileSpec for the board
-        var boardTileSpec = packet.BoardId switch
-        {
-            1 => MapTileSpec.Board1,
-            2 => MapTileSpec.Board2,
-            3 => MapTileSpec.Board3,
-            4 => MapTileSpec.Board4,
-            5 => MapTileSpec.Board5,
-            6 => MapTileSpec.Board6,
-            7 => MapTileSpec.Board7,
-            8 => MapTileSpec.Board8,
-            _ => (MapTileSpec?)null
-        };
-
+        var boardTileSpec = BoardRules.GetTileSpec(packet.BoardId);
         if (boardTileSpec == null)
         {
             return;
@@ -72,7 +57,7 @@ public class BoardOpenClientPacketHandler(
         player.InteractingBoardId = packet.BoardId;
 
         // Fetch board posts from database
-        var posts = await boardRepository.GetPostsAsync(packet.BoardId, MaxPosts);
+        var posts = await boardRepository.GetPostsAsync(packet.BoardId, BoardRules.GetPostLimit(packet.BoardId));
 
         // Build post listings
         var postListings = posts.Select(p => new BoardPostListing

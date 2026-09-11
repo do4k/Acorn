@@ -2,7 +2,6 @@ using Acorn.Database.Repository;
 using Acorn.Extensions;
 using Acorn.World.Services.Map;
 using Microsoft.Extensions.Logging;
-using Moffat.EndlessOnline.SDK.Protocol.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
@@ -17,8 +16,6 @@ public class BoardRemoveClientPacketHandler(
     IBoardRepository boardRepository)
     : IPacketHandler<BoardRemoveClientPacket>
 {
-    private const int MaxPosts = 20;
-
     public async Task HandleAsync(PlayerState player, BoardRemoveClientPacket packet)
     {
         var boardId = packet.BoardId;
@@ -27,17 +24,8 @@ public class BoardRemoveClientPacketHandler(
         logger.LogInformation("Player {Character} attempting to remove post {PostId} from board {BoardId}",
             player.Character!.Name, postId, boardId);
 
-        // Only admins can remove posts (following reoserv behavior)
-        if ((int)player.Character!.Admin < 1)
-        {
-            logger.LogWarning("Player {Character} tried to remove post without admin privileges",
-                player.Character!.Name);
-            await RefreshBoard(player, boardId);
-            return;
-        }
-
-        // Validate board ID (1-8)
-        if (boardId < 1 || boardId > 8)
+        // Validate board ID (0-7, where 0 maps to Board1)
+        if (!BoardRules.IsValidBoardId(boardId))
         {
             logger.LogWarning("Player {Character} tried to remove post from invalid board {BoardId}",
                 player.Character!.Name, boardId);
@@ -45,7 +33,7 @@ public class BoardRemoveClientPacketHandler(
         }
 
         // Get corresponding MapTileSpec for the board
-        var boardTileSpec = GetBoardTileSpec(boardId);
+        var boardTileSpec = BoardRules.GetTileSpec(boardId);
         if (boardTileSpec == null)
         {
             return;
@@ -59,32 +47,39 @@ public class BoardRemoveClientPacketHandler(
             return;
         }
 
+        // Look up the post so we can check ownership
+        var post = await boardRepository.GetPostAsync(boardId, postId);
+        if (post == null)
+        {
+            logger.LogWarning("Player {Character} tried to remove non-existent post {PostId} from board {BoardId}",
+                player.Character!.Name, postId, boardId);
+            return;
+        }
+
+        // The author may delete their own post; an admin may delete posts by a lower-ranked author.
+        var isAuthor = string.Equals(post.CharacterName, player.Character!.Name, StringComparison.Ordinal);
+        if (!BoardRules.CanRemovePost((int)player.Character!.Admin, (int)post.AuthorAdmin, isAuthor))
+        {
+            logger.LogWarning(
+                "Player {Character} tried to remove post {PostId} by {Author} without permission",
+                player.Character!.Name, postId, post.CharacterName);
+            await RefreshBoard(player, boardId);
+            return;
+        }
+
         // Delete the post
         await boardRepository.DeletePostAsync(postId);
 
-        logger.LogInformation("Admin {Character} removed post {PostId} from board {BoardId}",
+        logger.LogInformation("Player {Character} removed post {PostId} from board {BoardId}",
             player.Character!.Name, postId, boardId);
 
         // Refresh the board
         await RefreshBoard(player, boardId);
     }
 
-    private static MapTileSpec? GetBoardTileSpec(int boardId) => boardId switch
-    {
-        1 => MapTileSpec.Board1,
-        2 => MapTileSpec.Board2,
-        3 => MapTileSpec.Board3,
-        4 => MapTileSpec.Board4,
-        5 => MapTileSpec.Board5,
-        6 => MapTileSpec.Board6,
-        7 => MapTileSpec.Board7,
-        8 => MapTileSpec.Board8,
-        _ => null
-    };
-
     private async Task RefreshBoard(PlayerState player, int boardId)
     {
-        var posts = await boardRepository.GetPostsAsync(boardId, MaxPosts);
+        var posts = await boardRepository.GetPostsAsync(boardId, BoardRules.GetPostLimit(boardId));
         var postListings = posts.Select(p => new BoardPostListing
         {
             PostId = p.Id,
