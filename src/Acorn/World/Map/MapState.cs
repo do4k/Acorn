@@ -134,6 +134,7 @@ public class MapState
             }
 
             var npcIndex = Npcs.Count;
+            npcState.Index = npcIndex;
             Npcs.TryAdd(npcIndex, npcState);
         }
     }
@@ -215,11 +216,25 @@ public class MapState
     public List<NpcMapInfo> AsNpcMapInfo()
     {
         return Npcs.Values
-            .Select((npc, index) => (npc, index))
-            .Where(t => !t.npc.IsDead)
-            .Select(t => t.npc.AsNpcMapInfo(t.index))
+            .Where(npc => !npc.IsDead)
+            .OrderBy(npc => npc.Index)
+            .Select(npc => npc.AsNpcMapInfo())
             .Take(252) // EO Protocol limit: NpcMapInfo uses byte field, max 252 NPCs
             .ToList();
+    }
+
+    /// <summary>
+    ///     Returns the next free NPC index for this map (the lowest index not currently in use).
+    /// </summary>
+    public int GetNextNpcIndex()
+    {
+        var index = 0;
+        while (Npcs.ContainsKey(index))
+        {
+            index++;
+        }
+
+        return index;
     }
 
     public async Task NotifyEnter(PlayerState player, WarpEffect warpEffect = WarpEffect.None)

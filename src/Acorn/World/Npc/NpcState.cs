@@ -34,6 +34,13 @@ public class NpcState
     public int Id { get; set; }
     public int Hp { get; set; }
 
+    /// <summary>
+    ///     Stable index of this NPC within its map. Used as the client-facing NPC id in
+    ///     NpcMapInfo/NpcUpdate packets and as the map's NPC dictionary key. Assigned once
+    ///     when the NPC is added to a map and never changes.
+    /// </summary>
+    public int Index { get; set; }
+
     // Position and movement
     public int X { get; set; }
     public int Y { get; set; }
@@ -161,14 +168,14 @@ public class NpcState
         };
     }
 
-    public NpcMapInfo AsNpcMapInfo(int index)
+    public NpcMapInfo AsNpcMapInfo()
     {
         return new NpcMapInfo
         {
             Coords = new Coords { X = X, Y = Y },
             Direction = Direction,
             Id = Id,
-            Index = index
+            Index = Index
         };
     }
 
