@@ -19,6 +19,12 @@ public class ServerOptions
     public int DropProtectionTicks { get; set; } = 60;
 
     /// <summary>
+    ///     Maximum amount of a single item stack that can be dropped at once.
+    ///     Matches eoserv's MaxDrop setting. A value of 0 or less disables the clamp.
+    /// </summary>
+    public int MaxDrop { get; set; } = 10000;
+
+    /// <summary>
     ///     Player respawn location when they die. Falls back to NewCharacter location if not set.
     /// </summary>
     public RescueOptions? Rescue { get; set; }

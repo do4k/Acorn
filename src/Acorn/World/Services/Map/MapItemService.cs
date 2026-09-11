@@ -16,6 +16,7 @@ public class MapItemService : IMapItemService
 {
     private const int DropDistance = 2;
     private const int DropProtectTicks = 300; // ~3 seconds at 10 ticks/sec
+    private readonly IMapBroadcastService _broadcastService;
     private readonly IDataFileRepository _dataRepository;
     private readonly IInventoryService _inventoryService;
     private readonly ILogger<MapItemService> _logger;
@@ -27,12 +28,14 @@ public class MapItemService : IMapItemService
         IWeightCalculator weightCalculator,
         IDataFileRepository dataRepository,
         IMapTileService tileService,
+        IMapBroadcastService broadcastService,
         ILogger<MapItemService> logger)
     {
         _inventoryService = inventoryService;
         _weightCalculator = weightCalculator;
         _dataRepository = dataRepository;
         _tileService = tileService;
+        _broadcastService = broadcastService;
         _logger = logger;
     }
 
@@ -81,10 +84,27 @@ public class MapItemService : IMapItemService
             Amount = amount,
             Coords = coords,
             OwnerId = player.SessionId,
-            ProtectedTicks = DropProtectTicks
+            ProtectedTicks = DropProtectTicks,
+            DroppedAtTick = map.TotalTicks
         };
 
         map.Items[itemIndex] = mapItem;
+
+        // Announce the new ground item to every player who can see it, excluding the
+        // dropper (they already get Item/Drop). Matches eoserv Map::AddItem.
+        var recipients = map.Players.Values
+            .Where(p => p.SessionId != player.SessionId)
+            .Where(p => p.Character is not null)
+            .Where(p => _tileService.InClientRange(coords, p.Character!.AsCoords()))
+            .ToList();
+
+        await _broadcastService.BroadcastPacket(recipients, new ItemAddServerPacket
+        {
+            ItemId = itemId,
+            ItemIndex = itemIndex,
+            ItemAmount = amount,
+            Coords = coords
+        });
 
         _logger.LogInformation("Player {Character} dropped item {ItemId} x{Amount} at ({X}, {Y})",
             player.Character.Name, itemId, amount, coords.X, coords.Y);
