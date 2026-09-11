@@ -2,6 +2,7 @@ using Acorn.Database.Repository;
 using Acorn.Game.Mappers;
 using Acorn.Game.Services;
 using Acorn.World.Services.Map;
+using Acorn.World.Services.Quest;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
@@ -20,6 +21,7 @@ public class ItemGetClientPacketHandler(
     IWeightCalculator weightCalculator,
     IDataFileRepository dataFileRepository,
     IDbRepository<Database.Models.Character> characterRepository,
+    IQuestService questService,
     AcornMetrics metrics)
     : IPacketHandler<ItemGetClientPacket>
 {
@@ -60,6 +62,9 @@ public class ItemGetClientPacketHandler(
 
             // Save character inventory to database
             await characterRepository.UpdateAsync(characterMapper.ToDatabase(player.Character!));
+
+            // Quest rules may now be satisfied (e.g. GotItems)
+            await questService.CheckQuestRules(player);
         }
         else
         {

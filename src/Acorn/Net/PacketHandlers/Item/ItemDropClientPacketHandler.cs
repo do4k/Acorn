@@ -4,6 +4,7 @@ using Acorn.Game.Mappers;
 using Acorn.Game.Services;
 using Acorn.Options;
 using Acorn.World.Services.Map;
+using Acorn.World.Services.Quest;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Protocol;
@@ -26,6 +27,7 @@ public class ItemDropClientPacketHandler(
     IDataFileRepository dataFileRepository,
     IDbRepository<Database.Models.Character> characterRepository,
     IOptions<ServerOptions> serverOptions,
+    IQuestService questService,
     AcornMetrics metrics)
     : IPacketHandler<ItemDropClientPacket>
 {
@@ -117,6 +119,9 @@ public class ItemDropClientPacketHandler(
 
             // Save character inventory to database
             await characterRepository.UpdateAsync(characterMapper.ToDatabase(player.Character!));
+
+            // Quest rules may now be satisfied (e.g. LostItems)
+            await questService.CheckQuestRules(player);
         }
         else
         {

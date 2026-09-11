@@ -5,6 +5,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Acorn.Infrastructure.Telemetry;
 using Acorn.Net.PacketHandlers;
+using Acorn.World.Services.Quest;
 
 namespace Acorn.Net.PacketHandlers.Trade;
 
@@ -16,6 +17,7 @@ namespace Acorn.Net.PacketHandlers.Trade;
 public class TradeAgreeClientPacketHandler(
     ILogger<TradeAgreeClientPacketHandler> logger,
     IInventoryService inventoryService,
+    IQuestService questService,
     AcornMetrics metrics)
     : IPacketHandler<TradeAgreeClientPacket>
 {
@@ -170,6 +172,10 @@ public class TradeAgreeClientPacketHandler(
 
         logger.LogInformation("Trade completed between {Player} and {Partner}",
             player.Character!.Name, partner.Character.Name);
+
+        // Inventory contents changed for both players - re-check quest rules
+        await questService.CheckQuestRules(player);
+        await questService.CheckQuestRules(partner);
     }
 
 }

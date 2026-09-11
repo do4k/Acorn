@@ -24,4 +24,10 @@ public interface IQuestService
 
     /// <summary>Save quest progress to DB for a character.</summary>
     Task SaveQuestProgress(Game.Models.Character character);
+
+    /// <summary>Advance NPC-kill objectives for all active quests after an NPC dies.</summary>
+    Task NotifyNpcKilled(PlayerState player, int npcId);
+
+    /// <summary>Re-evaluate quest rules (item requirements, coordinates, etc.) for all active quests.</summary>
+    Task CheckQuestRules(PlayerState player);
 }

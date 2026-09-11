@@ -7,6 +7,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Acorn.Infrastructure.Telemetry;
 using Acorn.Net.PacketHandlers;
+using Acorn.World.Services.Quest;
 
 namespace Acorn.Net.PacketHandlers.Item;
 
@@ -18,6 +19,7 @@ public class ItemJunkClientPacketHandler(
     IDataFileRepository dataFileRepository,
     ICharacterMapper characterMapper,
     IDbRepository<Database.Models.Character> characterRepository,
+    IQuestService questService,
     AcornMetrics metrics)
     : IPacketHandler<ItemJunkClientPacket>
 {
@@ -64,6 +66,9 @@ public class ItemJunkClientPacketHandler(
 
             // Save character inventory to database
             await characterRepository.UpdateAsync(characterMapper.ToDatabase(player.Character!));
+
+            // Quest rules may now be satisfied (e.g. LostItems)
+            await questService.CheckQuestRules(player);
         }
     }
 

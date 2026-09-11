@@ -8,6 +8,7 @@ using Acorn.Net.PacketHandlers.Item;
 using Acorn.Options;
 using Acorn.Tests.Support;
 using Acorn.World.Services.Map;
+using Acorn.World.Services.Quest;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -30,6 +31,7 @@ public class ItemDropClientPacketHandlerTests
     private readonly Eif _eif = new() { Items = new List<EifRecord>() };
     private readonly IInventoryService _inventoryService = Substitute.For<IInventoryService>();
     private readonly IMapItemService _mapItemService = Substitute.For<IMapItemService>();
+    private readonly IQuestService _questService = Substitute.For<IQuestService>();
     private readonly IWeightCalculator _weightCalculator = Substitute.For<IWeightCalculator>();
 
     public ItemDropClientPacketHandlerTests()
@@ -55,6 +57,7 @@ public class ItemDropClientPacketHandlerTests
             _dataRepository,
             _characterRepository,
             Microsoft.Extensions.Options.Options.Create(TestFactories.CreateServerOptions(maxDrop)),
+            _questService,
             new AcornMetrics());
     }
 
