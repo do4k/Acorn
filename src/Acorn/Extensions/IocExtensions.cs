@@ -92,6 +92,7 @@ internal static class IocRegistrations
             .AddSingleton<IGuildService, GuildService>()
             .AddSingleton<IQuestService, QuestService>()
             .AddSingleton<IAdminService, AdminService>()
+            .AddSingleton<IAdminCountService, AdminCountService>()
             .AddSingleton<IMarriageService, MarriageService>()
             .AddSingleton<IMapItemService, MapItemService>()
             .AddSingleton<ISpellCastService, SpellCastService>()

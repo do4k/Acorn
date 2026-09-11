@@ -7,7 +7,7 @@ namespace Acorn.Extensions;
 
 public static class CharacterExtensions
 {
-    public static CharacterSelectionListEntry AsCharacterListEntry(this Character c, int id,
+    public static CharacterSelectionListEntry AsCharacterListEntry(this Character c,
         IPaperdollService paperdollService)
     {
         return new CharacterSelectionListEntry
@@ -20,7 +20,7 @@ public static class CharacterExtensions
             Level = c.Level,
             Name = c.Name,
             Skin = c.Race,
-            Id = id
+            Id = c.Id
         };
     }
 

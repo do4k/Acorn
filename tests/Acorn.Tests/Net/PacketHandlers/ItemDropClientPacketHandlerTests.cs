@@ -41,7 +41,7 @@ public class ItemDropClientPacketHandlerTests
                 Arg.Any<int>(), Arg.Any<int>(), Arg.Any<Coords>())
             .Returns(new ItemDropResult(true, 1));
         _characterMapper.ToDatabase(Arg.Any<GameCharacter>())
-            .Returns(new DbCharacter { Accounts_Username = "test" });
+            .Returns(new DbCharacter { Accounts_Username = "test", Name = "Test" });
         _inventoryService.GetItemAmount(Arg.Any<GameCharacter>(), Arg.Any<int>()).Returns(0);
         _weightCalculator.GetCurrentWeight(Arg.Any<GameCharacter>(), Arg.Any<Eif>()).Returns(0);
     }

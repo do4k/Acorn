@@ -50,11 +50,13 @@ public class CharacterRepository : IDbRepository<Character>
     {
         try
         {
+            // Character names are stored lowercase and looked up case-insensitively.
+            var normalized = name.ToLowerInvariant();
             var character = await _context.Characters
                 .Include(c => c.Items)
                 .Include(c => c.Paperdoll)
                 .Include(c => c.Spells)
-                .FirstOrDefaultAsync(c => c.Name == name);
+                .FirstOrDefaultAsync(c => c.Name.ToLower() == normalized);
 
             if (character is null)
             {
@@ -76,10 +78,11 @@ public class CharacterRepository : IDbRepository<Character>
         try
         {
             // Load existing character with related entities
+            var normalized = entity.Name.ToLowerInvariant();
             var existingCharacter = await _context.Characters
                 .Include(c => c.Items)
                 .Include(c => c.Paperdoll)
-                .FirstOrDefaultAsync(c => c.Name == entity.Name);
+                .FirstOrDefaultAsync(c => c.Name.ToLower() == normalized);
 
             if (existingCharacter == null)
             {

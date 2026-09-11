@@ -1,4 +1,5 @@
 using Acorn.Database.Repository;
+using Acorn.Game.Validation;
 using Acorn.Infrastructure.Security;
 using Acorn.Infrastructure.Telemetry;
 using Microsoft.Extensions.Logging;
@@ -25,7 +26,8 @@ internal class AccountAgreeClientPacketHandler(
             return;
         }
 
-        var account = await accountRepository.GetByKeyAsync(packet.Username);
+        var username = PlayerValidation.NormalizeName(packet.Username);
+        var account = await accountRepository.GetByKeyAsync(username);
         if (account is null)
         {
             logger.LogWarning("Password change failed for {Username}: account not found", packet.Username);
@@ -39,7 +41,7 @@ internal class AccountAgreeClientPacketHandler(
 
         // Verify old password
         var salt = Convert.FromBase64String(account.Salt);
-        var valid = Hash.VerifyPassword(packet.Username, packet.OldPassword, salt, account.Password);
+        var valid = Hash.VerifyPassword(username, packet.OldPassword, salt, account.Password);
 
         if (!valid)
         {
@@ -53,7 +55,7 @@ internal class AccountAgreeClientPacketHandler(
         }
 
         // Generate new password hash
-        var newHash = Hash.HashPassword(packet.Username, packet.NewPassword, out var newSalt);
+        var newHash = Hash.HashPassword(username, packet.NewPassword, out var newSalt);
         account.Password = newHash;
         account.Salt = Convert.ToBase64String(newSalt);
 

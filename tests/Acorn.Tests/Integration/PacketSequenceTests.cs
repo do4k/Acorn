@@ -1,3 +1,4 @@
+using Acorn.Tests.Support;
 using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
@@ -166,8 +167,8 @@ public class PacketSequenceTests : IClassFixture<TestServerFixture>
         await client.InitAsync();
         await client.SendConnectionAcceptAsync();
 
-        var username = $"{prefix}_{Guid.NewGuid():N}"[..20];
-        var password = "testpassword123";
+        var username = $"{prefix}{Guid.NewGuid():N}"[..16];
+        var password = TestPasswords.Valid;
         var sessionId = await client.AccountRequestAsync(username);
         var createReply = await client.AccountCreateAsync(username, password, sessionId);
         createReply.Should().Be(AccountReply.Created);
@@ -179,7 +180,7 @@ public class PacketSequenceTests : IClassFixture<TestServerFixture>
         // so build a random short name to survive tests sharing one server/db.
         var charName = $"go{Guid.NewGuid():N}"[..10];
         var charReply = await client.CreateCharacterAsync(sessionId, charName);
-        charReply.Should().Be(CharacterReply.Ok);
+        charReply.ReplyCode.Should().Be(CharacterReply.Ok);
 
         return client;
     }
@@ -187,7 +188,7 @@ public class PacketSequenceTests : IClassFixture<TestServerFixture>
     private static async Task EnterGameAsync(EoTestClient client)
     {
         // Welcome request -> reply with character data.
-        await client.SendPacketAsync(new WelcomeRequestClientPacket { CharacterId = 0 });
+        await client.SendPacketAsync(new WelcomeRequestClientPacket { CharacterId = client.CharacterId });
         var welcome = (WelcomeReplyServerPacket)await client.ReceivePacketAsync();
         welcome.WelcomeCode.Should().Be(WelcomeCode.SelectCharacter);
 
@@ -195,7 +196,7 @@ public class PacketSequenceTests : IClassFixture<TestServerFixture>
         await client.SendPacketAsync(new WelcomeMsgClientPacket
         {
             SessionId = client.PlayerId,
-            CharacterId = 0
+            CharacterId = client.CharacterId
         });
         var enter = (WelcomeReplyServerPacket)await client.ReceivePacketAsync();
         enter.WelcomeCode.Should().Be(WelcomeCode.EnterGame);

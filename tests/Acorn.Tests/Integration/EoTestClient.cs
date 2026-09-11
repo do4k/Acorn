@@ -32,6 +32,13 @@ public sealed class EoTestClient : IAsyncDisposable
     public int PlayerId { get; private set; }
 
     /// <summary>
+    ///     Database id of the most recently created character, taken from the
+    ///     character selection list in the creation reply. Used by tests that
+    ///     then select/enter the game with that character.
+    /// </summary>
+    public int CharacterId { get; private set; }
+
+    /// <summary>
     ///     The single-byte sequence value sent with the most recent non-Init packet.
     ///     Used by tests to verify monotonically advancing sequence progression.
     /// </summary>
@@ -313,23 +320,50 @@ public sealed class EoTestClient : IAsyncDisposable
     }
 
     /// <summary>
-    ///     Sends a CharacterCreateClientPacket and returns the reply code.
+    ///     Sends a CharacterCreateClientPacket and returns the full reply.
     /// </summary>
-    public async Task<CharacterReply> CreateCharacterAsync(int sessionId, string name)
+    public async Task<CharacterReplyServerPacket> CreateCharacterAsync(int sessionId, string name,
+        Gender gender = Gender.Male, int hairStyle = 1, int hairColor = 1, int skin = 1)
     {
         await SendPacketAsync(new CharacterCreateClientPacket
         {
             SessionId = sessionId,
             Name = name,
-            Gender = Gender.Male,
-            HairStyle = 1,
-            HairColor = 1,
-            Skin = 1
+            Gender = gender,
+            HairStyle = hairStyle,
+            HairColor = hairColor,
+            Skin = skin
         });
 
         var response = await ReceivePacketAsync();
         var reply = (CharacterReplyServerPacket)response;
-        return reply.ReplyCode;
+
+        if (reply.ReplyCode == CharacterReply.Ok &&
+            reply.ReplyCodeData is CharacterReplyServerPacket.ReplyCodeDataOk ok)
+        {
+            var created = ok.Characters.SingleOrDefault(c => c.Name == name);
+            if (created is not null)
+            {
+                CharacterId = created.Id;
+            }
+        }
+
+        return reply;
+    }
+
+    /// <summary>
+    ///     Sends a CharacterCreateClientPacket and returns the created character's
+    ///     database id (as reported in the character selection list).
+    /// </summary>
+    public async Task<int> CreateCharacterAndGetIdAsync(int sessionId, string name)
+    {
+        var reply = await CreateCharacterAsync(sessionId, name);
+        if (reply.ReplyCode != CharacterReply.Ok)
+        {
+            throw new InvalidOperationException($"Character creation failed: {reply.ReplyCode}");
+        }
+
+        return CharacterId;
     }
 
     // --- Transport helpers ---

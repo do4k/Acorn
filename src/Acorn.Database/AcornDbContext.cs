@@ -50,7 +50,9 @@ public class AcornDbContext : DbContext
         // Configure Character entity
         modelBuilder.Entity<Character>(entity =>
         {
-            entity.HasKey(e => e.Name);
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedOnAdd();
+            entity.HasAlternateKey(e => e.Name);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(16);
             entity.Property(e => e.Accounts_Username).IsRequired().HasMaxLength(16);
             entity.Property(e => e.Title).HasMaxLength(100);
@@ -84,25 +86,31 @@ public class AcornDbContext : DbContext
             entity.Property(e => e.Con).IsRequired();
             entity.Property(e => e.Cha).IsRequired();
 
-            // Configure relationships
+            // Configure relationships. The dependent entities reference the
+            // character by name, which is a unique alternate key now that Id is
+            // the primary key.
             entity.HasMany(e => e.Items)
                 .WithOne()
                 .HasForeignKey(i => i.CharacterName)
+                .HasPrincipalKey(e => (object)e.Name!)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasMany(e => e.Spells)
                 .WithOne()
                 .HasForeignKey(s => s.CharacterName)
+                .HasPrincipalKey(e => (object)e.Name!)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(e => e.Paperdoll)
                 .WithOne(p => p.Character)
                 .HasForeignKey<CharacterPaperdoll>(p => p.CharacterName)
+                .HasPrincipalKey<Character>(e => (object)e.Name!)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasMany(e => e.QuestProgress)
                 .WithOne()
                 .HasForeignKey(q => q.CharacterName)
+                .HasPrincipalKey(e => (object)e.Name!)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

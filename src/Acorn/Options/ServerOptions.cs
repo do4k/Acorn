@@ -130,5 +130,66 @@ public class ServerOptions
     /// </summary>
     public int SkillPerLevel { get; set; } = 4;
 
+    /// <summary>
+    ///     Maximum number of characters an account may have. Mirrors eoserv's MaxCharacters.
+    /// </summary>
+    public int MaxCharacters { get; set; } = 3;
+
+    /// <summary>
+    ///     When true, the first character created while no admin characters exist is
+    ///     granted High Game Master status. Mirrors eoserv's FirstCharacterAdmin.
+    /// </summary>
+    public bool FirstCharacterAdmin { get; set; } = true;
+
+    /// <summary>
+    ///     Minimum account username length. Mirrors eoserv's AccountMinLength.
+    /// </summary>
+    public int AccountMinLength { get; set; } = 4;
+
+    /// <summary>
+    ///     Maximum account username length. Mirrors eoserv's AccountMaxLength.
+    /// </summary>
+    public int AccountMaxLength { get; set; } = 16;
+
+    /// <summary>
+    ///     Minimum account password length. Mirrors eoserv's PasswordMinLength.
+    /// </summary>
+    public int PasswordMinLength { get; set; } = 6;
+
+    /// <summary>
+    ///     Maximum account password length. Mirrors eoserv's PasswordMaxLength.
+    /// </summary>
+    public int PasswordMaxLength { get; set; } = 12;
+
+    /// <summary>
+    ///     Minimum hair style accepted during character creation. Mirrors eoserv's CreateMinHairStyle.
+    /// </summary>
+    public int CreateMinHairStyle { get; set; } = 1;
+
+    /// <summary>
+    ///     Maximum hair style accepted during character creation. Mirrors eoserv's CreateMaxHairStyle.
+    /// </summary>
+    public int CreateMaxHairStyle { get; set; } = 20;
+
+    /// <summary>
+    ///     Minimum hair color accepted during character creation. Mirrors eoserv's CreateMinHairColor.
+    /// </summary>
+    public int CreateMinHairColor { get; set; } = 0;
+
+    /// <summary>
+    ///     Maximum hair color accepted during character creation. Mirrors eoserv's CreateMaxHairColor.
+    /// </summary>
+    public int CreateMaxHairColor { get; set; } = 9;
+
+    /// <summary>
+    ///     Minimum skin accepted during character creation. Mirrors eoserv's CreateMinSkin.
+    /// </summary>
+    public int CreateMinSkin { get; set; } = 0;
+
+    /// <summary>
+    ///     Maximum skin accepted during character creation. Mirrors eoserv's CreateMaxSkin.
+    /// </summary>
+    public int CreateMaxSkin { get; set; } = 3;
+
     public static string SectionName => "Server";
 }

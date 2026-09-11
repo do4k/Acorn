@@ -3,8 +3,10 @@ using Acorn.Database.Repository;
 using Acorn.Extensions;
 using Acorn.Game.Mappers;
 using Acorn.Game.Services;
+using Acorn.Game.Validation;
 using Acorn.Infrastructure.Telemetry;
 using Acorn.Options;
+using Acorn.World.Services.Admin;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Protocol;
@@ -19,11 +21,13 @@ internal class CharacterCreateClientPacketHandler(
     IPaperdollService paperdollService,
     ILogger<CharacterCreateClientPacketHandler> logger,
     IOptions<ServerOptions> serverOptions,
+    IAdminCountService adminCountService,
     AcornMetrics metrics)
     : IPacketHandler<CharacterCreateClientPacket>
 {
     private readonly IPaperdollService _paperdollService = paperdollService;
     private readonly ServerOptions _serverOptions = serverOptions.Value;
+    private readonly IAdminCountService _adminCountService = adminCountService;
 
     public async Task HandleAsync(PlayerState playerState,
         CharacterCreateClientPacket packet)
@@ -35,10 +39,38 @@ internal class CharacterCreateClientPacketHandler(
             return;
         }
 
-        var characterQuery = await repository.GetByKeyAsync(packet.Name);
-        var exists = characterQuery is not null;
+        var name = PlayerValidation.NormalizeName(packet.Name);
 
-        if (exists)
+        if (!IsValidAppearance(packet))
+        {
+            logger.LogDebug("Rejecting character creation for invalid appearance. Account: {Username}",
+                playerState.Account.Username);
+            await SendNotApproved(playerState);
+            return;
+        }
+
+        if (playerState.Account.Characters.Count >= _serverOptions.MaxCharacters)
+        {
+            logger.LogDebug("Account {Username} is full, cannot create another character",
+                playerState.Account.Username);
+            await playerState.Send(new CharacterReplyServerPacket
+            {
+                ReplyCode = CharacterReply.Full,
+                ReplyCodeData = new CharacterReplyServerPacket.ReplyCodeDataFull()
+            });
+            return;
+        }
+
+        if (!PlayerValidation.IsValidCharacterName(name))
+        {
+            logger.LogDebug("Rejecting character creation for invalid name. Account: {Username}",
+                playerState.Account.Username);
+            await SendNotApproved(playerState);
+            return;
+        }
+
+        var characterQuery = await repository.GetByKeyAsync(name);
+        if (characterQuery is not null)
         {
             await playerState.Send(
                 new CharacterReplyServerPacket
@@ -55,15 +87,16 @@ internal class CharacterCreateClientPacketHandler(
             return;
         }
 
-        // First character in the entire game gets admin privileges, subsequent characters are regular players
-        var allCharacters = await repository.GetAllAsync();
-        var isFirstCharacterInGame = !allCharacters.Any();
+        // The first character in the game is only granted admin when no admin
+        // characters exist and the server allows it.
+        var adminCount = await _adminCountService.GetAdminCountAsync();
+        var grantAdmin = _serverOptions.FirstCharacterAdmin && adminCount == 0;
 
         var character = new Database.Models.Character
         {
-            Name = packet.Name,
+            Name = name,
             Race = packet.Skin,
-            Admin = isFirstCharacterInGame ? AdminLevel.HighGameMaster : AdminLevel.Player,
+            Admin = grantAdmin ? AdminLevel.HighGameMaster : AdminLevel.Player,
             Accounts_Username = playerState.Account.Username,
             Map = _serverOptions.NewCharacter.Map,
             X = _serverOptions.NewCharacter.X,
@@ -82,11 +115,17 @@ internal class CharacterCreateClientPacketHandler(
             Spells = new List<CharacterSpell>(),
             Paperdoll = new CharacterPaperdoll
             {
-                CharacterName = packet.Name
+                CharacterName = name
             }
         };
 
         await repository.CreateAsync(character);
+
+        if (grantAdmin)
+        {
+            _adminCountService.Increment();
+        }
+
         metrics.CharactersCreated.Add(1);
         logger.CharacterCreated(character.Name, playerState.Account.Username);
 
@@ -102,9 +141,30 @@ internal class CharacterCreateClientPacketHandler(
             ReplyCodeData = new CharacterReplyServerPacket.ReplyCodeDataOk
             {
                 Characters = playerState.Account.Characters
-                    .Select((c, id) => CharacterMapper.FromDatabaseModel(c).AsCharacterListEntry(id, _paperdollService)).ToList()
+                    .Select(c => CharacterMapper.FromDatabaseModel(c).AsCharacterListEntry(_paperdollService)).ToList()
             }
         });
     }
 
+    private bool IsValidAppearance(CharacterCreateClientPacket packet)
+    {
+        if (packet.Gender is not (Gender.Female or Gender.Male))
+        {
+            return false;
+        }
+
+        return packet.HairStyle >= _serverOptions.CreateMinHairStyle
+               && packet.HairStyle <= _serverOptions.CreateMaxHairStyle
+               && packet.HairColor >= _serverOptions.CreateMinHairColor
+               && packet.HairColor <= _serverOptions.CreateMaxHairColor
+               && packet.Skin >= _serverOptions.CreateMinSkin
+               && packet.Skin <= _serverOptions.CreateMaxSkin;
+    }
+
+    private static Task SendNotApproved(PlayerState playerState) =>
+        playerState.Send(new CharacterReplyServerPacket
+        {
+            ReplyCode = CharacterReply.NotApproved,
+            ReplyCodeData = new CharacterReplyServerPacket.ReplyCodeDataNotApproved()
+        });
 }

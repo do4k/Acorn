@@ -64,14 +64,13 @@ internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequest
             return;
         }
 
-        var characters = playerState.Account?.Characters;
-        if (characters is null || packet.CharacterId < 0 || packet.CharacterId >= characters.Count)
+        var character = playerState.Account?.Characters
+            .FirstOrDefault(c => c.Id == packet.CharacterId);
+        if (character is null)
         {
-            _logger.LogError("Could not find character at index {CharacterId}", packet.CharacterId);
+            _logger.LogError("Could not find character with id {CharacterId}", packet.CharacterId);
             return;
         }
-
-        var character = characters[packet.CharacterId];
 
         //playerConnection.SessionId = _sessionGenerator.Generate();
         var map = _dataRepository.Maps.FirstOrDefault(map => map.Id == character.Map)?.Map;
@@ -139,7 +138,7 @@ internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequest
             WelcomeCodeData = new WelcomeReplyServerPacket.WelcomeCodeDataSelectCharacter
             {
                 Admin = GetClientAdminLevel(playerState.Character.Admin),
-                CharacterId = packet.CharacterId,
+                CharacterId = character.Id,
                 ClassId = playerState.Character.Class,
                 EcfLength = _dataRepository.Ecf.Classes.Count,
                 EcfRid = _dataRepository.Ecf.Rid,

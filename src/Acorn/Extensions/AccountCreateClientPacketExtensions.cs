@@ -1,5 +1,5 @@
-﻿using System.Text;
-using Acorn.Database.Models;
+﻿using Acorn.Database.Models;
+using Acorn.Game.Validation;
 using Acorn.Infrastructure.Security;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 
@@ -9,7 +9,10 @@ public static class AccountCreateClientPacketExtensions
 {
     public static Account AsNewAccount(this AccountCreateClientPacket packet, DateTime created)
     {
-        var password = Hash.HashPassword(packet.Username, packet.Password, out var salt);
+        // Usernames are normalized to lowercase so lookups and password hashes
+        // are case-insensitive, matching eoserv.
+        var username = PlayerValidation.NormalizeName(packet.Username);
+        var password = Hash.HashPassword(username, packet.Password, out var salt);
         return new Account
         {
             Characters = new List<Character>(),
@@ -21,7 +24,7 @@ public static class AccountCreateClientPacketExtensions
             Location = packet.Location,
             Password = password,
             Salt = Convert.ToBase64String(salt),
-            Username = packet.Username
+            Username = username
         };
     }
 }

@@ -20,8 +20,9 @@ public class CharacterMapper : ICharacterMapper
     {
         return new DatabaseCharacter
         {
+            Id = character.Id,
             Accounts_Username = character.Accounts_Username,
-            Name = character.Name,
+            Name = character.Name!,
             Title = character.Title,
             Home = character.Home,
             Fiance = character.Fiance,
@@ -121,6 +122,7 @@ public class CharacterMapper : ICharacterMapper
 
         return new GameCharacter
         {
+            Id = dbCharacter.Id,
             Accounts_Username = dbCharacter.Accounts_Username,
             Name = dbCharacter.Name,
             Title = dbCharacter.Title,
