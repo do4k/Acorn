@@ -1,3 +1,4 @@
+using Acorn.Game.Services;
 using Acorn.World;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
@@ -7,12 +8,21 @@ using Acorn.Net.PacketHandlers;
 namespace Acorn.Net.PacketHandlers.Player.Talk;
 
 [RequiresCharacter]
-internal class TalkTellClientPacketHandler(IWorldQueries world) : IPacketHandler<TalkTellClientPacket>
+internal class TalkTellClientPacketHandler(IWorldQueries world, IChatSanitizer chatSanitizer)
+    : IPacketHandler<TalkTellClientPacket>
 {
     public async Task HandleAsync(PlayerState playerState, TalkTellClientPacket packet)
     {
+        // Muted players cannot whisper.
+        if (playerState.IsMuted)
+        {
+            return;
+        }
+
         var target = world.FindPlayerByName(packet.Name);
-        if (target is null)
+
+        // Hidden admins and unknown players are indistinguishable to the sender.
+        if (target?.Character is null || target.Character.Hidden || !target.Whispers)
         {
             await playerState.Send(new TalkReplyServerPacket
             {
@@ -22,10 +32,12 @@ internal class TalkTellClientPacketHandler(IWorldQueries world) : IPacketHandler
             return;
         }
 
+        var message = chatSanitizer.Sanitize(packet.Message, playerState.Character!.Name);
+
         await target.Send(new TalkTellServerPacket
         {
-            Message = packet.Message,
-            PlayerName = playerState.Character!.Name!
+            Message = message,
+            PlayerName = playerState.Character.Name!
         });
     }
 }

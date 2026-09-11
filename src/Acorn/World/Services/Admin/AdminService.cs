@@ -162,8 +162,9 @@ public class AdminService(
             return;
         }
 
-        target.IsMuted = true;
-        logger.LogInformation("Admin {Admin} muted player {Target}", admin.Character!.Name, targetName);
+        target.MutedUntil = DateTime.UtcNow.AddSeconds(serverOptions.Value.MuteLengthSeconds);
+        logger.LogInformation("Admin {Admin} muted player {Target} for {Seconds}s", admin.Character!.Name, targetName,
+            serverOptions.Value.MuteLengthSeconds);
 
         // Send TalkSpecServerPacket to notify client
         await target.Send(new TalkSpecServerPacket { AdminName = admin.Character!.Name! });
@@ -182,7 +183,7 @@ public class AdminService(
             return;
         }
 
-        target.IsMuted = false;
+        target.MutedUntil = DateTime.MinValue;
         logger.LogInformation("Admin {Admin} unmuted player {Target}", admin.Character!.Name, targetName);
         await notifications.SystemMessage(target, "You have been unmuted.");
         await notifications.SystemMessage(admin, $"Player '{targetName}' has been unmuted.");

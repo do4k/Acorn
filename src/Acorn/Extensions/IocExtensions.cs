@@ -75,6 +75,7 @@ internal static class IocRegistrations
         return services
             .AddSingleton<IFormulaService, FormulaService>()
             .AddSingleton<ILootService, LootService>()
+            .AddSingleton<IChatSanitizer, ChatSanitizer>()
             .AddSingleton<IMapTileService, MapTileService>()
             .AddSingleton<IMapBroadcastService, MapBroadcastService>()
             .AddSingleton<INpcCombatService, NpcCombatService>()

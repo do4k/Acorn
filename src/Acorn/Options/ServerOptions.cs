@@ -45,5 +45,23 @@ public class ServerOptions
     /// </summary>
     public bool LogPackets { get; set; } = false;
 
+    /// <summary>
+    ///     Maximum number of characters allowed in a chat message. Longer messages
+    ///     are truncated with a " [...]" suffix. Mirrors eoserv's ChatLength.
+    /// </summary>
+    public int ChatLength { get; set; } = 128;
+
+    /// <summary>
+    ///     Maximum rendered width (in pixels) of a chat message. Mirrors eoserv's
+    ///     ChatMaxWidth. Uses the Endless Online bitmap font metrics.
+    /// </summary>
+    public int ChatMaxWidth { get; set; } = 1400;
+
+    /// <summary>
+    ///     Duration of a mute applied by the $mute command, in seconds.
+    ///     Mirrors eoserv's MuteLength.
+    /// </summary>
+    public int MuteLengthSeconds { get; set; } = 90;
+
     public static string SectionName => "Server";
 }

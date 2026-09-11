@@ -127,12 +127,38 @@ public sealed class EoTestClient : IAsyncDisposable
     /// <summary>
     /// Receives and deserializes a server packet, handling decryption.
     /// </summary>
-    public async Task<IPacket> ReceivePacketAsync()
+    public Task<IPacket> ReceivePacketAsync()
     {
-        using var cts = new CancellationTokenSource(ReceiveTimeout);
+        return ReceivePacketAsync(ReceiveTimeout);
+    }
 
+    /// <summary>
+    ///     Receives a packet, giving up after <paramref name="timeout" />. Returns
+    ///     <c>null</c> when no packet arrives in time. Used for negative assertions.
+    /// </summary>
+    public async Task<IPacket?> TryReceivePacketAsync(TimeSpan timeout)
+    {
+        using var cts = new CancellationTokenSource(timeout);
+        try
+        {
+            return await ReceivePacketCoreAsync(cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            return null;
+        }
+    }
+
+    private async Task<IPacket> ReceivePacketAsync(TimeSpan timeout)
+    {
+        using var cts = new CancellationTokenSource(timeout);
+        return await ReceivePacketCoreAsync(cts.Token);
+    }
+
+    private async Task<IPacket> ReceivePacketCoreAsync(CancellationToken ct)
+    {
         // Read 2-byte length prefix
-        var lenBytes = await ReceiveBytesAsync(2, cts.Token);
+        var lenBytes = await ReceiveBytesAsync(2, ct);
         var length = NumberEncoder.DecodeNumber(lenBytes);
 
         if (length <= 0 || length > 65535)
@@ -141,7 +167,7 @@ public sealed class EoTestClient : IAsyncDisposable
         }
 
         // Read payload
-        var payload = await ReceiveBytesAsync(length, cts.Token);
+        var payload = await ReceiveBytesAsync(length, ct);
 
         // Decrypt (skip for pre-init packets where serverMulti is 0)
         var decrypted = _serverEncryptionMulti switch

@@ -1,3 +1,6 @@
+using Acorn.Extensions;
+using Acorn.Game.Services;
+using Acorn.World.Services.Map;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
@@ -11,12 +14,20 @@ namespace Acorn.Net.PacketHandlers.Player.Talk;
 internal class TalkReportClientPacketHandler(
     IEnumerable<ITalkHandler> talkHandlers,
     IEnumerable<IPlayerCommandHandler> playerCommandHandlers,
-    WiseManTalkHandler wiseManHandler)
+    WiseManTalkHandler wiseManHandler,
+    IMapTileService tileService,
+    IChatSanitizer chatSanitizer)
     : IPacketHandler<TalkReportClientPacket>
 {
     public async Task HandleAsync(PlayerState playerState,
         TalkReportClientPacket packet)
     {
+        // Muted players cannot chat, run commands, or talk to the Wise Man.
+        if (playerState.IsMuted)
+        {
+            return;
+        }
+
         var author = playerState.Character!;
 
         if (author?.Admin > AdminLevel.Player && packet.Message.StartsWith("$"))
@@ -54,17 +65,23 @@ internal class TalkReportClientPacketHandler(
         // Check if the message is directed at the Wise Man NPC
         wiseManHandler.TryHandleMessage(playerState, packet.Message);
 
-        // Muted players cannot chat
-        if (playerState.IsMuted)
+        var message = chatSanitizer.Sanitize(packet.Message, author!.Name);
+        if (string.IsNullOrEmpty(message))
         {
             return;
         }
 
-        await playerState.CurrentMap!.BroadcastPacket(new TalkPlayerServerPacket
-        {
-            Message = packet.Message,
-            PlayerId = playerState.SessionId
-        }, playerState);
-    }
+        // Local chat is only visible to players within client render range.
+        var origin = author.AsCoords();
+        var recipients = playerState.CurrentMap!.Players.Values
+            .Where(p => p.SessionId != playerState.SessionId
+                        && p.Character is not null
+                        && tileService.InClientRange(origin, p.Character!.AsCoords()));
 
+        await Task.WhenAll(recipients.Select(p => p.Send(new TalkPlayerServerPacket
+        {
+            Message = message,
+            PlayerId = playerState.SessionId
+        })));
+    }
 }

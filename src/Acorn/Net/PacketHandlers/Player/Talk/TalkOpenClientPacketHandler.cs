@@ -1,4 +1,4 @@
-using Acorn.World;
+using Acorn.Game.Services;
 using Acorn.World.Services.Party;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
@@ -11,10 +11,18 @@ namespace Acorn.Net.PacketHandlers.Player.Talk;
 /// </summary>
 [RequiresCharacter]
 internal class TalkOpenClientPacketHandler(
-    IPartyService partyService) : IPacketHandler<TalkOpenClientPacket>
+    IPartyService partyService,
+    IChatSanitizer chatSanitizer) : IPacketHandler<TalkOpenClientPacket>
 {
     public async Task HandleAsync(PlayerState playerState, TalkOpenClientPacket packet)
     {
-        await partyService.SendPartyMessage(playerState, packet.Message);
+        // Muted players cannot use party chat.
+        if (playerState.IsMuted)
+        {
+            return;
+        }
+
+        var message = chatSanitizer.Sanitize(packet.Message, playerState.Character?.Name);
+        await partyService.SendPartyMessage(playerState, message);
     }
 }
