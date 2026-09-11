@@ -62,15 +62,22 @@ public class PlayerController : IPlayerController
         var warpSession = new WarpSession(x, y, player, targetMap, warpEffect);
         player.WarpSession = warpSession;
 
-        if (!warpSession.IsLocal)
+        // Apply the map change immediately, matching eoserv's Character::Warp. The old
+        // map sees a single leave, the new map a single enter, and the player is moved
+        // before the Warp_Request is sent. Warp_Accept only replies with Warp_Agree.
+        if (player.CurrentMap != null)
         {
-            if (player.CurrentMap != null)
-            {
-                await player.CurrentMap.NotifyLeave(player, warpEffect);
-            }
-
-            await targetMap.NotifyEnter(player, warpEffect);
+            await player.CurrentMap.NotifyLeave(player, warpEffect);
         }
+
+        player.Character.Map = targetMap.Id;
+        player.Character.X = x;
+        player.Character.Y = y;
+        player.Character.SitState = SitState.Stand;
+
+        await player.CacheCharacterStateAsync(_characterCache, _paperdollService);
+
+        await targetMap.NotifyEnter(player, warpEffect);
 
         await warpSession.Execute();
 

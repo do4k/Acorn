@@ -55,21 +55,43 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
             return;
         }
 
-        playerState.Character!.X = packet.WalkAction.Direction switch
-        {
-            Direction.Left => playerState.Character.X - 1,
-            Direction.Right => playerState.Character.X + 1,
-            _ => playerState.Character.X
-        };
+        var direction = packet.WalkAction.Direction;
 
-        playerState.Character.Y = packet.WalkAction.Direction switch
+        var targetX = playerState.Character!.X + (direction switch
         {
-            Direction.Up => playerState.Character.Y - 1,
-            Direction.Down => playerState.Character.Y + 1,
-            _ => playerState.Character.Y
-        };
+            Direction.Left => -1,
+            Direction.Right => 1,
+            _ => 0
+        });
 
-        playerState.Character.Direction = packet.WalkAction.Direction;
+        var targetY = playerState.Character.Y + (direction switch
+        {
+            Direction.Up => -1,
+            Direction.Down => 1,
+            _ => 0
+        });
+
+        // A warp tile takes precedence over a normal step (matches eoserv map.cpp:921-943).
+        // Validate before moving so a blocked warp leaves the player on their current tile.
+        var warpTile = TryGetWarpTile(playerState.CurrentMap!, targetX, targetY);
+        if (warpTile is not null)
+        {
+            var targetMap = _world.FindMap(warpTile.Warp.DestinationMap);
+            if (targetMap is not null && IsWarpUsable(playerState, playerState.CurrentMap!, warpTile, targetX, targetY))
+            {
+                await _playerController.WarpAsync(
+                    playerState,
+                    targetMap,
+                    warpTile.Warp.DestinationCoords.X,
+                    warpTile.Warp.DestinationCoords.Y);
+            }
+
+            return;
+        }
+
+        playerState.Character.X = targetX;
+        playerState.Character.Y = targetY;
+        playerState.Character.Direction = direction;
 
         // Cache character state after position/direction update
         await playerState.CacheCharacterStateAsync(_characterCache, _paperdollService);
@@ -121,47 +143,35 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
                 Y = playerState.Character.Y
             }
         }, playerState);
-
-        var hasWarp = TryGetWarpTile(playerState.CurrentMap, playerState.Character, out var warpTile);
-        if (hasWarp is false || warpTile is null)
-        {
-            return;
-        }
-
-        var targetMap = _world.FindMap(warpTile.Warp.DestinationMap);
-        if (targetMap is null)
-        {
-            return;
-        }
-
-        await _playerController.WarpAsync(
-            playerState,
-            targetMap,
-            warpTile.Warp.DestinationCoords.X,
-            warpTile.Warp.DestinationCoords.Y);
     }
 
-
-    private bool TryGetWarpTile(MapState map, Acorn.Game.Models.Character character, out MapWarpRowTile? tile)
+    /// <summary>
+    ///     A warp tile is only usable when the character meets its level requirement and,
+    ///     for door warps, the door is currently open. Door keys are not yet modelled.
+    /// </summary>
+    private static bool IsWarpUsable(PlayerState player, MapState map, MapWarpRowTile tile, int x, int y)
     {
-        var possibleY = map.Data.WarpRows.Where(wr => wr.Y == character.Y);
-        var mapWarpRows = possibleY as MapWarpRow[] ?? possibleY.ToArray();
-        if (mapWarpRows.Any() is false)
+        var warp = tile.Warp;
+
+        if (player.Character is null || player.Character.Level < warp.LevelRequired)
         {
-            tile = null;
             return false;
         }
 
-        var possibleX = mapWarpRows.SelectMany(wr => wr.Tiles.Where(tile => tile.X == character.X));
-        var mapWarpRowTiles = possibleX as MapWarpRowTile[] ?? possibleX.ToArray();
-        if (mapWarpRowTiles.Any() is false)
+        var isDoor = warp.Door != 0;
+        if (isDoor && !map.OpenedDoors.ContainsKey(new Coords { X = x, Y = y }))
         {
-            tile = null;
             return false;
         }
 
-        var warpTile = mapWarpRowTiles.FirstOrDefault();
-        tile = warpTile;
-        return warpTile is not null;
+        return true;
+    }
+
+    private static MapWarpRowTile? TryGetWarpTile(MapState map, int x, int y)
+    {
+        return map.Data.WarpRows
+            .Where(row => row.Y == y)
+            .SelectMany(row => row.Tiles)
+            .FirstOrDefault(tile => tile.X == x && tile.Warp is not null);
     }
 }
