@@ -4,6 +4,7 @@ using Acorn.Net;
 using Acorn.Net.PacketHandlers.Board;
 using Acorn.Net.Services;
 using Acorn.Options;
+using Acorn.World.Services.Bans;
 using Acorn.World.Services.Player;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -18,6 +19,7 @@ public class AdminService(
     IWorldQueries world,
     IPlayerController playerController,
     INotificationService notifications,
+    IBanService banService,
     IOptions<ServerOptions> serverOptions,
     IServiceScopeFactory scopeFactory,
     ILogger<AdminService> logger) : IAdminService
@@ -62,6 +64,16 @@ public class AdminService(
         }
 
         logger.LogInformation("Admin {Admin} banned player {Target}", admin.Character!.Name, targetName);
+
+        if (target.Account?.Username is { } username)
+        {
+            banService.Ban(BanKeys.Username(username), reason: $"banned by {admin.Character.Name}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(target.Hdid))
+        {
+            banService.Ban(BanKeys.Hdid(target.Hdid), reason: $"banned by {admin.Character.Name}");
+        }
 
         await BroadcastServerMessage($"{targetName} has been banned by {admin.Character!.Name}.");
         target.Disconnect();

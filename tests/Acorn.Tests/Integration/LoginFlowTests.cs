@@ -13,7 +13,8 @@ namespace Acorn.Tests.Integration;
 /// init handshake, encryption, sequencing, account creation, and login all work
 /// end-to-end with no mocks.
 /// </summary>
-public class LoginFlowTests : IClassFixture<TestServerFixture>
+[Collection(IntegrationCollection.Name)]
+public class LoginFlowTests
 {
     private readonly TestServerFixture _fixture;
 

@@ -2,6 +2,7 @@ using Acorn.Database.Repository;
 using Acorn.Game.Validation;
 using Acorn.Infrastructure.Security;
 using Acorn.Infrastructure.Telemetry;
+using Acorn.Net.Models;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
@@ -13,6 +14,7 @@ namespace Acorn.Net.PacketHandlers.Account;
 ///     Handles password change requests (Account_Agree).
 ///     Matches reoserv account.rs account_agree handler.
 /// </summary>
+[RequiresState(ClientState.LoggedIn)]
 internal class AccountAgreeClientPacketHandler(
     IDbRepository<Database.Models.Account> accountRepository,
     ILogger<AccountAgreeClientPacketHandler> logger

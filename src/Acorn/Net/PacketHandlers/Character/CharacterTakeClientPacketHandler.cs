@@ -1,3 +1,4 @@
+using Acorn.Net.Models;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
@@ -5,6 +6,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.Net.PacketHandlers.Character;
 
+[RequiresState(ClientState.LoggedIn)]
 internal class CharacterTakeClientPacketHandler(
     ILogger<CharacterTakeClientPacketHandler> logger)
     : IPacketHandler<CharacterTakeClientPacket>

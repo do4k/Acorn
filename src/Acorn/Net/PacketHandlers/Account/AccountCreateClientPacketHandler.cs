@@ -2,6 +2,7 @@ using Acorn.Database.Repository;
 using Acorn.Extensions;
 using Acorn.Game.Validation;
 using Acorn.Infrastructure.Telemetry;
+using Acorn.Net.Models;
 using Acorn.Options;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -11,6 +12,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.Net.PacketHandlers.Account;
 
+[RequiresState(ClientState.Accepted)]
 internal class AccountCreateClientPacketHandler(
     IDbRepository<Database.Models.Account> accountRepository,
     ILogger<AccountCreateClientPacketHandler> logger,

@@ -190,6 +190,61 @@ public class ServerOptions
     ///     Maximum skin accepted during character creation. Mirrors eoserv's CreateMaxSkin.
     /// </summary>
     public int CreateMaxSkin { get; set; } = 3;
+    ///     Whether to validate the client version reported during the Init handshake.
+    ///     Disable for debugging with modified clients.
+    /// </summary>
+    public bool CheckVersion { get; set; } = true;
+
+    /// <summary>
+    ///     Minimum accepted client version, in "major.minor.patch" form
+    ///     (e.g. "0.0.28"). Ignored when <see cref="CheckVersion" /> is false.
+    /// </summary>
+    public string MinVersion { get; set; } = "0.0.28";
+
+    /// <summary>
+    ///     Maximum accepted client version, in "major.minor.patch" form
+    ///     (e.g. "0.3.29"). A value of "-1" (or empty) accepts any newer version.
+    ///     Ignored when <see cref="CheckVersion" /> is false.
+    /// </summary>
+    public string MaxVersion { get; set; } = "0.3.29";
+
+    /// <summary>
+    ///     Expected EO protocol revision. The vanilla v28 client reports 112.
+    ///     The SDK hard-codes this on serialize, so it is primarily informational
+    ///     but is still enforced against the raw handshake byte.
+    /// </summary>
+    public int ProtocolVersion { get; set; } = 112;
+
+    /// <summary>
+    ///     Maximum number of players allowed to be connected at once.
+    ///     0 disables the server-full check.
+    /// </summary>
+    public int MaxPlayers { get; set; } = 200;
+
+    /// <summary>
+    ///     Maximum number of failed login attempts allowed per connection before
+    ///     the client is disconnected. 0 disables login throttling.
+    /// </summary>
+    public int MaxLoginAttempts { get; set; } = 3;
+
+    /// <summary>
+    ///     How long, in seconds, an unaccepted connection may remain before it is
+    ///     disconnected for failing to complete the Init/Accept handshake.
+    ///     0 disables the hangup timeout.
+    /// </summary>
+    public int HangupDelaySeconds { get; set; } = 10;
+
+    /// <summary>
+    ///     Maximum number of concurrent connections allowed from the same HDID
+    ///     (hardware id). 0 disables the per-PC limit.
+    /// </summary>
+    public int MaxConnectionsPerPC { get; set; } = 3;
+
+    /// <summary>
+    ///     Whether to skip HDID validation. When false, connections with a missing
+    ///     or malformed HDID are rejected during Init.
+    /// </summary>
+    public bool IgnoreHdid { get; set; } = false;
 
     public static string SectionName => "Server";
 }
