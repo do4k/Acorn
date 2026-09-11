@@ -122,6 +122,23 @@ Two-tier caching via `ICacheService`:
 - **Private fields**: camelCase or _prefixed
 - **File-scoped namespaces**: Preferred
 
+### File Organization
+
+- **One top-level type per file.** Each `class`, `interface`, `struct`, `enum`, `record`, and delegate gets its own `.cs` file, named after the type (`IChatSanitizer` → `IChatSanitizer.cs`).
+- Do not co-locate an interface, its implementation, and helpers in a single file. Private helper types get their own file too.
+- Nested types may live inside their containing type.
+- File-scoped namespaces (already preferred) reinforce this.
+
+```csharp
+// Bad: one ChatSanitizer.cs containing IChatSanitizer, ChatSanitizer and ChatText
+// Good:
+//   IChatSanitizer.cs  -> public interface IChatSanitizer { ... }
+//   ChatSanitizer.cs   -> public class ChatSanitizer : IChatSanitizer { ... }
+//   ChatText.cs        -> internal static class ChatText { ... }
+```
+
+Enforcement is configured in `.editorconfig` via the StyleCop rules `SA1402` (file may only contain a single type) and `SA1649` (file name must match the first type). They are set to `suggestion` for now; raise them to `warning`/`error` once the existing multi-type files have been split up.
+
 ### Testing Patterns
 
 Tests use the Arrange-Act-Assert pattern with FluentAssertions:
@@ -191,6 +208,7 @@ dotnet ef migrations add MigrationName
 ### Do
 
 - Follow existing code patterns and naming conventions
+- Put each interface, enum, class, struct, and record in its own file
 - Write unit tests for new services
 - Use dependency injection
 - Prefer async/await for I/O operations
