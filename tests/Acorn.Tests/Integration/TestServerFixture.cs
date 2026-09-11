@@ -262,7 +262,20 @@ public class TestServerFixture : IAsyncLifetime
                 // HttpListener may throw ObjectDisposedException during shutdown
             }
 
-            _host.Dispose();
+            // The server's disconnect cleanup runs on a background task and uses
+            // scoped services (DbContext). Wait for every player to be removed before
+            // tearing down DI, otherwise the cleanup races disposal and throws
+            // ObjectDisposedException/SqliteException during test-class cleanup.
+            await DisconnectAndWaitForPlayersAsync();
+
+            try
+            {
+                _host.Dispose();
+            }
+            catch (Exception)
+            {
+                // Best effort: a background disconnect cleanup can still be finishing.
+            }
         }
 
         try
@@ -303,6 +316,46 @@ public class TestServerFixture : IAsyncLifetime
     }
 
     /// <summary>
+    ///     Disconnects any remaining players and waits (best effort) for the server's
+    ///     background disconnect cleanup to finish before the host is disposed.
+    /// </summary>
+    private async Task DisconnectAndWaitForPlayersAsync()
+    {
+        WorldState? world;
+        try
+        {
+            world = _host!.Services.GetService<WorldState>();
+        }
+        catch (ObjectDisposedException)
+        {
+            return;
+        }
+
+        if (world is null)
+        {
+            return;
+        }
+
+        foreach (var player in world.Players.Values.ToList())
+        {
+            player.Disconnect();
+        }
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        while (!cts.IsCancellationRequested && world.Players.Count > 0)
+        {
+            try
+            {
+                await Task.Delay(25, cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+        }
+    }
+
+    /// <summary>
     /// Whether the WebSocket listener started successfully.
     /// HttpListener may fail to bind on some platforms (macOS requires elevated perms for wildcard).
     /// </summary>
@@ -328,9 +381,71 @@ public class TestServerFixture : IAsyncLifetime
     private static void WriteTestMap(string dir)
     {
         Directory.CreateDirectory(dir);
+
+        // Map 1 is where every test character starts. It has the door tiles at
+        // (5,5)/(6,5) and a warp tile at (7,8) leading to map 2, placed off the paths
+        // the other integration tests walk.
+        WriteMap(dir, 1, "TestMap", new List<MapWarpRow>
+        {
+            // Doors above the spawn point: (6,5) is unlocked, (5,5) is locked.
+            new()
+            {
+                Y = 5,
+                Tiles = new List<MapWarpRowTile>
+                {
+                    new()
+                    {
+                        X = 5,
+                        Warp = new MapWarp
+                        {
+                            DestinationMap = 0,
+                            DestinationCoords = new Coords { X = 0, Y = 0 },
+                            LevelRequired = 0,
+                            Door = 2
+                        }
+                    },
+                    new()
+                    {
+                        X = 6,
+                        Warp = new MapWarp
+                        {
+                            DestinationMap = 0,
+                            DestinationCoords = new Coords { X = 0, Y = 0 },
+                            LevelRequired = 0,
+                            Door = 1
+                        }
+                    }
+                }
+            },
+            new()
+            {
+                Y = 8,
+                Tiles = new List<MapWarpRowTile>
+                {
+                    new()
+                    {
+                        X = 7,
+                        Warp = new MapWarp
+                        {
+                            DestinationMap = 2,
+                            DestinationCoords = new Coords { X = 5, Y = 5 },
+                            LevelRequired = 0,
+                            Door = 0
+                        }
+                    }
+                }
+            }
+        });
+
+        // Map 2 is the warp destination.
+        WriteMap(dir, 2, "TestMap2", new List<MapWarpRow>());
+    }
+
+    private static void WriteMap(string dir, int id, string name, List<MapWarpRow> warpRows)
+    {
         var emf = new Emf
         {
-            Name = "TestMap",
+            Name = name,
             Width = 20,
             Height = 20,
             FillTile = 1,
@@ -345,69 +460,39 @@ public class TestServerFixture : IAsyncLifetime
             AmbientSoundId = 0,
             Npcs = new List<MapNpc>(),
             Items = new List<Moffat.EndlessOnline.SDK.Protocol.Map.MapItem>(),
-            TileSpecRows = new List<MapTileSpecRow>
-            {
-                // A chair for sit/stand tests, placed off the paths other tests walk.
-                new()
+            TileSpecRows = id == 1
+                ? new List<MapTileSpecRow>
                 {
-                    Y = 11,
-                    Tiles = new List<MapTileSpecRowTile>
+                    // A chair for sit/stand tests, placed off the paths other tests walk.
+                    new()
                     {
-                        new() { X = 6, TileSpec = MapTileSpec.ChairAll }
-                    }
-                },
-                // A chest for map interaction tests, directly left of the spawn point.
-                new()
-                {
-                    Y = 6,
-                    Tiles = new List<MapTileSpecRowTile>
-                    {
-                        new() { X = 5, TileSpec = MapTileSpec.Chest }
-                    }
-                },
-                // A second chest far from spawn, used to verify range rejection.
-                new()
-                {
-                    Y = 15,
-                    Tiles = new List<MapTileSpecRowTile>
-                    {
-                        new() { X = 15, TileSpec = MapTileSpec.Chest }
-                    }
-                }
-            },
-            WarpRows = new List<MapWarpRow>
-            {
-                // Doors above the spawn point: (6,5) is unlocked, (5,5) is locked.
-                new()
-                {
-                    Y = 5,
-                    Tiles = new List<MapWarpRowTile>
-                    {
-                        new()
+                        Y = 11,
+                        Tiles = new List<MapTileSpecRowTile>
                         {
-                            X = 5,
-                            Warp = new MapWarp
-                            {
-                                DestinationMap = 0,
-                                DestinationCoords = new Coords { X = 0, Y = 0 },
-                                LevelRequired = 0,
-                                Door = 2
-                            }
-                        },
-                        new()
+                            new() { X = 6, TileSpec = MapTileSpec.ChairAll }
+                        }
+                    },
+                    // A chest for map interaction tests, directly left of the spawn point.
+                    new()
+                    {
+                        Y = 6,
+                        Tiles = new List<MapTileSpecRowTile>
                         {
-                            X = 6,
-                            Warp = new MapWarp
-                            {
-                                DestinationMap = 0,
-                                DestinationCoords = new Coords { X = 0, Y = 0 },
-                                LevelRequired = 0,
-                                Door = 1
-                            }
+                            new() { X = 5, TileSpec = MapTileSpec.Chest }
+                        }
+                    },
+                    // A second chest far from spawn, used to verify range rejection.
+                    new()
+                    {
+                        Y = 15,
+                        Tiles = new List<MapTileSpecRowTile>
+                        {
+                            new() { X = 15, TileSpec = MapTileSpec.Chest }
                         }
                     }
                 }
-            },
+                : new List<MapTileSpecRow>(),
+            WarpRows = warpRows,
             GraphicLayers = Enumerable.Range(0, 9)
                 .Select(_ => new MapGraphicLayer { GraphicRows = new List<MapGraphicRow>() })
                 .ToList(),
@@ -418,7 +503,7 @@ public class TestServerFixture : IAsyncLifetime
 
         var writer = new EoWriter();
         emf.Serialize(writer);
-        File.WriteAllBytes(Path.Combine(dir, "1.emf"), writer.ToByteArray());
+        File.WriteAllBytes(Path.Combine(dir, $"{id}.emf"), writer.ToByteArray());
     }
 
     /// <summary>

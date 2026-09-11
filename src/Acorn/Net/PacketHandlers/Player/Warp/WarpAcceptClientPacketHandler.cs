@@ -1,12 +1,8 @@
-using Acorn.Extensions;
-using Acorn.Game.Services;
-using Acorn.Shared.Caching;
-using Acorn.World;
+using Acorn.Net.PacketHandlers;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using Acorn.Net.PacketHandlers;
 
 namespace Acorn.Net.PacketHandlers.Player.Warp;
 
@@ -14,24 +10,18 @@ namespace Acorn.Net.PacketHandlers.Player.Warp;
 public class WarpAcceptClientPacketHandler : IPacketHandler<WarpAcceptClientPacket>
 {
     private readonly ILogger<WarpAcceptClientPacketHandler> _logger;
-    private readonly ICharacterCacheService _characterCache;
-    private readonly IPaperdollService _paperdollService;
 
     public WarpAcceptClientPacketHandler(
-        IWorldQueries world,
-        ILogger<WarpAcceptClientPacketHandler> logger,
-        ICharacterCacheService characterCache,
-        IPaperdollService paperdollService)
+        ILogger<WarpAcceptClientPacketHandler> logger)
     {
         _logger = logger;
-        _characterCache = characterCache;
-        _paperdollService = paperdollService;
     }
 
     public async Task HandleAsync(PlayerState playerState,
         WarpAcceptClientPacket packet)
     {
-        if (playerState.WarpSession is null)
+        var warpSession = playerState.WarpSession;
+        if (warpSession is null)
         {
             _logger.LogError("Player connection has no WarpSession initialised.");
             return;
@@ -39,40 +29,34 @@ public class WarpAcceptClientPacketHandler : IPacketHandler<WarpAcceptClientPack
 
         //todo: cancel any trades and whatnot if in progress
 
-        await playerState.CurrentMap!.NotifyLeave(playerState, playerState.WarpSession.WarpEffect);
-
-        playerState.Character!.Map = playerState.WarpSession.MapId;
-        playerState.Character.X = playerState.WarpSession.X;
-        playerState.Character.Y = playerState.WarpSession.Y;
-        playerState.Character.SitState = SitState.Stand;
-
-        // Cache character state after warp position update
-        await playerState.CacheCharacterStateAsync(_characterCache, _paperdollService);
-
-        await playerState.CurrentMap.NotifyEnter(playerState, playerState.WarpSession.WarpEffect);
-
-        if (playerState.WarpSession.IsLocal)
+        // The map change already happened in PlayerController.WarpAsync, so this handler
+        // only acknowledges the warp. The session is always cleared, local warps included.
+        try
         {
+            if (warpSession.IsLocal)
+            {
+                await playerState.Send(new WarpAgreeServerPacket
+                {
+                    Nearby = warpSession.TargetMap.AsNearbyInfo(),
+                    WarpType = WarpType.Local
+                });
+                return;
+            }
+
             await playerState.Send(new WarpAgreeServerPacket
             {
-                Nearby = playerState.CurrentMap.AsNearbyInfo(),
-                WarpType = WarpType.Local
+                Nearby = warpSession.TargetMap.AsNearbyInfo(),
+                WarpType = WarpType.MapSwitch,
+                WarpTypeData = new WarpAgreeServerPacket.WarpTypeDataMapSwitch
+                {
+                    MapId = warpSession.MapId,
+                    WarpEffect = warpSession.WarpEffect
+                }
             });
-            return;
         }
-
-        await playerState.Send(new WarpAgreeServerPacket
+        finally
         {
-            Nearby = playerState.CurrentMap.AsNearbyInfo(),
-            WarpType = WarpType.MapSwitch,
-            WarpTypeData = new WarpAgreeServerPacket.WarpTypeDataMapSwitch
-            {
-                MapId = playerState.Character.Map,
-                WarpEffect = playerState.WarpSession.WarpEffect
-            }
-        });
-
-        playerState.WarpSession = null;
+            playerState.WarpSession = null;
+        }
     }
-
 }
