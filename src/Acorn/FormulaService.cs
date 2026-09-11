@@ -1,6 +1,8 @@
 using Acorn.Database.Repository;
 using Acorn.Game.Models;
 using Acorn.Game.Services;
+using Acorn.Options;
+using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
 
@@ -12,10 +14,12 @@ namespace Acorn;
 public class FormulaService : IFormulaService
 {
     private readonly IStatCalculator _statCalculator;
+    private readonly ServerOptions _options;
 
-    public FormulaService(IStatCalculator statCalculator)
+    public FormulaService(IStatCalculator statCalculator, IOptions<ServerOptions> serverOptions)
     {
         _statCalculator = statCalculator;
+        _options = serverOptions.Value;
     }
 
     /// <summary>
@@ -77,7 +81,7 @@ public class FormulaService : IFormulaService
     ///     Optional bonus min/max damage is added before rolling (e.g. from a spell's own damage range).
     /// </summary>
     public int CalculateDamageToNpc(Character character, EnfRecord npcData, int currentHp, bool attackingBackOrSide = false,
-        int bonusMinDamage = 0, int bonusMaxDamage = 0)
+        int bonusMinDamage = 0, int bonusMaxDamage = 0, bool criticalFirstHit = false)
     {
         // Check if attack hits
         if (!DoesAttackHit(character.Accuracy, npcData.Evade))
@@ -88,8 +92,8 @@ public class FormulaService : IFormulaService
         // Roll damage between min and max
         var rawDamage = Random.Shared.Next(character.MinDamage + bonusMinDamage, character.MaxDamage + bonusMaxDamage + 1);
 
-        // Critical hit if NPC is at full HP or attacking from back/side
-        var critical = currentHp >= npcData.Hp || attackingBackOrSide;
+        // Critical hit when attacking from back/side, or on the first hit (full HP) when enabled
+        var critical = attackingBackOrSide || (criticalFirstHit && currentHp >= npcData.Hp);
 
         return CalculateDamage(rawDamage, npcData.Armor, critical);
     }
@@ -119,7 +123,7 @@ public class FormulaService : IFormulaService
     ///     Optional bonus min/max damage is added before rolling (e.g. from a spell's own damage range).
     /// </summary>
     public int CalculateDamageToPlayer(Character attacker, Character target, bool attackingBackOrSide = false,
-        int bonusMinDamage = 0, int bonusMaxDamage = 0)
+        int bonusMinDamage = 0, int bonusMaxDamage = 0, bool criticalFirstHit = false)
     {
         // Check if attack hits
         if (!DoesAttackHit(attacker.Accuracy, target.Evade))
@@ -130,8 +134,8 @@ public class FormulaService : IFormulaService
         // Roll damage between min and max
         var rawDamage = Random.Shared.Next(attacker.MinDamage + bonusMinDamage, attacker.MaxDamage + bonusMaxDamage + 1);
 
-        // Critical hit if target is at full HP or attacking from back/side
-        var critical = target.Hp == target.MaxHp || attackingBackOrSide;
+        // Critical hit when attacking from back/side, or on the first hit (full HP) when enabled
+        var critical = attackingBackOrSide || (criticalFirstHit && target.Hp == target.MaxHp);
 
         return CalculateDamage(rawDamage, target.Armor, critical);
     }
@@ -317,11 +321,9 @@ public class FormulaService : IFormulaService
         // Increment level
         character.Level++;
 
-        // Three stat points per level
-        character.StatPoints += 3;
-
-        // One skill point per level
-        character.SkillPoints += 1;
+        // Grant the configured stat/skill points for the new level (defaults match eoserv)
+        character.StatPoints += _options.StatPerLevel;
+        character.SkillPoints += _options.SkillPerLevel;
 
         // Recalculate stats
         _statCalculator.RecalculateStats(character, classes);

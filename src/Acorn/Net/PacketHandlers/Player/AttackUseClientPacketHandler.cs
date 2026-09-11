@@ -5,6 +5,8 @@ using Acorn.Options;
 using Acorn.Shared.Caching;
 using Acorn.World.Map;
 using Acorn.World.Services.Arena;
+using Acorn.World.Services.Combat;
+using Acorn.World.Services.Map;
 using Acorn.World.Services.Party;
 using Acorn.World.Services.Player;
 using Microsoft.Extensions.Logging;
@@ -16,6 +18,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
 using Acorn.Infrastructure.Telemetry;
 using Acorn.Net.PacketHandlers;
+using NpcState = Acorn.World.Npc.NpcState;
 
 namespace Acorn.Net.PacketHandlers.Player;
 
@@ -34,12 +37,16 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
     private readonly IArenaService _arenaService;
     private readonly IPartyService _partyService;
     private readonly IPlayerController _playerController;
+    private readonly IMapTileService _tileService;
+    private readonly int _rangedDistance;
+    private readonly int _attackCooldownMs;
+    private readonly bool _criticalFirstHit;
 
     public AttackUseClientPacketHandler(UtcNowDelegate now, ILogger<AttackUseClientPacketHandler> logger,
         IFormulaService formulaService, IDataFileRepository dataFiles, ILootService lootService,
         IOptions<ServerOptions> serverOptions, ICharacterCacheService characterCache,
         IPaperdollService paperdollService, IArenaService arenaService, IPartyService partyService,
-        IPlayerController playerController, AcornMetrics metrics)
+        IPlayerController playerController, IMapTileService tileService, AcornMetrics metrics)
     {
         _now = now;
         _logger = logger;
@@ -52,210 +59,309 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
         _arenaService = arenaService;
         _partyService = partyService;
         _playerController = playerController;
+        _tileService = tileService;
+        _rangedDistance = serverOptions.Value.RangedDistance;
+        _attackCooldownMs = serverOptions.Value.AttackCooldownMs;
+        _criticalFirstHit = serverOptions.Value.CriticalFirstHit;
         _metrics = metrics;
     }
 
     public async Task HandleAsync(PlayerState playerState, AttackUseClientPacket packet)
     {
-        if ((_now() - playerState.LastAttackTime).TotalMilliseconds < 500)
+        if (playerState.Character is null || playerState.CurrentMap is null)
         {
             return;
         }
 
-        if (playerState.Character is not null)
+        // Sitting players cannot attack (matches eoserv).
+        if (playerState.Character.SitState != SitState.Stand)
         {
-            var nextCoords = playerState.Character!.NextCoords();
-            var target = playerState.CurrentMap!.Npcs.Values.FirstOrDefault(x =>
+            return;
+        }
+
+        // Attack-rate limit (configurable, defaults to the previous 500ms).
+        if ((_now() - playerState.LastAttackTime).TotalMilliseconds < _attackCooldownMs)
+        {
+            return;
+        }
+
+        var map = playerState.CurrentMap;
+        var character = playerState.Character;
+
+        // Use the direction from the packet (matches eoserv) and face that way.
+        var direction = packet.Direction;
+        character.Direction = direction;
+
+        var range = GetAttackRange(character);
+        var origin = character.AsCoords();
+
+        var targetCoords = AttackTrace.FindTargetTile(
+            origin,
+            direction,
+            range,
+            coords => HasTargetAt(map, playerState.SessionId, coords),
+            coords => IsBlocked(map, coords));
+
+        NpcState? target = null;
+        PlayerState? targetPlayer = null;
+
+        if (targetCoords is not null)
+        {
+            target = map.Npcs.Values.FirstOrDefault(x =>
                 !x.IsDead &&
-                x.X == nextCoords.X && x.Y == nextCoords.Y &&
+                x.X == targetCoords.X && x.Y == targetCoords.Y &&
                 x.Data.Type is NpcType.Aggressive or NpcType.Passive);
 
-            if (target is null)
-            {
-                var targetPlayer = playerState.CurrentMap.Players.Values.FirstOrDefault(p =>
+            targetPlayer = target is null
+                ? map.Players.Values.FirstOrDefault(p =>
                     p.SessionId != playerState.SessionId &&
-                    p.Character != null && !p.Character.Hidden &&
-                    p.Character.X == nextCoords.X && p.Character.Y == nextCoords.Y);
+                    p.Character is not null && !p.Character.Hidden &&
+                    p.Character.X == targetCoords.X && p.Character.Y == targetCoords.Y)
+                : null;
+        }
 
-                if (targetPlayer is not null)
-                {
-                    await HandlePlayerAttack(playerState, targetPlayer);
-                }
-
-                await playerState.CurrentMap!.BroadcastPacket(new AttackPlayerServerPacket
-                {
-                    Direction = playerState.Character?.Direction ?? Direction.Down,
-                    PlayerId = playerState.SessionId
-                }, playerState);
-
-                playerState.LastAttackTime = _now();
-                return;
+        if (target is null)
+        {
+            if (targetPlayer is not null)
+            {
+                await HandlePlayerAttack(playerState, targetPlayer);
             }
 
-            var damage = _formulaService.CalculateDamageToNpc(playerState.Character, target.Data, target.Hp);
-            target.Hp -= damage;
-            target.Hp = Math.Max(target.Hp, 0);
-
-            // Register player as opponent for NPC aggro
-            if (damage > 0)
+            await BroadcastInRangeAsync(map, origin, new AttackPlayerServerPacket
             {
-                target.AddOpponent(playerState.SessionId, damage);
+                Direction = direction,
+                PlayerId = playerState.SessionId
+            }, playerState);
+
+            playerState.LastAttackTime = _now();
+            return;
+        }
+
+        var remainingHp = target.Hp;
+        var attackingBackOrSide = Math.Abs((int)target.Direction - (int)direction) != 2;
+
+        var damage = _formulaService.CalculateDamageToNpc(character, target.Data, remainingHp,
+            attackingBackOrSide: attackingBackOrSide, criticalFirstHit: _criticalFirstHit);
+
+        // Report at most the damage needed to kill the target (matches eoserv's LimitDamage).
+        damage = Math.Min(damage, remainingHp);
+        target.Hp = Math.Max(target.Hp - damage, 0);
+
+        // Register player as opponent for NPC aggro
+        if (damage > 0)
+        {
+            target.AddOpponent(playerState.SessionId, damage);
+        }
+
+        var npcIndex = target.Index;
+        var npcCoords = new Coords { X = target.X, Y = target.Y };
+        var hpPercentage = (int)Math.Max((double)target.Hp / target.Data.Hp * 100, 0);
+
+        await BroadcastInRangeAsync(map, npcCoords, new NpcReplyServerPacket
+        {
+            PlayerId = playerState.SessionId,
+            PlayerDirection = direction,
+            NpcIndex = npcIndex,
+            Damage = damage,
+            HpPercentage = hpPercentage,
+            KillStealProtection = NpcKillStealProtectionState.Unprotected
+        });
+
+        // Handle NPC death
+        if (target.Hp == 0 && !target.IsDead)
+        {
+            target.IsDead = true;
+            target.DeathTime = DateTime.UtcNow;
+            target.Opponents.Clear();
+
+            _metrics.NpcKills.Add(1,
+                new("npc_id", target.Id),
+                new("map_id", character.Map));
+
+            _logger.NpcKilled(target.Data.Name, target.Id, character.Name!, character.Map);
+
+            // Award experience from NPC data
+            var experienceGained = target.Data.Experience;
+            character.GainExperience(experienceGained);
+
+            _metrics.ExperienceGained.Add(experienceGained);
+
+            _logger.ExperienceGained(character.Name!, experienceGained, character.Exp, character.Level);
+
+            // Check for level up(s)
+            var levelsGained = 0;
+            while (_formulaService.CanLevelUp(character))
+            {
+                var newLevel = _formulaService.LevelUp(character, _dataFiles.Ecf);
+                levelsGained++;
+
+                _metrics.LevelUps.Add(1);
+
+                _logger.PlayerLeveledUp(character.Name!, newLevel);
             }
 
-            var npcIndex = target.Index;
-            var hpPercentage = (int)Math.Max((double)target.Hp / target.Data.Hp * 100, 0);
-
-            await playerState.CurrentMap.BroadcastPacket(new NpcReplyServerPacket
+            // Cache character state if level up occurred
+            if (levelsGained > 0)
             {
-                PlayerId = playerState.SessionId,
-                PlayerDirection = playerState.Character.Direction,
-                NpcIndex = npcIndex,
-                Damage = damage,
-                HpPercentage = hpPercentage,
-                KillStealProtection = NpcKillStealProtectionState.Unprotected
-            });
+                await playerState.CacheCharacterStateAsync(_characterCache, _paperdollService);
+            }
 
-            // Handle NPC death
-            if (target.Hp == 0 && !target.IsDead)
+            // Roll for a drop (item or gold — gold is item ID 1, rolled from the NPC's
+            // specific loot table plus the global drop table)
+            var dropItem = _lootService.RollDrop(target.Id);
+            var dropId = 0;
+            var dropAmount = 0;
+            var dropIndex = 0;
+
+            if (dropItem != null)
             {
-                target.IsDead = true;
-                target.DeathTime = DateTime.UtcNow;
-                target.Opponents.Clear();
+                dropAmount = _lootService.RollDropAmount(dropItem);
+                dropId = dropItem.ItemId;
 
-                _metrics.NpcKills.Add(1,
-                    new("npc_id", target.Id),
-                    new("map_id", playerState.Character.Map));
-
-                _logger.NpcKilled(target.Data.Name, target.Id, playerState.Character.Name!, playerState.Character.Map);
-
-                // Award experience from NPC data
-                var experienceGained = target.Data.Experience;
-                playerState.Character.GainExperience(experienceGained);
-
-                _metrics.ExperienceGained.Add(experienceGained);
-
-                _logger.ExperienceGained(playerState.Character.Name!, experienceGained, playerState.Character.Exp, playerState.Character.Level);
-
-                // Check for level up(s)
-                var levelsGained = 0;
-                while (_formulaService.CanLevelUp(playerState.Character))
+                // Create map item with killer's protection
+                var itemIndex = map.GetNextItemIndex();
+                var mapItem = new MapItem
                 {
-                    var newLevel = _formulaService.LevelUp(playerState.Character, _dataFiles.Ecf);
-                    levelsGained++;
-
-                    _metrics.LevelUps.Add(1);
-
-                    _logger.PlayerLeveledUp(playerState.Character.Name!, newLevel);
-                }
-
-                // Cache character state if level up occurred
-                if (levelsGained > 0)
-                {
-                    await playerState.CacheCharacterStateAsync(_characterCache, _paperdollService);
-                }
-
-                // Roll for a drop (item or gold — gold is item ID 1, rolled from the NPC's
-                // specific loot table plus the global drop table)
-                var dropItem = _lootService.RollDrop(target.Id);
-                var dropId = 0;
-                var dropAmount = 0;
-                var dropIndex = 0;
-
-                if (dropItem != null)
-                {
-                    dropAmount = _lootService.RollDropAmount(dropItem);
-                    dropId = dropItem.ItemId;
-
-                    // Create map item with killer's protection
-                    var itemIndex = playerState.CurrentMap.GetNextItemIndex();
-                    var mapItem = new MapItem
-                    {
-                        Id = dropId,
-                        Amount = dropAmount,
-                        Coords = new Coords { X = target.X, Y = target.Y },
-                        OwnerId = playerState.SessionId,
-                        ProtectedTicks = _dropProtectionTicks
-                    };
-
-                    playerState.CurrentMap.Items.TryAdd(itemIndex, mapItem);
-                    dropIndex = itemIndex;
-
-                    // Gold is item ID 1; count NPC gold separately from item loot.
-                    if (dropId == 1)
-                    {
-                        _metrics.NpcGoldDropped.Add(dropAmount);
-                    }
-                    else
-                    {
-                        _metrics.NpcItemsDropped.Add(dropAmount);
-                    }
-
-                    _logger.LogInformation(
-                        "Item drop spawned: ItemId={ItemId}, Amount={Amount}, Location=({X},{Y}), Owner={OwnerId}",
-                        dropId, dropAmount, target.X, target.Y, playerState.SessionId);
-                }
-
-                var npcKilledData = new NpcKilledData
-                {
-                    KillerId = playerState.SessionId,
-                    KillerDirection = playerState.Character.Direction,
-                    NpcIndex = npcIndex,
-                    DropIndex = dropIndex,
-                    DropId = dropId,
-                    DropAmount = dropAmount,
-                    DropCoords = new Coords { X = target.X, Y = target.Y },
-                    Damage = damage
+                    Id = dropId,
+                    Amount = dropAmount,
+                    Coords = new Coords { X = target.X, Y = target.Y },
+                    OwnerId = playerState.SessionId,
+                    ProtectedTicks = _dropProtectionTicks
                 };
 
-                if (levelsGained > 0)
-                {
-                    // Send NpcAcceptServerPacket for level up (includes experience and level up stats)
-                    await playerState.Send(new NpcAcceptServerPacket
-                    {
-                        NpcKilledData = npcKilledData,
-                        Experience = playerState.Character.Exp,
-                        LevelUp = new LevelUpStats
-                        {
-                            Level = playerState.Character.Level,
-                            StatPoints = playerState.Character.StatPoints,
-                            SkillPoints = playerState.Character.SkillPoints,
-                            MaxHp = playerState.Character.MaxHp,
-                            MaxTp = playerState.Character.MaxTp,
-                            MaxSp = playerState.Character.MaxSp
-                        }
-                    });
+                map.Items.TryAdd(itemIndex, mapItem);
+                dropIndex = itemIndex;
 
-                    // Broadcast death to others (without experience)
-                    await playerState.CurrentMap.BroadcastPacket(new NpcSpecServerPacket
-                    {
-                        NpcKilledData = npcKilledData
-                    }, playerState);
+                // Gold is item ID 1; count NPC gold separately from item loot.
+                if (dropId == 1)
+                {
+                    _metrics.NpcGoldDropped.Add(dropAmount);
                 }
                 else
                 {
-                    // Send NpcSpecServerPacket with experience to the killer
-                    await playerState.Send(new NpcSpecServerPacket
-                    {
-                        NpcKilledData = npcKilledData,
-                        Experience = playerState.Character.Exp
-                    });
-
-                    // Broadcast death to others (without experience)
-                    await playerState.CurrentMap.BroadcastPacket(new NpcSpecServerPacket
-                    {
-                        NpcKilledData = npcKilledData
-                    }, playerState);
+                    _metrics.NpcItemsDropped.Add(dropAmount);
                 }
+
+                _logger.LogInformation(
+                    "Item drop spawned: ItemId={ItemId}, Amount={Amount}, Location=({X},{Y}), Owner={OwnerId}",
+                    dropId, dropAmount, target.X, target.Y, playerState.SessionId);
             }
+
+            var npcKilledData = new NpcKilledData
+            {
+                KillerId = playerState.SessionId,
+                KillerDirection = direction,
+                NpcIndex = npcIndex,
+                DropIndex = dropIndex,
+                DropId = dropId,
+                DropAmount = dropAmount,
+                DropCoords = new Coords { X = target.X, Y = target.Y },
+                Damage = damage
+            };
+
+            if (levelsGained > 0)
+            {
+                // Send NpcAcceptServerPacket for level up (includes experience and level up stats)
+                await playerState.Send(new NpcAcceptServerPacket
+                {
+                    NpcKilledData = npcKilledData,
+                    Experience = character.Exp,
+                    LevelUp = new LevelUpStats
+                    {
+                        Level = character.Level,
+                        StatPoints = character.StatPoints,
+                        SkillPoints = character.SkillPoints,
+                        MaxHp = character.MaxHp,
+                        MaxTp = character.MaxTp,
+                        MaxSp = character.MaxSp
+                    }
+                });
+            }
+            else
+            {
+                // Send NpcSpecServerPacket with experience to the killer
+                await playerState.Send(new NpcSpecServerPacket
+                {
+                    NpcKilledData = npcKilledData,
+                    Experience = character.Exp
+                });
+            }
+
+            // Broadcast death to others in range (without experience)
+            await BroadcastInRangeAsync(map, npcCoords, new NpcSpecServerPacket
+            {
+                NpcKilledData = npcKilledData
+            }, playerState);
         }
 
-        await playerState.CurrentMap!.BroadcastPacket(new AttackPlayerServerPacket
+        await BroadcastInRangeAsync(map, origin, new AttackPlayerServerPacket
         {
-            Direction = playerState.Character?.Direction ?? Direction.Down,
+            Direction = direction,
             PlayerId = playerState.SessionId
         }, playerState);
 
         playerState.LastAttackTime = _now();
+    }
+
+    /// <summary>
+    ///     Gets the maximum attack distance: <see cref="ServerOptions.RangedDistance" /> when a
+    ///     ranged weapon is equipped, otherwise 1 (melee).
+    /// </summary>
+    private int GetAttackRange(Acorn.Game.Models.Character character)
+    {
+        var weapon = _dataFiles.Eif.GetItem(character.Paperdoll.Weapon);
+        return AttackTrace.GetRange(weapon?.Subtype, _rangedDistance);
+    }
+
+    private static bool HasTargetAt(MapState map, int attackerSessionId, Coords coords)
+    {
+        if (map.Npcs.Values.Any(n =>
+                !n.IsDead && n.X == coords.X && n.Y == coords.Y &&
+                n.Data.Type is NpcType.Aggressive or NpcType.Passive))
+        {
+            return true;
+        }
+
+        // Players are only valid targets on PvP-enabled maps.
+        if (!IsPvpEnabled(map))
+        {
+            return false;
+        }
+
+        return map.Players.Values.Any(p =>
+            p.SessionId != attackerSessionId &&
+            p.Character is not null && !p.Character.Hidden &&
+            p.Character.X == coords.X && p.Character.Y == coords.Y);
+    }
+
+    private static bool IsPvpEnabled(MapState map)
+    {
+        return map.IsArenaMap || map.Data.Type == Moffat.EndlessOnline.SDK.Protocol.Map.MapType.Pk;
+    }
+
+    private bool IsBlocked(MapState map, Coords coords)
+    {
+        if (coords.X < 0 || coords.Y < 0 || coords.X >= map.Data.Width || coords.Y >= map.Data.Height)
+        {
+            return true;
+        }
+
+        return !_tileService.IsTileWalkable(map.Data, coords);
+    }
+
+    /// <summary>
+    ///     Sends <paramref name="packet" /> to every player within client render range of
+    ///     <paramref name="origin" /> instead of the whole map.
+    /// </summary>
+    private async Task BroadcastInRangeAsync(MapState map, Coords origin, IPacket packet, PlayerState? except = null)
+    {
+        var recipients = map.Players.Values
+            .Where(p => p.Character is not null)
+            .Where(p => except is null || p.SessionId != except.SessionId)
+            .Where(p => _tileService.InClientRange(origin, p.Character!.AsCoords()))
+            .Select(p => p.Send(packet));
+
+        await Task.WhenAll(recipients);
     }
 
     private async Task HandlePlayerAttack(PlayerState attacker, PlayerState target)
@@ -291,13 +397,18 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
         var attackingBackOrSide =
             Math.Abs((int)target.Character.Direction - (int)attacker.Character.Direction) != 2;
 
-        var damage = _formulaService.CalculateDamageToPlayer(attacker.Character, target.Character, attackingBackOrSide);
+        var remainingHp = target.Character.Hp;
+        var damage = _formulaService.CalculateDamageToPlayer(attacker.Character, target.Character,
+            attackingBackOrSide, criticalFirstHit: _criticalFirstHit);
+
+        // Report at most the damage needed to kill the target (matches eoserv's LimitDamage).
+        damage = Math.Min(damage, remainingHp);
         target.Character.Hp = Math.Max(0, target.Character.Hp - damage);
 
         var dead = target.Character.Hp == 0;
         var hpPercentage = (int)Math.Round(target.Character.Hp * 100.0 / target.Character.MaxHp);
 
-        await map.BroadcastPacket(new AvatarReplyServerPacket
+        await BroadcastInRangeAsync(map, target.Character.AsCoords(), new AvatarReplyServerPacket
         {
             PlayerId = attacker.SessionId,
             VictimId = target.SessionId,

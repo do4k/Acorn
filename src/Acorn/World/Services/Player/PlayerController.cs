@@ -297,7 +297,7 @@ public class PlayerController : IPlayerController
             return false;
         }
 
-        var success = player.Character.Unequip(itemId, subLoc);
+        var success = player.Character.Unequip(itemId, subLoc, _worldQueries.Value.DataRepository);
 
         if (!success)
         {

@@ -63,5 +63,47 @@ public class ServerOptions
     /// </summary>
     public int MuteLengthSeconds { get; set; } = 90;
 
+    /// <summary>
+    ///     Maximum distance (in tiles) a ranged attack can reach. Matches eoserv's
+    ///     RangedDistance default. Melee attacks always use a range of 1.
+    /// </summary>
+    public int RangedDistance { get; set; } = 5;
+
+    /// <summary>
+    ///     Minimum time between attacks, in milliseconds. Replaces the previously
+    ///     hard-coded 500ms cooldown.
+    /// </summary>
+    public int AttackCooldownMs { get; set; } = 500;
+
+    /// <summary>
+    ///     Whether the first hit against a full-health target is always a critical hit.
+    ///     Matches eoserv's CriticalFirstHit (default false). When false, critical hits
+    ///     only occur when attacking a target from behind or the side.
+    /// </summary>
+    public bool CriticalFirstHit { get; set; } = false;
+
+    /// <summary>
+    ///     Maximum value a single base stat (Str/Int/Wis/Agi/Con/Cha) can reach.
+    ///     Matches eoserv's MaxStat default.
+    /// </summary>
+    public int MaxStat { get; set; } = 10000;
+
+    /// <summary>
+    ///     Maximum level a single learned skill/spell can reach.
+    ///     Matches eoserv's MaxSkillLevel default.
+    /// </summary>
+    public int MaxSkillLevel { get; set; } = 100;
+
+    /// <summary>
+    ///     Number of stat points granted per character level.
+    /// </summary>
+    public int StatPerLevel { get; set; } = 3;
+
+    /// <summary>
+    ///     Number of skill points granted per character level.
+    ///     Matches eoserv's SkillPerLevel default.
+    /// </summary>
+    public int SkillPerLevel { get; set; } = 4;
+
     public static string SectionName => "Server";
 }

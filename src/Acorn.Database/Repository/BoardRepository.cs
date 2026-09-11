@@ -64,20 +64,13 @@ public class BoardRepository : IBoardRepository
         }
     }
 
-    public async Task<int> GetTotalPostCountAsync(int boardId, string characterName, int limit)
+    public async Task<int> GetTotalPostCountAsync(int boardId, string characterName)
     {
         try
         {
-            // Count posts by this character within the most recent 'limit' posts on this board
-            var recentPostIds = await _context.BoardPosts
-                .Where(p => p.BoardId == boardId)
-                .OrderByDescending(p => p.Id)
-                .Take(limit)
-                .Select(p => p.Id)
-                .ToListAsync();
-
+            // eoserv counts every post a character has on the board, not just recent ones.
             return await _context.BoardPosts
-                .CountAsync(p => recentPostIds.Contains(p.Id) && p.CharacterName == characterName);
+                .CountAsync(p => p.BoardId == boardId && p.CharacterName == characterName);
         }
         catch (Exception e)
         {

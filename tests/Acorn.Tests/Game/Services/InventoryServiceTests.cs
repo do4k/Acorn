@@ -1,9 +1,12 @@
 using System.Collections.Concurrent;
+using Acorn.Database.Repository;
 using Acorn.Game.Models;
 using Acorn.Game.Services;
 using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
+using Moffat.EndlessOnline.SDK.Protocol.Pub;
+using NSubstitute;
 using Xunit;
 
 namespace Acorn.Tests.Game.Services;
@@ -263,5 +266,142 @@ public class InventoryServiceTests
 
         // Assert
         result.Should().Be(0);
+    }
+
+    // --- Weight enforcement ---
+
+    private static Eif CreateEif(params (int Id, int Weight)[] items)
+    {
+        var weights = items.ToDictionary(i => i.Id, i => i.Weight);
+        var maxId = weights.Count == 0 ? 0 : weights.Keys.Max();
+
+        var eifItems = new List<EifRecord>();
+        for (var id = 1; id <= maxId; id++)
+        {
+            eifItems.Add(new EifRecord
+            {
+                Name = $"Item{id}",
+                Weight = weights.TryGetValue(id, out var weight) ? weight : 0
+            });
+        }
+
+        return new Eif { Items = eifItems };
+    }
+
+    private static IDataFileRepository CreateRepository(Eif eif)
+    {
+        var repository = Substitute.For<IDataFileRepository>();
+        repository.Eif.Returns(eif);
+        return repository;
+    }
+
+    [Fact]
+    public void CanHoldItem_WhenWithinWeightLimit_ShouldReturnTrue()
+    {
+        // Arrange
+        var character = CreateTestCharacter();
+        character.MaxWeight = 100;
+        var eif = CreateEif((1, 10));
+
+        // Act
+        var result = _sut.CanHoldItem(character, eif, itemId: 1, amount: 2);
+
+        // Assert
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public void CanHoldItem_WhenExceedsWeightLimit_ShouldReturnFalse()
+    {
+        // Arrange
+        var character = CreateTestCharacter();
+        character.MaxWeight = 15;
+        var eif = CreateEif((1, 10));
+
+        // Act
+        var result = _sut.CanHoldItem(character, eif, itemId: 1, amount: 2);
+
+        // Assert
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public void CanHoldItem_WhenExistingInventoryCountsTowardWeight_ShouldReturnFalse()
+    {
+        // Arrange
+        var character = CreateTestCharacter();
+        character.MaxWeight = 100;
+        character.Inventory.Items.Add(new ItemWithAmount { Id = 1, Amount = 8 });
+        var eif = CreateEif((1, 10));
+
+        // Act
+        var result = _sut.CanHoldItem(character, eif, itemId: 1, amount: 3);
+
+        // Assert
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public void CanHoldItem_WhenItemHasNoWeight_ShouldReturnTrue()
+    {
+        // Arrange
+        var character = CreateTestCharacter();
+        character.MaxWeight = 0;
+        var eif = CreateEif((1, 0));
+
+        // Act
+        var result = _sut.CanHoldItem(character, eif, itemId: 1, amount: 100);
+
+        // Assert
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public void CanHoldItem_WhenItemNotInEif_ShouldReturnTrue()
+    {
+        // Arrange
+        var character = CreateTestCharacter();
+        character.MaxWeight = 0;
+        var eif = CreateEif();
+
+        // Act
+        var result = _sut.CanHoldItem(character, eif, itemId: 999, amount: 1);
+
+        // Assert
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public void TryAddItem_WithRepository_WhenOverweight_ShouldReturnFalseAndNotAdd()
+    {
+        // Arrange
+        var character = CreateTestCharacter();
+        character.MaxWeight = 5;
+        var eif = CreateEif((1, 10));
+        var sut = new InventoryService(new WeightCalculator(), CreateRepository(eif));
+
+        // Act
+        var result = sut.TryAddItem(character, itemId: 1, amount: 1);
+
+        // Assert
+        result.Should().BeFalse();
+        character.Inventory.Items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void TryAddItem_WithRepository_WhenWithinWeight_ShouldAdd()
+    {
+        // Arrange
+        var character = CreateTestCharacter();
+        character.MaxWeight = 100;
+        var eif = CreateEif((1, 10));
+        var sut = new InventoryService(new WeightCalculator(), CreateRepository(eif));
+
+        // Act
+        var result = sut.TryAddItem(character, itemId: 1, amount: 1);
+
+        // Assert
+        result.Should().BeTrue();
+        character.Inventory.Items.Should().ContainSingle(i => i.Id == 1 && i.Amount == 1);
     }
 }

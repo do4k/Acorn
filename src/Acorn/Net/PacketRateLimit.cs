@@ -45,6 +45,12 @@ public static class PacketRateLimits
         new() { Action = PacketAction.Accept, Family = PacketFamily.Trade, LimitMs = 1000 },
         new() { Action = PacketAction.Close, Family = PacketFamily.Trade, LimitMs = 1000 },
 
+        // Party packets - prevent invite/join/accept spam (eoserv rate limits Party_Request to 0.5s)
+        new() { Action = PacketAction.Request, Family = PacketFamily.Party, LimitMs = 500 },
+        new() { Action = PacketAction.Accept, Family = PacketFamily.Party, LimitMs = 500 },
+        new() { Action = PacketAction.Remove, Family = PacketFamily.Party, LimitMs = 500 },
+        new() { Action = PacketAction.Take, Family = PacketFamily.Party, LimitMs = 500 },
+
         // Item usage
         new() { Action = PacketAction.Use, Family = PacketFamily.Item, LimitMs = 100 },
         new() { Action = PacketAction.Drop, Family = PacketFamily.Item, LimitMs = 100 },
@@ -65,6 +71,13 @@ public static class PacketRateLimits
 
         // Sit/stand
         new() { Action = PacketAction.Request, Family = PacketFamily.Sit, LimitMs = 500 },
-        new() { Action = PacketAction.Close, Family = PacketFamily.Sit, LimitMs = 500 }
+        new() { Action = PacketAction.Close, Family = PacketFamily.Sit, LimitMs = 500 },
+
+        // Guild packets (mirrors eoserv's per-handler rates)
+        new() { Action = PacketAction.Request, Family = PacketFamily.Guild, LimitMs = 1000 },
+        new() { Action = PacketAction.Create, Family = PacketFamily.Guild, LimitMs = 1000 },
+        new() { Action = PacketAction.Player, Family = PacketFamily.Guild, LimitMs = 500 },
+        new() { Action = PacketAction.Tell, Family = PacketFamily.Guild, LimitMs = 500 },
+        new() { Action = PacketAction.Report, Family = PacketFamily.Guild, LimitMs = 500 }
     ];
 }
