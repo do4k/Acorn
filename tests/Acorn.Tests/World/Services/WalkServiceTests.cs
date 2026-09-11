@@ -146,7 +146,9 @@ public class WalkServiceTests
 
         player.TradeSession.Should().BeNull();
         partner.TradeSession.Should().BeNull();
-        await partnerCommunicator.Received(1).Send(Arg.Any<IEnumerable<byte>>());
+
+        // The partner receives the trade-close packet and, being in client range, the walk packet.
+        await partnerCommunicator.Received(2).Send(Arg.Any<IEnumerable<byte>>());
     }
 
     [Fact]
@@ -290,6 +292,7 @@ public class WalkServiceTests
             Substitute.For<IMapBroadcastService>(),
             Substitute.For<IMapController>(),
             Substitute.For<Acorn.World.Services.Npc.INpcController>(),
+            Substitute.For<IMapTileService>(),
             Substitute.For<IPaperdollService>(),
             playerRecoverRate: 90,
             isArenaEnabled: false,
