@@ -75,6 +75,7 @@ var host = Host.CreateDefaultBuilder(args)
             .Configure<WiseManAgentOptions>(configuration.GetSection(WiseManAgentOptions.SectionName))
             .Configure<JukeboxOptions>(configuration.GetSection(JukeboxOptions.SectionName))
             .Configure<MarriageOptions>(configuration.GetSection(MarriageOptions.SectionName))
+            .Configure<PartyOptions>(configuration.GetSection(PartyOptions.SectionName))
             .AddSingleton<UtcNowDelegate>(() => DateTime.UtcNow)
             .AddSingleton<AcornMetrics>()
             // Database + caching infrastructure: options binding, DbContext and in-memory cache

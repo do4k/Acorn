@@ -150,6 +150,7 @@ public class TestServerFixture : IAsyncLifetime
                     .Configure<WiseManAgentOptions>(cfg.GetSection(WiseManAgentOptions.SectionName))
                     .Configure<JukeboxOptions>(cfg.GetSection(JukeboxOptions.SectionName))
                     .Configure<MarriageOptions>(cfg.GetSection(MarriageOptions.SectionName))
+                    .Configure<PartyOptions>(cfg.GetSection(PartyOptions.SectionName))
                     .AddSingleton<UtcNowDelegate>(() => DateTime.UtcNow)
                     .AddSingleton<AcornMetrics>();
 
