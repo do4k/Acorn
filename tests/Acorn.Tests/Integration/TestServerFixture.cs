@@ -262,7 +262,20 @@ public class TestServerFixture : IAsyncLifetime
                 // HttpListener may throw ObjectDisposedException during shutdown
             }
 
-            _host.Dispose();
+            // The server's disconnect cleanup runs on a background task and uses
+            // scoped services (DbContext). Wait for every player to be removed before
+            // tearing down DI, otherwise the cleanup races disposal and throws
+            // ObjectDisposedException/SqliteException during test-class cleanup.
+            await DisconnectAndWaitForPlayersAsync();
+
+            try
+            {
+                _host.Dispose();
+            }
+            catch (Exception)
+            {
+                // Best effort: a background disconnect cleanup can still be finishing.
+            }
         }
 
         try
@@ -299,6 +312,46 @@ public class TestServerFixture : IAsyncLifetime
         catch
         {
             // Best effort cleanup
+        }
+    }
+
+    /// <summary>
+    ///     Disconnects any remaining players and waits (best effort) for the server's
+    ///     background disconnect cleanup to finish before the host is disposed.
+    /// </summary>
+    private async Task DisconnectAndWaitForPlayersAsync()
+    {
+        WorldState? world;
+        try
+        {
+            world = _host!.Services.GetService<WorldState>();
+        }
+        catch (ObjectDisposedException)
+        {
+            return;
+        }
+
+        if (world is null)
+        {
+            return;
+        }
+
+        foreach (var player in world.Players.Values.ToList())
+        {
+            player.Disconnect();
+        }
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        while (!cts.IsCancellationRequested && world.Players.Count > 0)
+        {
+            try
+            {
+                await Task.Delay(25, cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
         }
     }
 
