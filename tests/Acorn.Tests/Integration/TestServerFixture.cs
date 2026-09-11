@@ -50,6 +50,13 @@ public class TestServerFixture : IAsyncLifetime
     public int WsPort { get; private set; }
 
     /// <summary>
+    ///     Whether the server enforces walk timestamps. Tests that exercise walk
+    ///     timing override this to <c>true</c>; the default is <c>false</c> so the
+    ///     shared client helper can send a fixed timestamp of 0.
+    /// </summary>
+    protected virtual bool EnforceTimestamps => false;
+
+    /// <summary>
     ///     Number of players currently connected to the server's world state.
     ///     Lets tests assert that disconnects clean up world state.
     /// </summary>
@@ -96,6 +103,7 @@ public class TestServerFixture : IAsyncLifetime
             ["Server:TickRate"] = "1000",
             ["Server:PlayerRecoverRate"] = "90",
             ["Server:EnforceSequence"] = "true",
+            ["Server:EnforceTimestamps"] = EnforceTimestamps.ToString(),
             ["Server:LogPackets"] = "false",
             ["Server:NewCharacter:X"] = "6",
             ["Server:NewCharacter:Y"] = "6",
@@ -446,8 +454,10 @@ public class TestServerFixture : IAsyncLifetime
         var emf = new Emf
         {
             Name = name,
-            Width = 20,
-            Height = 20,
+            // Large enough that the 40-step sequence test stays inside the map now
+            // that walk bounds are enforced.
+            Width = 100,
+            Height = 100,
             FillTile = 1,
             MapAvailable = true,
             CanScroll = true,

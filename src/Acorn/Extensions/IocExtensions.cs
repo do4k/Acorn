@@ -83,6 +83,7 @@ internal static class IocRegistrations
             .AddSingleton<IChestService, ChestService>()
             .AddSingleton<INpcCombatService, NpcCombatService>()
             .AddSingleton<IPlayerController, PlayerController>()
+            .AddSingleton<IWalkService, WalkService>()
             .AddSingleton<INpcController, NpcController>()
             .AddSingleton<IMapController, MapController>()
             .AddSingleton<IMapEffectService, MapEffectService>()
