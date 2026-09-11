@@ -1,5 +1,7 @@
 using Acorn.Database.Repository;
+using Acorn.Extensions;
 using Acorn.Options;
+using Acorn.World.Services.Map;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
@@ -12,6 +14,7 @@ namespace Acorn.Net.PacketHandlers.Jukebox;
 public class JukeboxUseClientPacketHandler(
     ILogger<JukeboxUseClientPacketHandler> logger,
     IDataFileRepository dataFileRepository,
+    IMapTileService tileService,
     IOptions<JukeboxOptions> jukeboxOptions)
     : IPacketHandler<JukeboxUseClientPacket>
 {
@@ -63,14 +66,22 @@ public class JukeboxUseClientPacketHandler(
         }
 
         // Broadcast instrument sound to nearby players (excluding the player themselves,
-        // as the client handles local playback)
-        await player.CurrentMap.BroadcastPacket(new JukeboxMsgServerPacket
+        // as the client handles local playback). Bard music is only audible within range.
+        var origin = player.Character.AsCoords();
+        var msgPacket = new JukeboxMsgServerPacket
         {
             PlayerId = player.SessionId,
             Direction = player.Character.Direction,
             InstrumentId = instrumentId,
             NoteId = noteId
-        }, player);
+        };
+
+        var recipients = player.CurrentMap.Players.Values
+            .Where(p => p.SessionId != player.SessionId
+                        && p.Character is not null
+                        && tileService.InClientRange(origin, p.Character.AsCoords()));
+
+        await Task.WhenAll(recipients.Select(p => p.Send(msgPacket)));
 
         logger.LogDebug("Player {Character} played instrument {InstrumentId} note {NoteId}",
             player.Character.Name, instrumentId, noteId);

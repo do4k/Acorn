@@ -113,8 +113,25 @@ public class PlayerState : IDisposable
 
     // Admin state
     public bool IsFrozen { get; set; }
-    public bool IsMuted { get; set; }
+
+    /// <summary>
+    ///     When the player's mute expires. A mute is active while this is in the future.
+    /// </summary>
+    public DateTime MutedUntil { get; set; }
+
+    /// <summary>
+    ///     Whether the player is currently muted (timed mute has not yet expired).
+    /// </summary>
+    public bool IsMuted => MutedUntil > DateTime.UtcNow;
+
     public bool IsJailed { get; set; }
+
+    // Social state
+    /// <summary>
+    ///     Whether the player accepts private messages (whispers). Toggled by the
+    ///     Global/Remove (on) and Global/Player (off) packets, mirroring eoserv.
+    /// </summary>
+    public bool Whispers { get; set; } = true;
 
     // Board interaction state
     public int? InteractingBoardId { get; set; }
