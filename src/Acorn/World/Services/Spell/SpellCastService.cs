@@ -9,6 +9,7 @@ using Acorn.World.Map;
 using NpcState = Acorn.World.Npc.NpcState;
 using Acorn.World.Services.Party;
 using Acorn.World.Services.Player;
+using Acorn.World.Services.Quest;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Protocol;
@@ -27,6 +28,7 @@ public class SpellCastService(
     IPlayerController playerController,
     ICharacterCacheService characterCache,
     IPaperdollService paperdollService,
+    IQuestService questService,
     IOptions<ServerOptions> serverOptions,
     AcornMetrics metrics,
     ILogger<SpellCastService> logger)
@@ -475,6 +477,9 @@ public class SpellCastService(
                 NpcKilledData = npcKilledData
             }, player);
         }
+
+        // Advance any NPC-kill quest objectives for the caster
+        await questService.NotifyNpcKilled(player, npc.Id);
     }
 
     private async Task CastDamagePlayer(PlayerState player, int targetSessionId, int spellId, EsfRecord spell)

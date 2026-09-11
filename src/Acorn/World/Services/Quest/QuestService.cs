@@ -2,11 +2,18 @@ using System.Text.Json;
 using Acorn.Data;
 using Acorn.Database;
 using Acorn.Database.Models;
+using Acorn.Database.Repository;
+using Acorn.Extensions;
+using Acorn.Game.Services;
 using Acorn.Infrastructure.Telemetry;
 using Acorn.Net;
+using Acorn.Shared.Caching;
+using Acorn.World;
+using Acorn.World.Services.Player;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
@@ -17,10 +24,21 @@ namespace Acorn.World.Services.Quest;
 
 public class QuestService(
     IQuestDataRepository questDataRepository,
+    IInventoryService inventoryService,
+    IFormulaService formulaService,
+    IStatCalculator statCalculator,
+    IWeightCalculator weightCalculator,
+    IDataFileRepository dataFiles,
+    ICharacterCacheService characterCache,
+    IPaperdollService paperdollService,
+    IPlayerController playerController,
+    IWorldQueries worldQueries,
     IServiceScopeFactory scopeFactory,
     AcornMetrics metrics,
     ILogger<QuestService> logger) : IQuestService
 {
+    private const int MaxRuleRecursion = 20;
+
     public async Task TalkToQuestNpc(PlayerState player, int npcIndex, int questId)
     {
         var character = player.Character!;
@@ -151,7 +169,7 @@ public class QuestService(
         var previousState = progress.State;
 
         // Process the NPC reply - advance quest state
-        TalkedToNpc(character, behaviorId, questId, actionId);
+        await TalkedToNpc(player, behaviorId, questId, actionId);
 
         // Re-check which quests have dialog at this NPC after state change
         var questsForNpc = questDataRepository.Quests.Values
@@ -348,8 +366,9 @@ public class QuestService(
         await db.SaveChangesAsync();
     }
 
-    private void TalkedToNpc(GameCharacter character, int behaviorId, int questId, int? actionId)
+    private async Task TalkedToNpc(PlayerState player, int behaviorId, int questId, int? actionId)
     {
+        var character = player.Character!;
         var progress = GetOrCreateProgress(character, questId);
         var quest = questDataRepository.GetQuest(questId);
         if (quest == null) return;
@@ -388,11 +407,85 @@ public class QuestService(
         progress.State = nextStateIndex;
 
         // Execute state actions
-        DoQuestActions(character, questId);
+        await DoQuestActions(player, questId);
     }
 
-    private void DoQuestActions(GameCharacter character, int questId)
+    public async Task CheckQuestRules(PlayerState player)
     {
+        if (player.Character == null) return;
+
+        foreach (var progress in player.Character.Quests.ToList())
+        {
+            await CheckQuestRules(player, progress, 0);
+        }
+    }
+
+    public async Task NotifyNpcKilled(PlayerState player, int npcId)
+    {
+        var character = player.Character;
+        if (character == null) return;
+
+        foreach (var progress in character.Quests.ToList())
+        {
+            if (progress.DoneAt != null && progress.State != 0) continue;
+
+            var quest = questDataRepository.GetQuest(progress.QuestId);
+            if (quest == null || progress.State >= quest.States.Count) continue;
+
+            var state = quest.States[progress.State];
+            var killRule = state.Rules.FirstOrDefault(r =>
+                r.Name == "KilledNpcs" && r.Args.Count > 0 && r.Args[0].AsInt() == npcId);
+            if (killRule == null) continue;
+
+            progress.AddNpcKill(npcId);
+
+            var required = killRule.Args.Count >= 2 ? killRule.Args[1].AsInt() : 1;
+            if (progress.GetNpcKills(npcId) < required) continue;
+
+            // Objective met - reset the counter and advance (matches eoserv).
+            progress.NpcKills.Remove(npcId);
+
+            var nextStateIndex = quest.States.FindIndex(s => s.Name == killRule.Goto);
+            if (nextStateIndex < 0) continue;
+
+            progress.State = nextStateIndex;
+            await DoQuestActions(player, progress.QuestId);
+        }
+
+        await CheckQuestRules(player);
+    }
+
+    private async Task CheckQuestRules(PlayerState player, CharacterQuestProgress progress, int depth)
+    {
+        if (depth > MaxRuleRecursion) return;
+
+        var character = player.Character;
+        if (character == null || !character.Quests.Contains(progress)) return;
+
+        var quest = questDataRepository.GetQuest(progress.QuestId);
+        if (quest == null || progress.State >= quest.States.Count) return;
+
+        var state = quest.States[progress.State];
+        foreach (var rule in state.Rules)
+        {
+            if (!QuestRuleEvaluator.Evaluate(rule, character, progress)) continue;
+
+            var nextStateIndex = quest.States.FindIndex(s => s.Name == rule.Goto);
+            if (nextStateIndex < 0) continue;
+
+            progress.State = nextStateIndex;
+            await DoQuestActions(player, progress.QuestId, depth + 1);
+            return;
+        }
+    }
+
+    private async Task DoQuestActions(PlayerState player, int questId, int depth = 0)
+    {
+        if (depth > MaxRuleRecursion) return;
+
+        var character = player.Character;
+        if (character == null) return;
+
         var progress = character.Quests.FirstOrDefault(q => q.QuestId == questId);
         if (progress == null) return;
 
@@ -403,96 +496,284 @@ public class QuestService(
 
         foreach (var action in state.Actions)
         {
-            switch (action.Name)
-            {
-                case "AddNpcText":
-                case "AddNpcChat":
-                case "AddNpcInput":
-                    // These are dialog actions, handled during dialog building
-                    break;
+            if (!character.Quests.Contains(progress)) return; // Removed by a Reset action
+            await ExecuteQuestAction(player, progress, action);
+        }
 
-                case "End":
+        if (!character.Quests.Contains(progress)) return;
+
+        // Automatically process any rules that are now satisfied (Always, GotItems, ...)
+        await CheckQuestRules(player, progress, depth);
+    }
+
+    private async Task ExecuteQuestAction(PlayerState player, CharacterQuestProgress progress, QuestAction action)
+    {
+        var character = player.Character!;
+
+        switch (action.Name)
+        {
+            case "AddNpcText":
+            case "AddNpcChat":
+            case "AddNpcInput":
+                // Dialog actions, handled during dialog building
+                break;
+
+            case "End":
+                progress.DoneAt = DateTime.UtcNow;
+                metrics.QuestsCompleted.Add(1);
+                break;
+
+            case "ResetDaily":
+                if (progress.DoneAt == null)
                     progress.DoneAt = DateTime.UtcNow;
-                    metrics.QuestsCompleted.Add(1);
-                    break;
+                progress.Completions++;
+                progress.State = 0;
+                break;
 
-                case "ResetDaily":
-                    if (progress.DoneAt == null)
-                        progress.DoneAt = DateTime.UtcNow;
-                    progress.Completions++;
+            case "Reset":
+                if (progress.DoneAt == null)
+                    character.Quests.Remove(progress);
+                else
                     progress.State = 0;
-                    break;
+                break;
 
-                case "Reset":
-                    if (progress.DoneAt == null)
-                    {
-                        character.Quests.Remove(progress);
-                        return; // Progress removed, stop processing
-                    }
-                    progress.State = 0;
-                    break;
+            case "GiveExp":
+                await GiveExp(player, action);
+                break;
 
-                case "GiveExp":
-                    if (action.Args.Count > 0)
-                    {
-                        var amount = action.Args[0].AsInt();
-                        character.Exp += amount;
-                        // Level up logic would go here - simplified for now
-                        logger.LogInformation("Quest {QuestId} awarded {Amount} EXP to {Character}",
-                            questId, amount, character.Name);
-                    }
-                    break;
+            case "GiveItem":
+                await GiveItem(player, action);
+                break;
 
-                case "ShowHint":
-                    // ShowHint is sent as a server message - handled via quest actions
-                    // For now we just log; full implementation would send MessageOpenServerPacket
-                    break;
+            case "RemoveItem":
+                await RemoveItem(player, action);
+                break;
 
-                case "PlaySound":
-                case "PlayMusic":
-                case "SetMap":
-                case "GiveItem":
-                case "RemoveItem":
-                case "SetClass":
-                case "GiveKarma":
-                case "RemoveKarma":
-                    // These actions require player context and will be handled separately
-                    // via packet sending in the handler layer
-                    break;
-            }
+            case "GiveKarma":
+                await AdjustKarma(player, action, increase: true);
+                break;
+
+            case "RemoveKarma":
+                await AdjustKarma(player, action, increase: false);
+                break;
+
+            case "SetClass":
+                await SetClass(player, action);
+                break;
+
+            case "SetMap":
+            case "SetCoord":
+                await SetMap(player, action);
+                break;
+
+            case "PlaySound":
+                await PlaySound(player, action);
+                break;
+
+            case "PlayMusic":
+                await PlayMusic(player, action);
+                break;
+
+            case "ShowHint":
+                await ShowHint(player, action);
+                break;
+
+            default:
+                logger.LogDebug("Unhandled quest action {Action}", action.Name);
+                break;
         }
+    }
 
-        // Check "Always" rule for automatic state transitions
-        var alwaysRule = state.Rules.FirstOrDefault(r => r.Name == "Always");
-        if (alwaysRule != null)
+    private async Task GiveExp(PlayerState player, QuestAction action)
+    {
+        if (action.Args.Count == 0) return;
+
+        var character = player.Character!;
+        var amount = action.Args[0].AsInt();
+        character.GainExperience(amount);
+
+        var levelsGained = 0;
+        while (formulaService.CanLevelUp(character))
         {
-            var nextStateIndex = quest.States.FindIndex(s => s.Name == alwaysRule.Goto);
-            if (nextStateIndex >= 0)
-            {
-                progress.State = nextStateIndex;
-                DoQuestActions(character, questId); // Recurse
-            }
+            formulaService.LevelUp(character, dataFiles.Ecf);
+            levelsGained++;
+            metrics.LevelUps.Add(1);
         }
 
-        // Check "GotItems" rule
-        var gotItemsRule = state.Rules.FirstOrDefault(r => r.Name == "GotItems");
-        if (gotItemsRule != null && gotItemsRule.Args.Count >= 2)
+        if (levelsGained > 0)
         {
-            var itemId = gotItemsRule.Args[0].AsInt();
-            var requiredAmount = gotItemsRule.Args[1].AsInt();
-            var playerAmount = character.Inventory.Items
-                .FirstOrDefault(i => i.Id == itemId)?.Amount ?? 0;
-
-            if (playerAmount >= requiredAmount)
-            {
-                var nextStateIndex = quest.States.FindIndex(s => s.Name == gotItemsRule.Goto);
-                if (nextStateIndex >= 0)
-                {
-                    progress.State = nextStateIndex;
-                    DoQuestActions(character, questId); // Recurse
-                }
-            }
+            await player.CacheCharacterStateAsync(characterCache, paperdollService);
         }
+
+        await player.Send(new RecoverReplyServerPacket
+        {
+            Experience = character.Exp,
+            Karma = character.Karma,
+            LevelUp = levelsGained > 0 ? character.Level : null,
+            StatPoints = levelsGained > 0 ? character.StatPoints : null,
+            SkillPoints = levelsGained > 0 ? character.SkillPoints : null
+        });
+
+        logger.LogInformation("Quest awarded {Amount} EXP to {Character} ({Levels} level(s) gained)",
+            amount, character.Name, levelsGained);
+    }
+
+    private async Task GiveItem(PlayerState player, QuestAction action)
+    {
+        if (action.Args.Count == 0) return;
+
+        var character = player.Character!;
+        var itemId = action.Args[0].AsInt();
+        var amount = action.Args.Count >= 2 ? action.Args[1].AsInt() : 1;
+        if (amount <= 0) return;
+
+        if (!inventoryService.TryAddItem(character, itemId, amount))
+        {
+            logger.LogWarning("Quest could not give item {ItemId} x{Amount} to {Character} (inventory full)",
+                itemId, amount, character.Name);
+            return;
+        }
+
+        await player.CacheCharacterStateAsync(characterCache, paperdollService);
+
+        var currentWeight = weightCalculator.GetCurrentWeight(character, dataFiles.Eif);
+
+        if (itemId == 1)
+        {
+            await player.Send(new ItemGetServerPacket
+            {
+                TakenItemIndex = 0,
+                TakenItem = new ThreeItem { Id = itemId, Amount = amount },
+                Weight = new Weight { Current = currentWeight, Max = character.MaxWeight }
+            });
+        }
+        else
+        {
+            await player.Send(new ItemObtainServerPacket
+            {
+                Item = new ThreeItem { Id = itemId, Amount = amount },
+                CurrentWeight = currentWeight
+            });
+        }
+
+        logger.LogInformation("Quest gave item {ItemId} x{Amount} to {Character}",
+            itemId, amount, character.Name);
+    }
+
+    private async Task RemoveItem(PlayerState player, QuestAction action)
+    {
+        if (action.Args.Count == 0) return;
+
+        var character = player.Character!;
+        var itemId = action.Args[0].AsInt();
+        var amount = action.Args.Count >= 2 ? action.Args[1].AsInt() : 1;
+        if (amount <= 0) return;
+
+        if (!inventoryService.TryRemoveItem(character, itemId, amount))
+        {
+            logger.LogWarning("Quest could not remove item {ItemId} x{Amount} from {Character} (not enough)",
+                itemId, amount, character.Name);
+            return;
+        }
+
+        await player.CacheCharacterStateAsync(characterCache, paperdollService);
+
+        var currentWeight = weightCalculator.GetCurrentWeight(character, dataFiles.Eif);
+
+        await player.Send(new ItemKickServerPacket
+        {
+            Item = new Item { Id = itemId, Amount = amount },
+            CurrentWeight = currentWeight
+        });
+
+        logger.LogInformation("Quest removed item {ItemId} x{Amount} from {Character}",
+            itemId, amount, character.Name);
+    }
+
+    private async Task AdjustKarma(PlayerState player, QuestAction action, bool increase)
+    {
+        if (action.Args.Count == 0) return;
+
+        var character = player.Character!;
+        var amount = action.Args[0].AsInt();
+
+        character.Karma = increase
+            ? Math.Min(2000, character.Karma + amount)
+            : Math.Max(0, character.Karma - amount);
+
+        await player.CacheCharacterStateAsync(characterCache, paperdollService);
+
+        await player.Send(new RecoverReplyServerPacket
+        {
+            Experience = character.Exp,
+            Karma = character.Karma,
+            LevelUp = null,
+            StatPoints = null,
+            SkillPoints = null
+        });
+
+        logger.LogInformation("Quest adjusted karma of {Character} by {Amount} (now {Karma})",
+            character.Name, increase ? amount : -amount, character.Karma);
+    }
+
+    private async Task SetClass(PlayerState player, QuestAction action)
+    {
+        if (action.Args.Count == 0) return;
+
+        var character = player.Character!;
+        character.Class = action.Args[0].AsInt();
+        statCalculator.RecalculateStats(character, dataFiles.Ecf);
+
+        await player.CacheCharacterStateAsync(characterCache, paperdollService);
+
+        await player.Send(new RecoverListServerPacket
+        {
+            ClassId = character.Class,
+            Stats = character.AsStatsUpdate()
+        });
+
+        logger.LogInformation("Quest set class of {Character} to {ClassId}", character.Name, character.Class);
+    }
+
+    private async Task SetMap(PlayerState player, QuestAction action)
+    {
+        if (action.Args.Count < 3) return;
+
+        var mapId = action.Args[0].AsInt();
+        var x = action.Args[1].AsInt();
+        var y = action.Args[2].AsInt();
+
+        var map = worldQueries.FindMap(mapId);
+        if (map == null)
+        {
+            logger.LogWarning("Quest tried to send {Character} to unknown map {MapId}",
+                player.Character!.Name, mapId);
+            return;
+        }
+
+        await playerController.WarpAsync(player, map, x, y);
+    }
+
+    private async Task PlaySound(PlayerState player, QuestAction action)
+    {
+        if (action.Args.Count == 0) return;
+        await player.Send(new MusicPlayerServerPacket { SoundId = action.Args[0].AsInt() });
+    }
+
+    private async Task PlayMusic(PlayerState player, QuestAction action)
+    {
+        if (action.Args.Count == 0) return;
+        await player.Send(new JukeboxPlayerServerPacket { MfxId = action.Args[0].AsInt() });
+    }
+
+    private async Task ShowHint(PlayerState player, QuestAction action)
+    {
+        if (action.Args.Count == 0) return;
+
+        var message = action.Args[0].AsStr();
+        if (string.IsNullOrEmpty(message)) return;
+
+        await player.Send(new MessageOpenServerPacket { Message = message });
     }
 
     private static CharacterQuestProgress GetOrCreateProgress(GameCharacter character, int questId)

@@ -9,6 +9,7 @@ using Acorn.World.Services.Combat;
 using Acorn.World.Services.Map;
 using Acorn.World.Services.Party;
 using Acorn.World.Services.Player;
+using Acorn.World.Services.Quest;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Protocol;
@@ -41,12 +42,14 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
     private readonly int _rangedDistance;
     private readonly int _attackCooldownMs;
     private readonly bool _criticalFirstHit;
+    private readonly IQuestService _questService;
 
     public AttackUseClientPacketHandler(UtcNowDelegate now, ILogger<AttackUseClientPacketHandler> logger,
         IFormulaService formulaService, IDataFileRepository dataFiles, ILootService lootService,
         IOptions<ServerOptions> serverOptions, ICharacterCacheService characterCache,
         IPaperdollService paperdollService, IArenaService arenaService, IPartyService partyService,
-        IPlayerController playerController, IMapTileService tileService, AcornMetrics metrics)
+        IPlayerController playerController, IMapTileService tileService, IQuestService questService,
+        AcornMetrics metrics)
     {
         _now = now;
         _logger = logger;
@@ -63,6 +66,7 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
         _rangedDistance = serverOptions.Value.RangedDistance;
         _attackCooldownMs = serverOptions.Value.AttackCooldownMs;
         _criticalFirstHit = serverOptions.Value.CriticalFirstHit;
+        _questService = questService;
         _metrics = metrics;
     }
 
@@ -292,6 +296,9 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
             {
                 NpcKilledData = npcKilledData
             }, playerState);
+
+            // Advance any NPC-kill quest objectives for the killer
+            await _questService.NotifyNpcKilled(playerState, target.Id);
         }
 
         await BroadcastInRangeAsync(map, origin, new AttackPlayerServerPacket
