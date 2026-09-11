@@ -6,6 +6,7 @@ using Acorn.Infrastructure.Communicators;
 using Acorn.World;
 using Acorn.World.Services.Party;
 using Acorn.World.Services.Quest;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
@@ -19,12 +20,12 @@ namespace Acorn.Net;
 public class ConnectionHandler(
     ILogger<ConnectionHandler> logger,
     WorldState worldState,
-    IDbRepository<Character> characterRepository,
     ICharacterMapper characterMapper,
     ISessionGenerator sessionGenerator,
     PlayerStateFactory playerStateFactory,
     IPartyService partyService,
-    IQuestService questService
+    IQuestService questService,
+    IServiceScopeFactory scopeFactory
 )
 {
     /// <summary>
@@ -78,7 +79,15 @@ public class ConnectionHandler(
         if (player.Character is not null && player.CurrentMap is not null)
         {
             await player.CurrentMap.NotifyLeave(player);
-            await characterRepository.UpdateAsync(characterMapper.ToDatabase(player.Character));
+
+            // Resolve the scoped character repository from a fresh scope so this
+            // background cleanup never shares a DbContext with a live connection.
+            using (var scope = scopeFactory.CreateScope())
+            {
+                var characterRepository = scope.ServiceProvider.GetRequiredService<IDbRepository<Character>>();
+                await characterRepository.UpdateAsync(characterMapper.ToDatabase(player.Character));
+            }
+
             await questService.SaveQuestProgress(player.Character);
         }
 
