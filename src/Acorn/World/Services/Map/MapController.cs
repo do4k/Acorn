@@ -488,7 +488,7 @@ public class MapController : IMapController
         }
     }
 
-    public async Task ProcessDoorAutoCloseAsync(MapState map)
+    public Task ProcessDoorAutoCloseAsync(MapState map)
     {
         var doorsToClose = new List<Coords>();
 
@@ -503,15 +503,12 @@ public class MapController : IMapController
 
         foreach (var coords in doorsToClose)
         {
+            // eoserv simply flips the warp's open state; it does not broadcast a packet.
+            // Door/Close is reserved for the locked-door reply (see DoorService).
             map.OpenedDoors.TryRemove(coords, out _);
-
-            if (map.Players.IsEmpty)
-            {
-                continue;
-            }
-
-            await map.BroadcastPacket(new DoorCloseServerPacket());
         }
+
+        return Task.CompletedTask;
     }
 
     public void ProcessGroundItemCleanup(MapState map)

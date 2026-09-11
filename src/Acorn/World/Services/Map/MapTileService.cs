@@ -60,6 +60,11 @@ public class MapTileService : IMapTileService
         return Math.Max(Math.Abs(a.X - b.X), Math.Abs(a.Y - b.Y));
     }
 
+    public int GetManhattanDistance(Coords a, Coords b)
+    {
+        return Math.Abs(a.X - b.X) + Math.Abs(a.Y - b.Y);
+    }
+
     public bool InClientRange(Coords a, Coords b)
     {
         return GetDistance(a, b) <= CLIENT_RANGE;
