@@ -46,6 +46,14 @@ public class ServerOptions
     public bool EnforceSequence { get; set; } = true;
 
     /// <summary>
+    ///     Whether to validate the client-supplied timestamp on walk (and other
+    ///     action) packets. When enabled, walk packets whose timestamp is less than
+    ///     36 units ahead of the player's last timestamp are ignored. Matches
+    ///     eoserv's EnforceTimestamps option.
+    /// </summary>
+    public bool EnforceTimestamps { get; set; } = true;
+
+    /// <summary>
     ///     How often the server sends Connection_Player ping packets to connected
     ///     players, in seconds. Reoserv uses ~7.5s (60 ticks × 125ms).
     /// </summary>
