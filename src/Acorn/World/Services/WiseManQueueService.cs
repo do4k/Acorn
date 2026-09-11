@@ -191,7 +191,7 @@ public class WiseManQueueService : BackgroundService
                 }
             }
 
-            var npcIndex = player.CurrentMap.Npcs.Values.ToList().IndexOf(wiseManNpc);
+            var npcIndex = wiseManNpc.Index;
             var chatUpdate = new NpcUpdateChat
             {
                 NpcIndex = npcIndex,

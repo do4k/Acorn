@@ -203,12 +203,11 @@ public class MapController : IMapController
                         npc.Data.Name, npc.Id, npc.X, npc.Y);
 
                     // Broadcast respawn to all players on map
-                    var npcIndex = map.Npcs.Values.ToList().IndexOf(npc);
                     await map.BroadcastPacket(new NpcAgreeServerPacket
                     {
                         Npcs = new List<NpcMapInfo>
                         {
-                            npc.AsNpcMapInfo(npcIndex)
+                            npc.AsNpcMapInfo()
                         }
                     });
                 }
@@ -219,7 +218,6 @@ public class MapController : IMapController
     public async Task<HashSet<int>> ProcessNpcActionsAsync(MapState map)
     {
         var aliveNpcs = map.Npcs.Values.Where(n => !n.IsDead).ToList();
-        var npcList = map.Npcs.Values.ToList();
 
         var positionUpdates = new List<NpcUpdatePosition>();
         var attackUpdates = new List<NpcUpdateAttack>();
@@ -238,7 +236,7 @@ public class MapController : IMapController
             }
 
             // Try to attack first
-            var attackResult = _npcCombatService.TryAttack(npc, npcList.IndexOf(npc), map.Players.Values, _formulaService);
+            var attackResult = _npcCombatService.TryAttack(npc, npc.Index, map.Players.Values, _formulaService);
             if (attackResult != null)
             {
                 attackUpdates.Add(attackResult);
@@ -252,7 +250,7 @@ public class MapController : IMapController
                 {
                     positionUpdates.Add(new NpcUpdatePosition
                     {
-                        NpcIndex = npcList.IndexOf(npc),
+                        NpcIndex = npc.Index,
                         Coords = new Coords { X = npc.X, Y = npc.Y },
                         Direction = npc.Direction
                     });

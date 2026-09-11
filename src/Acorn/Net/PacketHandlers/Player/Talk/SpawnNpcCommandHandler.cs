@@ -100,6 +100,7 @@ public class SpawnNpcCommandHandler : ITalkHandler
 
         for (var i = 0; i < count; i++)
         {
+            var npcIndex = playerState.CurrentMap.GetNextNpcIndex();
             var npc = new NpcState(enf)
             {
                 Direction = playerState.Character.Direction,
@@ -107,10 +108,11 @@ public class SpawnNpcCommandHandler : ITalkHandler
                 Y = playerState.Character.Y,
                 Hp = enf.Hp,
                 Id = npcId + 1,
+                Index = npcIndex,
                 IsAdminSpawned = true
             };
 
-            playerState.CurrentMap.Npcs.TryAdd(npc.Id, npc);
+            playerState.CurrentMap.Npcs.TryAdd(npcIndex, npc);
         }
 
         await _notifications.ServerAnnouncement(playerState,

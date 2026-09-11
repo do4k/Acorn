@@ -102,7 +102,7 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
                 target.AddOpponent(playerState.SessionId, damage);
             }
 
-            var npcIndex = playerState.CurrentMap.Npcs.Values.ToList().IndexOf(target);
+            var npcIndex = target.Index;
             var hpPercentage = (int)Math.Max((double)target.Hp / target.Data.Hp * 100, 0);
 
             await playerState.CurrentMap.BroadcastPacket(new NpcReplyServerPacket

@@ -36,7 +36,7 @@ public class RangeRequestClientPacketHandler(
         if (packet.NpcIndexes.Count > 0)
         {
             var npcs = player.CurrentMap!.AsNpcMapInfo()
-                .Where((npc, index) => packet.NpcIndexes.Contains(index))
+                .Where(npc => packet.NpcIndexes.Contains(npc.Index))
                 .ToList();
 
             await player.Send(new NpcAgreeServerPacket

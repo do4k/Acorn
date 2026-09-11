@@ -70,9 +70,10 @@ internal class WalkPlayerClientPacketHandler : IPacketHandler<WalkPlayerClientPa
 
         // Get nearby NPCs for this player (within client range)
         var playerCoords = playerState.Character.AsCoords();
-        var nearbyNpcIndexes = playerState.CurrentMap!.Npcs
-            .Where(kvp => _mapTileService.InClientRange(playerCoords, new Coords { X = kvp.Value.X, Y = kvp.Value.Y }))
-            .Select(kvp => kvp.Key)
+        var nearbyNpcIndexes = playerState.CurrentMap!.Npcs.Values
+            .Where(npc => !npc.IsDead)
+            .Where(npc => _mapTileService.InClientRange(playerCoords, new Coords { X = npc.X, Y = npc.Y }))
+            .Select(npc => npc.Index)
             .ToList();
 
         // Get nearby players (within client range)
