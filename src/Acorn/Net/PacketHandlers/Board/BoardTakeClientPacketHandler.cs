@@ -2,7 +2,6 @@ using Acorn.Database.Repository;
 using Acorn.Extensions;
 using Acorn.World.Services.Map;
 using Microsoft.Extensions.Logging;
-using Moffat.EndlessOnline.SDK.Protocol.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
@@ -25,8 +24,8 @@ public class BoardTakeClientPacketHandler(
         logger.LogInformation("Player {Character} reading post {PostId} from board {BoardId}",
             player.Character!.Name, postId, boardId);
 
-        // Validate board ID (1-8)
-        if (boardId < 1 || boardId > 8)
+        // Validate board ID (0-7, where 0 maps to Board1)
+        if (!BoardRules.IsValidBoardId(boardId))
         {
             logger.LogWarning("Player {Character} tried to read post from invalid board {BoardId}",
                 player.Character!.Name, boardId);
@@ -34,7 +33,7 @@ public class BoardTakeClientPacketHandler(
         }
 
         // Get corresponding MapTileSpec for the board
-        var boardTileSpec = GetBoardTileSpec(boardId);
+        var boardTileSpec = BoardRules.GetTileSpec(boardId);
         if (boardTileSpec == null)
         {
             return;
@@ -67,18 +66,5 @@ public class BoardTakeClientPacketHandler(
         logger.LogInformation("Player {Character} read post {PostId} from board {BoardId}",
             player.Character!.Name, postId, boardId);
     }
-
-    private static MapTileSpec? GetBoardTileSpec(int boardId) => boardId switch
-    {
-        1 => MapTileSpec.Board1,
-        2 => MapTileSpec.Board2,
-        3 => MapTileSpec.Board3,
-        4 => MapTileSpec.Board4,
-        5 => MapTileSpec.Board5,
-        6 => MapTileSpec.Board6,
-        7 => MapTileSpec.Board7,
-        8 => MapTileSpec.Board8,
-        _ => null
-    };
 
 }
