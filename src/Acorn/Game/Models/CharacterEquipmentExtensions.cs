@@ -148,8 +148,9 @@ public static class CharacterEquipmentExtensions
     /// <param name="character">Character unequipping item</param>
     /// <param name="itemId">ID of item to unequip (for verification)</param>
     /// <param name="subLoc">Array index for multi-slot items, ignored for single-slot items</param>
+    /// <param name="itemDb">Item database used to look up the item's special flag</param>
     /// <returns>True if unequip succeeded, false otherwise</returns>
-    public static bool Unequip(this Character character, int itemId, int subLoc)
+    public static bool Unequip(this Character character, int itemId, int subLoc, IDataFileRepository itemDb)
     {
         // Validate sub_loc is 0 or 1
         if (subLoc < 0 || subLoc > 1)
@@ -157,9 +158,15 @@ public static class CharacterEquipmentExtensions
             return false;
         }
 
-        // We need the item database to determine the item type
-        // For now, we'll find the item by checking all slots
-        // This is a fallback approach - ideally we'd have access to itemDb here
+        // Cursed equipment cannot be removed by the player. Only a CureCurse
+        // item (see RemoveCursedEquipment) can take it off.
+        var itemRecord = itemDb.Eif.GetItem(itemId);
+        if (itemRecord?.Special == ItemSpecial.Cursed)
+        {
+            return false;
+        }
+
+        // Find the item by checking all slots
         var foundSlot = FindEquippedItemSlot(character, itemId);
         if (foundSlot == null)
         {
@@ -184,83 +191,67 @@ public static class CharacterEquipmentExtensions
     }
 
     /// <summary>
+    ///     Remove every equipped item flagged as cursed. Cursed items are
+    ///     destroyed rather than returned to the inventory (matching eoserv).
+    /// </summary>
+    /// <param name="character">Character whose cursed equipment should be removed</param>
+    /// <param name="itemDb">Item database used to look up each item's special flag</param>
+    /// <returns>True if at least one cursed item was removed</returns>
+    public static bool RemoveCursedEquipment(this Character character, IDataFileRepository itemDb)
+    {
+        var removed = false;
+
+        foreach (var (itemType, slotIndex, itemId) in EnumerateEquipped(character))
+        {
+            if (itemId == 0)
+            {
+                continue;
+            }
+
+            var itemRecord = itemDb.Eif.GetItem(itemId);
+            if (itemRecord?.Special == ItemSpecial.Cursed)
+            {
+                ClearEquippedItem(character, itemType, slotIndex);
+                removed = true;
+            }
+        }
+
+        return removed;
+    }
+
+    /// <summary>
+    ///     Enumerate every equipment slot as (item type, slot index, item id).
+    /// </summary>
+    private static IEnumerable<(ItemType ItemType, int SlotIndex, int ItemId)> EnumerateEquipped(Character character)
+    {
+        yield return (ItemType.Hat, 0, character.Paperdoll.Hat);
+        yield return (ItemType.Necklace, 0, character.Paperdoll.Necklace);
+        yield return (ItemType.Armor, 0, character.Paperdoll.Armor);
+        yield return (ItemType.Belt, 0, character.Paperdoll.Belt);
+        yield return (ItemType.Boots, 0, character.Paperdoll.Boots);
+        yield return (ItemType.Gloves, 0, character.Paperdoll.Gloves);
+        yield return (ItemType.Weapon, 0, character.Paperdoll.Weapon);
+        yield return (ItemType.Shield, 0, character.Paperdoll.Shield);
+        yield return (ItemType.Accessory, 0, character.Paperdoll.Accessory);
+        yield return (ItemType.Ring, 0, character.Paperdoll.Ring1);
+        yield return (ItemType.Ring, 1, character.Paperdoll.Ring2);
+        yield return (ItemType.Bracer, 0, character.Paperdoll.Bracer1);
+        yield return (ItemType.Bracer, 1, character.Paperdoll.Bracer2);
+        yield return (ItemType.Armlet, 0, character.Paperdoll.Armlet1);
+        yield return (ItemType.Armlet, 1, character.Paperdoll.Armlet2);
+    }
+
+    /// <summary>
     ///     Find where an item is equipped. Returns null if not equipped.
     /// </summary>
     private static (ItemType itemType, int slotIndex)? FindEquippedItemSlot(Character character, int itemId)
     {
-        if (character.Paperdoll.Hat == itemId)
+        foreach (var (itemType, slotIndex, equippedItemId) in EnumerateEquipped(character))
         {
-            return (ItemType.Hat, 0);
-        }
-
-        if (character.Paperdoll.Necklace == itemId)
-        {
-            return (ItemType.Necklace, 0);
-        }
-
-        if (character.Paperdoll.Armor == itemId)
-        {
-            return (ItemType.Armor, 0);
-        }
-
-        if (character.Paperdoll.Belt == itemId)
-        {
-            return (ItemType.Belt, 0);
-        }
-
-        if (character.Paperdoll.Boots == itemId)
-        {
-            return (ItemType.Boots, 0);
-        }
-
-        if (character.Paperdoll.Gloves == itemId)
-        {
-            return (ItemType.Gloves, 0);
-        }
-
-        if (character.Paperdoll.Weapon == itemId)
-        {
-            return (ItemType.Weapon, 0);
-        }
-
-        if (character.Paperdoll.Shield == itemId)
-        {
-            return (ItemType.Shield, 0);
-        }
-
-        if (character.Paperdoll.Accessory == itemId)
-        {
-            return (ItemType.Accessory, 0);
-        }
-
-        if (character.Paperdoll.Ring1 == itemId)
-        {
-            return (ItemType.Ring, 0);
-        }
-
-        if (character.Paperdoll.Ring2 == itemId)
-        {
-            return (ItemType.Ring, 1);
-        }
-
-        if (character.Paperdoll.Bracer1 == itemId)
-        {
-            return (ItemType.Bracer, 0);
-        }
-
-        if (character.Paperdoll.Bracer2 == itemId)
-        {
-            return (ItemType.Bracer, 1);
-        }
-
-        if (character.Paperdoll.Armlet1 == itemId)
-        {
-            return (ItemType.Armlet, 0);
-        }
-
-        if (character.Paperdoll.Armlet2 == itemId)
-        {
-            return (ItemType.Armlet, 1);
+            if (equippedItemId == itemId)
+            {
+                return (itemType, slotIndex);
+            }
         }
 
         return null;
