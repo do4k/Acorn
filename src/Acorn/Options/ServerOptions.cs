@@ -30,6 +30,17 @@ public class ServerOptions
     public RescueOptions? Rescue { get; set; }
 
     /// <summary>
+    ///     Jail location used by admin commands. Falls back to Rescue, then NewCharacter,
+    ///     when not configured.
+    /// </summary>
+    public JailOptions? Jail { get; set; }
+
+    /// <summary>
+    ///     Admin command flood rates reported to the client in Welcome_Reply server settings.
+    /// </summary>
+    public FloodRateOptions FloodRates { get; set; } = new();
+
+    /// <summary>
     ///     Whether to enforce packet sequence validation. Disable for debugging.
     /// </summary>
     public bool EnforceSequence { get; set; } = true;

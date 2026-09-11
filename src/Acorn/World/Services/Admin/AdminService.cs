@@ -17,10 +17,10 @@ public class AdminService(
     IOptions<ServerOptions> serverOptions,
     ILogger<AdminService> logger) : IAdminService
 {
-    // Jail location - defaults to rescue/spawn location
-    private int JailMap => serverOptions.Value.Rescue?.Map ?? serverOptions.Value.NewCharacter.Map;
-    private int JailX => serverOptions.Value.Rescue?.X ?? serverOptions.Value.NewCharacter.X;
-    private int JailY => serverOptions.Value.Rescue?.Y ?? serverOptions.Value.NewCharacter.Y;
+    // Jail location - falls back to the rescue/spawn location when not explicitly configured
+    private int JailMap => serverOptions.Value.Jail?.Map ?? serverOptions.Value.Rescue?.Map ?? serverOptions.Value.NewCharacter.Map;
+    private int JailX => serverOptions.Value.Jail?.X ?? serverOptions.Value.Rescue?.X ?? serverOptions.Value.NewCharacter.X;
+    private int JailY => serverOptions.Value.Jail?.Y ?? serverOptions.Value.Rescue?.Y ?? serverOptions.Value.NewCharacter.Y;
 
     public async Task KickPlayerAsync(PlayerState admin, string targetName)
     {

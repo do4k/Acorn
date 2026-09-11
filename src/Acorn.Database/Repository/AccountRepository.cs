@@ -55,6 +55,8 @@ public class AccountRepository : IDbRepository<Account>
                 .ThenInclude(c => c.Paperdoll)
                 .Include(a => a.Characters)
                 .ThenInclude(c => c.Items)
+                .Include(a => a.Characters)
+                .ThenInclude(c => c.Spells)
                 .FirstOrDefaultAsync(a => a.Username == username);
 
             if (account is null)
