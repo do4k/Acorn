@@ -13,6 +13,7 @@ using SdkSpell = Moffat.EndlessOnline.SDK.Protocol.Net.Spell;
 
 namespace Acorn.Net.PacketHandlers.Player;
 
+[RequiresState(ClientState.EnteringGame)]
 internal class WelcomeMsgClientPacketHandler : IPacketHandler<WelcomeMsgClientPacket>
 {
     /// <summary>

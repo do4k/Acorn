@@ -134,9 +134,19 @@ public sealed class EoTestClient : IAsyncDisposable
     /// <summary>
     /// Receives and deserializes a server packet, handling decryption.
     /// </summary>
-    public Task<IPacket> ReceivePacketAsync()
+    public async Task<IPacket> ReceivePacketAsync()
     {
-        return ReceivePacketAsync(ReceiveTimeout);
+        return await ReceivePacketAsync((TimeSpan?)null);
+    }
+
+    /// <summary>
+    /// Receives and deserializes a server packet, handling decryption, with an
+    /// optional receive timeout (defaults to <see cref="ReceiveTimeout" />).
+    /// </summary>
+    public async Task<IPacket> ReceivePacketAsync(TimeSpan? timeout)
+    {
+        using var cts = new CancellationTokenSource(timeout ?? ReceiveTimeout);
+        return await ReceivePacketCoreAsync(cts.Token);
     }
 
     /// <summary>
@@ -154,12 +164,6 @@ public sealed class EoTestClient : IAsyncDisposable
         {
             return null;
         }
-    }
-
-    private async Task<IPacket> ReceivePacketAsync(TimeSpan timeout)
-    {
-        using var cts = new CancellationTokenSource(timeout);
-        return await ReceivePacketCoreAsync(cts.Token);
     }
 
     private async Task<IPacket> ReceivePacketCoreAsync(CancellationToken ct)
@@ -217,15 +221,7 @@ public sealed class EoTestClient : IAsyncDisposable
     /// </summary>
     public async Task<InitInitServerPacket.ReplyCodeDataOk> InitAsync()
     {
-        await SendPacketAsync(new InitInitClientPacket
-        {
-            Challenge = 12345,
-            Version = new Moffat.EndlessOnline.SDK.Protocol.Net.Version { Major = 0, Minor = 0, Patch = 28 },
-            Hdid = "integration-test"
-        });
-
-        var response = await ReceivePacketAsync();
-        var initPacket = (InitInitServerPacket)response;
+        var initPacket = await SendInitAsync();
         var data = (InitInitServerPacket.ReplyCodeDataOk)initPacket.ReplyCodeData;
 
         // Store encryption state
@@ -241,15 +237,43 @@ public sealed class EoTestClient : IAsyncDisposable
     }
 
     /// <summary>
+    /// Sends an InitInitClientPacket with the supplied version/HDID and returns the raw
+    /// server reply. Unlike <see cref="InitAsync" />, this does not assume the reply is
+    /// an <c>Ok</c> and leaves the connection unconfigured so rejection paths can be asserted.
+    /// </summary>
+    public async Task<InitInitServerPacket> SendInitAsync(
+        Moffat.EndlessOnline.SDK.Protocol.Net.Version? version = null,
+        string hdid = "integration-test")
+    {
+        await SendPacketAsync(new InitInitClientPacket
+        {
+            Challenge = 12345,
+            Version = version ?? new Moffat.EndlessOnline.SDK.Protocol.Net.Version { Major = 0, Minor = 0, Patch = 28 },
+            Hdid = hdid
+        });
+
+        return (InitInitServerPacket)await ReceivePacketAsync();
+    }
+
+    /// <summary>
     /// Sends ConnectionAcceptClientPacket. The server validates PlayerId but sends no response.
     /// </summary>
     public async Task SendConnectionAcceptAsync()
     {
+        await SendConnectionAcceptAsync(_clientEncryptionMulti, _serverEncryptionMulti, PlayerId);
+    }
+
+    /// <summary>
+    /// Sends ConnectionAcceptClientPacket with explicit values so validation failures
+    /// (player id / encryption multiples) can be exercised.
+    /// </summary>
+    public async Task SendConnectionAcceptAsync(int clientEncryptionMulti, int serverEncryptionMulti, int playerId)
+    {
         await SendPacketAsync(new ConnectionAcceptClientPacket
         {
-            ClientEncryptionMultiple = _clientEncryptionMulti,
-            ServerEncryptionMultiple = _serverEncryptionMulti,
-            PlayerId = PlayerId
+            ClientEncryptionMultiple = clientEncryptionMulti,
+            ServerEncryptionMultiple = serverEncryptionMulti,
+            PlayerId = playerId
         });
         // No response from server — it just logs and continues
     }

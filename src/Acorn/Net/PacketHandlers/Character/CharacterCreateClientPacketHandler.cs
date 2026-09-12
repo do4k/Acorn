@@ -5,6 +5,7 @@ using Acorn.Game.Mappers;
 using Acorn.Game.Services;
 using Acorn.Game.Validation;
 using Acorn.Infrastructure.Telemetry;
+using Acorn.Net.Models;
 using Acorn.Options;
 using Acorn.World.Services.Admin;
 using Microsoft.Extensions.Logging;
@@ -16,6 +17,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.Net.PacketHandlers.Character;
 
+[RequiresState(ClientState.LoggedIn)]
 internal class CharacterCreateClientPacketHandler(
     IDbRepository<Database.Models.Character> repository,
     IPaperdollService paperdollService,

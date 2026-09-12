@@ -52,6 +52,20 @@ public class PlayerPingHostedService(
         {
             try
             {
+                // Disconnect connections that never complete the Init/Accept handshake.
+                if (player.ClientState < ClientState.Accepted && _serverOptions.HangupDelaySeconds > 0)
+                {
+                    var elapsed = DateTime.UtcNow - player.ConnectedAt;
+                    if (elapsed.TotalSeconds > _serverOptions.HangupDelaySeconds)
+                    {
+                        logger.LogWarning(
+                            "Player {SessionId} failed to complete handshake within {Delay}s, disconnecting",
+                            player.SessionId, _serverOptions.HangupDelaySeconds);
+                        player.Disconnect();
+                        continue;
+                    }
+                }
+
                 // Skip uninitialized connections (matches reoserv ping.rs:12-14)
                 if (player.ClientState == ClientState.Uninitialized)
                 {

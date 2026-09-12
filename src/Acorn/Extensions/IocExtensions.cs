@@ -7,6 +7,7 @@ using Acorn.Game.Services;
 using Acorn.Net.PacketHandlers;
 using Acorn.Shared.Caching;
 using Acorn.World.Services.Admin;
+using Acorn.World.Services.Bans;
 using Acorn.World.Services.Map;
 using Acorn.World.Services.Arena;
 using Acorn.World.Services.Guild;
@@ -91,6 +92,7 @@ internal static class IocRegistrations
             .AddSingleton<IPartyService, PartyService>()
             .AddSingleton<IGuildService, GuildService>()
             .AddSingleton<IQuestService, QuestService>()
+            .AddSingleton<IBanService, InMemoryBanService>()
             .AddSingleton<IAdminService, AdminService>()
             .AddSingleton<IAdminCountService, AdminCountService>()
             .AddSingleton<IMarriageService, MarriageService>()

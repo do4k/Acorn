@@ -87,6 +87,11 @@ public class TestServerFixture : IAsyncLifetime
         var repository = scope.ServiceProvider.GetRequiredService<IBoardRepository>();
         return (await repository.GetPostsAsync(boardId, limit)).ToList();
     }
+    ///     Resolves a service from the running test host so tests can drive internals
+    ///     such as the ban store.
+    /// </summary>
+    public T GetService<T>() where T : notnull =>
+        _host!.Services.GetRequiredService<T>();
 
     public async Task InitializeAsync()
     {
@@ -117,6 +122,14 @@ public class TestServerFixture : IAsyncLifetime
             ["Server:EnforceSequence"] = "true",
             ["Server:EnforceTimestamps"] = EnforceTimestamps.ToString(),
             ["Server:LogPackets"] = "false",
+            ["Server:CheckVersion"] = "true",
+            ["Server:ProtocolVersion"] = "112",
+            ["Server:MinVersion"] = "0.0.28",
+            ["Server:MaxVersion"] = "0.3.29",
+            ["Server:MaxPlayers"] = "200",
+            ["Server:MaxLoginAttempts"] = "3",
+            // Short handshake timeout so the hangup path can be exercised quickly.
+            ["Server:HangupDelaySeconds"] = "2",
             ["Server:NewCharacter:X"] = "6",
             ["Server:NewCharacter:Y"] = "6",
             ["Server:NewCharacter:Map"] = "1",

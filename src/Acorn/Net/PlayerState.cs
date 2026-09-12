@@ -28,6 +28,9 @@ public class PlayerState : IDisposable
     
     // Static cache for [RequiresCharacter] attribute check per handler type
     private static readonly ConcurrentDictionary<Type, bool> _requiresCharacterCache = new();
+
+    // Static cache for [RequiresState] attribute check per handler type
+    private static readonly ConcurrentDictionary<Type, ClientState?> _requiresStateCache = new();
     
     private readonly CancellationToken _cancellationToken;
     private readonly IEnumerable<IPacketHandler> _handlers;
@@ -64,6 +67,7 @@ public class PlayerState : IDisposable
         SessionId = sessionId;
         StartSequence = ConstrainedSequence.GenerateInitStart(Rnd);
         Communicator = communicator;
+        ConnectedAt = DateTime.UtcNow;
         Task.Run(Listen);
     }
 
@@ -73,6 +77,27 @@ public class PlayerState : IDisposable
     public bool NeedPong { get; set; } = false;
     public int ClientEncryptionMulti { get; set; } = 0;
     public int ServerEncryptionMulti { get; set; } = 0;
+
+    /// <summary>
+    ///     Hardware id reported by the client during the Init handshake.
+    /// </summary>
+    public string? Hdid { get; set; }
+
+    /// <summary>
+    ///     Protocol revision reported in the raw Init handshake (vanilla v28 = 112).
+    /// </summary>
+    public int ClientProtocolVersion { get; set; } = 0;
+
+    /// <summary>
+    ///     Number of login requests received on this connection. Used to throttle
+    ///     brute-force attempts.
+    /// </summary>
+    public int LoginAttempts { get; set; }
+
+    /// <summary>
+    ///     When the underlying transport connected, used for handshake timeouts.
+    /// </summary>
+    public DateTime ConnectedAt { get; }
     public Sequencer Sequencer { get; } = new(0);
     public InitSequenceStart StartSequence { get; set; }
     public ICommunicator Communicator { get; }
@@ -216,6 +241,13 @@ public class PlayerState : IDisposable
                 // Handle sequence before rate limiting to keep client and server in sync
                 var serverSequence = HandleSequence(family, action, ref reader);
 
+                // The Init handshake carries the protocol revision as a raw byte that the
+                // SDK reads and discards, so capture it here for validation in the handler.
+                if (family == PacketFamily.Init && action == PacketAction.Init)
+                {
+                    CaptureProtocolVersion(reader);
+                }
+
                 // Rate limiting check
                 if (_packetLog.ShouldRateLimit(action, family))
                 {
@@ -278,6 +310,20 @@ public class PlayerState : IDisposable
                     continue;
                 }
 
+                // Pipeline check: reject packets sent before the connection reached the
+                // state the handler requires (handshake / auth ordering).
+                var requiredState = _requiresStateCache.GetOrAdd(
+                    resolvedHandler.GetType(),
+                    type => type.GetCustomAttribute<RequiresStateAttribute>()?.State);
+
+                if (requiredState is { } required && ClientState < required)
+                {
+                    _logger.LogWarning(
+                        "Player {SessionId} sent {PacketType} in state {State} before {Required}",
+                        SessionId, packet.GetType().Name, ClientState, required);
+                    continue;
+                }
+
                 // Use cached reflection to invoke the typed HandleAsync method
                 var invoker = _handlerInvokeCache.GetOrAdd(packet.GetType(), packetType =>
                 {
@@ -325,6 +371,28 @@ public class PlayerState : IDisposable
         }
 
         Dispose();
+    }
+
+    /// <summary>
+    ///     Reads the protocol revision from an Init_Init handshake without disturbing
+    ///     the main reader. Layout: challenge (3), version major/minor/patch (3), protocol (1).
+    /// </summary>
+    private void CaptureProtocolVersion(EoReader reader)
+    {
+        try
+        {
+            var peek = reader.Slice(reader.Position);
+            peek.GetThree(); // challenge
+            peek.GetChar(); // version major
+            peek.GetChar(); // version minor
+            peek.GetChar(); // version patch
+            ClientProtocolVersion = peek.GetChar();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Could not read protocol version from Init packet for session {SessionId}",
+                SessionId);
+        }
     }
 
     private int HandleSequence(PacketFamily family, PacketAction action, ref EoReader reader)

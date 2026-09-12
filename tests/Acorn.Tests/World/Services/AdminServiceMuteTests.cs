@@ -3,6 +3,7 @@ using Acorn.Net.Services;
 using Acorn.Tests.TestSupport;
 using Acorn.World;
 using Acorn.World.Services.Admin;
+using Acorn.World.Services.Bans;
 using Acorn.World.Services.Player;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,13 +22,14 @@ public class AdminServiceMuteTests
         var world = Substitute.For<IWorldQueries>();
         var playerController = Substitute.For<IPlayerController>();
         var notifications = Substitute.For<INotificationService>();
+        var banService = Substitute.For<IBanService>();
         var serverOptions = FakePlayer.CreateOptions();
         serverOptions.MuteLengthSeconds = muteLengthSeconds;
         var options = Microsoft.Extensions.Options.Options.Create(serverOptions);
         var logger = NullLogger<AdminService>.Instance;
         var scopeFactory = Substitute.For<IServiceScopeFactory>();
 
-        var sut = new AdminService(world, playerController, notifications, options, scopeFactory, logger);
+        var sut = new AdminService(world, playerController, notifications, banService, options, scopeFactory, logger);
 
         var (target, _) = FakePlayer.Create("Target", 2);
         world.FindPlayerByName("Target").Returns(target);

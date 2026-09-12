@@ -1,4 +1,5 @@
-﻿using Acorn.Options;
+using Acorn.Net.Models;
+using Acorn.Options;
 using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
@@ -6,6 +7,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.Net.PacketHandlers.Character;
 
+[RequiresState(ClientState.LoggedIn)]
 internal class CharacterRequestClientPacketHandler(
     IOptions<ServerOptions> serverOptions) : IPacketHandler<CharacterRequestClientPacket>
 {

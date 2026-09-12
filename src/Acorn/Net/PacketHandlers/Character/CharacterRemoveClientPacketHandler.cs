@@ -3,6 +3,7 @@ using Acorn.Database.Repository;
 using Acorn.Extensions;
 using Acorn.Game.Mappers;
 using Acorn.Game.Services;
+using Acorn.Net.Models;
 using Acorn.World.Services.Admin;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol;
@@ -12,6 +13,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.Net.PacketHandlers.Character;
 
+[RequiresState(ClientState.LoggedIn)]
 internal class CharacterRemoveClientPacketHandler(
     IDbRepository<Database.Models.Character> repository,
     IPaperdollService paperdollService,

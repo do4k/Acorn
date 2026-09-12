@@ -17,6 +17,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.Net.PacketHandlers.Player;
 
+[RequiresState(ClientState.LoggedIn)]
 internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequestClientPacket>
 {
     private readonly IDataFileRepository _dataRepository;
