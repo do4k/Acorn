@@ -28,7 +28,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
 using NSubstitute;
-using Xunit;
+using System.Threading.Tasks;
 
 namespace Acorn.Tests.Net.PacketHandlers.Item;
 
@@ -222,7 +222,7 @@ public class ItemUseClientPacketHandlerTests
         character.Inventory.Items.Add(new ItemWithAmount { Id = itemId, Amount = amount });
     }
 
-    [Fact]
+    [Test]
     public async Task Beer_ShouldConsumeItemAndReplyWithAlcoholType()
     {
         // Arrange
@@ -242,7 +242,7 @@ public class ItemUseClientPacketHandlerTests
             .Which.ItemType.Should().Be(ItemType.Alcohol);
     }
 
-    [Fact]
+    [Test]
     public async Task EffectPotion_ShouldConsumeItemBroadcastEffectAndReply()
     {
         // Arrange
@@ -271,7 +271,7 @@ public class ItemUseClientPacketHandlerTests
             harness.Player.SessionId);
     }
 
-    [Fact]
+    [Test]
     public async Task CureCurse_WhenCursedGearEquipped_ShouldDestroyGearConsumeItemAndReply()
     {
         // Arrange
@@ -297,7 +297,7 @@ public class ItemUseClientPacketHandlerTests
         reply.ItemTypeData.Should().BeOfType<ItemReplyServerPacket.ItemTypeDataCureCurse>();
     }
 
-    [Fact]
+    [Test]
     public async Task CureCurse_WhenNoCursedGear_ShouldNotConsumeItem()
     {
         // Arrange
@@ -321,7 +321,7 @@ public class ItemUseClientPacketHandlerTests
         harness.StatCalculator.DidNotReceiveWithAnyArgs().RecalculateStats(default!, default!);
     }
 
-    [Fact]
+    [Test]
     public async Task Teleport_WhenAlreadyAtDestination_ShouldNotConsumeItem()
     {
         // Arrange
@@ -351,7 +351,7 @@ public class ItemUseClientPacketHandlerTests
             .WarpAsync(default!, default!, default, default, default);
     }
 
-    [Fact]
+    [Test]
     public async Task Teleport_WhenMapDisallowsScroll_ShouldNotConsumeItem()
     {
         // Arrange
@@ -378,7 +378,7 @@ public class ItemUseClientPacketHandlerTests
             .WarpAsync(default!, default!, default, default, default);
     }
 
-    [Fact]
+    [Test]
     public async Task Teleport_WhenValid_ShouldConsumeItemAndWarp()
     {
         // Arrange

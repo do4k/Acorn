@@ -2,7 +2,6 @@ using Acorn.Infrastructure;
 using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Data;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using Xunit;
 
 namespace Acorn.Tests.Infrastructure;
 
@@ -21,7 +20,7 @@ public class SessionGeneratorTests
     private static readonly int[] ReservedReplyCodes =
         Enum.GetValues<AccountReply>().Select(v => (int)v).ToArray();
 
-    [Fact]
+    [Test]
     public void Generate_WhenCalledManyTimes_ShouldNeverCollideWithAccountReplyReservedValues()
     {
         // Arrange
@@ -35,7 +34,7 @@ public class SessionGeneratorTests
         ids.Should().OnlyContain(id => id < reservedMin || id > reservedMax);
     }
 
-    [Fact]
+    [Test]
     public void Generate_WhenCalledManyTimes_ShouldStayWithinSessionIdRange()
     {
         var ids = Enumerable.Range(0, 10_000).Select(_ => _sut.Generate()).ToList();
@@ -44,7 +43,7 @@ public class SessionGeneratorTests
         ids.Should().OnlyContain(id => id < (int)EoNumericLimits.SHORT_MAX);
     }
 
-    [Fact]
+    [Test]
     public void Generate_ShouldNeverEqualAnyAccountReplyEnumValue()
     {
         for (var i = 0; i < 10_000; i++)

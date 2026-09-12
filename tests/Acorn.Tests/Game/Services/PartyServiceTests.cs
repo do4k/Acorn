@@ -18,13 +18,13 @@ using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using NSubstitute;
-using Xunit;
+using System.Threading.Tasks;
 
 namespace Acorn.Tests.Game.Services;
 
 public class PartyServiceTests
 {
-    [Fact]
+    [Test]
     public async Task RemoveFromParty_WhenLeaderLeavesTwoMemberParty_ShouldSendPartyClose()
     {
         // Arrange
@@ -53,7 +53,7 @@ public class PartyServiceTests
         memberActions.Should().NotContain(x => x.Action == PacketAction.Remove);
     }
 
-    [Fact]
+    [Test]
     public async Task RequestParty_WhenTargetOutOfRange_ShouldNotSendRequest()
     {
         // Arrange
@@ -70,7 +70,7 @@ public class PartyServiceTests
         memberComm.Sent.Should().BeEmpty("out-of-range invites must be ignored");
     }
 
-    [Fact]
+    [Test]
     public async Task AcceptPartyRequest_WhenPlayersNoLongerInRange_ShouldNotCreateParty()
     {
         // Arrange

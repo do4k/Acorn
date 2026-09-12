@@ -1,13 +1,12 @@
 using Acorn.World.Services.Guild;
 using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using Xunit;
 
 namespace Acorn.Tests.Game.Services;
 
 public class GuildPacketsTests
 {
-    [Fact]
+    [Test]
     public void CreateBegin_ShouldUseCreateBeginReplyCode()
     {
         var packet = GuildPackets.CreateBegin();
@@ -16,7 +15,7 @@ public class GuildPacketsTests
         packet.ReplyCodeData.Should().BeNull();
     }
 
-    [Fact]
+    [Test]
     public void CreateInvite_ShouldIncludeLeaderIdAndGuildIdentity()
     {
         var packet = GuildPackets.CreateInvite(leaderPlayerId: 7, guildName: "my guild", guildTag: "abc");
@@ -25,7 +24,7 @@ public class GuildPacketsTests
         packet.GuildIdentity.Should().Be("My guild (ABC)");
     }
 
-    [Fact]
+    [Test]
     public void CreateAdd_ShouldIncludeMemberName()
     {
         var packet = GuildPackets.CreateAdd("Bob");
@@ -35,7 +34,7 @@ public class GuildPacketsTests
             .Which.Name.Should().Be("Bob");
     }
 
-    [Fact]
+    [Test]
     public void CreateAddConfirm_ShouldIncludeMemberName()
     {
         var packet = GuildPackets.CreateAddConfirm("Bob");
@@ -45,7 +44,7 @@ public class GuildPacketsTests
             .Which.Name.Should().Be("Bob");
     }
 
-    [Fact]
+    [Test]
     public void JoinRequest_ShouldIncludePlayerIdAndName()
     {
         var packet = GuildPackets.JoinRequest(42, "Alice");
@@ -56,7 +55,7 @@ public class GuildPacketsTests
         data.Name.Should().Be("Alice");
     }
 
-    [Fact]
+    [Test]
     public void Reply_ShouldHaveNoData()
     {
         var packet = GuildPackets.Reply(GuildReply.NotFound);

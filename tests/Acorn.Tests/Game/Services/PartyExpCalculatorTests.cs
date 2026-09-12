@@ -1,12 +1,11 @@
 using Acorn.World.Services.Party;
 using FluentAssertions;
-using Xunit;
 
 namespace Acorn.Tests.Game.Services;
 
 public class PartyExpCalculatorTests
 {
-    [Fact]
+    [Test]
     public void CalculateShare_EqualMode_WhenExpDoesNotDivideEvenly_ShouldRoundUp()
     {
         // ceil(100 / 3) = 34
@@ -16,7 +15,7 @@ public class PartyExpCalculatorTests
         result.Should().Be(34);
     }
 
-    [Fact]
+    [Test]
     public void CalculateShare_EqualMode_WhenExpDividesEvenly_ShouldSplitExactly()
     {
         var result = PartyExpCalculator.CalculateShare(100, memberLevel: 5, sumOfLevels: 10, memberCount: 2,
@@ -25,7 +24,7 @@ public class PartyExpCalculatorTests
         result.Should().Be(50);
     }
 
-    [Fact]
+    [Test]
     public void CalculateShare_LevelBasedMode_ShouldWeightByLevel()
     {
         // level 10 of a total of 11 levels gets ceil(110 * 10 / 11) = 100
@@ -35,7 +34,7 @@ public class PartyExpCalculatorTests
         high.Should().Be(100);
     }
 
-    [Fact]
+    [Test]
     public void CalculateShare_LevelBasedMode_WhenMemberIsLevelZero_ShouldTreatAsLevelOne()
     {
         // level 0 counts as 1 of a total of 11 levels -> ceil(110 * 1 / 11) = 10
@@ -45,11 +44,11 @@ public class PartyExpCalculatorTests
         low.Should().Be(10);
     }
 
-    [Theory]
-    [InlineData(0, 5, 5, 1)]
-    [InlineData(100, 5, 5, 0)]
-    [InlineData(100, 5, 0, 1)]
-    [InlineData(-50, 5, 5, 1)]
+    [Test]
+    [Arguments(0, 5, 5, 1)]
+    [Arguments(100, 5, 5, 0)]
+    [Arguments(100, 5, 0, 1)]
+    [Arguments(-50, 5, 5, 1)]
     public void CalculateShare_WhenInputsAreInvalid_ShouldReturnZero(int totalExp, int level, int sumOfLevels,
         int memberCount)
     {

@@ -5,8 +5,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moffat.EndlessOnline.SDK.Protocol;
 using NSubstitute;
-using Xunit;
 using DbCharacter = Acorn.Database.Models.Character;
+using System.Threading.Tasks;
 
 namespace Acorn.Tests.World.Services.Admin;
 
@@ -36,7 +36,7 @@ public class AdminCountServiceTests
         Admin = admin
     };
 
-    [Fact]
+    [Test]
     public async Task GetAdminCountAsync_ShouldCountOnlyAdmins()
     {
         var sut = CreateSut(
@@ -49,7 +49,7 @@ public class AdminCountServiceTests
         count.Should().Be(2);
     }
 
-    [Fact]
+    [Test]
     public async Task IncrementAndDecrement_ShouldAdjustCachedCount()
     {
         var sut = CreateSut(Character(AdminLevel.Player));

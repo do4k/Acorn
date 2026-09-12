@@ -1,9 +1,9 @@
+using System.IO;
 using Acorn.Database.Repository;
 using Acorn.Game.Models;
 using Acorn.Game.Services;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
-using Xunit;
 
 namespace Acorn.Tests.Database;
 
@@ -27,7 +27,7 @@ public class DropFileTextLoaderTests
         return path;
     }
 
-    [Fact]
+    [Test]
     public void LoadDrops_ShouldKeepChanceAsPercentage()
     {
         var (loader, lootService) = CreateLoader();
@@ -46,7 +46,7 @@ public class DropFileTextLoaderTests
         }
     }
 
-    [Fact]
+    [Test]
     public void LoadDrops_ShouldParseFractionalChances()
     {
         var (loader, lootService) = CreateLoader();
@@ -65,7 +65,7 @@ public class DropFileTextLoaderTests
         }
     }
 
-    [Fact]
+    [Test]
     public void LoadDrops_ShouldIgnoreMalformedLines()
     {
         var (loader, lootService) = CreateLoader();
@@ -84,7 +84,7 @@ public class DropFileTextLoaderTests
         }
     }
 
-    [Fact]
+    [Test]
     public void LoadGlobalDrops_ShouldParseChances()
     {
         var (loader, lootService) = CreateLoader();

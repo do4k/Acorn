@@ -1,46 +1,45 @@
 using Acorn.Net.PacketHandlers.Board;
 using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol.Map;
-using Xunit;
 
 namespace Acorn.Tests.Game.Board;
 
 public class BoardRulesTests
 {
-    [Theory]
-    [InlineData(0, MapTileSpec.Board1)]
-    [InlineData(1, MapTileSpec.Board2)]
-    [InlineData(2, MapTileSpec.Board3)]
-    [InlineData(3, MapTileSpec.Board4)]
-    [InlineData(4, MapTileSpec.Board5)]
-    [InlineData(5, MapTileSpec.Board6)]
-    [InlineData(6, MapTileSpec.Board7)]
-    [InlineData(7, MapTileSpec.Board8)]
+    [Test]
+    [Arguments(0, MapTileSpec.Board1)]
+    [Arguments(1, MapTileSpec.Board2)]
+    [Arguments(2, MapTileSpec.Board3)]
+    [Arguments(3, MapTileSpec.Board4)]
+    [Arguments(4, MapTileSpec.Board5)]
+    [Arguments(5, MapTileSpec.Board6)]
+    [Arguments(6, MapTileSpec.Board7)]
+    [Arguments(7, MapTileSpec.Board8)]
     public void GetTileSpec_WhenGivenValidBoardId_ShouldMapToBoardTile(int boardId, MapTileSpec expected)
     {
         BoardRules.GetTileSpec(boardId).Should().Be(expected);
     }
 
-    [Theory]
-    [InlineData(-1)]
-    [InlineData(8)]
-    [InlineData(100)]
+    [Test]
+    [Arguments(-1)]
+    [Arguments(8)]
+    [Arguments(100)]
     public void GetTileSpec_WhenGivenOutOfRangeBoardId_ShouldReturnNull(int boardId)
     {
         BoardRules.GetTileSpec(boardId).Should().BeNull();
     }
 
-    [Theory]
-    [InlineData(0, true)]
-    [InlineData(7, true)]
-    [InlineData(-1, false)]
-    [InlineData(8, false)]
+    [Test]
+    [Arguments(0, true)]
+    [Arguments(7, true)]
+    [Arguments(-1, false)]
+    [Arguments(8, false)]
     public void IsValidBoardId_ShouldOnlyAcceptZeroBasedIds(int boardId, bool expected)
     {
         BoardRules.IsValidBoardId(boardId).Should().Be(expected);
     }
 
-    [Fact]
+    [Test]
     public void AdminBoardId_ShouldBeTheLastZeroBasedBoard()
     {
         BoardRules.AdminBoardId.Should().Be(7);
@@ -48,71 +47,71 @@ public class BoardRulesTests
         BoardRules.GetTileSpec(BoardRules.AdminBoardId).Should().Be(MapTileSpec.Board8);
     }
 
-    [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
-    [InlineData(2)]
-    [InlineData(3)]
-    [InlineData(4)]
-    [InlineData(5)]
-    [InlineData(6)]
+    [Test]
+    [Arguments(0)]
+    [Arguments(1)]
+    [Arguments(2)]
+    [Arguments(3)]
+    [Arguments(4)]
+    [Arguments(5)]
+    [Arguments(6)]
     public void IsAdminBoard_WhenGivenNonAdminBoard_ShouldBeFalse(int boardId)
     {
         BoardRules.IsAdminBoard(boardId).Should().BeFalse();
     }
 
-    [Fact]
+    [Test]
     public void GetPostLimit_ShouldUseLargerLimitForAdminBoard()
     {
         BoardRules.GetPostLimit(0).Should().Be(BoardRules.MaxPosts);
         BoardRules.GetPostLimit(BoardRules.AdminBoardId).Should().Be(BoardRules.AdminBoardMaxPosts);
     }
 
-    [Theory]
-    [InlineData(0, false)]
-    [InlineData(1, true)]
-    [InlineData(5, true)]
+    [Test]
+    [Arguments(0, false)]
+    [Arguments(1, true)]
+    [Arguments(5, true)]
     public void CanAccessAdminBoard_ShouldRequireAtLeastAdminLevelOne(int adminLevel, bool expected)
     {
         BoardRules.CanAccessAdminBoard(adminLevel).Should().Be(expected);
     }
 
-    [Fact]
+    [Test]
     public void CanRemovePost_WhenPlayerIsAuthor_ShouldAllowEvenWithoutAdmin()
     {
         BoardRules.CanRemovePost(currentAdminLevel: 0, authorAdminLevel: 5, isAuthor: true)
             .Should().BeTrue();
     }
 
-    [Theory]
-    [InlineData(1, 0)]
-    [InlineData(4, 3)]
-    [InlineData(5, 0)]
+    [Test]
+    [Arguments(1, 0)]
+    [Arguments(4, 3)]
+    [Arguments(5, 0)]
     public void CanRemovePost_WhenAdminIsHigherRankedThanAuthor_ShouldAllow(int currentAdminLevel, int authorAdminLevel)
     {
         BoardRules.CanRemovePost(currentAdminLevel, authorAdminLevel, isAuthor: false)
             .Should().BeTrue();
     }
 
-    [Theory]
-    [InlineData(1, 1)]
-    [InlineData(0, 0)]
-    [InlineData(0, 1)]
-    [InlineData(2, 3)]
+    [Test]
+    [Arguments(1, 1)]
+    [Arguments(0, 0)]
+    [Arguments(0, 1)]
+    [Arguments(2, 3)]
     public void CanRemovePost_WhenNonAuthorIsNotHigherRanked_ShouldDeny(int currentAdminLevel, int authorAdminLevel)
     {
         BoardRules.CanRemovePost(currentAdminLevel, authorAdminLevel, isAuthor: false)
             .Should().BeFalse();
     }
 
-    [Fact]
+    [Test]
     public void SanitizeContent_ShouldReplaceReserved0XffByte()
     {
         BoardRules.SanitizeContent("hello\u00FFworld", BoardRules.MaxBodyLength)
             .Should().Be("helloyworld");
     }
 
-    [Fact]
+    [Test]
     public void SanitizeContent_ShouldTruncateToMaxLength()
     {
         var value = new string('a', BoardRules.MaxSubjectLength + 10);
@@ -121,9 +120,9 @@ public class BoardRulesTests
             .Should().HaveLength(BoardRules.MaxSubjectLength);
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
+    [Test]
+    [Arguments(null)]
+    [Arguments("")]
     public void SanitizeContent_WhenNullOrEmpty_ShouldReturnEmpty(string? value)
     {
         BoardRules.SanitizeContent(value, BoardRules.MaxBodyLength).Should().BeEmpty();

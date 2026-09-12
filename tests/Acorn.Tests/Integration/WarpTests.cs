@@ -4,7 +4,7 @@ using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using Xunit;
+using System.Threading.Tasks;
 
 namespace Acorn.Tests.Integration;
 
@@ -13,7 +13,9 @@ namespace Acorn.Tests.Integration;
 ///     (a single leave on the old map, a single enter on the new map) and must always
 ///     clear the warp session, including for local warps.
 /// </summary>
-public class WarpTests : IClassFixture<TestServerFixture>
+[ClassDataSource<TestServerFixture>(Shared = SharedType.PerClass)]
+[NotInParallel("WarpTests")]
+public class WarpTests
 {
     // The server spawns new characters at these coordinates (see fixture config).
     private const int StartX = 6;
@@ -33,7 +35,7 @@ public class WarpTests : IClassFixture<TestServerFixture>
         _fixture = fixture;
     }
 
-    [Fact]
+    [Test]
     public async Task MapSwitchWarp_ShouldMovePlayerToTargetMapExactlyOnce()
     {
         await WaitForNoPlayersAsync();
@@ -62,7 +64,7 @@ public class WarpTests : IClassFixture<TestServerFixture>
         _fixture.GetMap(1)!.Players.Should().NotContainKey(client.PlayerId);
     }
 
-    [Fact]
+    [Test]
     public async Task MapSwitchWarp_ShouldSendSingleEnterToOtherPlayers()
     {
         await WaitForNoPlayersAsync();

@@ -4,7 +4,6 @@ using Acorn.Game.Models;
 using Acorn.World.Services.Quest;
 using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol;
-using Xunit;
 
 namespace Acorn.Tests.Game.Services;
 
@@ -34,7 +33,7 @@ public class QuestRuleEvaluatorTests
         return new QuestRule(name, args.ToList(), @goto);
     }
 
-    [Fact]
+    [Test]
     public void Evaluate_Always_ShouldBeTrue()
     {
         var result = QuestRuleEvaluator.Evaluate(Rule("Always", "next"), CreateCharacter(),
@@ -43,7 +42,7 @@ public class QuestRuleEvaluatorTests
         result.Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public void Evaluate_UnknownRule_ShouldBeFalse()
     {
         var result = QuestRuleEvaluator.Evaluate(Rule("SomeFutureRule", "next"), CreateCharacter(),
@@ -52,7 +51,7 @@ public class QuestRuleEvaluatorTests
         result.Should().BeFalse();
     }
 
-    [Fact]
+    [Test]
     public void Evaluate_GotItems_WhenPlayerHasEnough_ShouldBeTrue()
     {
         var character = CreateCharacter();
@@ -65,7 +64,7 @@ public class QuestRuleEvaluatorTests
         result.Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public void Evaluate_GotItems_WhenPlayerHasTooFew_ShouldBeFalse()
     {
         var character = CreateCharacter();
@@ -78,7 +77,7 @@ public class QuestRuleEvaluatorTests
         result.Should().BeFalse();
     }
 
-    [Fact]
+    [Test]
     public void Evaluate_LostItems_WhenPlayerHasTooFew_ShouldBeTrue()
     {
         var character = CreateCharacter();
@@ -90,7 +89,7 @@ public class QuestRuleEvaluatorTests
         result.Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public void Evaluate_KilledNpcs_WhenThresholdReached_ShouldBeTrue()
     {
         var progress = new CharacterQuestProgress();
@@ -104,7 +103,7 @@ public class QuestRuleEvaluatorTests
         result.Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public void Evaluate_KilledNpcs_WhenDifferentNpc_ShouldBeFalse()
     {
         var progress = new CharacterQuestProgress();
@@ -117,7 +116,7 @@ public class QuestRuleEvaluatorTests
         result.Should().BeFalse();
     }
 
-    [Fact]
+    [Test]
     public void Evaluate_KilledPlayers_WhenThresholdReached_ShouldBeTrue()
     {
         var progress = new CharacterQuestProgress { PlayerKills = 4 };
@@ -128,7 +127,7 @@ public class QuestRuleEvaluatorTests
         result.Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public void Evaluate_EnterMap_WhenOnMap_ShouldBeTrue()
     {
         var result = QuestRuleEvaluator.Evaluate(
@@ -137,7 +136,7 @@ public class QuestRuleEvaluatorTests
         result.Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public void Evaluate_EnterCoord_WhenOnCoord_ShouldBeTrue()
     {
         var result = QuestRuleEvaluator.Evaluate(
@@ -147,7 +146,7 @@ public class QuestRuleEvaluatorTests
         result.Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public void Evaluate_LeaveMap_WhenOnDifferentMap_ShouldBeTrue()
     {
         var result = QuestRuleEvaluator.Evaluate(
@@ -156,7 +155,7 @@ public class QuestRuleEvaluatorTests
         result.Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public void Evaluate_IsClass_WhenMatching_ShouldBeTrue()
     {
         var result = QuestRuleEvaluator.Evaluate(
@@ -165,7 +164,7 @@ public class QuestRuleEvaluatorTests
         result.Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public void Evaluate_IsGender_WhenMatching_ShouldBeTrue()
     {
         var result = QuestRuleEvaluator.Evaluate(
@@ -175,7 +174,7 @@ public class QuestRuleEvaluatorTests
         result.Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public void Evaluate_IsRace_WhenMatching_ShouldBeTrue()
     {
         var result = QuestRuleEvaluator.Evaluate(

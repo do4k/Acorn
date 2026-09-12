@@ -1,3 +1,4 @@
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using Acorn.Database;
@@ -32,15 +33,15 @@ using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
 using Refit;
-using Xunit;
+using System.Threading.Tasks;
 
 namespace Acorn.Tests.Integration;
 
 /// <summary>
 /// Spins up a real Acorn server with test configuration (random ports, temp SQLite DB,
-/// in-memory cache) for integration testing. Shared across tests via IClassFixture.
+/// in-memory cache) for integration testing. Shared across a class via ClassDataSource.
 /// </summary>
-public class TestServerFixture : IAsyncLifetime
+public class TestServerFixture : TUnit.Core.Interfaces.IAsyncInitializer, IAsyncDisposable
 {
     private IHost? _host;
     private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"acorn_test_{Guid.NewGuid():N}.db");
@@ -283,7 +284,7 @@ public class TestServerFixture : IAsyncLifetime
         await WaitForPortReady(WsPort);
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         if (_host is not null)
         {

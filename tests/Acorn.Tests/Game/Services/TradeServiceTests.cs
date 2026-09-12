@@ -4,7 +4,6 @@ using Acorn.Game.Services;
 using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
 using NSubstitute;
-using Xunit;
 
 namespace Acorn.Tests.Game.Services;
 
@@ -56,7 +55,7 @@ public class TradeServiceTests
     private static int AmountOf(Character character, int itemId)
         => character.Inventory.Items.FirstOrDefault(i => i.Id == itemId)?.Amount ?? 0;
 
-    [Fact]
+    [Test]
     public void TryCompleteTrade_WhenBothSidesHoldOffers_ShouldSwapItems()
     {
         // Arrange
@@ -76,7 +75,7 @@ public class TradeServiceTests
         AmountOf(partner, LightItemId).Should().Be(5);
     }
 
-    [Fact]
+    [Test]
     public void TryCompleteTrade_WhenSwappingSameItem_ShouldTransferStacks()
     {
         // Arrange
@@ -94,7 +93,7 @@ public class TradeServiceTests
         AmountOf(partner, MediumItemId).Should().Be(10);
     }
 
-    [Fact]
+    [Test]
     public void TryCompleteTrade_WhenPlayerMissingOfferedItems_ShouldFailAndNotMutateInventories()
     {
         // Arrange - player only holds 5 but offers 10
@@ -115,7 +114,7 @@ public class TradeServiceTests
         AmountOf(partner, LightItemId).Should().Be(0);
     }
 
-    [Fact]
+    [Test]
     public void TryCompleteTrade_WhenPartnerMissingOfferedItems_ShouldFailAndNotMutateInventories()
     {
         // Arrange - partner only holds 1 but offers 3
@@ -134,7 +133,7 @@ public class TradeServiceTests
         AmountOf(partner, MediumItemId).Should().Be(1);
     }
 
-    [Fact]
+    [Test]
     public void TryCompleteTrade_WhenPlayerCannotCarryReceivedItems_ShouldFailAndNotMutateInventories()
     {
         // Arrange - player is near capacity and would go over by receiving a heavy item
@@ -153,7 +152,7 @@ public class TradeServiceTests
         AmountOf(partner, HeavyItemId).Should().Be(1);
     }
 
-    [Fact]
+    [Test]
     public void TryCompleteTrade_WhenPartnerCannotCarryReceivedItems_ShouldFailAndNotMutateInventories()
     {
         // Arrange
@@ -172,7 +171,7 @@ public class TradeServiceTests
         AmountOf(partner, HeavyItemId).Should().Be(1);
     }
 
-    [Fact]
+    [Test]
     public void TryCompleteTrade_WhenGivingAwayItemsFreesEnoughWeight_ShouldSucceed()
     {
         // Arrange - player is at capacity with a heavy item and swaps it for a light one
@@ -192,7 +191,7 @@ public class TradeServiceTests
         AmountOf(partner, LightItemId).Should().Be(0);
     }
 
-    [Fact]
+    [Test]
     public void TryCompleteTrade_WhenExceedingWeightLimitExactly_ShouldSucceed()
     {
         // Arrange - 95 weight carried + 5 received = 100 == MaxWeight
@@ -209,7 +208,7 @@ public class TradeServiceTests
         AmountOf(player, LightItemId).Should().Be(2);
     }
 
-    [Fact]
+    [Test]
     public void TryCompleteTrade_WhenMultipleItemsOffered_ShouldSwapAll()
     {
         // Arrange
@@ -231,7 +230,7 @@ public class TradeServiceTests
         AmountOf(partner, MediumItemId).Should().Be(3);
     }
 
-    [Fact]
+    [Test]
     public void TryCompleteTrade_WhenOfferAmountIsZero_ShouldFail()
     {
         // Arrange

@@ -1,6 +1,5 @@
 using Acorn.World.Services.Bans;
 using FluentAssertions;
-using Xunit;
 
 namespace Acorn.Tests.World.Services;
 
@@ -8,13 +7,13 @@ public class InMemoryBanServiceTests
 {
     private readonly InMemoryBanService _sut = new();
 
-    [Fact]
+    [Test]
     public void IsBanned_WhenKeyNeverBanned_ShouldReturnFalse()
     {
         _sut.IsBanned(BanKeys.Username("someone")).Should().BeFalse();
     }
 
-    [Fact]
+    [Test]
     public void Ban_ThenIsBanned_ShouldReturnTrue()
     {
         var key = BanKeys.Username("someone");
@@ -24,7 +23,7 @@ public class InMemoryBanServiceTests
         _sut.IsBanned(key).Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public void IsBanned_ShouldBeCaseInsensitive()
     {
         _sut.Ban(BanKeys.Username("SomeOne"));
@@ -32,7 +31,7 @@ public class InMemoryBanServiceTests
         _sut.IsBanned(BanKeys.Username("someone")).Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public void IsBanned_WhenTemporaryBanExpired_ShouldReturnFalse()
     {
         var key = BanKeys.Hdid("abc");
@@ -41,7 +40,7 @@ public class InMemoryBanServiceTests
         _sut.IsBanned(key).Should().BeFalse();
     }
 
-    [Fact]
+    [Test]
     public void IsBanned_WhenTemporaryBanActive_ShouldReturnTrue()
     {
         var key = BanKeys.Hdid("abc");
@@ -50,7 +49,7 @@ public class InMemoryBanServiceTests
         _sut.IsBanned(key).Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public void Unban_WhenBanned_ShouldRemoveAndReturnTrue()
     {
         var key = BanKeys.Username("someone");
@@ -60,13 +59,13 @@ public class InMemoryBanServiceTests
         _sut.IsBanned(key).Should().BeFalse();
     }
 
-    [Fact]
+    [Test]
     public void Unban_WhenNotBanned_ShouldReturnFalse()
     {
         _sut.Unban(BanKeys.Username("someone")).Should().BeFalse();
     }
 
-    [Fact]
+    [Test]
     public void GetActiveBans_ShouldExcludeExpiredEntries()
     {
         _sut.Ban(BanKeys.Username("active"));
@@ -76,7 +75,7 @@ public class InMemoryBanServiceTests
             .Which.Should().Be(BanKeys.Username("active"));
     }
 
-    [Fact]
+    [Test]
     public void DifferentKeyTypes_ShouldNotCollide()
     {
         _sut.Ban(BanKeys.Username("abc"));

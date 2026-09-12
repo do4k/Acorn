@@ -1,7 +1,6 @@
 using Acorn.Options;
 using Acorn.World.Services.Guild;
 using FluentAssertions;
-using Xunit;
 
 namespace Acorn.Tests.Game.Services;
 
@@ -11,76 +10,76 @@ public class GuildRulesTests
 
     // --- Validation ---
 
-    [Theory]
-    [InlineData("AB", true)]
-    [InlineData("ABC", true)]
-    [InlineData("A", false)]
-    [InlineData("ABCD", false)]
-    [InlineData("A1C", false)]
-    [InlineData("abc", false)]
-    [InlineData("", false)]
+    [Test]
+    [Arguments("AB", true)]
+    [Arguments("ABC", true)]
+    [Arguments("A", false)]
+    [Arguments("ABCD", false)]
+    [Arguments("A1C", false)]
+    [Arguments("abc", false)]
+    [Arguments("", false)]
     public void IsValidTag_ShouldMatchEoservRules(string tag, bool expected)
     {
         GuildRules.IsValidTag(tag, _options).Should().Be(expected);
     }
 
-    [Theory]
-    [InlineData("test", true)]
-    [InlineData("my guild", true)]
-    [InlineData("abc", false)]
-    [InlineData("Guild", false)]
-    [InlineData("guild1", false)]
-    [InlineData("guild-name", false)]
-    [InlineData("", false)]
+    [Test]
+    [Arguments("test", true)]
+    [Arguments("my guild", true)]
+    [Arguments("abc", false)]
+    [Arguments("Guild", false)]
+    [Arguments("guild1", false)]
+    [Arguments("guild-name", false)]
+    [Arguments("", false)]
     public void IsValidName_ShouldMatchEoservRules(string name, bool expected)
     {
         GuildRules.IsValidName(name, _options).Should().Be(expected);
     }
 
-    [Fact]
+    [Test]
     public void IsValidName_WhenAtMaximumLength_ShouldBeValid()
     {
         var name = new string('a', _options.MaxNameLength);
         GuildRules.IsValidName(name, _options).Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public void IsValidName_WhenOverMaximumLength_ShouldBeInvalid()
     {
         var name = new string('a', _options.MaxNameLength + 1);
         GuildRules.IsValidName(name, _options).Should().BeFalse();
     }
 
-    [Theory]
-    [InlineData("leader", true)]
-    [InlineData("new member", true)]
-    [InlineData("", true)]
-    [InlineData("Leader", false)]
-    [InlineData("rank1", false)]
+    [Test]
+    [Arguments("leader", true)]
+    [Arguments("new member", true)]
+    [Arguments("", true)]
+    [Arguments("Leader", false)]
+    [Arguments("rank1", false)]
     public void IsValidRank_ShouldMatchEoservRules(string rank, bool expected)
     {
         GuildRules.IsValidRank(rank, _options).Should().Be(expected);
     }
 
-    [Fact]
+    [Test]
     public void IsValidRank_WhenOverMaximumLength_ShouldBeInvalid()
     {
         GuildRules.IsValidRank(new string('a', _options.MaxRankLength + 1), _options).Should().BeFalse();
     }
 
-    [Theory]
-    [InlineData("hello world", true)]
-    [InlineData("hello@world.com", true)]
-    [InlineData("a_b-c.1", true)]
-    [InlineData("hello!", false)]
-    [InlineData("Hello", false)]
-    [InlineData("", true)]
+    [Test]
+    [Arguments("hello world", true)]
+    [Arguments("hello@world.com", true)]
+    [Arguments("a_b-c.1", true)]
+    [Arguments("hello!", false)]
+    [Arguments("Hello", false)]
+    [Arguments("", true)]
     public void IsValidDescription_ShouldMatchEoservRules(string description, bool expected)
     {
         GuildRules.IsValidDescription(description, _options).Should().Be(expected);
     }
 
-    [Fact]
+    [Test]
     public void IsValidDescription_WhenOverMaximumLength_ShouldBeInvalid()
     {
         GuildRules.IsValidDescription(new string('a', _options.MaxDescLength + 1), _options).Should().BeFalse();
@@ -88,7 +87,7 @@ public class GuildRulesTests
 
     // --- Permissions ---
 
-    [Fact]
+    [Test]
     public void CanEdit_ShouldOnlyAllowLeader_WithEoservDefaults()
     {
         GuildRules.CanEdit(0, _options).Should().BeTrue();
@@ -96,7 +95,7 @@ public class GuildRulesTests
         GuildRules.CanEdit(8, _options).Should().BeFalse();
     }
 
-    [Fact]
+    [Test]
     public void CanRecruit_ShouldAllowLeaderAndRecruiter_WithEoservDefaults()
     {
         GuildRules.CanRecruit(0, _options).Should().BeTrue();
@@ -104,60 +103,60 @@ public class GuildRulesTests
         GuildRules.CanRecruit(2, _options).Should().BeFalse();
     }
 
-    [Fact]
+    [Test]
     public void CanKick_ShouldOnlyAllowLeader_WithEoservDefaults()
     {
         GuildRules.CanKick(0, _options).Should().BeTrue();
         GuildRules.CanKick(1, _options).Should().BeFalse();
     }
 
-    [Fact]
+    [Test]
     public void CanDisband_ShouldOnlyAllowLeader_WithEoservDefaults()
     {
         GuildRules.CanDisband(0, _options).Should().BeTrue();
         GuildRules.CanDisband(1, _options).Should().BeFalse();
     }
 
-    [Fact]
+    [Test]
     public void CanAssignRank_LeaderCanAssignRankZero_WhenMultipleFoundersEnabled()
     {
         GuildRules.CanAssignRank(0, 8, 0, _options).Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public void CanAssignRank_LeaderCannotAssignRankZero_WhenMultipleFoundersDisabled()
     {
         var options = new GuildOptions { MultipleFounders = false };
         GuildRules.CanAssignRank(0, 8, 0, options).Should().BeFalse();
     }
 
-    [Fact]
+    [Test]
     public void CanAssignRank_NonLeaderCannotAssignRankZero()
     {
         GuildRules.CanAssignRank(1, 8, 0, _options).Should().BeFalse();
     }
 
-    [Fact]
+    [Test]
     public void CanAssignRank_LeaderCanPromoteMember()
     {
         GuildRules.CanAssignRank(0, 8, 5, _options).Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public void CanAssignRank_NonLeaderCannotManageMember()
     {
         GuildRules.CanAssignRank(1, 8, 5, _options).Should().BeFalse();
     }
 
-    [Fact]
+    [Test]
     public void CanAssignRank_CannotAssignToExistingLeader()
     {
         GuildRules.CanAssignRank(0, 0, 5, _options).Should().BeFalse();
     }
 
-    [Theory]
-    [InlineData(-1)]
-    [InlineData(9)]
+    [Test]
+    [Arguments(-1)]
+    [Arguments(9)]
     public void CanAssignRank_OutOfRangeRank_ShouldBeFalse(int newRank)
     {
         GuildRules.CanAssignRank(0, 8, newRank, _options).Should().BeFalse();
@@ -165,16 +164,16 @@ public class GuildRulesTests
 
     // --- Wealth / staff ---
 
-    [Theory]
-    [InlineData(0, "0")]
-    [InlineData(1999, "1999")]
-    [InlineData(123456, "123456")]
+    [Test]
+    [Arguments(0, "0")]
+    [Arguments(1999, "1999")]
+    [Arguments(123456, "123456")]
     public void GetWealth_ShouldReportRawBankBalance(int bank, string expected)
     {
         GuildRules.GetWealth(bank).Should().Be(expected);
     }
 
-    [Fact]
+    [Test]
     public void GetStaff_ShouldCategoriseLeadersAndRecruitersLikeEoserv()
     {
         var members = new List<(int Rank, string Name)>
@@ -194,7 +193,7 @@ public class GuildRulesTests
         staff[1].Name.Should().Be("Bob");
     }
 
-    [Fact]
+    [Test]
     public void GetStaff_WhenShowRecruitersDisabled_ShouldOnlyIncludeLeaders()
     {
         var options = new GuildOptions { ShowRecruiters = false };
@@ -208,53 +207,53 @@ public class GuildRulesTests
 
     // --- Bank deposit ---
 
-    [Fact]
+    [Test]
     public void CalculateDeposit_WhenValid_ShouldReturnRequestedAmount()
     {
         GuildRules.CalculateDeposit(5000, 10000, 0, _options).Should().Be(5000);
     }
 
-    [Fact]
+    [Test]
     public void CalculateDeposit_WhenBelowMinimum_ShouldReturnZero()
     {
         GuildRules.CalculateDeposit(500, 10000, 0, _options).Should().Be(0);
     }
 
-    [Fact]
+    [Test]
     public void CalculateDeposit_WhenPlayerHasLessThanMinimum_ShouldReturnZero()
     {
         GuildRules.CalculateDeposit(5000, 500, 0, _options).Should().Be(0);
     }
 
-    [Fact]
+    [Test]
     public void CalculateDeposit_WhenRemainingCapacityBelowMinimum_ShouldReturnZero()
     {
         var bank = _options.BankMax - 100;
         GuildRules.CalculateDeposit(5000, 10000, bank, _options).Should().Be(0);
     }
 
-    [Fact]
+    [Test]
     public void CalculateDeposit_WhenBankFull_ShouldReturnZero()
     {
         GuildRules.CalculateDeposit(5000, 10000, _options.BankMax, _options).Should().Be(0);
     }
 
-    [Fact]
+    [Test]
     public void CalculateDeposit_ShouldClampToRemainingCapacity()
     {
         var bank = _options.BankMax - 2000;
         GuildRules.CalculateDeposit(5000, 10000, bank, _options).Should().Be(2000);
     }
 
-    [Fact]
+    [Test]
     public void CalculateDeposit_ShouldClampToPlayerGold()
     {
         GuildRules.CalculateDeposit(5000, 2000, 0, _options).Should().Be(2000);
     }
 
-    [Theory]
-    [InlineData(0)]
-    [InlineData(-10)]
+    [Test]
+    [Arguments(0)]
+    [Arguments(-10)]
     public void CalculateDeposit_WhenNonPositiveRequested_ShouldReturnZero(int requested)
     {
         GuildRules.CalculateDeposit(requested, 10000, 0, _options).Should().Be(0);
@@ -262,34 +261,34 @@ public class GuildRulesTests
 
     // --- Creation flow ---
 
-    [Fact]
+    [Test]
     public void RequiresRecruits_WhenCreateMembersIsOne_ShouldBeFalse()
     {
         GuildRules.RequiresRecruits(_options).Should().BeFalse();
     }
 
-    [Fact]
+    [Test]
     public void RequiresRecruits_WhenCreateMembersGreaterThanOne_ShouldBeTrue()
     {
         GuildRules.RequiresRecruits(new GuildOptions { CreateMembers = 3 }).Should().BeTrue();
     }
 
-    [Theory]
-    [InlineData(1, 0, true)] // solo creation needs no candidates
-    [InlineData(3, 1, false)]
-    [InlineData(3, 2, true)]
-    [InlineData(3, 5, true)]
+    [Test]
+    [Arguments(1, 0, true)] // solo creation needs no candidates
+    [Arguments(3, 1, false)]
+    [Arguments(3, 2, true)]
+    [Arguments(3, 5, true)]
     public void HasEnoughCandidates_ShouldReflectCreateMembers(int createMembers, int candidateCount, bool expected)
     {
         var options = new GuildOptions { CreateMembers = createMembers };
         GuildRules.HasEnoughCandidates(candidateCount, options).Should().Be(expected);
     }
 
-    [Theory]
-    [InlineData(1, 0, true)]
-    [InlineData(3, 1, false)]
-    [InlineData(3, 2, true)]
-    [InlineData(9, 8, true)]
+    [Test]
+    [Arguments(1, 0, true)]
+    [Arguments(3, 1, false)]
+    [Arguments(3, 2, true)]
+    [Arguments(9, 8, true)]
     public void HasEnoughMembers_ShouldCountLeaderAndRecruits(int createMembers, int recruitCount, bool expected)
     {
         var options = new GuildOptions { CreateMembers = createMembers };
@@ -298,7 +297,7 @@ public class GuildRulesTests
 
     // --- Ranks ---
 
-    [Fact]
+    [Test]
     public void ParseRanks_ShouldReturnNineRanks()
     {
         var ranks = GuildRules.ParseRanks(_options.DefaultRanks);
@@ -309,7 +308,7 @@ public class GuildRulesTests
         ranks[8].Should().Be("New Member");
     }
 
-    [Fact]
+    [Test]
     public void GetRankName_WhenOutOfRange_ShouldReturnEmpty()
     {
         var ranks = GuildRules.ParseRanks(_options.DefaultRanks);

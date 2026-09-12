@@ -1,7 +1,6 @@
 using Acorn.Game.Models;
 using Acorn.Game.Services;
 using FluentAssertions;
-using Xunit;
 
 namespace Acorn.Tests.Game.Services;
 
@@ -14,7 +13,7 @@ public class LootServiceTests
         _sut = new LootService();
     }
 
-    [Fact]
+    [Test]
     public void RollDrop_WhenNpcHasNoLootTableAndNoGlobalDrops_ShouldReturnNull()
     {
         var result = _sut.RollDrop(npcId: 999);
@@ -22,7 +21,7 @@ public class LootServiceTests
         result.Should().BeNull();
     }
 
-    [Fact]
+    [Test]
     public void RollDrop_WhenNpcHasNoSpecificLootTable_ShouldStillRollGlobalDrops()
     {
         // A 100% global drop should always be returned, even for an NPC with no
@@ -35,7 +34,7 @@ public class LootServiceTests
         result!.ItemId.Should().Be(1);
     }
 
-    [Fact]
+    [Test]
     public void RollDrop_ShouldConsiderBothNpcSpecificAndGlobalDrops()
     {
         _sut.RegisterNpcLootTable(new NpcLootTable
@@ -52,7 +51,7 @@ public class LootServiceTests
         new[] { 1, 100 }.Should().Contain(result!.ItemId);
     }
 
-    [Fact]
+    [Test]
     public void RollDrop_WhenRateIsZero_ShouldNeverDrop()
     {
         _sut.RegisterGlobalDrops([new LootDrop(itemId: 1, minAmount: 1, maxAmount: 5, ratePercent: 0)]);
@@ -63,7 +62,7 @@ public class LootServiceTests
         }
     }
 
-    [Fact]
+    [Test]
     public void RollDrop_WhenChanceIsTenPercent_ShouldNotAlwaysDrop()
     {
         // Regression: a 10% drop used to become a guaranteed drop because the drop file
@@ -82,7 +81,7 @@ public class LootServiceTests
             "a 10% chance over 200 rolls should land near 20, not 200");
     }
 
-    [Fact]
+    [Test]
     public void RollDrop_WhenChancesSumTo100_ShouldAlwaysDrop()
     {
         _sut.RegisterNpcLootTable(new NpcLootTable
@@ -101,7 +100,7 @@ public class LootServiceTests
         }
     }
 
-    [Fact]
+    [Test]
     public void RollDrop_WhenChancesExceed100_ShouldScaleProportionally()
     {
         // 150 + 50 = 200 scales the entries to 75% / 25% and guarantees a drop, matching
@@ -123,7 +122,7 @@ public class LootServiceTests
             .BeGreaterThan(results.Count(r => r!.ItemId == 200), "the 150 entry is three times as likely");
     }
 
-    [Fact]
+    [Test]
     public void RollDrop_ShouldRollNpcAndGlobalDropsInOneWeightedRoll()
     {
         _sut.RegisterNpcLootTable(new NpcLootTable
@@ -141,7 +140,7 @@ public class LootServiceTests
         }
     }
 
-    [Fact]
+    [Test]
     public void RollDropAmount_ShouldReturnValueWithinRange()
     {
         var drop = new LootDrop(itemId: 1, minAmount: 3, maxAmount: 7, ratePercent: 100);
@@ -153,7 +152,7 @@ public class LootServiceTests
         }
     }
 
-    [Fact]
+    [Test]
     public void Seal_ThenRegisterNpcLootTable_ShouldThrow()
     {
         _sut.RegisterNpcLootTable(new NpcLootTable
@@ -172,7 +171,7 @@ public class LootServiceTests
         act.Should().Throw<InvalidOperationException>();
     }
 
-    [Fact]
+    [Test]
     public void Seal_StillAllowsLookupAndRolls()
     {
         _sut.RegisterNpcLootTable(new NpcLootTable

@@ -10,7 +10,6 @@ using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
 using NSubstitute;
-using Xunit;
 using PubNpcType = Moffat.EndlessOnline.SDK.Protocol.Pub.NpcType;
 
 namespace Acorn.Tests.Game.Map;
@@ -77,7 +76,7 @@ public class MapStateNpcIndexTests
             Substitute.For<ILogger<MapState>>());
     }
 
-    [Fact]
+    [Test]
     public void NpcIndexes_ShouldMatchDictionaryKeys()
     {
         var map = CreateMap(npcCount: 3);
@@ -86,7 +85,7 @@ public class MapStateNpcIndexTests
         map.Npcs.Values.Select(n => n.Index).OrderBy(i => i).Should().Equal(0, 1, 2);
     }
 
-    [Fact]
+    [Test]
     public void AsNpcMapInfo_ShouldReturnStableIndexes()
     {
         var map = CreateMap(npcCount: 3);
@@ -96,7 +95,7 @@ public class MapStateNpcIndexTests
         infos.Select(i => i.Index).Should().Equal(0, 1, 2);
     }
 
-    [Fact]
+    [Test]
     public void AsNpcMapInfo_WhenAnNpcDies_ShouldKeepRemainingIndexesStable()
     {
         var map = CreateMap(npcCount: 3);
@@ -110,7 +109,7 @@ public class MapStateNpcIndexTests
             "dead NPCs are omitted but the surviving NPCs keep their original index");
     }
 
-    [Fact]
+    [Test]
     public void GetNextNpcIndex_ShouldReturnLowestFreeIndex()
     {
         var map = CreateMap(npcCount: 3);

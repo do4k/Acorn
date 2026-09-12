@@ -4,10 +4,10 @@
 
 | Package | Purpose |
 |---------|---------|
-| xUnit | Test framework |
+| TUnit | Test framework |
 | NSubstitute | Mocking library |
 | FluentAssertions | Assertion library |
-| Coverlet | Code coverage |
+| TUnit (built-in coverage) | Code coverage |
 
 ## Test Project Structure
 
@@ -26,7 +26,7 @@ tests/
 ## Test Naming Convention
 
 ```csharp
-[Fact]
+[Test]
 public void MethodName_WhenCondition_ShouldExpectedBehavior()
 ```
 
@@ -39,7 +39,7 @@ Examples:
 ## Test Structure (AAA Pattern)
 
 ```csharp
-[Fact]
+[Test]
 public void TryAddItem_WhenValidAmount_ShouldAddNewItem()
 {
     // Arrange - Set up test data and dependencies
@@ -151,10 +151,10 @@ public class InventoryServiceTests
 ## Theory Tests (Parameterized)
 
 ```csharp
-[Theory]
-[InlineData(0)]
-[InlineData(-1)]
-[InlineData(-100)]
+[Test]
+[Arguments(0)]
+[Arguments(-1)]
+[Arguments(-100)]
 public void TryAddItem_WhenInvalidAmount_ShouldReturnFalse(int invalidAmount)
 {
     // Arrange
@@ -168,9 +168,9 @@ public void TryAddItem_WhenInvalidAmount_ShouldReturnFalse(int invalidAmount)
     character.Inventory.Items.Should().BeEmpty();
 }
 
-[Theory]
-[InlineData(1, 10, 5, 15)]   // Add 5 to 10 = 15
-[InlineData(1, 100, 50, 150)] // Add 50 to 100 = 150
+[Test]
+[Arguments(1, 10, 5, 15)]   // Add 5 to 10 = 15
+[Arguments(1, 100, 50, 150)] // Add 50 to 100 = 150
 public void TryAddItem_WhenStacking_ShouldCalculateCorrectly(
     int itemId, int initial, int addAmount, int expectedTotal)
 {
@@ -203,7 +203,7 @@ public class SomeHandlerTests
         _sut = new SomeHandler(_logger, _someService);
     }
 
-    [Fact]
+    [Test]
     public async Task HandleAsync_WhenValidRequest_ShouldCallService()
     {
         // Arrange
@@ -244,14 +244,14 @@ dotnet test
 # Run with verbose output
 dotnet test --verbosity normal
 
-# Run specific test class
-dotnet test --filter "FullyQualifiedName~InventoryServiceTests"
+# Run specific test class (TUnit tree-node filter)
+dotnet test -- --treenode-filter "/*/*/InventoryServiceTests/*"
 
 # Run specific test
-dotnet test --filter "FullyQualifiedName~TryAddItem_WhenValidAmount_ShouldAddNewItem"
+dotnet test -- --treenode-filter "/*/*/InventoryServiceTests/TryAddItem_WhenValidAmount_ShouldAddNewItem"
 
-# Run with coverage
-dotnet test --collect:"XPlat Code Coverage"
+# Run with coverage (TUnit ships Microsoft.Testing.Extensions.CodeCoverage)
+dotnet test -- --coverage
 ```
 
 ## What to Test
@@ -283,7 +283,6 @@ using Acorn.Domain.Models;
 using Acorn.Game.Services;
 using FluentAssertions;
 using NSubstitute;
-using Xunit;
 
 namespace Acorn.Tests.Game.Services;
 
@@ -309,7 +308,7 @@ public class MyServiceTests
         };
     }
 
-    [Fact]
+    [Test]
     public void Method_WhenCondition_ShouldExpectedBehavior()
     {
         // Arrange

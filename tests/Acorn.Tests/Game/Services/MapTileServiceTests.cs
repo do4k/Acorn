@@ -1,7 +1,6 @@
 using Acorn.World.Services.Map;
 using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol;
-using Xunit;
 
 namespace Acorn.Tests.Game.Services;
 
@@ -9,12 +8,12 @@ public class MapTileServiceTests
 {
     private readonly MapTileService _sut = new();
 
-    [Theory]
-    [InlineData(0, 0, 0, 0, 0)]
-    [InlineData(0, 0, 3, 4, 7)]
-    [InlineData(5, 5, 5, 6, 1)]
-    [InlineData(5, 5, 6, 6, 2)]
-    [InlineData(10, 10, 7, 8, 5)]
+    [Test]
+    [Arguments(0, 0, 0, 0, 0)]
+    [Arguments(0, 0, 3, 4, 7)]
+    [Arguments(5, 5, 5, 6, 1)]
+    [Arguments(5, 5, 6, 6, 2)]
+    [Arguments(10, 10, 7, 8, 5)]
     public void GetManhattanDistance_ShouldReturnSumOfAbsoluteDeltas(int ax, int ay, int bx, int by, int expected)
     {
         var a = new Coords { X = ax, Y = ay };
@@ -23,7 +22,7 @@ public class MapTileServiceTests
         _sut.GetManhattanDistance(a, b).Should().Be(expected);
     }
 
-    [Fact]
+    [Test]
     public void GetManhattanDistance_ShouldBeSymmetric()
     {
         var a = new Coords { X = 2, Y = 9 };
@@ -32,7 +31,7 @@ public class MapTileServiceTests
         _sut.GetManhattanDistance(a, b).Should().Be(_sut.GetManhattanDistance(b, a));
     }
 
-    [Fact]
+    [Test]
     public void GetDistance_ShouldRemainChebyshev()
     {
         var a = new Coords { X = 0, Y = 0 };

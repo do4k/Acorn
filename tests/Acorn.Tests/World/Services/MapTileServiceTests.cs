@@ -2,7 +2,6 @@ using Acorn.World.Services.Map;
 using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Map;
-using Xunit;
 
 namespace Acorn.Tests.World.Services;
 
@@ -34,7 +33,7 @@ public class MapTileServiceTests
         };
     }
 
-    [Fact]
+    [Test]
     public void IsTileWalkable_WhenTileIsNpcBoundary_ShouldReturnTrue()
     {
         var map = CreateMapWithTile(5, 5, MapTileSpec.NpcBoundary);
@@ -43,18 +42,18 @@ public class MapTileServiceTests
             .Should().BeTrue("NPC boundary tiles only block NPCs");
     }
 
-    [Fact]
+    [Test]
     public void IsNpcWalkable_WhenTileIsNpcBoundary_ShouldReturnFalse()
     {
         new MapTileService().IsNpcWalkable(MapTileSpec.NpcBoundary)
             .Should().BeFalse("NPCs must not walk over an NPC boundary");
     }
 
-    [Theory]
-    [InlineData(MapTileSpec.Wall)]
-    [InlineData(MapTileSpec.Chest)]
-    [InlineData(MapTileSpec.Edge)]
-    [InlineData(MapTileSpec.BankVault)]
+    [Test]
+    [Arguments(MapTileSpec.Wall)]
+    [Arguments(MapTileSpec.Chest)]
+    [Arguments(MapTileSpec.Edge)]
+    [Arguments(MapTileSpec.BankVault)]
     public void IsTileWalkable_WhenTileBlocksEveryone_ShouldReturnFalse(MapTileSpec spec)
     {
         var map = CreateMapWithTile(5, 5, spec);
@@ -62,17 +61,17 @@ public class MapTileServiceTests
         new MapTileService().IsTileWalkable(map, new Coords { X = 5, Y = 5 }).Should().BeFalse();
     }
 
-    [Theory]
-    [InlineData(MapTileSpec.Wall)]
-    [InlineData(MapTileSpec.Chest)]
-    [InlineData(MapTileSpec.Edge)]
-    [InlineData(MapTileSpec.BankVault)]
+    [Test]
+    [Arguments(MapTileSpec.Wall)]
+    [Arguments(MapTileSpec.Chest)]
+    [Arguments(MapTileSpec.Edge)]
+    [Arguments(MapTileSpec.BankVault)]
     public void IsNpcWalkable_WhenTileBlocksEveryone_ShouldReturnFalse(MapTileSpec spec)
     {
         new MapTileService().IsNpcWalkable(spec).Should().BeFalse();
     }
 
-    [Fact]
+    [Test]
     public void IsTileWalkable_WhenNoTileSpec_ShouldReturnTrue()
     {
         var map = new Emf

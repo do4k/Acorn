@@ -11,7 +11,7 @@ using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using NSubstitute;
-using Xunit;
+using System.Threading.Tasks;
 
 namespace Acorn.Tests.Game.Services;
 
@@ -38,7 +38,7 @@ public class MapItemServiceTests
             NullLogger<MapItemService>.Instance);
     }
 
-    [Fact]
+    [Test]
     public async Task TryDropItem_WhenSuccessful_AddsItemToMapAndRemovesFromInventory()
     {
         var map = TestFactories.CreateMap();
@@ -55,7 +55,7 @@ public class MapItemServiceTests
         _inventoryService.Received(1).TryRemoveItem(player.Character!, 5, 3);
     }
 
-    [Fact]
+    [Test]
     public async Task TryDropItem_WhenSuccessful_BroadcastsItemAddToInRangePlayersExceptDropper()
     {
         var map = TestFactories.CreateMap();
@@ -81,7 +81,7 @@ public class MapItemServiceTests
             Arg.Any<PlayerState?>());
     }
 
-    [Fact]
+    [Test]
     public async Task TryDropItem_WhenNoOtherPlayersInRange_BroadcastsToEmptyRecipientList()
     {
         var map = TestFactories.CreateMap();
@@ -96,7 +96,7 @@ public class MapItemServiceTests
             Arg.Any<PlayerState?>());
     }
 
-    [Fact]
+    [Test]
     public async Task TryDropItem_WhenTooFarAway_ReturnsFailureAndDoesNotBroadcast()
     {
         var map = TestFactories.CreateMap();
@@ -111,7 +111,7 @@ public class MapItemServiceTests
             .BroadcastPacket(Arg.Any<IEnumerable<PlayerState>>(), Arg.Any<IPacket>(), Arg.Any<PlayerState?>());
     }
 
-    [Fact]
+    [Test]
     public async Task TryDropItem_WhenPlayerDoesNotHaveItem_ReturnsFailure()
     {
         var map = TestFactories.CreateMap();

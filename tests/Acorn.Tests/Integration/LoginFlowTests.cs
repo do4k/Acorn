@@ -3,7 +3,7 @@ using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using Xunit;
+using System.Threading.Tasks;
 
 namespace Acorn.Tests.Integration;
 
@@ -13,7 +13,8 @@ namespace Acorn.Tests.Integration;
 /// init handshake, encryption, sequencing, account creation, and login all work
 /// end-to-end with no mocks.
 /// </summary>
-[Collection(IntegrationCollection.Name)]
+[ClassDataSource<TestServerFixture>(Shared = SharedType.Keyed, Key = IntegrationServerKey.Name)]
+[NotInParallel(IntegrationServerKey.Name)]
 public class LoginFlowTests
 {
     private readonly TestServerFixture _fixture;
@@ -23,7 +24,7 @@ public class LoginFlowTests
         _fixture = fixture;
     }
 
-    [Fact]
+    [Test]
     public async Task Tcp_FullLoginFlow_ShouldReturnLoginOk()
     {
         await using var client = await EoTestClient.ConnectTcpAsync(_fixture.TcpPort);
@@ -56,7 +57,7 @@ public class LoginFlowTests
         okData!.Characters.Should().BeEmpty("no characters have been created yet");
     }
 
-    [Fact]
+    [Test]
     public async Task WebSocket_FullLoginFlow_ShouldReturnLoginOk()
     {
         if (!_fixture.IsWebSocketAvailable)
@@ -108,7 +109,7 @@ public class LoginFlowTests
         }
     }
 
-    [Fact]
+    [Test]
     public async Task Tcp_EnterGame_ShouldSendRealWeightAndSpellList()
     {
         await using var client = await EoTestClient.ConnectTcpAsync(_fixture.TcpPort);
@@ -146,7 +147,7 @@ public class LoginFlowTests
         data.Weight.Max.Should().Be(player!.Character!.MaxWeight);
     }
 
-    [Fact]
+    [Test]
     public async Task Tcp_LoginWithWrongPassword_ShouldReturnWrongUserPassword()
     {
         await using var client = await EoTestClient.ConnectTcpAsync(_fixture.TcpPort);
@@ -167,7 +168,7 @@ public class LoginFlowTests
         loginReply.ReplyCode.Should().Be(LoginReply.WrongUserPassword);
     }
 
-    [Fact]
+    [Test]
     public async Task Tcp_LoginWithNonExistentAccount_ShouldReturnWrongUser()
     {
         await using var client = await EoTestClient.ConnectTcpAsync(_fixture.TcpPort);
@@ -180,7 +181,7 @@ public class LoginFlowTests
         loginReply.ReplyCode.Should().Be(LoginReply.WrongUser);
     }
 
-    [Fact]
+    [Test]
     public async Task Tcp_CreateDuplicateAccount_ShouldReturnExists()
     {
         await using var client = await EoTestClient.ConnectTcpAsync(_fixture.TcpPort);

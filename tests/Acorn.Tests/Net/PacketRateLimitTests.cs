@@ -1,17 +1,16 @@
 using Acorn.Net;
 using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
-using Xunit;
 
 namespace Acorn.Tests.Net;
 
 public class PacketRateLimitTests
 {
-    [Theory]
-    [InlineData(PacketAction.Request)]
-    [InlineData(PacketAction.Accept)]
-    [InlineData(PacketAction.Remove)]
-    [InlineData(PacketAction.Take)]
+    [Test]
+    [Arguments(PacketAction.Request)]
+    [Arguments(PacketAction.Accept)]
+    [Arguments(PacketAction.Remove)]
+    [Arguments(PacketAction.Take)]
     public void DefaultLimits_ShouldRateLimitPartyPackets(PacketAction action)
     {
         PacketRateLimits.DefaultLimits
@@ -19,7 +18,7 @@ public class PacketRateLimitTests
                 "party packets must be rate limited to prevent invite/accept spam");
     }
 
-    [Fact]
+    [Test]
     public void ShouldRateLimit_PartyRequest_WhenSentTwiceImmediately_ShouldReturnTrue()
     {
         var log = new PacketLog();
@@ -32,7 +31,7 @@ public class PacketRateLimitTests
             .Should().BeTrue("a second request within 500ms must be blocked");
     }
 
-    [Fact]
+    [Test]
     public void ShouldRateLimit_UnlistedPacket_ShouldReturnFalse()
     {
         var log = new PacketLog();

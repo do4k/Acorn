@@ -2,7 +2,6 @@ using Acorn.World.Services.Map;
 using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Map;
-using Xunit;
 
 namespace Acorn.Tests.Game.Services;
 
@@ -14,11 +13,11 @@ public class ChestServiceTests
 {
     private readonly ChestService _sut = new(new MapTileService());
 
-    [Theory]
-    [InlineData(5, 6)]
-    [InlineData(5, 4)]
-    [InlineData(6, 5)]
-    [InlineData(4, 5)]
+    [Test]
+    [Arguments(5, 6)]
+    [Arguments(5, 4)]
+    [Arguments(6, 5)]
+    [Arguments(4, 5)]
     public void IsAdjacent_WhenOrthogonallyAdjacent_ShouldBeTrue(int x, int y)
     {
         var character = MapTestData.CreateCharacter(x: 5, y: 5);
@@ -26,12 +25,12 @@ public class ChestServiceTests
         _sut.IsAdjacent(character, new Coords { X = x, Y = y }).Should().BeTrue();
     }
 
-    [Theory]
-    [InlineData(6, 6)]
-    [InlineData(4, 4)]
-    [InlineData(7, 5)]
-    [InlineData(5, 7)]
-    [InlineData(5, 5)]
+    [Test]
+    [Arguments(6, 6)]
+    [Arguments(4, 4)]
+    [Arguments(7, 5)]
+    [Arguments(5, 7)]
+    [Arguments(5, 5)]
     public void IsAdjacent_WhenNotOrthogonallyAdjacent_ShouldBeFalse(int x, int y)
     {
         var character = MapTestData.CreateCharacter(x: 5, y: 5);
@@ -47,7 +46,7 @@ public class ChestServiceTests
         _sut.IsAdjacent(character, new Coords { X = x, Y = y }).Should().BeFalse();
     }
 
-    [Fact]
+    [Test]
     public void IsChestTile_WhenTileIsChest_ShouldBeTrue()
     {
         var map = MapTestData.CreateMap(MapTestData.CreateEmf());
@@ -56,7 +55,7 @@ public class ChestServiceTests
         _sut.IsChestTile(map, new Coords { X = 5, Y = 6 }).Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public void IsChestTile_WhenTileIsNotChest_ShouldBeFalse()
     {
         var map = MapTestData.CreateMap(MapTestData.CreateEmf());
@@ -66,7 +65,7 @@ public class ChestServiceTests
         _sut.IsChestTile(map, new Coords { X = 9, Y = 9 }).Should().BeFalse();
     }
 
-    [Fact]
+    [Test]
     public void IsInBounds_ShouldRejectOutOfRangeCoordinates()
     {
         var map = MapTestData.CreateMap(MapTestData.CreateEmf(width: 10, height: 10));
@@ -78,7 +77,7 @@ public class ChestServiceTests
         _sut.IsInBounds(map, new Coords { X = -1, Y = 5 }).Should().BeFalse();
     }
 
-    [Fact]
+    [Test]
     public void GetOrCreateChest_ShouldReturnStableInstance()
     {
         var map = MapTestData.CreateMap(MapTestData.CreateEmf());

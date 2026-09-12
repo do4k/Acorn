@@ -1,14 +1,14 @@
+using System.IO;
 using Acorn.Net.PacketHandlers.Player;
 using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
-using Xunit;
 
 namespace Acorn.Tests.Game.Player;
 
 public class WelcomeFlowTests
 {
-    [Fact]
+    [Test]
     public void BuildNews_WhenNewsFileHasMoreThanMaxLines_ShouldNotThrowAndClamp()
     {
         // Regression test for issue #45: Enumerable.Range(0, 8 - length) threw when the
@@ -25,7 +25,7 @@ public class WelcomeFlowTests
             .Should().Be($"news {WelcomeMsgClientPacketHandler.MaxNewsLines}");
     }
 
-    [Fact]
+    [Test]
     public void BuildNews_WhenFewerLinesThanMax_ShouldPadWithEmptyStrings()
     {
         var result = WelcomeMsgClientPacketHandler.BuildNews(["first", "second"]);
@@ -37,7 +37,7 @@ public class WelcomeFlowTests
         result.Skip(3).Should().OnlyContain(line => line == "");
     }
 
-    [Fact]
+    [Test]
     public void BuildNews_WhenEmpty_ShouldReturnMotdSpacerAndEmptyLines()
     {
         var result = WelcomeMsgClientPacketHandler.BuildNews([]);
@@ -47,7 +47,7 @@ public class WelcomeFlowTests
         result.Skip(1).Should().OnlyContain(line => line == "");
     }
 
-    [Fact]
+    [Test]
     public void LoadNews_WhenFileMissing_ShouldReturnEmpty()
     {
         var missing = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.txt");
@@ -57,7 +57,7 @@ public class WelcomeFlowTests
         result.Should().BeEmpty();
     }
 
-    [Fact]
+    [Test]
     public void LoadNews_WhenFileHasManyLines_ShouldNotThrowWhenBuilding()
     {
         var path = Path.GetTempFileName();
@@ -77,19 +77,19 @@ public class WelcomeFlowTests
         }
     }
 
-    [Theory]
-    [InlineData(AdminLevel.Player, AdminLevel.Player)]
-    [InlineData(AdminLevel.Spy, AdminLevel.Spy)]
-    [InlineData(AdminLevel.LightGuide, AdminLevel.LightGuide)]
-    [InlineData(AdminLevel.Guardian, AdminLevel.HighGameMaster)]
-    [InlineData(AdminLevel.GameMaster, AdminLevel.HighGameMaster)]
-    [InlineData(AdminLevel.HighGameMaster, AdminLevel.HighGameMaster)]
+    [Test]
+    [Arguments(AdminLevel.Player, AdminLevel.Player)]
+    [Arguments(AdminLevel.Spy, AdminLevel.Spy)]
+    [Arguments(AdminLevel.LightGuide, AdminLevel.LightGuide)]
+    [Arguments(AdminLevel.Guardian, AdminLevel.HighGameMaster)]
+    [Arguments(AdminLevel.GameMaster, AdminLevel.HighGameMaster)]
+    [Arguments(AdminLevel.HighGameMaster, AdminLevel.HighGameMaster)]
     public void GetClientAdminLevel_ShouldElevateStaffToUnlockAdminUi(AdminLevel actual, AdminLevel expected)
     {
         WelcomeRequestClientPacketHandler.GetClientAdminLevel(actual).Should().Be(expected);
     }
 
-    [Fact]
+    [Test]
     public void GetRequestedFileId_WhenPubFile_ShouldReturnRequestedId()
     {
         var data = new WelcomeAgreeClientPacket.FileTypeDataEif { FileId = 3 };
@@ -97,7 +97,7 @@ public class WelcomeFlowTests
         WelcomeAgreeClientPacketHandler.GetRequestedFileId(data).Should().Be(3);
     }
 
-    [Fact]
+    [Test]
     public void GetRequestedFileId_WhenMapOrNull_ShouldDefaultToOne()
     {
         WelcomeAgreeClientPacketHandler.GetRequestedFileId(null).Should().Be(1);

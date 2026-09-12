@@ -22,7 +22,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
 using NSubstitute;
-using Xunit;
+using System.Threading.Tasks;
 
 namespace Acorn.Tests.World.Services;
 
@@ -36,7 +36,7 @@ public class WalkServiceTests
     private const int SessionId = 1;
     private const int PartnerSessionId = 2;
 
-    [Fact]
+    [Test]
     public async Task WalkAsync_WhenDestinationIsUnwalkable_ShouldNotMoveAndShouldRefresh()
     {
         var map = CreateMap(withWallAt: new Coords { X = 7, Y = 6 });
@@ -51,7 +51,7 @@ public class WalkServiceTests
         await playerController.Received(1).RefreshAsync(player);
     }
 
-    [Fact]
+    [Test]
     public async Task WalkAsync_WhenDestinationIsOutOfBounds_ShouldNotMoveAndShouldRefresh()
     {
         var map = CreateMap();
@@ -65,7 +65,7 @@ public class WalkServiceTests
         await playerController.Received(1).RefreshAsync(player);
     }
 
-    [Fact]
+    [Test]
     public async Task WalkAsync_WhenDestinationIsOccupiedByAnotherPlayer_ShouldNotMove()
     {
         var map = CreateMap();
@@ -81,7 +81,7 @@ public class WalkServiceTests
         await playerController.Received(1).RefreshAsync(player);
     }
 
-    [Fact]
+    [Test]
     public async Task WalkAsync_WhenTimestampTooClose_ShouldIgnoreTheMove()
     {
         var map = CreateMap();
@@ -97,7 +97,7 @@ public class WalkServiceTests
         await playerController.DidNotReceive().RefreshAsync(Arg.Any<PlayerState>());
     }
 
-    [Fact]
+    [Test]
     public async Task WalkAsync_WhenTimestampAdvancedEnough_ShouldMove()
     {
         var map = CreateMap();
@@ -111,7 +111,7 @@ public class WalkServiceTests
         player.Timestamp.Should().Be(1040);
     }
 
-    [Fact]
+    [Test]
     public async Task WalkAsync_WhenValid_ShouldMoveAndClearInteractions()
     {
         var map = CreateMap();
@@ -130,7 +130,7 @@ public class WalkServiceTests
         player.InteractingChestCoords.Should().BeNull();
     }
 
-    [Fact]
+    [Test]
     public async Task WalkAsync_WhenTrading_ShouldCancelTradeAndNotifyPartner()
     {
         var map = CreateMap();
@@ -151,7 +151,7 @@ public class WalkServiceTests
         await partnerCommunicator.Received(2).Send(Arg.Any<IEnumerable<byte>>());
     }
 
-    [Fact]
+    [Test]
     public async Task WalkAsync_WhenDesynced_ShouldStillMoveButRefreshTheClient()
     {
         var map = CreateMap();
@@ -166,7 +166,7 @@ public class WalkServiceTests
         await playerController.Received(1).RefreshAsync(player);
     }
 
-    [Fact]
+    [Test]
     public async Task AdminWalk_WhenPlayerIsNotAdmin_ShouldBeIgnored()
     {
         var map = CreateMap();
@@ -183,7 +183,7 @@ public class WalkServiceTests
             Arg.Any<Coords>(), Arg.Any<bool>());
     }
 
-    [Fact]
+    [Test]
     public async Task AdminWalk_WhenPlayerIsGuardian_ShouldDelegateAsAdmin()
     {
         var map = CreateMap();

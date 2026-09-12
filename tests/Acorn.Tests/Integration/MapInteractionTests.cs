@@ -4,7 +4,7 @@ using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using Xunit;
+using System.Threading.Tasks;
 
 namespace Acorn.Tests.Integration;
 
@@ -13,7 +13,9 @@ namespace Acorn.Tests.Integration;
 ///     handlers use the coordinates from the packet, validate adjacency/range, and emit
 ///     the protocol-correct packets.
 /// </summary>
-public class MapInteractionTests : IClassFixture<TestServerFixture>
+[ClassDataSource<TestServerFixture>(Shared = SharedType.PerClass)]
+[NotInParallel("MapInteractionTests")]
+public class MapInteractionTests
 {
     private const int StartX = 6;
     private const int StartY = 6;
@@ -33,7 +35,7 @@ public class MapInteractionTests : IClassFixture<TestServerFixture>
         _fixture = fixture;
     }
 
-    [Fact]
+    [Test]
     public async Task ChestOpen_WhenAdjacent_ShouldReturnChestOpen()
     {
         await using var client = await LoginAndEnterAsync("chestopen");
@@ -52,7 +54,7 @@ public class MapInteractionTests : IClassFixture<TestServerFixture>
         _fixture.GetMap(1)!.Chests.Keys.Should().Contain(c => c.X == ChestX && c.Y == ChestY);
     }
 
-    [Fact]
+    [Test]
     public async Task ChestOpen_WhenNotAdjacent_ShouldBeIgnored()
     {
         await using var client = await LoginAndEnterAsync("chestfar");
@@ -69,7 +71,7 @@ public class MapInteractionTests : IClassFixture<TestServerFixture>
             "the player is not adjacent to the far chest");
     }
 
-    [Fact]
+    [Test]
     public async Task DoorOpen_WhenAdjacentUnlocked_ShouldBroadcastDoorOpen()
     {
         await using var client = await LoginAndEnterAsync("dooropen");
@@ -88,7 +90,7 @@ public class MapInteractionTests : IClassFixture<TestServerFixture>
         _fixture.GetMap(1)!.OpenedDoors.Keys.Should().Contain(c => c.X == UnlockedDoorX && c.Y == UnlockedDoorY);
     }
 
-    [Fact]
+    [Test]
     public async Task DoorOpen_WhenLockedWithoutKey_ShouldReturnDoorClose()
     {
         await using var client = await LoginAndEnterAsync("doorlock");
