@@ -1,4 +1,4 @@
-﻿using Moffat.EndlessOnline.SDK.Data;
+using Moffat.EndlessOnline.SDK.Data;
 
 namespace Acorn.Infrastructure;
 
@@ -13,9 +13,4 @@ public class SessionGenerator : ISessionGenerator
     {
         return Random.Shared.Next(MinSessionId, (int)EoNumericLimits.SHORT_MAX);
     }
-}
-
-public interface ISessionGenerator
-{
-    int Generate();
 }

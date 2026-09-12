@@ -4,4 +4,12 @@
     <!-- Suppress NuGet vulnerability warnings for transitive dependencies -->
     <NoWarn>NU1903;NU1902;NU1901;NU1904</NoWarn>
   </PropertyGroup>
+
+  <!-- Enforce the "one top-level type per file" convention (SA1402/SA1649) across all projects. -->
+  <ItemGroup>
+    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
 </Project>

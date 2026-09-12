@@ -1,0 +1,8 @@
+using System.Collections.Concurrent;
+using Moffat.EndlessOnline.SDK.Protocol;
+using Moffat.EndlessOnline.SDK.Protocol.Net;
+using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+
+namespace Acorn.Game.Models;
+
+public record Bank(ConcurrentBag<ItemWithAmount> Items);

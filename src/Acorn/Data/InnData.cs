@@ -1,14 +1,6 @@
 namespace Acorn.Data;
 
 /// <summary>
-/// Represents a question for inn citizenship
-/// </summary>
-public record InnQuestion(
-    string Question,
-    string Answer
-);
-
-/// <summary>
 /// Represents an inn/citizenship location configuration
 /// </summary>
 public record InnData(

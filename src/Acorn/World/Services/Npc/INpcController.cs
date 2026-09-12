@@ -6,11 +6,6 @@ using Moffat.EndlessOnline.SDK.Protocol.Map;
 namespace Acorn.World.Services.Npc;
 
 /// <summary>
-///     Result of an NPC movement attempt.
-/// </summary>
-public record NpcMoveResult(bool Moved, Direction Direction, Coords NewCoords);
-
-/// <summary>
 ///     Service for controlling NPC behavior including movement, chase logic, and spawning.
 ///     Separates control logic from NPC state data.
 /// </summary>

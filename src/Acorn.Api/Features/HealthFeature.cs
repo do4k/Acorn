@@ -50,16 +50,3 @@ public static class HealthFeature
             : Results.Json(response, statusCode: StatusCodes.Status503ServiceUnavailable);
     }
 }
-
-public record HealthResponse
-{
-    public required string Status { get; init; }
-    public required CacheStatus Cache { get; init; }
-    public DateTime Timestamp { get; init; }
-}
-
-public record CacheStatus
-{
-    public required string Type { get; init; }
-    public bool Healthy { get; init; }
-}

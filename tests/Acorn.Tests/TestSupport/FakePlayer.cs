@@ -21,29 +21,6 @@ using NSubstitute;
 namespace Acorn.Tests.TestSupport;
 
 /// <summary>
-///     In-memory communicator that records every payload the server sends, so unit
-///     tests can assert whether a handler delivered a packet without a live socket.
-/// </summary>
-internal sealed class CapturingCommunicator : ICommunicator
-{
-    public List<byte[]> Sent { get; } = [];
-
-    public bool IsConnected => false;
-
-    public Task Send(IEnumerable<byte> bytes)
-    {
-        Sent.Add(bytes.ToArray());
-        return Task.CompletedTask;
-    }
-
-    public Stream Receive() => Stream.Null;
-
-    public Task CloseAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
-
-    public string GetConnectionOrigin() => "test";
-}
-
-/// <summary>
 ///     Builds a <see cref="PlayerState" /> backed by a <see cref="CapturingCommunicator" />
 ///     for handler-level unit tests.
 /// </summary>
@@ -112,43 +89,5 @@ internal static class FakePlayer
             ChatLength = chatLength,
             ChatMaxWidth = chatMaxWidth
         };
-    }
-}
-
-/// <summary>
-///     Builds a bare in-memory <see cref="MapState" /> (20x20, no NPCs) for testing
-///     range-limited broadcasts.
-/// </summary>
-internal static class FakeMap
-{
-    public static MapState Create(int width = 20, int height = 20)
-    {
-        var emf = new Emf
-        {
-            Name = "TestMap",
-            Width = width,
-            Height = height,
-            Npcs = new List<MapNpc>(),
-            Items = new List<Moffat.EndlessOnline.SDK.Protocol.Map.MapItem>(),
-            TileSpecRows = new List<MapTileSpecRow>(),
-            WarpRows = new List<MapWarpRow>(),
-            GraphicLayers = Enumerable.Range(0, 9).Select(_ => new MapGraphicLayer()).ToList(),
-            Signs = new List<MapSign>(),
-            LegacyDoorKeys = new List<MapLegacyDoorKey>(),
-            Rid = new List<int> { 1, 2 }
-        };
-
-        return new MapState(
-            new MapWithId(1, emf),
-            Substitute.For<IDataFileRepository>(),
-            Substitute.For<IMapBroadcastService>(),
-            Substitute.For<IMapController>(),
-            Substitute.For<INpcController>(),
-            Substitute.For<IMapTileService>(),
-            Substitute.For<IPaperdollService>(),
-            90,
-            false,
-            30,
-            NullLogger<MapState>.Instance);
     }
 }

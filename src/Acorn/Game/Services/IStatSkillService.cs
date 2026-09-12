@@ -5,28 +5,6 @@ using Moffat.EndlessOnline.SDK.Protocol.Pub;
 namespace Acorn.Game.Services;
 
 /// <summary>
-///     Outcome of spending a stat or skill point.
-/// </summary>
-public enum StatSkillSpendResult
-{
-    Success,
-    NoStatPoints,
-    NoSkillPoints,
-    MaxStatReached,
-    MaxSkillLevelReached,
-    UnknownSpell,
-    InvalidStat
-}
-
-/// <summary>
-///     Result of spending a point, including the skill's new level on success.
-/// </summary>
-public record StatSkillSpendOutcome(StatSkillSpendResult Result, int SkillLevel = 0)
-{
-    public bool Success => Result == StatSkillSpendResult.Success;
-}
-
-/// <summary>
 ///     Applies stat/skill point spending and character resets, enforcing the
 ///     configured MaxStat / MaxSkillLevel caps.
 /// </summary>

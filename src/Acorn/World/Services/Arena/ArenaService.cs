@@ -7,17 +7,6 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.World.Services.Arena;
 
-public interface IArenaService
-{
-    bool IsArenaEnabled { get; }
-    int ArenaMapId { get; }
-
-    Task JoinArenaAsync(PlayerState player);
-    Task LeaveArenaAsync(PlayerState player);
-    Task HandleArenaAttackAsync(PlayerState attacker, PlayerState target);
-    Task ProcessArenaDeathAsync(PlayerState deadPlayer);
-}
-
 public class ArenaService : IArenaService
 {
     private readonly ArenaOptions _options;

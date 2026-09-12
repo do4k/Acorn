@@ -1,13 +1,5 @@
 namespace Acorn.World.Services.Spell;
 
-public enum SpellCastTargetType
-{
-    Self,
-    Group,
-    OtherPlayer,
-    Npc
-}
-
 /// <summary>
 ///     Who a Spell_Target* packet is aimed at. For OtherPlayer, VictimId is a session ID;
 ///     for Npc, VictimId is the NPC's map index.
