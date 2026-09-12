@@ -160,6 +160,12 @@ public class AuthHardeningTests
 
             await WaitUntilAsync(() => _fixture.OnlinePlayerCount == baseline + 3, TimeSpan.FromSeconds(5));
 
+            // The per-PC limit counts players whose HDID has been registered during Init,
+            // so wait for all three before the fourth connects.
+            await WaitUntilAsync(
+                () => clients.All(c => _fixture.GetPlayer(c.PlayerId)?.Hdid == "integration-test"),
+                TimeSpan.FromSeconds(5));
+
             // MaxConnectionsPerPC is 3; the fourth connection sharing the test HDID is dropped.
             await using var extra = await EoTestClient.ConnectTcpAsync(_fixture.TcpPort);
             await Assert.That(async () => await extra.SendInitAsync()).Throws<Exception>();
