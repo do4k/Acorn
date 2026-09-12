@@ -5,7 +5,7 @@
 #   - acorn-api    (REST API)
 #   - Aspire dashboard (prints its URL + login token)
 #
-# The stack initialises the database and comes up in one command.
+# The stack applies EF Core migrations, then starts and comes up in one command.
 # Run in the foreground; press Ctrl+C to stop everything.
 #
 # Usage:
@@ -83,6 +83,22 @@ fi
 
 cd "$ROOT"
 echo "Starting Acorn stack from: $ROOT"
+
+# ---------------------------------------------------------------------------
+# Apply EF Core migrations so the server starts on the latest schema.
+#
+# The development database is SQLite (Database:ConnectionString in
+# src/Acorn/appsettings.json) and its path is resolved relative to the server's
+# working directory, so the tool runs from src/Acorn. The provider and connection
+# string can be overridden with the same Database__Engine / Database__ConnectionString
+# environment variables the server uses.
+# ---------------------------------------------------------------------------
+echo "Applying database migrations..."
+dotnet tool restore
+(
+    cd "$ROOT/src/Acorn"
+    dotnet ef database update --project ../Acorn.Database --startup-project .
+)
 
 # Note: the AppHost rebuilds referenced projects on demand, so this works from a clean clone too.
 exec dotnet run --project src/Acorn.AppHost "$@"

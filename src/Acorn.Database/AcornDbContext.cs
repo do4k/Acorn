@@ -206,24 +206,6 @@ public class AcornDbContext : DbContext
             entity.HasIndex(e => new { e.CharacterName, e.QuestId }).IsUnique();
         });
 
-        // Seed default account (username: acorn, password: acorn)
-        // Hash generated with Hash.HashPassword("acorn", "acorn", out salt) on .NET 10
-        modelBuilder.Entity<Account>().HasData(
-            new Account
-            {
-                Username = "acorn",
-                Password = "l2uuwqOA+JT79Sn4krs+c+CE87lqoVHy5MzUglPcvG4=",
-                Salt = "6GupmJ2ZuWb2hoakg9QNLg==",
-                FullName = "acorn",
-                Location = "acorn",
-                Email = "acorn@acorn-eo.dev",
-                Country = "acorn",
-                Created = new DateTime(2024, 8, 31, 0, 0, 0, DateTimeKind.Utc),
-                LastUsed = new DateTime(2024, 8, 31, 0, 0, 0, DateTimeKind.Utc)
-            }
-        );
-
         // Note: Do NOT seed Character data here - HasConversion doesn't work with HasData
-        // Character seeding is done in DbInitialiser after the database is created
     }
 }
