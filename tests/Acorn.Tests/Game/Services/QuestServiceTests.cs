@@ -19,7 +19,7 @@ using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
 using NSubstitute;
-using Xunit;
+using System.Threading.Tasks;
 
 namespace Acorn.Tests.Game.Services;
 
@@ -134,7 +134,7 @@ public class QuestServiceTests
         return new QuestArg.IntArg(value);
     }
 
-    [Fact]
+    [Test]
     public async Task NotifyNpcKilled_WhenThresholdNotReached_ShouldIncrementWithoutAdvancing()
     {
         var quest = new QuestData(1, "Slay", 1,
@@ -156,7 +156,7 @@ public class QuestServiceTests
         progress.GetNpcKills(5).Should().Be(1);
     }
 
-    [Fact]
+    [Test]
     public async Task NotifyNpcKilled_WhenThresholdReached_ShouldAdvanceAndResetCounter()
     {
         var quest = new QuestData(1, "Slay", 1,
@@ -181,7 +181,7 @@ public class QuestServiceTests
         progress.DoneAt.Should().NotBeNull();
     }
 
-    [Fact]
+    [Test]
     public async Task NotifyNpcKilled_WhenNpcDoesNotMatch_ShouldNotTrackKill()
     {
         var quest = new QuestData(1, "Slay", 1,
@@ -203,7 +203,7 @@ public class QuestServiceTests
         progress.GetNpcKills(99).Should().Be(0);
     }
 
-    [Fact]
+    [Test]
     public async Task CheckQuestRules_WhenGotItemsSatisfied_ShouldAdvanceAndRunActions()
     {
         var quest = new QuestData(1, "Fetch", 1,
@@ -226,7 +226,7 @@ public class QuestServiceTests
         character.Inventory.Items.Should().Contain(i => i.Id == 200 && i.Amount == 2);
     }
 
-    [Fact]
+    [Test]
     public async Task CheckQuestRules_WhenGotItemsNotSatisfied_ShouldNotAdvance()
     {
         var quest = new QuestData(1, "Fetch", 1,
@@ -249,7 +249,7 @@ public class QuestServiceTests
         character.Inventory.Items.Should().NotContain(i => i.Id == 200);
     }
 
-    [Fact]
+    [Test]
     public async Task CheckQuestRules_WhenRemoveItemAction_ShouldRemoveFromInventory()
     {
         var quest = new QuestData(1, "TurnIn", 1,
@@ -271,7 +271,7 @@ public class QuestServiceTests
             .Which.Amount.Should().Be(3);
     }
 
-    [Fact]
+    [Test]
     public async Task CheckQuestRules_WhenGiveKarmaAction_ShouldClampToMaximum()
     {
         var quest = new QuestData(1, "Karma", 1,
@@ -292,7 +292,7 @@ public class QuestServiceTests
         character.Karma.Should().Be(2000);
     }
 
-    [Fact]
+    [Test]
     public async Task CheckQuestRules_WhenRemoveKarmaAction_ShouldClampToZero()
     {
         var quest = new QuestData(1, "Karma", 1,
@@ -313,7 +313,7 @@ public class QuestServiceTests
         character.Karma.Should().Be(0);
     }
 
-    [Fact]
+    [Test]
     public async Task CheckQuestRules_WhenSetClassAction_ShouldChangeClassAndRecalculateStats()
     {
         var quest = new QuestData(1, "Class", 1,
@@ -335,7 +335,7 @@ public class QuestServiceTests
         _statCalculator.Received(1).RecalculateStats(character, Arg.Any<Ecf>());
     }
 
-    [Fact]
+    [Test]
     public async Task CheckQuestRules_WhenGiveExpAction_ShouldAddExperience()
     {
         var quest = new QuestData(1, "Exp", 1,
@@ -357,7 +357,7 @@ public class QuestServiceTests
         character.Exp.Should().Be(500);
     }
 
-    [Fact]
+    [Test]
     public async Task CheckQuestRules_WhenGiveExpCausesLevelUp_ShouldLevelUpCharacter()
     {
         var quest = new QuestData(1, "Exp", 1,
@@ -387,7 +387,7 @@ public class QuestServiceTests
         character.Level.Should().Be(2);
     }
 
-    [Fact]
+    [Test]
     public async Task CheckQuestRules_WhenAlwaysRulePointsAtSelf_ShouldNotRecurseForever()
     {
         var quest = new QuestData(1, "Loop", 1,

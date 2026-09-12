@@ -4,7 +4,6 @@ using Acorn.Tests.TestSupport;
 using FluentAssertions;
 using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Protocol;
-using Xunit;
 
 namespace Acorn.Tests.Game.Services;
 
@@ -15,7 +14,7 @@ public class ChatSanitizerTests
         return new ChatSanitizer(Microsoft.Extensions.Options.Options.Create(FakePlayer.CreateOptions(chatLength, chatMaxWidth)));
     }
 
-    [Fact]
+    [Test]
     public void Sanitize_WhenMessageWithinLength_ReturnsUnchanged()
     {
         var sut = CreateSut();
@@ -25,7 +24,7 @@ public class ChatSanitizerTests
         result.Should().Be("hello world");
     }
 
-    [Fact]
+    [Test]
     public void Sanitize_WhenMessageExceedsLength_TruncatesWithEllipsis()
     {
         var sut = CreateSut(chatLength: 20);
@@ -36,7 +35,7 @@ public class ChatSanitizerTests
         result.Should().EndWith(" [...]");
     }
 
-    [Fact]
+    [Test]
     public void Sanitize_WhenMessageExceedsWidth_TruncatesByPixelWidth()
     {
         // 'W' is 11px wide; a 50px budget fits 4 characters.
@@ -48,7 +47,7 @@ public class ChatSanitizerTests
         ChatText.Width(result).Should().BeLessThanOrEqualTo(50);
     }
 
-    [Fact]
+    [Test]
     public void Sanitize_WhenSenderNameProvided_ReducesWidthBudgetByPrefix()
     {
         // "Bob  " is 25px wide, leaving a 25px budget: two 'W' (22px) fit.
@@ -59,27 +58,27 @@ public class ChatSanitizerTests
         result.Should().HaveLength(2);
     }
 
-    [Fact]
+    [Test]
     public void Cap_WhenWidthIsZero_ReturnsEmpty()
     {
         ChatText.Cap("hello", 0).Should().BeEmpty();
     }
 
-    [Fact]
+    [Test]
     public void LimitLength_WhenMaxLengthSixOrLess_TruncatesWithoutEllipsis()
     {
         ChatText.LimitLength("abcdefgh", 4).Should().Be("abcd");
     }
 
-    [Theory]
-    [InlineData(Emote.Happy, true)]
-    [InlineData(Emote.Sad, true)]
-    [InlineData(Emote.Embarrassed, true)]
-    [InlineData(Emote.Drunk, true)]
-    [InlineData(Emote.Playful, true)]
-    [InlineData(Emote.Trade, false)]
-    [InlineData(Emote.LevelUp, false)]
-    [InlineData(Emote.Bard, false)]
+    [Test]
+    [Arguments(Emote.Happy, true)]
+    [Arguments(Emote.Sad, true)]
+    [Arguments(Emote.Embarrassed, true)]
+    [Arguments(Emote.Drunk, true)]
+    [Arguments(Emote.Playful, true)]
+    [Arguments(Emote.Trade, false)]
+    [Arguments(Emote.LevelUp, false)]
+    [Arguments(Emote.Bard, false)]
     public void IsValidEmote_OnlyAllowsClientSendableEmotes(Emote emote, bool expected)
     {
         EmoteReportClientPacketHandler.IsValidEmote(emote).Should().Be(expected);

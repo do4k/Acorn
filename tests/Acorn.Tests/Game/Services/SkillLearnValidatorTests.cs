@@ -2,7 +2,6 @@ using Acorn.Data;
 using Acorn.Game.Services;
 using Acorn.Tests.TestHelpers;
 using FluentAssertions;
-using Xunit;
 
 namespace Acorn.Tests.Game.Services;
 
@@ -31,7 +30,7 @@ public class SkillLearnValidatorTests
             0);
     }
 
-    [Fact]
+    [Test]
     public void Validate_WhenAllRequirementsMet_ShouldAllowLearning()
     {
         var character = GameTestFactory.Character();
@@ -42,7 +41,7 @@ public class SkillLearnValidatorTests
         result.Failure.Should().Be(SkillLearnFailure.None);
     }
 
-    [Fact]
+    [Test]
     public void Validate_WhenAlreadyKnown_ShouldReturnAlreadyKnown()
     {
         var character = GameTestFactory.Character();
@@ -53,7 +52,7 @@ public class SkillLearnValidatorTests
         result.Failure.Should().Be(SkillLearnFailure.AlreadyKnown);
     }
 
-    [Fact]
+    [Test]
     public void Validate_WhenNotEnoughGold_ShouldReturnInsufficientGoldWithPlayerClass()
     {
         var character = GameTestFactory.Character();
@@ -64,7 +63,7 @@ public class SkillLearnValidatorTests
         result.WrongClassId.Should().Be(character.Class);
     }
 
-    [Fact]
+    [Test]
     public void Validate_WhenLevelTooLow_ShouldReturnLevelTooLow()
     {
         var character = GameTestFactory.Character();
@@ -74,7 +73,7 @@ public class SkillLearnValidatorTests
         result.Failure.Should().Be(SkillLearnFailure.LevelTooLow);
     }
 
-    [Fact]
+    [Test]
     public void Validate_WhenStatsTooLow_ShouldReturnStatsTooLow()
     {
         var character = GameTestFactory.Character();
@@ -84,7 +83,7 @@ public class SkillLearnValidatorTests
         result.Failure.Should().Be(SkillLearnFailure.StatsTooLow);
     }
 
-    [Fact]
+    [Test]
     public void Validate_WhenMissingPrerequisite_ShouldReturnMissingPrerequisite()
     {
         var character = GameTestFactory.Character();
@@ -95,7 +94,7 @@ public class SkillLearnValidatorTests
         result.Failure.Should().Be(SkillLearnFailure.MissingPrerequisite);
     }
 
-    [Fact]
+    [Test]
     public void Validate_WhenWrongClass_ShouldReturnWrongClassWithRequiredClass()
     {
         var character = GameTestFactory.Character();

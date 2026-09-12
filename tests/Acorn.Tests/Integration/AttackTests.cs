@@ -4,7 +4,7 @@ using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using Xunit;
+using System.Threading.Tasks;
 
 namespace Acorn.Tests.Integration;
 
@@ -12,7 +12,9 @@ namespace Acorn.Tests.Integration;
 ///     Covers the attack packet flow: pre-attack validation and the direction the
 ///     server uses for the attack animation broadcast.
 /// </summary>
-public class AttackTests : IClassFixture<TestServerFixture>
+[ClassDataSource<TestServerFixture>(Shared = SharedType.PerClass)]
+[NotInParallel("AttackTests")]
+public class AttackTests
 {
     private const int StartX = 6;
     private const int StartY = 6;
@@ -24,7 +26,7 @@ public class AttackTests : IClassFixture<TestServerFixture>
         _fixture = fixture;
     }
 
-    [Fact]
+    [Test]
     public async Task Attack_WhenSitting_ShouldBeIgnored()
     {
         await WaitForNoPlayersAsync();
@@ -57,7 +59,7 @@ public class AttackTests : IClassFixture<TestServerFixture>
             "a sitting player's attack must be rejected before the cooldown is consumed");
     }
 
-    [Fact]
+    [Test]
     public async Task Attack_ShouldUsePacketDirection_AndBroadcastToInRangePlayers()
     {
         await WaitForNoPlayersAsync();

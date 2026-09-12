@@ -15,7 +15,7 @@
 | ORM | Entity Framework Core 10 |
 | Databases | SQLite (dev), MySQL, PostgreSQL, SQL Server |
 | Caching | Redis / In-Memory |
-| Testing | xUnit, NSubstitute, FluentAssertions |
+| Testing | TUnit, NSubstitute, FluentAssertions |
 | Protocol | Moffat.EndlessOnline.SDK (eolib-dotnet) |
 | API | ASP.NET Core Minimal APIs |
 
@@ -144,7 +144,7 @@ Enforcement is configured in `.editorconfig` via the StyleCop rules `SA1402` (fi
 Tests use the Arrange-Act-Assert pattern with FluentAssertions:
 
 ```csharp
-[Fact]
+[Test]
 public void MethodName_WhenCondition_ShouldExpectedBehavior()
 {
     // Arrange

@@ -5,7 +5,6 @@ using Acorn.World.Services.Npc;
 using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
-using Xunit;
 using PubNpcType = Moffat.EndlessOnline.SDK.Protocol.Pub.NpcType;
 
 namespace Acorn.Tests.Game.Services;
@@ -40,7 +39,7 @@ public class NpcControllerTests
         });
     }
 
-    [Fact]
+    [Test]
     public void FindSpawnPosition_WhenBaseNearEdge_ShouldStayWithinMapBounds()
     {
         // Arrange - tiles are 0-indexed, so the last valid coordinate is Width-1 / Height-1
@@ -59,7 +58,7 @@ public class NpcControllerTests
         }
     }
 
-    [Fact]
+    [Test]
     public void FindSpawnPosition_WhenBaseIsWall_ShouldSpawnOnWalkableTile()
     {
         // Arrange
@@ -75,7 +74,7 @@ public class NpcControllerTests
         (x, y).Should().NotBe((10, 10));
     }
 
-    [Fact]
+    [Test]
     public void FindSpawnPosition_WhenBaseIsNpcBoundary_ShouldStayInsideBoundary()
     {
         // Arrange
@@ -91,7 +90,7 @@ public class NpcControllerTests
         (x, y).Should().NotBe((10, 10));
     }
 
-    [Fact]
+    [Test]
     public void FindSpawnPosition_WhenTileOccupiedByOtherNpc_ShouldAvoidStacking()
     {
         // Arrange

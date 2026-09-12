@@ -5,7 +5,6 @@ using Acorn.Game.Services;
 using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
 using NSubstitute;
-using Xunit;
 
 namespace Acorn.Tests.Game.Services;
 
@@ -56,7 +55,7 @@ public class StatCalculatorTests
         };
     }
 
-    [Fact]
+    [Test]
     public void RecalculateStats_WhenNewCharacterHasValidDefaultClass_ShouldHaveStaminaToAttack()
     {
         var character = CreateNewCharacter();
@@ -68,7 +67,7 @@ public class StatCalculatorTests
         character.Sp.Should().BeLessThanOrEqualTo(character.MaxSp);
     }
 
-    [Fact]
+    [Test]
     public void RecalculateStats_WhenPeasantAtLevelZero_ShouldComputeExpectedMaxSp()
     {
         var character = CreateNewCharacter();
@@ -80,7 +79,7 @@ public class StatCalculatorTests
         character.Sp.Should().Be(20, "a new character spawns with full stamina");
     }
 
-    [Fact]
+    [Test]
     public void RecalculateStats_WhenPeasantAtLevelZero_ShouldComputeExpectedMaxHpAndMaxTp()
     {
         var character = CreateNewCharacter();
@@ -93,7 +92,7 @@ public class StatCalculatorTests
         character.MaxWeight.Should().Be(70);
     }
 
-    [Fact]
+    [Test]
     public void RecalculateStats_WhenLevelIncreases_ShouldScaleMaxSpAndMaxHp()
     {
         var character = CreateNewCharacter();
@@ -107,7 +106,7 @@ public class StatCalculatorTests
         character.MaxTp.Should().Be(22);
     }
 
-    [Fact]
+    [Test]
     public void RecalculateStats_WhenWearingEquipment_ShouldIncreaseMaxHpButNotMaxSp()
     {
         // Arrange - an item with HP/TP/Str bonuses, equipped in the Armor slot

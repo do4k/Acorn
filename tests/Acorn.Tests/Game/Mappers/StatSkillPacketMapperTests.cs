@@ -3,13 +3,12 @@ using Acorn.Tests.TestHelpers;
 using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using Xunit;
 
 namespace Acorn.Tests.Game.Mappers;
 
 public class StatSkillPacketMapperTests
 {
-    [Fact]
+    [Test]
     public void ToSkillAccept_ShouldUseAcceptActionAndCarryPointsSpellAndLevel()
     {
         var packet = StatSkillPacketMapper.ToSkillAccept(skillPoints: 12, spellId: 7, level: 3);
@@ -21,7 +20,7 @@ public class StatSkillPacketMapperTests
         packet.Spell.Level.Should().Be(3);
     }
 
-    [Fact]
+    [Test]
     public void ToStatPlayer_ShouldUsePlayerActionAndCarryStatPoints()
     {
         var character = GameTestFactory.Character(statPoints: 4);
@@ -36,7 +35,7 @@ public class StatSkillPacketMapperTests
         packet.Stats.BaseStats.Str.Should().Be(7);
     }
 
-    [Fact]
+    [Test]
     public void ToWrongClassReply_ShouldUseReplyActionAndCarryClassId()
     {
         var packet = StatSkillPacketMapper.ToWrongClassReply(classId: 2);

@@ -5,7 +5,6 @@ using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
 using NSubstitute;
-using Xunit;
 
 namespace Acorn.Tests.Game.Services;
 
@@ -30,7 +29,7 @@ public class DoorServiceTests
             Substitute.For<ILogger<DoorService>>());
     }
 
-    [Fact]
+    [Test]
     public void ValidateDoorOpen_WhenValidDoorInRange_ShouldReturnOpened()
     {
         var map = MapTestData.CreateMap(MapTestData.CreateEmf());
@@ -42,7 +41,7 @@ public class DoorServiceTests
         result.Should().Be(DoorOpenResult.Opened);
     }
 
-    [Fact]
+    [Test]
     public void ValidateDoorOpen_WhenNoWarpAtCoords_ShouldReturnNotADoor()
     {
         var map = MapTestData.CreateMap(MapTestData.CreateEmf());
@@ -53,7 +52,7 @@ public class DoorServiceTests
         result.Should().Be(DoorOpenResult.NotADoor);
     }
 
-    [Fact]
+    [Test]
     public void ValidateDoorOpen_WhenWarpIsNotADoor_ShouldReturnNotADoor()
     {
         var map = MapTestData.CreateMap(MapTestData.CreateEmf());
@@ -65,7 +64,7 @@ public class DoorServiceTests
         result.Should().Be(DoorOpenResult.NotADoor);
     }
 
-    [Fact]
+    [Test]
     public void ValidateDoorOpen_WhenOutOfBounds_ShouldReturnNotADoor()
     {
         var map = MapTestData.CreateMap(MapTestData.CreateEmf(width: 10, height: 10));
@@ -76,7 +75,7 @@ public class DoorServiceTests
         result.Should().Be(DoorOpenResult.NotADoor);
     }
 
-    [Fact]
+    [Test]
     public void ValidateDoorOpen_WhenOutOfRange_ShouldReturnOutOfRange()
     {
         var map = MapTestData.CreateMap(MapTestData.CreateEmf(width: 40, height: 40));
@@ -88,7 +87,7 @@ public class DoorServiceTests
         result.Should().Be(DoorOpenResult.OutOfRange);
     }
 
-    [Fact]
+    [Test]
     public void ValidateDoorOpen_WhenAlreadyOpen_ShouldReturnAlreadyOpen()
     {
         var map = MapTestData.CreateMap(MapTestData.CreateEmf());
@@ -101,7 +100,7 @@ public class DoorServiceTests
         result.Should().Be(DoorOpenResult.AlreadyOpen);
     }
 
-    [Fact]
+    [Test]
     public void ValidateDoorOpen_WhenLockedWithoutKey_ShouldReturnLockedAndRequiredKey()
     {
         var map = MapTestData.CreateMap(MapTestData.CreateEmf());
@@ -114,7 +113,7 @@ public class DoorServiceTests
         requiredKey.Should().Be(2);
     }
 
-    [Fact]
+    [Test]
     public void ValidateDoorOpen_WhenLockedWithMatchingKey_ShouldReturnOpened()
     {
         var map = MapTestData.CreateMap(MapTestData.CreateEmf());
@@ -128,7 +127,7 @@ public class DoorServiceTests
         result.Should().Be(DoorOpenResult.Opened);
     }
 
-    [Fact]
+    [Test]
     public void ValidateDoorOpen_WhenLockedWithWrongKey_ShouldReturnLocked()
     {
         var map = MapTestData.CreateMap(MapTestData.CreateEmf());

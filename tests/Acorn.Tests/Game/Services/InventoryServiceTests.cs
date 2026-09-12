@@ -7,7 +7,6 @@ using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
 using NSubstitute;
-using Xunit;
 
 namespace Acorn.Tests.Game.Services;
 
@@ -33,7 +32,7 @@ public class InventoryServiceTests
         };
     }
 
-    [Fact]
+    [Test]
     public void TryAddItem_WhenValidAmount_ShouldAddNewItem()
     {
         // Arrange
@@ -48,7 +47,7 @@ public class InventoryServiceTests
             .Which.Should().BeEquivalentTo(new { Id = 1, Amount = 10 });
     }
 
-    [Fact]
+    [Test]
     public void TryAddItem_WhenItemExists_ShouldStackAmount()
     {
         // Arrange
@@ -64,10 +63,10 @@ public class InventoryServiceTests
             .Which.Amount.Should().Be(15);
     }
 
-    [Theory]
-    [InlineData(0)]
-    [InlineData(-1)]
-    [InlineData(-100)]
+    [Test]
+    [Arguments(0)]
+    [Arguments(-1)]
+    [Arguments(-100)]
     public void TryAddItem_WhenInvalidAmount_ShouldReturnFalse(int invalidAmount)
     {
         // Arrange
@@ -81,7 +80,7 @@ public class InventoryServiceTests
         character.Inventory.Items.Should().BeEmpty();
     }
 
-    [Fact]
+    [Test]
     public void TryRemoveItem_WhenItemExistsWithSufficientAmount_ShouldRemove()
     {
         // Arrange
@@ -97,7 +96,7 @@ public class InventoryServiceTests
             .Which.Amount.Should().Be(5);
     }
 
-    [Fact]
+    [Test]
     public void TryRemoveItem_WhenRemovingExactAmount_ShouldRemoveItemCompletely()
     {
         // Arrange
@@ -112,7 +111,7 @@ public class InventoryServiceTests
         character.Inventory.Items.Should().BeEmpty();
     }
 
-    [Fact]
+    [Test]
     public void TryRemoveItem_WhenInsufficientAmount_ShouldReturnFalse()
     {
         // Arrange
@@ -128,7 +127,7 @@ public class InventoryServiceTests
             .Which.Amount.Should().Be(5);
     }
 
-    [Fact]
+    [Test]
     public void TryRemoveItem_WhenItemDoesNotExist_ShouldReturnFalse()
     {
         // Arrange
@@ -141,9 +140,9 @@ public class InventoryServiceTests
         result.Should().BeFalse();
     }
 
-    [Theory]
-    [InlineData(0)]
-    [InlineData(-1)]
+    [Test]
+    [Arguments(0)]
+    [Arguments(-1)]
     public void TryRemoveItem_WhenInvalidAmount_ShouldReturnFalse(int invalidAmount)
     {
         // Arrange
@@ -157,7 +156,7 @@ public class InventoryServiceTests
         result.Should().BeFalse();
     }
 
-    [Fact]
+    [Test]
     public void HasItem_WhenItemExistsWithSufficientAmount_ShouldReturnTrue()
     {
         // Arrange
@@ -171,7 +170,7 @@ public class InventoryServiceTests
         result.Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public void HasItem_WhenItemExistsWithExactAmount_ShouldReturnTrue()
     {
         // Arrange
@@ -185,7 +184,7 @@ public class InventoryServiceTests
         result.Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public void HasItem_WhenInsufficientAmount_ShouldReturnFalse()
     {
         // Arrange
@@ -199,7 +198,7 @@ public class InventoryServiceTests
         result.Should().BeFalse();
     }
 
-    [Fact]
+    [Test]
     public void HasItem_WhenItemDoesNotExist_ShouldReturnFalse()
     {
         // Arrange
@@ -212,7 +211,7 @@ public class InventoryServiceTests
         result.Should().BeFalse();
     }
 
-    [Fact]
+    [Test]
     public void GetItemAmount_WhenItemExists_ShouldReturnAmount()
     {
         // Arrange
@@ -226,7 +225,7 @@ public class InventoryServiceTests
         result.Should().Be(42);
     }
 
-    [Fact]
+    [Test]
     public void GetItemAmount_WhenItemDoesNotExist_ShouldReturnZero()
     {
         // Arrange
@@ -239,7 +238,7 @@ public class InventoryServiceTests
         result.Should().Be(0);
     }
 
-    [Fact]
+    [Test]
     public void GetSlotCount_ShouldReturnNumberOfItemSlots()
     {
         // Arrange
@@ -255,7 +254,7 @@ public class InventoryServiceTests
         result.Should().Be(3);
     }
 
-    [Fact]
+    [Test]
     public void GetSlotCount_WhenEmpty_ShouldReturnZero()
     {
         // Arrange
@@ -295,7 +294,7 @@ public class InventoryServiceTests
         return repository;
     }
 
-    [Fact]
+    [Test]
     public void CanHoldItem_WhenWithinWeightLimit_ShouldReturnTrue()
     {
         // Arrange
@@ -310,7 +309,7 @@ public class InventoryServiceTests
         result.Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public void CanHoldItem_WhenExceedsWeightLimit_ShouldReturnFalse()
     {
         // Arrange
@@ -325,7 +324,7 @@ public class InventoryServiceTests
         result.Should().BeFalse();
     }
 
-    [Fact]
+    [Test]
     public void CanHoldItem_WhenExistingInventoryCountsTowardWeight_ShouldReturnFalse()
     {
         // Arrange
@@ -341,7 +340,7 @@ public class InventoryServiceTests
         result.Should().BeFalse();
     }
 
-    [Fact]
+    [Test]
     public void CanHoldItem_WhenItemHasNoWeight_ShouldReturnTrue()
     {
         // Arrange
@@ -356,7 +355,7 @@ public class InventoryServiceTests
         result.Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public void CanHoldItem_WhenItemNotInEif_ShouldReturnTrue()
     {
         // Arrange
@@ -371,7 +370,7 @@ public class InventoryServiceTests
         result.Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public void TryAddItem_WithRepository_WhenOverweight_ShouldReturnFalseAndNotAdd()
     {
         // Arrange
@@ -388,7 +387,7 @@ public class InventoryServiceTests
         character.Inventory.Items.Should().BeEmpty();
     }
 
-    [Fact]
+    [Test]
     public void TryAddItem_WithRepository_WhenWithinWeight_ShouldAdd()
     {
         // Arrange

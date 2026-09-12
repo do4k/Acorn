@@ -18,7 +18,6 @@ using Moffat.EndlessOnline.SDK.Protocol.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
 using NSubstitute;
-using Xunit;
 using PubNpcType = Moffat.EndlessOnline.SDK.Protocol.Pub.NpcType;
 
 namespace Acorn.Tests.Game.Map;
@@ -32,7 +31,7 @@ public class MapStateRangeTests
 {
     private const int ClientRange = 13;
 
-    [Fact]
+    [Test]
     public void AsNearbyInfo_ShouldOnlyIncludeEntitiesWithinClientRange()
     {
         var map = CreateMap();
@@ -51,7 +50,7 @@ public class MapStateRangeTests
         nearby.Items.Select(i => i.Uid).Should().Equal(1);
     }
 
-    [Fact]
+    [Test]
     public void AsNearbyInfo_ShouldIncludeTheObserversOwnCharacter()
     {
         var map = CreateMap();
@@ -62,7 +61,7 @@ public class MapStateRangeTests
         nearby.Characters.Should().ContainSingle(c => c.PlayerId == 7);
     }
 
-    [Fact]
+    [Test]
     public void AsNearbyInfo_ShouldNotAttachWarpEffectToAnyCharacter()
     {
         var map = CreateMap();
@@ -75,7 +74,7 @@ public class MapStateRangeTests
             "a warp effect belongs to the warping character only, never to the observer's whole view");
     }
 
-    [Fact]
+    [Test]
     public void AsCharacterInfo_ShouldApplyWarpEffectOnlyToThatCharacter()
     {
         var map = CreateMap();
@@ -89,7 +88,7 @@ public class MapStateRangeTests
         info.Characters[0].WarpEffect.Should().Be(WarpEffect.Admin);
     }
 
-    [Fact]
+    [Test]
     public void AsNearbyInfo_WithRequestedIds_ShouldOnlyReturnRequestedEntities()
     {
         var map = CreateMap();
@@ -106,7 +105,7 @@ public class MapStateRangeTests
         nearby.Items.Should().BeEmpty("a range request does not ask for ground items");
     }
 
-    [Fact]
+    [Test]
     public void AsNearbyInfo_WithRequestedIds_ShouldStillRangeFilter()
     {
         var map = CreateMap();

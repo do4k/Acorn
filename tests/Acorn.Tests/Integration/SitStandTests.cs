@@ -4,7 +4,7 @@ using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using Xunit;
+using System.Threading.Tasks;
 
 namespace Acorn.Tests.Integration;
 
@@ -13,7 +13,9 @@ namespace Acorn.Tests.Integration;
 ///     official client expects: Sit/Reply + Sit/Player for the floor, Chair/Reply +
 ///     Chair/Player for chairs, and the Close/Remove packets when standing.
 /// </summary>
-public class SitStandTests : IClassFixture<TestServerFixture>
+[ClassDataSource<TestServerFixture>(Shared = SharedType.PerClass)]
+[NotInParallel("SitStandTests")]
+public class SitStandTests
 {
     private const int StartX = 6;
     private const int StartY = 6;
@@ -25,7 +27,7 @@ public class SitStandTests : IClassFixture<TestServerFixture>
         _fixture = fixture;
     }
 
-    [Fact]
+    [Test]
     public async Task FloorSit_ShouldSendSitReply_AndSetFloorState()
     {
         await using var client = await LoginAndEnterAsync("sitfloor");
@@ -49,7 +51,7 @@ public class SitStandTests : IClassFixture<TestServerFixture>
         _fixture.GetPlayer(client.PlayerId)!.Character!.SitState.Should().Be(SitState.Floor);
     }
 
-    [Fact]
+    [Test]
     public async Task FloorStand_ShouldSendSitClose_AndSetStandState()
     {
         await using var client = await LoginAndEnterAsync("sitstand");
@@ -72,7 +74,7 @@ public class SitStandTests : IClassFixture<TestServerFixture>
         reply.Coords.Y.Should().Be(StartY);
     }
 
-    [Fact]
+    [Test]
     public async Task SittingPlayer_ShouldNotBeAbleToWalk()
     {
         await using var client = await LoginAndEnterAsync("sitwalk");
@@ -100,7 +102,7 @@ public class SitStandTests : IClassFixture<TestServerFixture>
         close.Coords.Y.Should().Be(StartY);
     }
 
-    [Fact]
+    [Test]
     public async Task ChairSitAndStand_ShouldSendChairPackets_AndMoveOffChair()
     {
         await using var client = await LoginAndEnterAsync("chair");

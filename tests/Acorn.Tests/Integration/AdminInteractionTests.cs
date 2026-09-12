@@ -5,7 +5,7 @@ using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using Xunit;
+using System.Threading.Tasks;
 
 namespace Acorn.Tests.Integration;
 
@@ -14,7 +14,9 @@ namespace Acorn.Tests.Integration;
 ///     must reach online admins as AdminInteract/Reply packets, and admin hide/unhide
 ///     must use AdminInteract/Remove and AdminInteract/Agree instead of Players packets.
 /// </summary>
-public class AdminInteractionTests : IClassFixture<TestServerFixture>, IAsyncLifetime
+[ClassDataSource<TestServerFixture>(Shared = SharedType.PerClass)]
+[NotInParallel("AdminInteractionTests")]
+public class AdminInteractionTests
 {
     private const int AdminBoardId = 7;
     private readonly TestServerFixture _fixture;
@@ -25,6 +27,7 @@ public class AdminInteractionTests : IClassFixture<TestServerFixture>, IAsyncLif
         _fixture = fixture;
     }
 
+    [Before(Test)]
     public Task InitializeAsync()
     {
         return Task.CompletedTask;
@@ -35,6 +38,7 @@ public class AdminInteractionTests : IClassFixture<TestServerFixture>, IAsyncLif
     ///     the shared (captive) DbContext used by disconnect cleanup, so serializing the
     ///     disconnects keeps world state consistent between tests.
     /// </summary>
+    [After(Test)]
     public async Task DisposeAsync()
     {
         foreach (var client in _clients)
@@ -47,7 +51,7 @@ public class AdminInteractionTests : IClassFixture<TestServerFixture>, IAsyncLif
         _clients.Clear();
     }
 
-    [Fact]
+    [Test]
     public async Task HelpRequest_FromPlayer_ShouldBeDeliveredToAdminsAsReplyMessage()
     {
         await WaitForCleanWorldAsync();
@@ -75,7 +79,7 @@ public class AdminInteractionTests : IClassFixture<TestServerFixture>, IAsyncLif
         confirmation!.Message.Should().Contain("help request");
     }
 
-    [Fact]
+    [Test]
     public async Task HelpRequest_ShouldNotRequireSenderToBeAnAdmin()
     {
         await WaitForCleanWorldAsync();
@@ -94,7 +98,7 @@ public class AdminInteractionTests : IClassFixture<TestServerFixture>, IAsyncLif
         reply!.MessageType.Should().Be(AdminMessageType.Message);
     }
 
-    [Fact]
+    [Test]
     public async Task Report_FromPlayer_ShouldBeDeliveredToAdminsAndPersisted()
     {
         await WaitForCleanWorldAsync();
@@ -135,7 +139,7 @@ public class AdminInteractionTests : IClassFixture<TestServerFixture>, IAsyncLif
             p.Body == "using forbidden magic");
     }
 
-    [Fact]
+    [Test]
     public async Task AdminHide_ShouldSendAdminInteractRemoveToMap()
     {
         await WaitForCleanWorldAsync();
@@ -156,7 +160,7 @@ public class AdminInteractionTests : IClassFixture<TestServerFixture>, IAsyncLif
         _fixture.GetPlayer(admin.PlayerId)!.Character!.Hidden.Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public async Task AdminUnhide_ShouldSendAdminInteractAgreeToMap()
     {
         await WaitForCleanWorldAsync();

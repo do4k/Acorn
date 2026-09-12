@@ -5,7 +5,6 @@ using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
-using Xunit;
 using PubNpcType = Moffat.EndlessOnline.SDK.Protocol.Pub.NpcType;
 
 namespace Acorn.Tests.Game.Map;
@@ -35,7 +34,7 @@ public class MapStateDeadNpcTests
         return npc;
     }
 
-    [Fact]
+    [Test]
     public void IsTileOccupied_WhenLivingNpcIsOnTile_ShouldReturnTrue()
     {
         var map = FakeMap.Create();
@@ -44,7 +43,7 @@ public class MapStateDeadNpcTests
         map.IsTileOccupied(new Coords { X = 5, Y = 5 }).Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public void IsTileOccupied_WhenOnlyADeadNpcIsOnTile_ShouldReturnFalse()
     {
         var map = FakeMap.Create();
@@ -54,7 +53,7 @@ public class MapStateDeadNpcTests
             .Should().BeFalse("dead NPCs do not block movement");
     }
 
-    [Fact]
+    [Test]
     public void IsTileOccupied_WhenDeadAndLivingNpcShareATile_ShouldReturnTrue()
     {
         var map = FakeMap.Create();
@@ -65,7 +64,7 @@ public class MapStateDeadNpcTests
             .Should().BeTrue("a living NPC on the same tile still blocks it");
     }
 
-    [Fact]
+    [Test]
     public void RemoveNpc_ShouldRemoveNpcFromTheMap()
     {
         var map = FakeMap.Create();
@@ -77,7 +76,7 @@ public class MapStateDeadNpcTests
         map.Npcs.Should().NotContainKey(0);
     }
 
-    [Fact]
+    [Test]
     public void RemoveNpc_WhenNpcIsAlreadyGone_ShouldReturnFalse()
     {
         var map = FakeMap.Create();

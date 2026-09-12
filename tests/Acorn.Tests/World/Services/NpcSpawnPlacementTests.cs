@@ -10,7 +10,6 @@ using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
 using NSubstitute;
-using Xunit;
 using PubNpcType = Moffat.EndlessOnline.SDK.Protocol.Pub.NpcType;
 
 namespace Acorn.Tests.World.Services;
@@ -31,11 +30,11 @@ public class NpcSpawnPlacementTests
         };
     }
 
-    [Theory]
-    [InlineData(PubNpcType.Passive)]
-    [InlineData(PubNpcType.Aggressive)]
-    [InlineData(PubNpcType.Quest)]
-    [InlineData(PubNpcType.Friendly)]
+    [Test]
+    [Arguments(PubNpcType.Passive)]
+    [Arguments(PubNpcType.Aggressive)]
+    [Arguments(PubNpcType.Quest)]
+    [Arguments(PubNpcType.Friendly)]
     public void ShouldUseSpawnVariance_WhenSpawnTypeIsNotFixed_ShouldReturnTrue(PubNpcType type)
     {
         var controller = new NpcController(new MapTileService());
@@ -44,7 +43,7 @@ public class NpcSpawnPlacementTests
             "every NPC with spawn type below 7 gets random variance in eoserv, not just combat NPCs");
     }
 
-    [Fact]
+    [Test]
     public void ShouldUseSpawnVariance_WhenSpawnTypeIsSeven_ShouldReturnFalse()
     {
         var controller = new NpcController(new MapTileService());
@@ -53,7 +52,7 @@ public class NpcSpawnPlacementTests
             "spawn type 7 keeps its exact EMF position and direction");
     }
 
-    [Fact]
+    [Test]
     public void MapState_WhenNonCombatNpcsShareASpawnPoint_ShouldPlaceThemOnDistinctTiles()
     {
         // Regression: map 5 has Dan, Jacob, Paul, Candy and Hactor all at (41,47).

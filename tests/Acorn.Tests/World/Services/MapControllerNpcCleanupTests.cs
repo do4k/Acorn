@@ -11,8 +11,8 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
 using NSubstitute;
-using Xunit;
 using PubNpcType = Moffat.EndlessOnline.SDK.Protocol.Pub.NpcType;
+using System.Threading.Tasks;
 
 namespace Acorn.Tests.World.Services;
 
@@ -55,7 +55,7 @@ public class MapControllerNpcCleanupTests
         map.Npcs[index] = npc;
     }
 
-    [Fact]
+    [Test]
     public async Task ProcessNpcRespawnsAsync_WhenAdminSpawnedNpcIsDead_ShouldRemoveIt()
     {
         var map = FakeMap.Create();
@@ -66,7 +66,7 @@ public class MapControllerNpcCleanupTests
         map.Npcs.Should().NotContainKey(0, "admin-spawned NPCs never respawn");
     }
 
-    [Fact]
+    [Test]
     public async Task ProcessNpcRespawnsAsync_WhenAdminSpawnedNpcIsAlive_ShouldKeepIt()
     {
         var map = FakeMap.Create();
@@ -77,7 +77,7 @@ public class MapControllerNpcCleanupTests
         map.Npcs.Should().ContainKey(0);
     }
 
-    [Fact]
+    [Test]
     public async Task ProcessNpcRespawnsAsync_WhenRegularNpcIsDead_ShouldKeepItForRespawn()
     {
         var map = FakeMap.Create();

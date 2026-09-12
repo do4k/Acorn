@@ -2,7 +2,6 @@ using Acorn.World.Services.Combat;
 using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
-using Xunit;
 
 namespace Acorn.Tests.Game.Combat;
 
@@ -14,7 +13,7 @@ public class AttackTraceTests
 {
     private static readonly Coords Origin = new() { X = 10, Y = 10 };
 
-    [Fact]
+    [Test]
     public void FindTargetTile_WhenMeleeAndTargetAdjacent_ReturnsTargetTile()
     {
         var target = new Coords { X = 11, Y = 10 };
@@ -31,7 +30,7 @@ public class AttackTraceTests
         result.Y.Should().Be(target.Y);
     }
 
-    [Fact]
+    [Test]
     public void FindTargetTile_WhenRangedAndTargetAtMaxDistance_ReturnsTargetTile()
     {
         var target = new Coords { X = 15, Y = 10 };
@@ -48,7 +47,7 @@ public class AttackTraceTests
         result.Y.Should().Be(10);
     }
 
-    [Fact]
+    [Test]
     public void FindTargetTile_WhenTargetBeyondRange_ReturnsNull()
     {
         var target = new Coords { X = 16, Y = 10 };
@@ -63,7 +62,7 @@ public class AttackTraceTests
         result.Should().BeNull();
     }
 
-    [Fact]
+    [Test]
     public void FindTargetTile_WhenObstacleBeforeTarget_ReturnsNull()
     {
         var target = new Coords { X = 15, Y = 10 };
@@ -79,7 +78,7 @@ public class AttackTraceTests
         result.Should().BeNull();
     }
 
-    [Fact]
+    [Test]
     public void FindTargetTile_WhenTargetOnBlockedTile_ReturnsTargetTile()
     {
         // eoserv checks for an occupant before testing walkability, so a target
@@ -97,7 +96,7 @@ public class AttackTraceTests
         result!.X.Should().Be(12);
     }
 
-    [Fact]
+    [Test]
     public void FindTargetTile_WhenTargetBehindAttacker_ReturnsNull()
     {
         var target = new Coords { X = 9, Y = 10 };
@@ -112,7 +111,7 @@ public class AttackTraceTests
         result.Should().BeNull();
     }
 
-    [Fact]
+    [Test]
     public void FindTargetTile_WhenNothingInPath_ReturnsNull()
     {
         var result = AttackTrace.FindTargetTile(
@@ -125,11 +124,11 @@ public class AttackTraceTests
         result.Should().BeNull();
     }
 
-    [Theory]
-    [InlineData(Direction.Up, 10, 9)]
-    [InlineData(Direction.Down, 10, 11)]
-    [InlineData(Direction.Left, 9, 10)]
-    [InlineData(Direction.Right, 11, 10)]
+    [Test]
+    [Arguments(Direction.Up, 10, 9)]
+    [Arguments(Direction.Down, 10, 11)]
+    [Arguments(Direction.Left, 9, 10)]
+    [Arguments(Direction.Right, 11, 10)]
     public void FindTargetTile_StepsInPacketDirection(Direction direction, int expectedX, int expectedY)
     {
         var result = AttackTrace.FindTargetTile(
@@ -144,7 +143,7 @@ public class AttackTraceTests
         result.Y.Should().Be(expectedY);
     }
 
-    [Fact]
+    [Test]
     public void RangedAttack_ReachesFiveTiles_WhileMeleeDoesNot()
     {
         var target = new Coords { X = 15, Y = 10 };
@@ -160,18 +159,18 @@ public class AttackTraceTests
             .Should().BeNull("a melee attack only reaches the adjacent tile");
     }
 
-    [Fact]
+    [Test]
     public void GetRange_WhenRangedWeapon_ReturnsConfiguredDistance()
     {
         AttackTrace.GetRange(ItemSubtype.Ranged, 5).Should().Be(5);
         AttackTrace.GetRange(ItemSubtype.Ranged, 8).Should().Be(8);
     }
 
-    [Theory]
-    [InlineData(ItemSubtype.None)]
-    [InlineData(ItemSubtype.Arrows)]
-    [InlineData(ItemSubtype.Wings)]
-    [InlineData(null)]
+    [Test]
+    [Arguments(ItemSubtype.None)]
+    [Arguments(ItemSubtype.Arrows)]
+    [Arguments(ItemSubtype.Wings)]
+    [Arguments(null)]
     public void GetRange_WhenNotRanged_ReturnsMeleeDistance(ItemSubtype? subtype)
     {
         AttackTrace.GetRange(subtype, 5).Should().Be(1);

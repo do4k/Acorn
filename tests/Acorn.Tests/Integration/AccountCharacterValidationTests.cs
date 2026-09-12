@@ -4,7 +4,7 @@ using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using Xunit;
+using System.Threading.Tasks;
 
 namespace Acorn.Tests.Integration;
 
@@ -13,7 +13,9 @@ namespace Acorn.Tests.Integration;
 ///     password length, name validity, lowercasing, slot limits, appearance
 ///     ranges and database-backed character ids.
 /// </summary>
-public class AccountCharacterValidationTests : IClassFixture<TestServerFixture>
+[ClassDataSource<TestServerFixture>(Shared = SharedType.PerClass)]
+[NotInParallel("AccountCharacterValidationTests")]
+public class AccountCharacterValidationTests
 {
     private readonly TestServerFixture _fixture;
 
@@ -22,7 +24,7 @@ public class AccountCharacterValidationTests : IClassFixture<TestServerFixture>
         _fixture = fixture;
     }
 
-    [Fact]
+    [Test]
     public async Task AccountCreate_WithInvalidUsername_ShouldReturnNotApproved()
     {
         await using var client = await ConnectAsync();
@@ -32,7 +34,7 @@ public class AccountCharacterValidationTests : IClassFixture<TestServerFixture>
         reply.Should().Be(AccountReply.NotApproved);
     }
 
-    [Fact]
+    [Test]
     public async Task AccountCreate_WithTooShortPassword_ShouldReturnNotApproved()
     {
         await using var client = await ConnectAsync();
@@ -43,7 +45,7 @@ public class AccountCharacterValidationTests : IClassFixture<TestServerFixture>
         reply.Should().Be(AccountReply.NotApproved);
     }
 
-    [Fact]
+    [Test]
     public async Task AccountCreate_WithTooLongPassword_ShouldReturnNotApproved()
     {
         await using var client = await ConnectAsync();
@@ -54,7 +56,7 @@ public class AccountCharacterValidationTests : IClassFixture<TestServerFixture>
         reply.Should().Be(AccountReply.NotApproved);
     }
 
-    [Fact]
+    [Test]
     public async Task AccountCreate_WithUppercaseUsername_ShouldNormalizeAndAllowLogin()
     {
         await using var client = await ConnectAsync();
@@ -69,7 +71,7 @@ public class AccountCharacterValidationTests : IClassFixture<TestServerFixture>
         loginReply.ReplyCode.Should().Be(LoginReply.Ok);
     }
 
-    [Fact]
+    [Test]
     public async Task CreateCharacter_WithInvalidName_ShouldReturnNotApproved()
     {
         await using var client = await CreateAndLoginAsync("badname");
@@ -79,7 +81,7 @@ public class AccountCharacterValidationTests : IClassFixture<TestServerFixture>
         reply.ReplyCode.Should().Be(CharacterReply.NotApproved);
     }
 
-    [Fact]
+    [Test]
     public async Task CreateCharacter_WithReservedName_ShouldReturnNotApproved()
     {
         await using var client = await CreateAndLoginAsync("reserved");
@@ -89,7 +91,7 @@ public class AccountCharacterValidationTests : IClassFixture<TestServerFixture>
         reply.ReplyCode.Should().Be(CharacterReply.NotApproved);
     }
 
-    [Fact]
+    [Test]
     public async Task CreateCharacter_WithInvalidAppearance_ShouldReturnNotApproved()
     {
         await using var client = await CreateAndLoginAsync("appearance");
@@ -100,7 +102,7 @@ public class AccountCharacterValidationTests : IClassFixture<TestServerFixture>
         reply.ReplyCode.Should().Be(CharacterReply.NotApproved);
     }
 
-    [Fact]
+    [Test]
     public async Task CreateCharacter_WhenAccountFull_ShouldReturnFull()
     {
         await using var client = await CreateAndLoginAsync("full");
@@ -116,7 +118,7 @@ public class AccountCharacterValidationTests : IClassFixture<TestServerFixture>
         fourth.ReplyCode.Should().Be(CharacterReply.Full);
     }
 
-    [Fact]
+    [Test]
     public async Task CharacterTake_ShouldEchoDatabaseCharacterId()
     {
         await using var client = await CreateAndLoginAsync("take");
@@ -162,7 +164,9 @@ public class AccountCharacterValidationTests : IClassFixture<TestServerFixture>
 ///     Uses its own server fixture so the database is guaranteed to have no admin
 ///     characters, making the first-character admin grant deterministic.
 /// </summary>
-public class FirstCharacterAdminTests : IClassFixture<TestServerFixture>
+[ClassDataSource<TestServerFixture>(Shared = SharedType.PerClass)]
+[NotInParallel("FirstCharacterAdminTests")]
+public class FirstCharacterAdminTests
 {
     private readonly TestServerFixture _fixture;
 
@@ -171,7 +175,7 @@ public class FirstCharacterAdminTests : IClassFixture<TestServerFixture>
         _fixture = fixture;
     }
 
-    [Fact]
+    [Test]
     public async Task FirstCharacter_WhenNoAdminsExist_ShouldBeHighGameMaster()
     {
         await using var client = await EoTestClient.ConnectTcpAsync(_fixture.TcpPort);

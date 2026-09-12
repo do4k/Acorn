@@ -4,7 +4,7 @@ using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using Xunit;
+using System.Threading.Tasks;
 
 namespace Acorn.Tests.Integration;
 
@@ -15,7 +15,9 @@ namespace Acorn.Tests.Integration;
 ///     ping resync, encryption round-trips), so these tests pin the behaviors that
 ///     were hard-won so future changes can't silently reintroduce desync.
 /// </summary>
-public class PacketSequenceTests : IClassFixture<TestServerFixture>
+[ClassDataSource<TestServerFixture>(Shared = SharedType.PerClass)]
+[NotInParallel("PacketSequenceTests")]
+public class PacketSequenceTests
 {
     private readonly TestServerFixture _fixture;
 
@@ -28,7 +30,7 @@ public class PacketSequenceTests : IClassFixture<TestServerFixture>
     private const int StartX = 6;
     private const int StartY = 6;
 
-    [Fact]
+    [Test]
     public async Task Tcp_Sequence_ShouldProgressAcrossLongRunOfPackets()
     {
         await using var client = await LoginAndCreateAsync(_fixture.TcpPort, "seq");
@@ -55,7 +57,7 @@ public class PacketSequenceTests : IClassFixture<TestServerFixture>
         _fixture.GetPlayer(client.PlayerId)!.Character!.X.Should().Be(StartX + 40);
     }
 
-    [Fact]
+    [Test]
     public async Task Tcp_CharacterCreateEnterGameWalk_ShouldStayInSync()
     {
         await using var client = await LoginAndCreateAsync(_fixture.TcpPort, "walk");
@@ -93,7 +95,7 @@ public class PacketSequenceTests : IClassFixture<TestServerFixture>
         _fixture.GetPlayer(client.PlayerId)!.Character!.Y.Should().Be(expectedY);
     }
 
-    [Fact]
+    [Test]
     public async Task Tcp_PingPong_ShouldResyncSequence_AndKeepConnectionAlive()
     {
         await using var client = await LoginAndCreateAsync(_fixture.TcpPort, "ping");
@@ -119,7 +121,7 @@ public class PacketSequenceTests : IClassFixture<TestServerFixture>
         _fixture.GetPlayer(client.PlayerId)!.Character!.X.Should().Be(StartX + 1);
     }
 
-    [Fact]
+    [Test]
     public async Task Tcp_Disconnect_ShouldCleanUpWorldState()
     {
         // Wait for the world to quiesce so a prior session still being removed by an

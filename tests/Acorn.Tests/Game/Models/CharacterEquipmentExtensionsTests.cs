@@ -4,7 +4,6 @@ using Acorn.Game.Models;
 using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
 using NSubstitute;
-using Xunit;
 
 namespace Acorn.Tests.Game.Models;
 
@@ -43,7 +42,7 @@ public class CharacterEquipmentExtensionsTests
         return repository;
     }
 
-    [Fact]
+    [Test]
     public void Unequip_WhenItemIsCursed_ShouldRefuseAndKeepItemEquipped()
     {
         // Arrange
@@ -60,7 +59,7 @@ public class CharacterEquipmentExtensionsTests
         character.Inventory.Items.Should().BeEmpty();
     }
 
-    [Fact]
+    [Test]
     public void Unequip_WhenItemIsNotCursed_ShouldMoveItemToInventory()
     {
         // Arrange
@@ -77,7 +76,7 @@ public class CharacterEquipmentExtensionsTests
         character.Inventory.Items.Should().ContainSingle(i => i.Id == 2 && i.Amount == 1);
     }
 
-    [Fact]
+    [Test]
     public void RemoveCursedEquipment_WhenCursedItemsEquipped_ShouldClearThemAndReturnTrue()
     {
         // Arrange
@@ -100,7 +99,7 @@ public class CharacterEquipmentExtensionsTests
         character.Paperdoll.Armor.Should().Be(2, "non-cursed equipment must stay equipped");
     }
 
-    [Fact]
+    [Test]
     public void RemoveCursedEquipment_WhenNothingCursed_ShouldReturnFalseAndLeaveEquipment()
     {
         // Arrange
@@ -120,7 +119,7 @@ public class CharacterEquipmentExtensionsTests
         character.Paperdoll.Armor.Should().Be(2);
     }
 
-    [Fact]
+    [Test]
     public void RemoveCursedEquipment_ShouldDestroyItemsRatherThanReturnThemToInventory()
     {
         // Arrange

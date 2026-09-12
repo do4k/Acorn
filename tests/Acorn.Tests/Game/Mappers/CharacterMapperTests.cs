@@ -1,14 +1,13 @@
 using Acorn.Game.Mappers;
 using Acorn.Game.Models;
 using FluentAssertions;
-using Xunit;
 using DatabaseCharacter = Acorn.Database.Models.Character;
 
 namespace Acorn.Tests.Game.Mappers;
 
 public class CharacterMapperTests
 {
-    [Fact]
+    [Test]
     public void FromDatabaseModel_ShouldMapKnownSpells()
     {
         var dbCharacter = new DatabaseCharacter

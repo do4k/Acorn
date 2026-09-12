@@ -3,7 +3,7 @@ using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using Xunit;
+using System.Threading.Tasks;
 
 namespace Acorn.Tests.Integration;
 
@@ -13,7 +13,9 @@ namespace Acorn.Tests.Integration;
 ///     unit tests because the shared test server cannot safely serve two concurrent
 ///     database-backed sessions.
 /// </summary>
-public class ChatSocialIntegrationTests : IClassFixture<TestServerFixture>
+[ClassDataSource<TestServerFixture>(Shared = SharedType.PerClass)]
+[NotInParallel("ChatSocialIntegrationTests")]
+public class ChatSocialIntegrationTests
 {
     private readonly TestServerFixture _fixture;
 
@@ -22,7 +24,7 @@ public class ChatSocialIntegrationTests : IClassFixture<TestServerFixture>
         _fixture = fixture;
     }
 
-    [Fact]
+    [Test]
     public async Task GlobalPlayer_DisablesWhispers()
     {
         await using var session = await LoginAndEnterAsync("whispoff");
@@ -33,7 +35,7 @@ public class ChatSocialIntegrationTests : IClassFixture<TestServerFixture>
         _fixture.GetPlayer(session.Client.PlayerId)!.Whispers.Should().BeFalse();
     }
 
-    [Fact]
+    [Test]
     public async Task GlobalRemove_EnablesWhispers()
     {
         await using var session = await LoginAndEnterAsync("whispon");
@@ -47,7 +49,7 @@ public class ChatSocialIntegrationTests : IClassFixture<TestServerFixture>
         _fixture.GetPlayer(session.Client.PlayerId)!.Whispers.Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public async Task Tell_WhenWhispersOff_RepliesNotFound()
     {
         await using var session = await LoginAndEnterAsync("telloff");
@@ -65,7 +67,7 @@ public class ChatSocialIntegrationTests : IClassFixture<TestServerFixture>
         reply!.ReplyCode.Should().Be(TalkReply.NotFound);
     }
 
-    [Fact]
+    [Test]
     public async Task Tell_WhenWhispersOn_Delivers()
     {
         await using var session = await LoginAndEnterAsync("tellon");
@@ -82,7 +84,7 @@ public class ChatSocialIntegrationTests : IClassFixture<TestServerFixture>
         tell.PlayerName.Should().Be(session.CharacterName);
     }
 
-    [Fact]
+    [Test]
     public async Task Tell_WhenMuted_IsIgnored()
     {
         await using var session = await LoginAndEnterAsync("tellmuted");

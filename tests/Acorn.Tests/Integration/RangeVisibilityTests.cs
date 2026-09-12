@@ -3,7 +3,7 @@ using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using Xunit;
+using System.Threading.Tasks;
 
 namespace Acorn.Tests.Integration;
 
@@ -11,7 +11,9 @@ namespace Acorn.Tests.Integration;
 ///     End-to-end coverage for the range/visibility handshake: a Range/Request must be
 ///     answered with a Range/Reply (NearbyInfo) rather than the old Players/List packet.
 /// </summary>
-public class RangeVisibilityTests : IClassFixture<TestServerFixture>
+[ClassDataSource<TestServerFixture>(Shared = SharedType.PerClass)]
+[NotInParallel("RangeVisibilityTests")]
+public class RangeVisibilityTests
 {
     private readonly TestServerFixture _fixture;
 
@@ -20,7 +22,7 @@ public class RangeVisibilityTests : IClassFixture<TestServerFixture>
         _fixture = fixture;
     }
 
-    [Fact]
+    [Test]
     public async Task RangeRequest_ShouldReplyWithRangeReplyContainingTheRequestedPlayer()
     {
         await using var client = await LoginAndEnterAsync("range");
@@ -36,7 +38,7 @@ public class RangeVisibilityTests : IClassFixture<TestServerFixture>
         reply.Nearby.Characters.Should().ContainSingle(c => c.PlayerId == client.PlayerId);
     }
 
-    [Fact]
+    [Test]
     public async Task PlayerRangeRequest_ShouldReplyWithRangeReply()
     {
         await using var client = await LoginAndEnterAsync("prange");
@@ -51,7 +53,7 @@ public class RangeVisibilityTests : IClassFixture<TestServerFixture>
         reply.Nearby.Characters.Should().ContainSingle(c => c.PlayerId == client.PlayerId);
     }
 
-    [Fact]
+    [Test]
     public async Task NpcRangeRequest_ShouldReplyWithNpcAgree()
     {
         await using var client = await LoginAndEnterAsync("nrange");

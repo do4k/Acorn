@@ -7,7 +7,7 @@ using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using NSubstitute;
-using Xunit;
+using System.Threading.Tasks;
 
 namespace Acorn.Tests.Net.PacketHandlers;
 
@@ -35,7 +35,7 @@ public class ChatRangeTests
             PassthroughSanitizer());
     }
 
-    [Fact]
+    [Test]
     public async Task LocalChat_WhenOutOfRange_DoesNotReachPlayer()
     {
         var map = FakeMap.Create();
@@ -55,7 +55,7 @@ public class ChatRangeTests
         observerComms.Sent.Should().BeEmpty();
     }
 
-    [Fact]
+    [Test]
     public async Task LocalChat_WhenInRange_ReachesPlayer()
     {
         var map = FakeMap.Create();
@@ -75,7 +75,7 @@ public class ChatRangeTests
         observerComms.Sent.Should().HaveCount(1);
     }
 
-    [Fact]
+    [Test]
     public async Task Emote_WhenOutOfRange_DoesNotReachPlayer()
     {
         var map = FakeMap.Create();
@@ -96,7 +96,7 @@ public class ChatRangeTests
         observerComms.Sent.Should().BeEmpty();
     }
 
-    [Fact]
+    [Test]
     public async Task Emote_WhenInRange_ReachesPlayer()
     {
         var map = FakeMap.Create();

@@ -2,7 +2,6 @@ using System.Collections.Concurrent;
 using Acorn.Game.Models;
 using Acorn.Game.Services;
 using FluentAssertions;
-using Xunit;
 
 namespace Acorn.Tests.Game.Services;
 
@@ -29,7 +28,7 @@ public class BankServiceTests
         };
     }
 
-    [Fact]
+    [Test]
     public void TryAddItem_WhenValidAmount_ShouldAddNewItem()
     {
         // Arrange
@@ -44,7 +43,7 @@ public class BankServiceTests
             .Which.Should().BeEquivalentTo(new { Id = 1, Amount = 10 });
     }
 
-    [Fact]
+    [Test]
     public void TryAddItem_WhenItemExists_ShouldStackAmount()
     {
         // Arrange
@@ -60,10 +59,10 @@ public class BankServiceTests
             .Which.Amount.Should().Be(15);
     }
 
-    [Theory]
-    [InlineData(0)]
-    [InlineData(-1)]
-    [InlineData(-100)]
+    [Test]
+    [Arguments(0)]
+    [Arguments(-1)]
+    [Arguments(-100)]
     public void TryAddItem_WhenInvalidAmount_ShouldReturnFalse(int invalidAmount)
     {
         // Arrange
@@ -77,7 +76,7 @@ public class BankServiceTests
         character.Bank.Items.Should().BeEmpty();
     }
 
-    [Fact]
+    [Test]
     public void TryAddItem_WhenBankFullAndItemExists_ShouldStack()
     {
         // Arrange
@@ -93,7 +92,7 @@ public class BankServiceTests
             .Which.Amount.Should().Be(15);
     }
 
-    [Fact]
+    [Test]
     public void TryAddItem_WhenBankFullAndNewItem_ShouldReturnFalse()
     {
         // Arrange
@@ -109,7 +108,7 @@ public class BankServiceTests
             .Which.Id.Should().Be(1);
     }
 
-    [Fact]
+    [Test]
     public void TryRemoveItem_WhenItemExistsWithSufficientAmount_ShouldRemove()
     {
         // Arrange
@@ -125,7 +124,7 @@ public class BankServiceTests
             .Which.Amount.Should().Be(5);
     }
 
-    [Fact]
+    [Test]
     public void TryRemoveItem_WhenRemovingExactAmount_ShouldRemoveItemCompletely()
     {
         // Arrange
@@ -140,7 +139,7 @@ public class BankServiceTests
         character.Bank.Items.Should().BeEmpty();
     }
 
-    [Fact]
+    [Test]
     public void TryRemoveItem_WhenInsufficientAmount_ShouldReturnFalse()
     {
         // Arrange
@@ -156,7 +155,7 @@ public class BankServiceTests
             .Which.Amount.Should().Be(5);
     }
 
-    [Fact]
+    [Test]
     public void TryRemoveItem_WhenItemDoesNotExist_ShouldReturnFalse()
     {
         // Arrange
@@ -169,9 +168,9 @@ public class BankServiceTests
         result.Should().BeFalse();
     }
 
-    [Theory]
-    [InlineData(0)]
-    [InlineData(-1)]
+    [Test]
+    [Arguments(0)]
+    [Arguments(-1)]
     public void TryRemoveItem_WhenInvalidAmount_ShouldReturnFalse(int invalidAmount)
     {
         // Arrange
@@ -185,7 +184,7 @@ public class BankServiceTests
         result.Should().BeFalse();
     }
 
-    [Fact]
+    [Test]
     public void HasItem_WhenItemExistsWithSufficientAmount_ShouldReturnTrue()
     {
         // Arrange
@@ -199,7 +198,7 @@ public class BankServiceTests
         result.Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public void HasItem_WhenItemExistsWithExactAmount_ShouldReturnTrue()
     {
         // Arrange
@@ -213,7 +212,7 @@ public class BankServiceTests
         result.Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public void HasItem_WhenInsufficientAmount_ShouldReturnFalse()
     {
         // Arrange
@@ -227,7 +226,7 @@ public class BankServiceTests
         result.Should().BeFalse();
     }
 
-    [Fact]
+    [Test]
     public void HasItem_WhenItemDoesNotExist_ShouldReturnFalse()
     {
         // Arrange
@@ -240,7 +239,7 @@ public class BankServiceTests
         result.Should().BeFalse();
     }
 
-    [Fact]
+    [Test]
     public void GetItemAmount_WhenItemExists_ShouldReturnAmount()
     {
         // Arrange
@@ -254,7 +253,7 @@ public class BankServiceTests
         result.Should().Be(42);
     }
 
-    [Fact]
+    [Test]
     public void GetItemAmount_WhenItemDoesNotExist_ShouldReturnZero()
     {
         // Arrange

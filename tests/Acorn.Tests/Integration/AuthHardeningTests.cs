@@ -4,8 +4,8 @@ using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using Xunit;
 using SdkVersion = Moffat.EndlessOnline.SDK.Protocol.Net.Version;
+using System.Threading.Tasks;
 
 namespace Acorn.Tests.Integration;
 
@@ -14,7 +14,8 @@ namespace Acorn.Tests.Integration;
 ///     version gating, server-full/login throttling, connection-accept validation,
 ///     ban enforcement, packet-state gating and the handshake hangup timeout.
 /// </summary>
-[Collection(IntegrationCollection.Name)]
+[ClassDataSource<TestServerFixture>(Shared = SharedType.Keyed, Key = IntegrationServerKey.Name)]
+[NotInParallel(IntegrationServerKey.Name)]
 public class AuthHardeningTests
 {
     private readonly TestServerFixture _fixture;
@@ -24,7 +25,7 @@ public class AuthHardeningTests
         _fixture = fixture;
     }
 
-    [Fact]
+    [Test]
     public async Task Tcp_InitWithOutOfDateVersion_ShouldReturnOutOfDate()
     {
         await using var client = await EoTestClient.ConnectTcpAsync(_fixture.TcpPort);
@@ -35,7 +36,7 @@ public class AuthHardeningTests
         reply.ReplyCodeData.Should().BeOfType<InitInitServerPacket.ReplyCodeDataOutOfDate>();
     }
 
-    [Fact]
+    [Test]
     public async Task Tcp_InitWithSupportedVersion_ShouldReturnOk()
     {
         await using var client = await EoTestClient.ConnectTcpAsync(_fixture.TcpPort);
@@ -45,7 +46,7 @@ public class AuthHardeningTests
         reply.ReplyCode.Should().Be(InitReply.Ok);
     }
 
-    [Fact]
+    [Test]
     public async Task Tcp_ConnectionAcceptWithWrongEncryptionMultiples_ShouldDisconnect()
     {
         var baseline = _fixture.OnlinePlayerCount;
@@ -58,7 +59,7 @@ public class AuthHardeningTests
         await WaitUntilAsync(() => _fixture.OnlinePlayerCount == baseline, TimeSpan.FromSeconds(5));
     }
 
-    [Fact]
+    [Test]
     public async Task Tcp_ConnectionAcceptWithWrongPlayerId_ShouldDisconnect()
     {
         var baseline = _fixture.OnlinePlayerCount;
@@ -71,7 +72,7 @@ public class AuthHardeningTests
         await WaitUntilAsync(() => _fixture.OnlinePlayerCount == baseline, TimeSpan.FromSeconds(5));
     }
 
-    [Fact]
+    [Test]
     public async Task Tcp_LoginWhenBanned_ShouldReturnBanned()
     {
         await using var client = await EoTestClient.ConnectTcpAsync(_fixture.TcpPort);
@@ -90,7 +91,7 @@ public class AuthHardeningTests
         reply.ReplyCode.Should().Be(LoginReply.Banned);
     }
 
-    [Fact]
+    [Test]
     public async Task Tcp_ExceedingLoginAttempts_ShouldDisconnect()
     {
         var baseline = _fixture.OnlinePlayerCount;
@@ -109,7 +110,7 @@ public class AuthHardeningTests
         await WaitUntilAsync(() => _fixture.OnlinePlayerCount == baseline, TimeSpan.FromSeconds(5));
     }
 
-    [Fact]
+    [Test]
     public async Task Tcp_AccountRequestBeforeConnectionAccept_ShouldBeRejected()
     {
         await using var client = await EoTestClient.ConnectTcpAsync(_fixture.TcpPort);
@@ -118,12 +119,11 @@ public class AuthHardeningTests
         // State gating requires Accepted for Account packets; no reply should be sent.
         await client.SendPacketAsync(new AccountRequestClientPacket { Username = "tooearly" });
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => client.ReceivePacketAsync(TimeSpan.FromMilliseconds(500)));
+        await Assert.That(async () => await client.ReceivePacketAsync(TimeSpan.FromMilliseconds(500))).Throws<OperationCanceledException>();
         client.IsConnected.Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public async Task Tcp_ExceedingMaxConnectionsPerPc_ShouldRejectExtraConnection()
     {
         var baseline = _fixture.OnlinePlayerCount;
@@ -142,7 +142,7 @@ public class AuthHardeningTests
 
             // MaxConnectionsPerPC is 3; the fourth connection sharing the test HDID is dropped.
             await using var extra = await EoTestClient.ConnectTcpAsync(_fixture.TcpPort);
-            await Assert.ThrowsAnyAsync<Exception>(() => extra.SendInitAsync());
+            await Assert.That(async () => await extra.SendInitAsync()).Throws<Exception>();
 
             await WaitUntilAsync(() => _fixture.OnlinePlayerCount == baseline + 3, TimeSpan.FromSeconds(5));
         }
@@ -155,7 +155,7 @@ public class AuthHardeningTests
         }
     }
 
-    [Fact]
+    [Test]
     public async Task Tcp_HandshakeHangup_ShouldDisconnectIdleConnection()
     {
         var baseline = _fixture.OnlinePlayerCount;

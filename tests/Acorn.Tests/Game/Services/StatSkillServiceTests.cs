@@ -5,7 +5,6 @@ using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
 using NSubstitute;
-using Xunit;
 
 namespace Acorn.Tests.Game.Services;
 
@@ -27,7 +26,7 @@ public class StatSkillServiceTests
             GameTestFactory.ServerOptions(maxStat, maxSkillLevel, statPerLevel, skillPerLevel));
     }
 
-    [Fact]
+    [Test]
     public void AddStatPoint_WhenPointsAvailable_ShouldIncrementStatAndSpendPoint()
     {
         var character = GameTestFactory.Character(statPoints: 2);
@@ -41,7 +40,7 @@ public class StatSkillServiceTests
         character.AdjStr.Should().Be(1, "stats are recalculated after spending");
     }
 
-    [Fact]
+    [Test]
     public void AddStatPoint_WhenNoStatPoints_ShouldReturnNoStatPointsAndNotChange()
     {
         var character = GameTestFactory.Character(statPoints: 0);
@@ -53,7 +52,7 @@ public class StatSkillServiceTests
         character.Str.Should().Be(0);
     }
 
-    [Fact]
+    [Test]
     public void AddStatPoint_WhenAtMaxStat_ShouldReturnMaxStatReachedAndNotSpendPoint()
     {
         var character = GameTestFactory.Character(statPoints: 5);
@@ -67,7 +66,7 @@ public class StatSkillServiceTests
         character.StatPoints.Should().Be(5, "a rejected spend must not consume a point");
     }
 
-    [Fact]
+    [Test]
     public void AddStatPoint_WhenInvalidStat_ShouldReturnInvalidStat()
     {
         var character = GameTestFactory.Character(statPoints: 5);
@@ -79,7 +78,7 @@ public class StatSkillServiceTests
         character.StatPoints.Should().Be(5);
     }
 
-    [Fact]
+    [Test]
     public void AddSkillPoint_WhenKnownSpell_ShouldLevelUpAndReturnNewLevel()
     {
         var character = GameTestFactory.Character(skillPoints: 2);
@@ -94,7 +93,7 @@ public class StatSkillServiceTests
         character.Spells.Items.Single(s => s.Id == 7).Level.Should().Be(3);
     }
 
-    [Fact]
+    [Test]
     public void AddSkillPoint_WhenAtMaxSkillLevel_ShouldReturnMaxSkillLevelReached()
     {
         var character = GameTestFactory.Character(skillPoints: 2);
@@ -108,7 +107,7 @@ public class StatSkillServiceTests
         character.Spells.Items.Single(s => s.Id == 7).Level.Should().Be(5);
     }
 
-    [Fact]
+    [Test]
     public void AddSkillPoint_WhenNoSkillPoints_ShouldReturnNoSkillPoints()
     {
         var character = GameTestFactory.Character(skillPoints: 0);
@@ -121,7 +120,7 @@ public class StatSkillServiceTests
         character.Spells.Items.Single(s => s.Id == 7).Level.Should().Be(0);
     }
 
-    [Fact]
+    [Test]
     public void AddSkillPoint_WhenUnknownSpell_ShouldReturnUnknownSpell()
     {
         var character = GameTestFactory.Character(skillPoints: 2);
@@ -133,7 +132,7 @@ public class StatSkillServiceTests
         character.SkillPoints.Should().Be(2);
     }
 
-    [Fact]
+    [Test]
     public void Reset_ShouldClearStatsAndSpellsAndReturnLevelPoints()
     {
         var character = GameTestFactory.Character(level: 10, statPoints: 1, skillPoints: 1);

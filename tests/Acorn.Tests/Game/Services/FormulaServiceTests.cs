@@ -6,7 +6,6 @@ using Acorn.Tests.TestHelpers;
 using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
 using NSubstitute;
-using Xunit;
 
 namespace Acorn.Tests.Game.Services;
 
@@ -32,7 +31,7 @@ public class FormulaServiceTests
             GameTestFactory.ServerOptions(statPerLevel: statPerLevel, skillPerLevel: skillPerLevel));
     }
 
-    [Fact]
+    [Test]
     public void CalculateDamage_WhenCritical_ShouldApplyOnePointFiveMultiplier()
     {
         var sut = CreateSut();
@@ -41,7 +40,7 @@ public class FormulaServiceTests
         sut.CalculateDamage(RawDamage, 0, critical: true).Should().Be(15);
     }
 
-    [Fact]
+    [Test]
     public void CalculateDamageToNpc_WhenNotCritical_ShouldNeverApplyCriticalMultiplier()
     {
         var sut = CreateSut();
@@ -57,7 +56,7 @@ public class FormulaServiceTests
         }
     }
 
-    [Fact]
+    [Test]
     public void CalculateDamageToNpc_WhenAttackingBackOrSide_ShouldAllowCriticalHits()
     {
         var sut = CreateSut();
@@ -71,7 +70,7 @@ public class FormulaServiceTests
         sawCritical.Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public void CalculateDamageToNpc_WhenCriticalFirstHitAndFullHp_ShouldAllowCriticalHits()
     {
         var sut = CreateSut();
@@ -85,7 +84,7 @@ public class FormulaServiceTests
         sawCritical.Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public void CalculateDamageToNpc_WhenCriticalFirstHitButNotFullHp_ShouldNeverCrit()
     {
         var sut = CreateSut();
@@ -100,7 +99,7 @@ public class FormulaServiceTests
         }
     }
 
-    [Fact]
+    [Test]
     public void CalculateDamageToPlayer_WhenCriticalFirstHitAndFullHp_ShouldAllowCriticalHits()
     {
         var sut = CreateSut();
@@ -116,7 +115,7 @@ public class FormulaServiceTests
         sawCritical.Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public void CalculateDamageToPlayer_WhenCriticalFirstHitButNotFullHp_ShouldNeverCrit()
     {
         var sut = CreateSut();
@@ -133,7 +132,7 @@ public class FormulaServiceTests
         }
     }
 
-    [Fact]
+    [Test]
     public void LevelUp_WhenEnoughExperience_ShouldGrantDefaultPoints()
     {
         var character = GameTestFactory.Character();
@@ -147,7 +146,7 @@ public class FormulaServiceTests
         character.SkillPoints.Should().Be(4, "default SkillPerLevel is 4 (matches eoserv)");
     }
 
-    [Fact]
+    [Test]
     public void LevelUp_ShouldGrantConfiguredPoints()
     {
         var character = GameTestFactory.Character();
@@ -160,7 +159,7 @@ public class FormulaServiceTests
         character.SkillPoints.Should().Be(2);
     }
 
-    [Fact]
+    [Test]
     public void LevelUp_WhenNotEnoughExperience_ShouldNotLevelOrGrantPoints()
     {
         var character = GameTestFactory.Character();

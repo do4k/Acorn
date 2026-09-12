@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using NSubstitute;
-using Xunit;
+using System.Threading.Tasks;
 
 namespace Acorn.Tests.Net.PacketHandlers;
 
@@ -26,7 +26,7 @@ public class ChatHandlerTests
 
     // --- Party chat ---
 
-    [Fact]
+    [Test]
     public async Task PartyChat_WhenMuted_DoesNotBroadcast()
     {
         var party = Substitute.For<IPartyService>();
@@ -39,7 +39,7 @@ public class ChatHandlerTests
         await party.DidNotReceiveWithAnyArgs().SendPartyMessage(default!, default!);
     }
 
-    [Fact]
+    [Test]
     public async Task PartyChat_WhenNotMuted_Broadcasts()
     {
         var party = Substitute.For<IPartyService>();
@@ -53,7 +53,7 @@ public class ChatHandlerTests
 
     // --- Guild chat ---
 
-    [Fact]
+    [Test]
     public async Task GuildChat_WhenMuted_DoesNotBroadcast()
     {
         var guild = Substitute.For<IGuildService>();
@@ -67,7 +67,7 @@ public class ChatHandlerTests
         await guild.DidNotReceiveWithAnyArgs().SendGuildMessage(default!, default!);
     }
 
-    [Fact]
+    [Test]
     public async Task GuildChat_WhenNotMuted_Broadcasts()
     {
         var guild = Substitute.For<IGuildService>();
@@ -82,7 +82,7 @@ public class ChatHandlerTests
 
     // --- Global chat ---
 
-    [Fact]
+    [Test]
     public async Task GlobalChat_WhenMuted_DoesNotAddMessage()
     {
         var world = Substitute.For<IWorldQueries>();
@@ -95,7 +95,7 @@ public class ChatHandlerTests
         world.DidNotReceiveWithAnyArgs().AddGlobalMessage(default!);
     }
 
-    [Fact]
+    [Test]
     public async Task GlobalChat_WhenJailed_DoesNotAddMessage()
     {
         var world = Substitute.For<IWorldQueries>();
@@ -108,7 +108,7 @@ public class ChatHandlerTests
         world.DidNotReceiveWithAnyArgs().AddGlobalMessage(default!);
     }
 
-    [Fact]
+    [Test]
     public async Task GlobalChat_WhenNotMutedOrJailed_AddsMessage()
     {
         var world = Substitute.For<IWorldQueries>();
@@ -123,7 +123,7 @@ public class ChatHandlerTests
 
     // --- Tell / whisper ---
 
-    [Fact]
+    [Test]
     public async Task Tell_WhenSenderMuted_DoesNotDeliver()
     {
         var world = Substitute.For<IWorldQueries>();
@@ -139,7 +139,7 @@ public class ChatHandlerTests
         senderComms.Sent.Should().BeEmpty();
     }
 
-    [Fact]
+    [Test]
     public async Task Tell_WhenTargetWhispersOff_RepliesNotFound_AndDoesNotDeliver()
     {
         var world = Substitute.For<IWorldQueries>();
@@ -155,7 +155,7 @@ public class ChatHandlerTests
         senderComms.Sent.Should().HaveCount(1);
     }
 
-    [Fact]
+    [Test]
     public async Task Tell_WhenTargetHidden_RepliesNotFound_AndDoesNotDeliver()
     {
         var world = Substitute.For<IWorldQueries>();
@@ -171,7 +171,7 @@ public class ChatHandlerTests
         senderComms.Sent.Should().HaveCount(1);
     }
 
-    [Fact]
+    [Test]
     public async Task Tell_WhenTargetNotFound_RepliesNotFound()
     {
         var world = Substitute.For<IWorldQueries>();
@@ -184,7 +184,7 @@ public class ChatHandlerTests
         senderComms.Sent.Should().HaveCount(1);
     }
 
-    [Fact]
+    [Test]
     public async Task Tell_WhenValid_DeliversToTarget()
     {
         var world = Substitute.For<IWorldQueries>();
@@ -201,7 +201,7 @@ public class ChatHandlerTests
 
     // --- Admin chat thresholds / mute ---
 
-    [Fact]
+    [Test]
     public async Task AdminChat_WhenSpy_DoesNotBroadcast()
     {
         var world = Substitute.For<IWorldQueries>();
@@ -215,7 +215,7 @@ public class ChatHandlerTests
         world.DidNotReceive().GetAllPlayers();
     }
 
-    [Fact]
+    [Test]
     public async Task AdminChat_WhenGuardian_Broadcasts()
     {
         var world = Substitute.For<IWorldQueries>();
@@ -230,7 +230,7 @@ public class ChatHandlerTests
         world.Received(1).GetAllPlayers();
     }
 
-    [Fact]
+    [Test]
     public async Task AdminChat_WhenGuardianMuted_DoesNotBroadcast()
     {
         var world = Substitute.For<IWorldQueries>();
@@ -247,7 +247,7 @@ public class ChatHandlerTests
 
     // --- Announce thresholds / mute ---
 
-    [Fact]
+    [Test]
     public async Task Announce_WhenSpy_DoesNotBroadcast()
     {
         var world = Substitute.For<IWorldQueries>();
@@ -261,7 +261,7 @@ public class ChatHandlerTests
         world.DidNotReceive().GetAllPlayers();
     }
 
-    [Fact]
+    [Test]
     public async Task Announce_WhenGuardian_Broadcasts()
     {
         var world = Substitute.For<IWorldQueries>();
@@ -276,7 +276,7 @@ public class ChatHandlerTests
         world.Received(1).GetAllPlayers();
     }
 
-    [Fact]
+    [Test]
     public async Task Announce_WhenGuardianMuted_DoesNotBroadcast()
     {
         var world = Substitute.For<IWorldQueries>();
@@ -293,7 +293,7 @@ public class ChatHandlerTests
 
     // --- Muted players cannot run commands ---
 
-    [Fact]
+    [Test]
     public async Task Report_WhenMutedAdmin_SkipsDollarCommands()
     {
         var talkHandler = Substitute.For<ITalkHandler>();
@@ -314,7 +314,7 @@ public class ChatHandlerTests
             .HandleAsync(Arg.Any<PlayerState>(), Arg.Any<string>(), Arg.Any<string[]>());
     }
 
-    [Fact]
+    [Test]
     public async Task Report_WhenMuted_SkipsPlayerCommands()
     {
         var playerCommand = Substitute.For<IPlayerCommandHandler>();

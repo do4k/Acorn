@@ -4,7 +4,6 @@ using Acorn.Extensions;
 using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
-using Xunit;
 
 namespace Acorn.Tests.Game.Models;
 
@@ -42,7 +41,7 @@ public class CharacterTests
         };
     }
 
-    [Fact]
+    [Test]
     public void Items_ShouldReturnProjectedInventoryItems()
     {
         // Arrange
@@ -59,7 +58,7 @@ public class CharacterTests
         items.Should().Contain(i => i.Id == 2 && i.Amount == 5);
     }
 
-    [Fact]
+    [Test]
     public void AsCoords_ShouldReturnCoordsWithXAndY()
     {
         // Arrange
@@ -75,7 +74,7 @@ public class CharacterTests
         coords.Y.Should().Be(25);
     }
 
-    [Fact]
+    [Test]
     public void Equipment_ShouldReturnPaperdollAsEquipmentPaperdoll()
     {
         // Arrange

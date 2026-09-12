@@ -7,8 +7,8 @@ using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
-using Xunit;
 using PubNpcType = Moffat.EndlessOnline.SDK.Protocol.Pub.NpcType;
+using System.Threading.Tasks;
 
 namespace Acorn.Tests.Integration;
 
@@ -17,7 +17,9 @@ namespace Acorn.Tests.Integration;
 ///     destinations are refused, the server position is left untouched, and the
 ///     client is refreshed. A normal walk must still work.
 /// </summary>
-public class WalkValidationTests : IClassFixture<TestServerFixture>
+[ClassDataSource<TestServerFixture>(Shared = SharedType.PerClass)]
+[NotInParallel("WalkValidationTests")]
+public class WalkValidationTests
 {
     private const int StartX = 6;
     private const int StartY = 6;
@@ -38,7 +40,7 @@ public class WalkValidationTests : IClassFixture<TestServerFixture>
         _fixture = fixture;
     }
 
-    [Fact]
+    [Test]
     public async Task NormalWalk_ShouldMoveThePlayer()
     {
         await using var client = await LoginAndEnterAsync("walkok");
@@ -52,7 +54,7 @@ public class WalkValidationTests : IClassFixture<TestServerFixture>
         character.Y.Should().Be(StartY);
     }
 
-    [Fact]
+    [Test]
     public async Task WalkIntoUnwalkableTile_ShouldBeRejected_AndKeepServerPosition()
     {
         await using var client = await LoginAndEnterAsync("walkwall");
@@ -89,7 +91,7 @@ public class WalkValidationTests : IClassFixture<TestServerFixture>
         _fixture.GetPlayer(client.PlayerId)!.Character!.Y.Should().Be(ChairY - 1);
     }
 
-    [Fact]
+    [Test]
     public async Task WalkOutOfBounds_ShouldBeRejected_AndKeepServerPosition()
     {
         await using var client = await LoginAndEnterAsync("walkbounds");
@@ -118,7 +120,7 @@ public class WalkValidationTests : IClassFixture<TestServerFixture>
             "walking off the map must not change the server position");
     }
 
-    [Fact]
+    [Test]
     public async Task WalkWithDesyncedCoords_ShouldApplyServerMove_AndRefresh()
     {
         await using var client = await LoginAndEnterAsync("walkdesync");
@@ -135,7 +137,7 @@ public class WalkValidationTests : IClassFixture<TestServerFixture>
         character.Y.Should().Be(StartY);
     }
 
-    [Fact]
+    [Test]
     public async Task WalkOntoDeadNpcTile_ShouldBeAllowed()
     {
         await using var client = await LoginAndEnterAsync("walkdead");
@@ -159,7 +161,7 @@ public class WalkValidationTests : IClassFixture<TestServerFixture>
         }
     }
 
-    [Fact]
+    [Test]
     public async Task WalkOntoLivingNpcTile_ShouldBeRejected()
     {
         await using var client = await LoginAndEnterAsync("walknpc");
@@ -183,7 +185,7 @@ public class WalkValidationTests : IClassFixture<TestServerFixture>
         }
     }
 
-    [Fact]
+    [Test]
     public async Task WalkOntoNpcBoundaryTile_ShouldBeAllowed()
     {
         await using var client = await LoginAndEnterAsync("walknpcbound");

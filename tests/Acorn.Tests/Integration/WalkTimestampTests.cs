@@ -4,7 +4,7 @@ using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
-using Xunit;
+using System.Threading.Tasks;
 
 namespace Acorn.Tests.Integration;
 
@@ -22,7 +22,9 @@ public class TimestampEnforcingServerFixture : TestServerFixture
 ///     Covers walk timestamp validation: packets that arrive too soon after the
 ///     previous one are ignored, while a sufficiently advanced timestamp moves.
 /// </summary>
-public class WalkTimestampTests : IClassFixture<TimestampEnforcingServerFixture>
+[ClassDataSource<TimestampEnforcingServerFixture>(Shared = SharedType.PerClass)]
+[NotInParallel("WalkTimestampTests")]
+public class WalkTimestampTests
 {
     private const int StartX = 6;
     private const int StartY = 6;
@@ -34,7 +36,7 @@ public class WalkTimestampTests : IClassFixture<TimestampEnforcingServerFixture>
         _fixture = fixture;
     }
 
-    [Fact]
+    [Test]
     public async Task Walk_WithTooSmallTimestampDelta_ShouldBeIgnored()
     {
         await using var client = await LoginAndEnterAsync("walkts");

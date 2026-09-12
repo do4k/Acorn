@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Protocol;
 using NSubstitute;
-using Xunit;
+using System.Threading.Tasks;
 
 namespace Acorn.Tests.World.Services;
 
@@ -38,7 +38,7 @@ public class AdminServiceMuteTests
         return (sut, target);
     }
 
-    [Fact]
+    [Test]
     public async Task MutePlayer_SetsTimedMute_NotPermanent()
     {
         var (sut, target) = CreateSut(muteLengthSeconds: 120);
@@ -52,7 +52,7 @@ public class AdminServiceMuteTests
         target.MutedUntil.Should().BeCloseTo(before.AddSeconds(120), TimeSpan.FromSeconds(5));
     }
 
-    [Fact]
+    [Test]
     public async Task UnmutePlayer_ClearsMute()
     {
         var (sut, target) = CreateSut();
@@ -66,7 +66,7 @@ public class AdminServiceMuteTests
         target.IsMuted.Should().BeFalse();
     }
 
-    [Fact]
+    [Test]
     public void ExpiredMute_IsNotMuted()
     {
         var (_, target) = CreateSut();

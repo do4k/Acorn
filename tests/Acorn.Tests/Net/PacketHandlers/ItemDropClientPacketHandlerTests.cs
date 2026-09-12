@@ -17,9 +17,9 @@ using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
 using NSubstitute;
-using Xunit;
 using DbCharacter = Acorn.Database.Models.Character;
 using GameCharacter = Acorn.Game.Models.Character;
+using System.Threading.Tasks;
 
 namespace Acorn.Tests.Net.PacketHandlers;
 
@@ -89,7 +89,7 @@ public class ItemDropClientPacketHandlerTests
         return (player, map);
     }
 
-    [Fact]
+    [Test]
     public async Task HandleAsync_WhenItemIsLore_DoesNotDrop()
     {
         AddItem(1, ItemSpecial.Lore);
@@ -102,7 +102,7 @@ public class ItemDropClientPacketHandlerTests
             Arg.Any<int>(), Arg.Any<int>(), Arg.Any<Coords>());
     }
 
-    [Fact]
+    [Test]
     public async Task HandleAsync_WhenItemIsUnknown_DoesNotDrop()
     {
         var (player, _) = CreatePlayerOnMap();
@@ -114,7 +114,7 @@ public class ItemDropClientPacketHandlerTests
             Arg.Any<int>(), Arg.Any<int>(), Arg.Any<Coords>());
     }
 
-    [Fact]
+    [Test]
     public async Task HandleAsync_WhenPlayerIsJailed_DoesNotDrop()
     {
         AddItem(1);
@@ -128,7 +128,7 @@ public class ItemDropClientPacketHandlerTests
             Arg.Any<int>(), Arg.Any<int>(), Arg.Any<Coords>());
     }
 
-    [Fact]
+    [Test]
     public async Task HandleAsync_WhenAmountExceedsMaxDrop_ClampsAmount()
     {
         AddItem(1);
@@ -139,7 +139,7 @@ public class ItemDropClientPacketHandlerTests
         await _mapItemService.Received(1).TryDropItem(player, map, 1, 10, Arg.Any<Coords>());
     }
 
-    [Fact]
+    [Test]
     public async Task HandleAsync_WhenSentinelCoords_ConvertsToPlayerCoords()
     {
         AddItem(1);
@@ -151,7 +151,7 @@ public class ItemDropClientPacketHandlerTests
             player, map, 1, 1, Arg.Is<Coords>(c => c.X == 12 && c.Y == 9));
     }
 
-    [Fact]
+    [Test]
     public async Task HandleAsync_WhenTargetCoordsProvided_AppliesByteOffset()
     {
         AddItem(1);
