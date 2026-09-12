@@ -119,7 +119,27 @@ public class AuthHardeningTests
         // State gating requires Accepted for Account packets; no reply should be sent.
         await client.SendPacketAsync(new AccountRequestClientPacket { Username = "tooearly" });
 
-        await Assert.That(async () => await client.ReceivePacketAsync(TimeSpan.FromMilliseconds(500))).Throws<OperationCanceledException>();
+        // Keep-alive pings may arrive during the window; any other packet is a reply.
+        var replies = new List<IPacket>();
+        var deadline = DateTime.UtcNow.AddMilliseconds(500);
+        while (DateTime.UtcNow < deadline)
+        {
+            var packet = await client.TryReceivePacketAsync(deadline - DateTime.UtcNow);
+            if (packet is null)
+            {
+                break;
+            }
+
+            if (packet is ConnectionPlayerServerPacket)
+            {
+                await client.SendConnectionPingAsync();
+                continue;
+            }
+
+            replies.Add(packet);
+        }
+
+        replies.Should().BeEmpty("the server must not answer an Account packet before Connection/Accept");
         client.IsConnected.Should().BeTrue();
     }
 
