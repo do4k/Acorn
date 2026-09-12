@@ -237,6 +237,21 @@ public class MapController : IMapController
 
     public async Task ProcessNpcRespawnsAsync(MapState map)
     {
+        // Admin-spawned NPCs are temporary, as in eoserv: they never respawn, so
+        // remove them once they die instead of leaving them on the map forever.
+        var temporaryDeadNpcs = map.Npcs.Values
+            .Where(npc => npc.IsDead && npc.IsAdminSpawned)
+            .ToList();
+
+        foreach (var npc in temporaryDeadNpcs)
+        {
+            if (map.RemoveNpc(npc))
+            {
+                _logger.LogInformation("Removed admin-spawned NPC {NpcName} (ID: {NpcId}) after death",
+                    npc.Data.Name, npc.Id);
+            }
+        }
+
         var deadNpcs = map.Npcs.Values
             .Where(npc => npc.IsDead && npc.DeathTime.HasValue && !npc.IsAdminSpawned)
             .ToList();

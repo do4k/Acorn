@@ -1,9 +1,13 @@
+using Acorn.World.Map;
+using Acorn.World.Npc;
 using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+using Moffat.EndlessOnline.SDK.Protocol.Pub;
 using Xunit;
+using PubNpcType = Moffat.EndlessOnline.SDK.Protocol.Pub.NpcType;
 
 namespace Acorn.Tests.Integration;
 
@@ -125,7 +129,79 @@ public class WalkValidationTests : IClassFixture<TestServerFixture>
         character.Y.Should().Be(StartY);
     }
 
+    [Fact]
+    public async Task WalkOntoDeadNpcTile_ShouldBeAllowed()
+    {
+        await using var client = await LoginAndEnterAsync("walkdead");
+
+        var map = _fixture.GetMap(1)!;
+        var npc = AddStationaryNpc(map, StartX + 1, StartY, isDead: true);
+
+        try
+        {
+            var reply = await SendWalkAsync(client, Direction.Right, StartX + 1, StartY);
+
+            reply.Should().BeOfType<WalkReplyServerPacket>("a dead NPC no longer blocks its tile");
+
+            var character = _fixture.GetPlayer(client.PlayerId)!.Character!;
+            character.X.Should().Be(StartX + 1);
+            character.Y.Should().Be(StartY);
+        }
+        finally
+        {
+            map.RemoveNpc(npc);
+        }
+    }
+
+    [Fact]
+    public async Task WalkOntoLivingNpcTile_ShouldBeRejected()
+    {
+        await using var client = await LoginAndEnterAsync("walknpc");
+
+        var map = _fixture.GetMap(1)!;
+        var npc = AddStationaryNpc(map, StartX + 1, StartY, isDead: false);
+
+        try
+        {
+            var reply = await SendWalkAsync(client, Direction.Right, StartX + 1, StartY);
+
+            reply.Should().BeOfType<WarpRequestServerPacket>("a living NPC still blocks its tile");
+
+            var character = _fixture.GetPlayer(client.PlayerId)!.Character!;
+            character.X.Should().Be(StartX, "the blocked walk must not change the server position");
+            character.Y.Should().Be(StartY);
+        }
+        finally
+        {
+            map.RemoveNpc(npc);
+        }
+    }
+
     // --- Flow helpers ---
+
+    private static NpcState AddStationaryNpc(MapState map, int x, int y, bool isDead)
+    {
+        var index = map.GetNextNpcIndex();
+        var npc = new NpcState(new EnfRecord
+        {
+            Name = "TestNpc",
+            Hp = 100,
+            Level = 1,
+            Type = PubNpcType.Passive
+        })
+        {
+            Index = index,
+            Id = 1,
+            X = x,
+            Y = y,
+            Hp = 100,
+            BehaviorType = NpcBehaviorType.Stationary,
+            IsDead = isDead
+        };
+
+        map.Npcs[index] = npc;
+        return npc;
+    }
 
     private async Task<EoTestClient> LoginAndEnterAsync(string prefix)
     {

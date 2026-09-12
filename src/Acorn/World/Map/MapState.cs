@@ -304,6 +304,15 @@ public class MapState
         return index;
     }
 
+    /// <summary>
+    ///     Removes an NPC from the map entirely. Used for dead NPCs that never respawn
+    ///     (admin-spawned), matching eoserv's handling of temporary NPCs.
+    /// </summary>
+    public bool RemoveNpc(NpcState npc)
+    {
+        return Npcs.TryRemove(npc.Index, out _);
+    }
+
     public async Task NotifyEnter(PlayerState player, WarpEffect warpEffect = WarpEffect.None)
     {
         if (player.Character is null)
@@ -419,11 +428,16 @@ public class MapState
         }
     }
 
+    /// <summary>
+    ///     Whether the tile is blocked by a visible player or a living NPC. Dead NPCs
+    ///     stay on the map until they respawn but no longer block movement, matching
+    ///     eoserv's <c>Map::Occupied</c>.
+    /// </summary>
     public bool IsTileOccupied(Coords coords)
     {
         return Players.Values.Any(p => p.Character != null && !p.Character.Hidden &&
                                 p.Character.X == coords.X && p.Character.Y == coords.Y)
-               || Npcs.Values.Any(n => n.X == coords.X && n.Y == coords.Y);
+               || Npcs.Values.Any(n => !n.IsDead && n.X == coords.X && n.Y == coords.Y);
     }
 
     public int GetNextItemIndex(int seed = 1)
