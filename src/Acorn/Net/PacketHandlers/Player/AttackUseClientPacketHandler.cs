@@ -106,6 +106,19 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
             coords => HasTargetAt(map, playerState.SessionId, coords),
             coords => IsBlocked(map, coords));
 
+        // TEMP diagnostic: remove once ranged attacks are confirmed working.
+        _logger.LogWarning(
+            "RANGED DEBUG: char={Name} weaponId={WeaponId} eifItems={EifItems} subtype={Subtype} range={Range} dir={Dir} origin=({OX},{OY}) target={Target}",
+            character.Name,
+            character.Paperdoll.Weapon,
+            _dataFiles.Eif.Items.Count,
+            _dataFiles.Eif.GetItem(character.Paperdoll.Weapon)?.Subtype,
+            range,
+            direction,
+            origin.X,
+            origin.Y,
+            targetCoords is null ? "none" : $"({targetCoords.X},{targetCoords.Y})");
+
         NpcState? target = null;
         PlayerState? targetPlayer = null;
 
