@@ -94,6 +94,28 @@ dotnet run --ASPNETCORE_ENVIRONMENT=MySQL
 
 The database uses **Entity Framework Core** with a relational structure:
 
+### Migrations
+
+Schema changes are managed with EF Core migrations in `src/Acorn.Database/Migrations`.
+The server does not create or upgrade schemas at runtime, so apply migrations before starting it:
+
+```bash
+# dotnet-ef is a local tool; restore it once
+dotnet tool restore
+
+# Add a migration after changing the model
+dotnet ef migrations add MigrationName --project src/Acorn.Database --startup-project src/Acorn
+
+# Apply it to the development SQLite database
+cd src/Acorn && dotnet ef database update --project ../Acorn.Database --startup-project .
+```
+
+`scripts/run-apphost.sh` applies migrations automatically. The provider and connection string can
+be overridden with the `Database__Engine` / `Database__ConnectionString` environment variables.
+
+> Migrations are generated against SQLite (the development default). Generate provider-specific
+> migrations before deploying against MySQL/PostgreSQL/SQL Server.
+
 ### Tables
 - **Accounts** - User accounts with authentication
 - **Characters** - Character data (stats, position, etc.)

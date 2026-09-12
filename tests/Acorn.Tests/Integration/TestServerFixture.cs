@@ -217,8 +217,7 @@ public class TestServerFixture : TUnit.Core.Interfaces.IAsyncInitializer, IAsync
                     .AddSingleton<ITradeService, TradeService>()
                     .AddSingleton<ICharacterMapper, CharacterMapper>()
                     .AddSingleton<DropFileTextLoader>()
-                    .AddSingleton<INotificationService, NotificationService>()
-                    .AddScoped<IDbInitialiser, DbInitialiser>();
+                    .AddSingleton<INotificationService, NotificationService>();
 
                 // Hosted services
                 services
@@ -272,11 +271,11 @@ public class TestServerFixture : TUnit.Core.Interfaces.IAsyncInitializer, IAsync
             })
             .Build();
 
-        // Initialize database (EnsureCreatedAsync)
+        // Apply EF migrations so the temporary database matches the current model.
         using (var scope = _host.Services.CreateScope())
         {
-            var initialiser = scope.ServiceProvider.GetRequiredService<IDbInitialiser>();
-            await initialiser.InitialiseAsync();
+            var context = scope.ServiceProvider.GetRequiredService<AcornDbContext>();
+            await context.Database.MigrateAsync();
         }
 
         await _host.StartAsync();

@@ -109,7 +109,6 @@ var host = Host.CreateDefaultBuilder(args)
             .AddSingleton<DropFileTextLoader>()
             // Notification services
             .AddSingleton<INotificationService, NotificationService>()
-            .AddScoped<IDbInitialiser, DbInitialiser>()
             .AddHostedService<DropTableHostedService>()
             .AddHostedService<TcpListenerHostedService>()
             .AddHostedService<WebSocketListenerHostedService>()
@@ -166,12 +165,5 @@ var host = Host.CreateDefaultBuilder(args)
         builder.AddFileLogger(logPath, logLevel);
     })
     .Build();
-
-// Initialize database
-using (var scope = host.Services.CreateScope())
-{
-    var initialiser = scope.ServiceProvider.GetRequiredService<IDbInitialiser>();
-    await initialiser.InitialiseAsync();
-}
 
 await host.RunAsync();

@@ -51,8 +51,14 @@ acorn/
 # Build
 dotnet build
 
+# Apply database migrations (SQLite default) - required before running the server
+cd src/Acorn && dotnet ef database update --project ../Acorn.Database --startup-project .
+
 # Run (SQLite default)
 dotnet run --project src/Acorn
+
+# Run the full stack; applies migrations automatically
+scripts/run-apphost.sh
 
 # Run with specific database
 dotnet run --project src/Acorn --environment=PostgreSQL
@@ -183,9 +189,18 @@ public void MethodName_WhenCondition_ShouldExpectedBehavior()
 ### Adding a Database Migration
 
 ```bash
-cd src/Acorn
-dotnet ef migrations add MigrationName
+# dotnet-ef is a local tool; restore it once from the repo root
+dotnet tool restore
+
+# Add a migration after changing the model
+dotnet ef migrations add MigrationName --project src/Acorn.Database --startup-project src/Acorn
+
+# Apply it to the development database
+cd src/Acorn && dotnet ef database update --project ../Acorn.Database --startup-project .
 ```
+
+Migrations live in `src/Acorn.Database/Migrations` and are applied as a startup step by
+`scripts/run-apphost.sh`; the server does not create or upgrade schemas at runtime.
 
 ### Adding a New API Endpoint
 
