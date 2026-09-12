@@ -11,11 +11,6 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 namespace Acorn.World.Services;
 
 /// <summary>
-///     Request to get a response from the Wise Man.
-/// </summary>
-public record WiseManRequest(PlayerState Player, string Query, NpcState WiseManNpc);
-
-/// <summary>
 ///     Hosted service that processes Wise Man requests from a queue.
 /// </summary>
 public class WiseManQueueService : BackgroundService

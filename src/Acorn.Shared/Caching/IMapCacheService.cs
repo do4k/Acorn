@@ -32,15 +32,3 @@ public interface IMapCacheService
     /// </summary>
     Task RemoveMapStateAsync(int mapId);
 }
-
-/// <summary>
-/// Brief summary of a map.
-/// </summary>
-public record MapSummary
-{
-    public int Id { get; init; }
-    public string Name { get; init; } = string.Empty;
-    public int PlayerCount { get; init; }
-    public int NpcCount { get; init; }
-}
-

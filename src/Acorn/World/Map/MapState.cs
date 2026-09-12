@@ -14,41 +14,6 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.World.Map;
 
-/// <summary>
-///     Represents an item on the map with protection timer
-/// </summary>
-public class MapItem
-{
-    public required int Id { get; set; }
-    public required int Amount { get; set; }
-    public required Coords Coords { get; set; }
-    public int OwnerId { get; set; }
-    public int ProtectedTicks { get; set; }
-
-    /// <summary>
-    ///     Tick count when this item was dropped on the ground.
-    ///     Used for ground item cleanup after expiry.
-    /// </summary>
-    public int DroppedAtTick { get; set; }
-}
-
-/// <summary>
-///     Tracks an opened door with its auto-close timer.
-/// </summary>
-public class OpenedDoor
-{
-    public required Coords Coords { get; set; }
-    public int OpenTicks { get; set; }
-}
-
-public class ArenaPlayer
-{
-    public required int PlayerId { get; set; }
-    public required int SessionId { get; set; }
-    public int Kills { get; set; }
-    public bool IsDead { get; set; }
-}
-
 public class MapState
 {
     private readonly IMapBroadcastService _broadcastService;

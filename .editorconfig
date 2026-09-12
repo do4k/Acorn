@@ -124,7 +124,18 @@ csharp_prefer_separate_attribute_groups = true:warning
 # Enforced by StyleCop.Analyzers:
 #   SA1402 = file may only contain a single type
 #   SA1649 = file name must match the first type name
-# Kept at "suggestion" until the existing multi-type files are split up; raise to
-# warning/error afterwards. Add the StyleCop.Analyzers package to activate these.
-dotnet_diagnostic.SA1402.severity = suggestion
-dotnet_diagnostic.SA1649.severity = suggestion
+# Every other StyleCop category is disabled so only these two rules are active.
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.SpacingRules.severity = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.ReadabilityRules.severity = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.OrderingRules.severity = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.NamingRules.severity = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.MaintainabilityRules.severity = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.LayoutRules.severity = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.DocumentationRules.severity = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.SpecialRules.severity = none
+
+# SA0001 reports that XML documentation analysis is disabled - not applicable here.
+dotnet_diagnostic.SA0001.severity = none
+
+dotnet_diagnostic.SA1402.severity = warning
+dotnet_diagnostic.SA1649.severity = warning

@@ -78,5 +78,3 @@ public class TradeSession
         return MyItems.Select(i => new Item { Id = i.ItemId, Amount = i.Amount }).ToList();
     }
 }
-
-public record TradeItem(int ItemId, int Amount);

@@ -143,7 +143,7 @@ Two-tier caching via `ICacheService`:
 //   ChatText.cs        -> internal static class ChatText { ... }
 ```
 
-Enforcement is configured in `.editorconfig` via the StyleCop rules `SA1402` (file may only contain a single type) and `SA1649` (file name must match the first type). They are set to `suggestion` for now; raise them to `warning`/`error` once the existing multi-type files have been split up.
+Enforcement is configured in `.editorconfig` via the StyleCop rules `SA1402` (file may only contain a single type) and `SA1649` (file name must match the first type). Both are set to `warning`, so with `TreatWarningsAsErrors` the build fails on violations. All other StyleCop categories are disabled so only these two rules are active.
 
 ### Testing Patterns
 

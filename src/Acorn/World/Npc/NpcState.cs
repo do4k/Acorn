@@ -5,16 +5,6 @@ using Moffat.EndlessOnline.SDK.Protocol.Pub;
 namespace Acorn.World.Npc;
 
 /// <summary>
-///     Tracks a player who has attacked an NPC
-/// </summary>
-public class NpcOpponent
-{
-    public int PlayerId { get; set; }
-    public int DamageDealt { get; set; }
-    public int BoredTicks { get; set; }
-}
-
-/// <summary>
 ///     Represents the state of an NPC in the game world.
 ///     This is a pure data model - for control logic, use INpcController.
 /// </summary>

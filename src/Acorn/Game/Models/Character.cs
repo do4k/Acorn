@@ -101,8 +101,3 @@ public class Character
         });
     }
 }
-
-public record Bank(ConcurrentBag<ItemWithAmount> Items);
-
-public record Inventory(ConcurrentBag<ItemWithAmount> Items);
-

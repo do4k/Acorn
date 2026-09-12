@@ -1,4 +1,4 @@
-﻿using Acorn.Database.Models;
+using Acorn.Database.Models;
 using Acorn.Database.Repository;
 using Microsoft.Extensions.Logging;
 
@@ -32,9 +32,4 @@ public class StatsReporter : IStatsReporter
         _logger.LogInformation("Loaded {Skills} skills", _dataRepository.Esf.Skills.Count());
         _logger.LogInformation("Loaded {Maps} maps", _dataRepository.Maps.Count());
     }
-}
-
-public interface IStatsReporter
-{
-    Task Report();
 }

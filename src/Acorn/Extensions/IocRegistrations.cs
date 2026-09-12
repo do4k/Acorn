@@ -143,5 +143,3 @@ internal static class IocRegistrations
         return services;
     }
 }
-
-public delegate DateTime UtcNowDelegate();
