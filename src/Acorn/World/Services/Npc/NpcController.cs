@@ -135,10 +135,16 @@ public class NpcController : INpcController
             : (clampedX, clampedY);
     }
 
+    /// <summary>
+    ///     Whether the NPC should be placed within ±2 tiles of its spawn point with
+    ///     collision avoidance. Matches eoserv, which spreads every NPC with spawn type
+    ///     below 7 so multiple NPCs sharing a spawn point (common for quest/friendly NPCs
+    ///     in EMF data) do not all stack on the same tile. Spawn type 7 is fixed to its
+    ///     exact EMF position and direction.
+    /// </summary>
     public bool ShouldUseSpawnVariance(NpcState npc)
     {
-        return npc.SpawnType != 7 &&
-               (npc.Data.Type == PubNpcType.Aggressive || npc.Data.Type == PubNpcType.Passive);
+        return npc.SpawnType != 7;
     }
 
     public Direction GetSpawnDirection(NpcState npc)
