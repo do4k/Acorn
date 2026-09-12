@@ -500,6 +500,15 @@ public class TestServerFixture : IAsyncLifetime
                         {
                             new() { X = 15, TileSpec = MapTileSpec.Chest }
                         }
+                    },
+                    // An NPC boundary tile: NPCs cannot walk over it, but players can.
+                    new()
+                    {
+                        Y = 8,
+                        Tiles = new List<MapTileSpecRowTile>
+                        {
+                            new() { X = 8, TileSpec = MapTileSpec.NpcBoundary }
+                        }
                     }
                 }
                 : new List<MapTileSpecRow>(),
