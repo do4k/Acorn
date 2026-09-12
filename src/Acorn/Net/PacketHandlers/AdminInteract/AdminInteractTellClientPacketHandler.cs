@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Acorn.Net.PacketHandlers;
 using Acorn.World.Services.Admin;
@@ -14,17 +13,11 @@ public class AdminInteractTellClientPacketHandler(
 {
     public async Task HandleAsync(PlayerState player, AdminInteractTellClientPacket packet)
     {
-        if (player.Character?.Admin <= AdminLevel.Player)
-        {
-            logger.LogWarning("Non-admin player {Character} attempted admin interact tell",
-                player.Character?.Name);
-            return;
-        }
+        // AdminInteract/Tell is a "talk to admin" help request from any player.
+        // The message is the help text, not a target player name.
+        logger.LogInformation("Player {Character} sent an admin help request",
+            player.Character?.Name);
 
-        logger.LogInformation("Admin {Character} requesting info via admin interact: {Message}",
-            player.Character!.Name, packet.Message);
-
-        // The message field contains the target player name
-        await adminService.GetPlayerInfoAsync(player, packet.Message);
+        await adminService.SendHelpRequestAsync(player, packet.Message);
     }
 }

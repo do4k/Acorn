@@ -5,6 +5,7 @@ using Acorn.World;
 using Acorn.World.Services.Admin;
 using Acorn.World.Services.Player;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Protocol;
@@ -24,8 +25,9 @@ public class AdminServiceMuteTests
         serverOptions.MuteLengthSeconds = muteLengthSeconds;
         var options = Microsoft.Extensions.Options.Options.Create(serverOptions);
         var logger = NullLogger<AdminService>.Instance;
+        var scopeFactory = Substitute.For<IServiceScopeFactory>();
 
-        var sut = new AdminService(world, playerController, notifications, options, logger);
+        var sut = new AdminService(world, playerController, notifications, options, scopeFactory, logger);
 
         var (target, _) = FakePlayer.Create("Target", 2);
         world.FindPlayerByName("Target").Returns(target);
