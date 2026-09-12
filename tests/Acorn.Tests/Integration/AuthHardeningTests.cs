@@ -1,3 +1,4 @@
+using Acorn.Tests.Support;
 using Acorn.World.Services.Bans;
 using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
@@ -77,8 +78,8 @@ public class AuthHardeningTests
         await client.InitAsync();
         await client.SendConnectionAcceptAsync();
 
-        var username = $"ban_{Guid.NewGuid():N}"[..20];
-        var password = "testpassword123";
+        var username = $"ban{Guid.NewGuid():N}"[..16];
+        var password = TestPasswords.Valid;
         var sessionId = await client.AccountRequestAsync(username);
         (await client.AccountCreateAsync(username, password, sessionId)).Should().Be(AccountReply.Created);
 

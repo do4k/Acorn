@@ -1,3 +1,4 @@
+using Acorn.Tests.Support;
 using Acorn.Net;
 using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol;
@@ -222,21 +223,21 @@ public class AdminInteractionTests : IClassFixture<TestServerFixture>, IAsyncLif
         await client.InitAsync();
         await client.SendConnectionAcceptAsync();
 
-        var username = $"{prefix}_{Guid.NewGuid():N}"[..20];
-        var password = "testpassword123";
+        var username = $"{prefix}{Guid.NewGuid():N}"[..16];
+        var password = TestPasswords.Valid;
         var sessionId = await client.AccountRequestAsync(username);
         (await client.AccountCreateAsync(username, password, sessionId)).Should().Be(AccountReply.Created);
         (await client.LoginAsync(username, password)).ReplyCode.Should().Be(LoginReply.Ok);
 
         var charName = $"go{Guid.NewGuid():N}"[..10];
-        (await client.CreateCharacterAsync(sessionId, charName)).Should().Be(CharacterReply.Ok);
+        (await client.CreateCharacterAsync(sessionId, charName)).ReplyCode.Should().Be(CharacterReply.Ok);
 
-        await client.SendPacketAsync(new WelcomeRequestClientPacket { CharacterId = 0 });
-        var welcome = (WelcomeReplyServerPacket)await client.ReceivePacketAsync();
+        await client.SendPacketAsync(new WelcomeRequestClientPacket { CharacterId = client.CharacterId });
+        var welcome = (WelcomeReplyServerPacket)await ReceiveUntilAsync(client, p => p is WelcomeReplyServerPacket);
         welcome.WelcomeCode.Should().Be(WelcomeCode.SelectCharacter);
 
-        await client.SendPacketAsync(new WelcomeMsgClientPacket { SessionId = client.PlayerId, CharacterId = 0 });
-        var enter = (WelcomeReplyServerPacket)await client.ReceivePacketAsync();
+        await client.SendPacketAsync(new WelcomeMsgClientPacket { SessionId = client.PlayerId, CharacterId = client.CharacterId });
+        var enter = (WelcomeReplyServerPacket)await ReceiveUntilAsync(client, p => p is WelcomeReplyServerPacket);
         enter.WelcomeCode.Should().Be(WelcomeCode.EnterGame);
 
         return client;
