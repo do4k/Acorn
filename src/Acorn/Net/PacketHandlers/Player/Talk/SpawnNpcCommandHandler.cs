@@ -2,6 +2,7 @@
 using Acorn.Net.Services;
 using Acorn.World;
 using Acorn.World.Npc;
+using Acorn.World.Services.Npc;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
@@ -20,13 +21,15 @@ public class SpawnNpcCommandHandler : ITalkHandler
 
     private readonly ILogger<SpawnNpcCommandHandler> _logger;
     private readonly INotificationService _notifications;
+    private readonly INpcController _npcController;
 
     public SpawnNpcCommandHandler(IWorldQueries world, IDataFileRepository dataFiles,
-        ILogger<SpawnNpcCommandHandler> logger, INotificationService notifications)
+        ILogger<SpawnNpcCommandHandler> logger, INotificationService notifications, INpcController npcController)
     {
         _dataFiles = dataFiles;
         _logger = logger;
         _notifications = notifications;
+        _npcController = npcController;
     }
 
     public bool CanHandle(string command)
@@ -111,6 +114,18 @@ public class SpawnNpcCommandHandler : ITalkHandler
                 Index = npcIndex,
                 IsAdminSpawned = true
             };
+
+            // Spread the spawned NPCs around the admin instead of stacking them all on
+            // the admin's tile, matching eoserv's temporary NPC spawn behaviour.
+            var (spawnX, spawnY) = _npcController.FindSpawnPosition(npc,
+                playerState.Character.X, playerState.Character.Y,
+                playerState.CurrentMap.Players.Values, playerState.CurrentMap.Npcs.Values,
+                playerState.CurrentMap.Data);
+
+            npc.X = spawnX;
+            npc.Y = spawnY;
+            npc.SpawnX = spawnX;
+            npc.SpawnY = spawnY;
 
             playerState.CurrentMap.Npcs.TryAdd(npcIndex, npc);
         }
