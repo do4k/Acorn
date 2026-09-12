@@ -94,22 +94,22 @@ public class LootService : ILootService
             return null;
         }
 
-        // Sort drops by rate for proper probability weighting
-        var sortedDrops = combinedDrops
-            .OrderBy(d => d.RatePercent)
-            .ToList();
+        // eoserv's default drop mode (DropRateMode 3): a single roll across the combined
+        // chance range. When the chances add up to less than 100 the remainder is "no
+        // drop"; when they exceed 100 the entries are scaled down proportionally and a
+        // drop is guaranteed.
+        var chanceTotal = combinedDrops.Sum(drop => drop.RatePercent);
+        var roll = Random.Shared.NextDouble() * Math.Max(chanceTotal, 100.0);
 
-        // Roll against each drop's rate
-        foreach (var drop in sortedDrops)
+        var offset = 0.0;
+        foreach (var drop in combinedDrops)
         {
-            // Generate random value from 0-64000
-            var roll = Random.Shared.Next(0, 64001);
-            var internalRate = drop.GetInternalRate();
-
-            if (roll <= internalRate)
+            if (roll >= offset && roll < offset + drop.RatePercent)
             {
                 return drop;
             }
+
+            offset += drop.RatePercent;
         }
 
         return null;

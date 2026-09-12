@@ -1,3 +1,4 @@
+using System.Globalization;
 using Acorn.Game.Models;
 using Acorn.Game.Services;
 using Microsoft.Extensions.Logging;
@@ -52,18 +53,16 @@ public class DropFileTextLoader
                     if (!int.TryParse(dropParts[i].Trim(), out var itemId) ||
                         !int.TryParse(dropParts[i + 1].Trim(), out var min) ||
                         !int.TryParse(dropParts[i + 2].Trim(), out var max) ||
-                        !int.TryParse(dropParts[i + 3].Trim(), out var chance))
+                        !double.TryParse(dropParts[i + 3].Trim(), NumberStyles.Float,
+                            CultureInfo.InvariantCulture, out var chance))
                         continue;
-
-                    // Convert chance from 0-100 to internal rate system (1-1000)
-                    var rate = Math.Max(1, (int)(chance / 100.0 * 1000));
 
                     lootDrops.Add(new LootDrop
                     {
                         ItemId = itemId,
                         MinAmount = min,
                         MaxAmount = max,
-                        RatePercent = rate
+                        RatePercent = chance
                     });
                 }
 
@@ -116,7 +115,8 @@ public class DropFileTextLoader
                 if (!int.TryParse(parts[0].Trim(), out var itemId) ||
                     !int.TryParse(parts[1].Trim(), out var min) ||
                     !int.TryParse(parts[2].Trim(), out var max) ||
-                    !int.TryParse(parts[3].Trim(), out var chance))
+                    !double.TryParse(parts[3].Trim(), NumberStyles.Float,
+                        CultureInfo.InvariantCulture, out var chance))
                     continue;
 
                 globalDrops.Add(new LootDrop

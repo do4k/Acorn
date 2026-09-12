@@ -2,7 +2,8 @@ namespace Acorn.Game.Models;
 
 /// <summary>
 ///     Represents a single drop entry in an NPC's loot table.
-///     Uses a rate-based probability system (0-64000 range for granular control).
+///     Chances are percentages (0-100) and match eoserv's drop configuration, which
+///     allows fractional values such as <c>0.5</c> for half a percent.
 /// </summary>
 public class LootDrop
 {
@@ -10,7 +11,7 @@ public class LootDrop
     {
     }
 
-    public LootDrop(int itemId, int minAmount, int maxAmount, int ratePercent)
+    public LootDrop(int itemId, int minAmount, int maxAmount, double ratePercent)
     {
         ItemId = itemId;
         MinAmount = minAmount;
@@ -34,19 +35,9 @@ public class LootDrop
     public int MaxAmount { get; set; }
 
     /// <summary>
-    ///     Drop rate as a percentage (0-100).
-    ///     Internally converted to 0-64000 range for more granular probability calculation.
-    ///     Example: 25% = 16000 chance out of 64000
+    ///     Drop chance as a percentage (0-100). Example: 25 means 25%.
     /// </summary>
-    public int RatePercent { get; set; }
-
-    /// <summary>
-    ///     Converts percentage (0-100) to internal rate value (0-64000)
-    /// </summary>
-    public int GetInternalRate()
-    {
-        return RatePercent * 64000 / 100;
-    }
+    public double RatePercent { get; set; }
 }
 
 /// <summary>
