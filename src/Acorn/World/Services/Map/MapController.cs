@@ -218,6 +218,23 @@ public class MapController : IMapController
         }
     }
 
+    /// <summary>
+    ///     Sends a packet to every player on <paramref name="map" /> within the client view
+    ///     range of <paramref name="origin" />. Used for per-entity broadcasts.
+    /// </summary>
+    private async Task SendToInRangePlayersAsync(MapState map, Coords origin, IPacket packet)
+    {
+        var recipients = map.Players.Values
+            .Where(p => p.Character is not null)
+            .Where(p => _tileService.InClientRange(origin, p.Character!.AsCoords()))
+            .ToList();
+
+        foreach (var recipient in recipients)
+        {
+            await recipient.Send(packet);
+        }
+    }
+
     public async Task ProcessNpcRespawnsAsync(MapState map)
     {
         var deadNpcs = map.Npcs.Values
@@ -258,8 +275,8 @@ public class MapController : IMapController
                     _logger.LogInformation("NPC {NpcName} (ID: {NpcId}) respawned at ({X}, {Y})",
                         npc.Data.Name, npc.Id, npc.X, npc.Y);
 
-                    // Broadcast respawn to all players on map
-                    await map.BroadcastPacket(new NpcAgreeServerPacket
+                    // Only tell players who can actually see the respawned NPC.
+                    await SendToInRangePlayersAsync(map, npc.AsCoords(), new NpcAgreeServerPacket
                     {
                         Npcs = new List<NpcMapInfo>
                         {
@@ -315,25 +332,40 @@ public class MapController : IMapController
             }
         }
 
-        // Only send position updates for NPCs within range of at least one player
-        // This prevents the client from receiving updates for NPCs it has removed from memory
+        // NPC updates are sent per player so each client only receives the NPCs it can see.
         if (positionUpdates.Count > 0 || attackUpdates.Count > 0)
         {
-            var playersWithCharacters = map.Players.Values.Where(p => p.Character != null).ToList();
+            var npcCoords = map.Npcs.Values
+                .Where(n => !n.IsDead)
+                .ToDictionary(n => n.Index, n => n.AsCoords());
 
-            // Filter position updates to only include NPCs within client range of at least one player
-            var filteredPositionUpdates = positionUpdates
-                .Where(update => playersWithCharacters.Any(p =>
-                    _tileService.InClientRange(p.Character!.AsCoords(), update.Coords)))
-                .ToList();
-
-            // Attacks should always be sent since they involve players who are by definition in range
-            if (filteredPositionUpdates.Count > 0 || attackUpdates.Count > 0)
+            foreach (var player in map.Players.Values.Where(p => p.Character != null).ToList())
             {
-                await map.BroadcastPacket(new NpcPlayerServerPacket
+                var origin = player.Character!.AsCoords();
+
+                var playerPositions = positionUpdates
+                    .Where(update => _tileService.InClientRange(origin, update.Coords))
+                    .ToList();
+
+                // Attacks are shown to players in range of the attacking NPC, and always to
+                // the player being attacked (who is by definition in range).
+                var playerAttacks = attackUpdates
+                    .Where(attack =>
+                        attack.PlayerId == player.SessionId
+                        || (npcCoords.TryGetValue(attack.NpcIndex, out var coords)
+                            && _tileService.InClientRange(origin, coords)))
+                    .ToList();
+
+                if (playerPositions.Count == 0 && playerAttacks.Count == 0)
                 {
-                    Positions = filteredPositionUpdates,
-                    Attacks = attackUpdates
+                    continue;
+                }
+
+                await player.Send(new NpcPlayerServerPacket
+                {
+                    Positions = playerPositions,
+                    Attacks = playerAttacks,
+                    Chats = []
                 });
             }
         }

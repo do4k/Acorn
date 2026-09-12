@@ -13,6 +13,7 @@ public class MapStateFactory(
     IMapBroadcastService broadcastService,
     IMapController mapController,
     INpcController npcController,
+    IMapTileService tileService,
     IPaperdollService paperdollService,
     IOptions<ServerOptions> serverOptions,
     IOptions<ArenaOptions> arenaOptions,
@@ -20,7 +21,8 @@ public class MapStateFactory(
 {
     public MapState Create(MapWithId data)
     {
-        return new MapState(data, dataRepository, broadcastService, mapController, npcController, paperdollService,
+        return new MapState(data, dataRepository, broadcastService, mapController, npcController, tileService,
+            paperdollService,
             serverOptions.Value.PlayerRecoverRate, 
             arenaOptions.Value.Enabled,
             arenaOptions.Value.SpawnInterval,

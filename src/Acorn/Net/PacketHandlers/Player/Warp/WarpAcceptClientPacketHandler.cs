@@ -29,15 +29,17 @@ public class WarpAcceptClientPacketHandler : IPacketHandler<WarpAcceptClientPack
 
         //todo: cancel any trades and whatnot if in progress
 
-        // The map change already happened in PlayerController.WarpAsync, so this handler
-        // only acknowledges the warp. The session is always cleared, local warps included.
+        // The map change (leave old map / enter new map) already happened in
+        // PlayerController.WarpAsync, matching eoserv's Character::Warp. The session is always
+        // cleared, local warps included. This handler only acknowledges the warp with the
+        // range-filtered nearby list for the new position.
         try
         {
             if (warpSession.IsLocal)
             {
                 await playerState.Send(new WarpAgreeServerPacket
                 {
-                    Nearby = warpSession.TargetMap.AsNearbyInfo(),
+                    Nearby = warpSession.TargetMap.AsNearbyInfo(playerState),
                     WarpType = WarpType.Local
                 });
                 return;
@@ -45,7 +47,7 @@ public class WarpAcceptClientPacketHandler : IPacketHandler<WarpAcceptClientPack
 
             await playerState.Send(new WarpAgreeServerPacket
             {
-                Nearby = warpSession.TargetMap.AsNearbyInfo(),
+                Nearby = warpSession.TargetMap.AsNearbyInfo(playerState),
                 WarpType = WarpType.MapSwitch,
                 WarpTypeData = new WarpAgreeServerPacket.WarpTypeDataMapSwitch
                 {

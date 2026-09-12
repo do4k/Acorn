@@ -129,6 +129,8 @@ public class WalkService : IWalkService
             return;
         }
 
+        var oldCoords = player.Character.AsCoords();
+
         player.Character.X = target.X;
         player.Character.Y = target.Y;
         player.Character.Direction = direction;
@@ -173,8 +175,8 @@ public class WalkService : IWalkService
             Items = nearbyItems
         });
 
-        // Broadcast WalkPlayer to other players on the map.
-        await player.CurrentMap.BroadcastPacket(new WalkPlayerServerPacket
+        // Broadcast WalkPlayer only to players who can see the new position.
+        var walkPacket = new WalkPlayerServerPacket
         {
             Direction = player.Character.Direction,
             PlayerId = player.SessionId,
@@ -183,7 +185,20 @@ public class WalkService : IWalkService
                 X = player.Character.X,
                 Y = player.Character.Y
             }
-        }, player);
+        };
+
+        var recipients = player.CurrentMap.Players.Values
+            .Where(p => p.SessionId != player.SessionId && p.Character is not null)
+            .Where(p => _mapTileService.InClientRange(playerCoords, p.Character!.AsCoords()))
+            .ToList();
+
+        foreach (var recipient in recipients)
+        {
+            await recipient.Send(walkPacket);
+        }
+
+        // Remove players/NPCs that just fell out of view because of this step.
+        await player.CurrentMap.NotifyMoveViewChangesAsync(player, oldCoords);
 
         // If the server-authoritative position differs from what the client
         // reported, the client is desynced; force a refresh (eoserv Walk.cpp:72-75).

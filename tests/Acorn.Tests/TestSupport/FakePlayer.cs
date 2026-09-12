@@ -144,6 +144,7 @@ internal static class FakeMap
             Substitute.For<IMapBroadcastService>(),
             Substitute.For<IMapController>(),
             Substitute.For<INpcController>(),
+            Substitute.For<IMapTileService>(),
             Substitute.For<IPaperdollService>(),
             90,
             false,

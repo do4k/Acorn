@@ -350,10 +350,7 @@ public class AdminService(
             // Show to other players
             if (admin.CurrentMap is not null)
             {
-                await admin.CurrentMap.BroadcastPacket(new PlayersAgreeServerPacket
-                {
-                    Nearby = admin.CurrentMap.AsNearbyInfo(null, WarpEffect.Admin)
-                }, admin);
+                await admin.CurrentMap.NotifyAppear(admin, WarpEffect.Admin);
             }
 
             await notifications.SystemMessage(admin, "You are now visible.");

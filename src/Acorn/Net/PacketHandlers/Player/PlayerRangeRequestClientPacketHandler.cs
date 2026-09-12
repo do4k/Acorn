@@ -1,4 +1,3 @@
-using Acorn.Extensions;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
@@ -12,13 +11,16 @@ public class PlayerRangeRequestClientPacketHandler : IPacketHandler<PlayerRangeR
     public async Task HandleAsync(PlayerState playerState,
         PlayerRangeRequestClientPacket packet)
     {
-        await playerState.Send(new PlayersListServerPacket
+        if (playerState.CurrentMap is null)
         {
-            PlayersList = new PlayersList
-            {
-                    Players = playerState.CurrentMap!.Players.Values.Select(x => x.Character?.AsOnlinePlayer()).ToList()
-            }
+            return;
+        }
+
+        // PlayerRange/Request is a players-only Range/Request, so it is answered with a
+        // Range/Reply containing just the requested characters (range-filtered).
+        await playerState.Send(new RangeReplyServerPacket
+        {
+            Nearby = playerState.CurrentMap.AsNearbyInfo(playerState, packet.PlayerIds, [])
         });
     }
-
 }

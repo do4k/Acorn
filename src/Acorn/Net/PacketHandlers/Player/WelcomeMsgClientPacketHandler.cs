@@ -131,7 +131,7 @@ internal class WelcomeMsgClientPacketHandler : IPacketHandler<WelcomeMsgClientPa
                     Max = character.MaxWeight
                 },
                 Spells = spells,
-                Nearby = map.AsNearbyInfo()
+                Nearby = map.AsNearbyInfo(playerState)
             }
         });
     }

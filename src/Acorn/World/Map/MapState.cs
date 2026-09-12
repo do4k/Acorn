@@ -53,6 +53,7 @@ public class MapState
 {
     private readonly IMapBroadcastService _broadcastService;
     private readonly IMapController _mapController;
+    private readonly IMapTileService _tileService;
     private readonly IPaperdollService _paperdollService;
     private readonly int _playerRecoverRate;
     private readonly bool _isArenaEnabled;
@@ -76,6 +77,7 @@ public class MapState
         IMapBroadcastService broadcastService,
         IMapController mapController,
         INpcController npcController,
+        IMapTileService tileService,
         IPaperdollService paperdollService,
         int playerRecoverRate,
         bool isArenaEnabled,
@@ -86,6 +88,7 @@ public class MapState
         Data = data.Map;
         _broadcastService = broadcastService;
         _mapController = mapController;
+        _tileService = tileService;
         _paperdollService = paperdollService;
         _playerRecoverRate = playerRecoverRate;
         _isArenaEnabled = isArenaEnabled;
@@ -193,23 +196,87 @@ public class MapState
         await _broadcastService.BroadcastPacket(Players.Values, packet, except);
     }
 
-    public NearbyInfo AsNearbyInfo(PlayerState? except = null, WarpEffect warpEffect = WarpEffect.None)
+    /// <summary>
+    ///     Builds a range-filtered view of nearby entities relative to <paramref name="observer" />.
+    ///     The observer's own character is included, matching eoserv's refresh behaviour.
+    /// </summary>
+    public NearbyInfo AsNearbyInfo(PlayerState observer)
     {
+        var origin = observer.Character?.AsCoords() ?? new Coords();
+
         return new NearbyInfo
         {
             Characters = Players.Values
                 .Where(x => x.Character is not null)
-                .Where(x => except == null || x != except)
-                .Select(x => x.Character?.AsCharacterMapInfo(x.SessionId, warpEffect, _paperdollService))
+                .Where(x => _tileService.InClientRange(origin, x.Character!.AsCoords()))
+                .Select(x => x.Character!.AsCharacterMapInfo(x.SessionId, WarpEffect.None, _paperdollService))
                 .ToList(),
-            Items = Items.Select(kvp => new ItemMapInfo
-            {
-                Uid = kvp.Key,
-                Id = kvp.Value.Id,
-                Coords = kvp.Value.Coords,
-                Amount = kvp.Value.Amount
-            }).ToList(),
-            Npcs = AsNpcMapInfo()
+            Items = Items
+                .Where(kvp => _tileService.InClientRange(origin, kvp.Value.Coords))
+                .Select(kvp => new ItemMapInfo
+                {
+                    Uid = kvp.Key,
+                    Id = kvp.Value.Id,
+                    Coords = kvp.Value.Coords,
+                    Amount = kvp.Value.Amount
+                })
+                .ToList(),
+            Npcs = Npcs.Values
+                .Where(npc => !npc.IsDead)
+                .Where(npc => _tileService.InClientRange(origin, npc.AsCoords()))
+                .OrderBy(npc => npc.Index)
+                .Select(npc => npc.AsNpcMapInfo())
+                .Take(252) // EO Protocol limit: NpcMapInfo uses byte field, max 252 NPCs
+                .ToList()
+        };
+    }
+
+    /// <summary>
+    ///     Builds a range-filtered reply for a Range/Request restricted to the requested
+    ///     player ids and NPC indexes. Ground items are not part of a range request.
+    /// </summary>
+    public NearbyInfo AsNearbyInfo(PlayerState observer,
+        IReadOnlyCollection<int> playerIds,
+        IReadOnlyCollection<int> npcIndexes)
+    {
+        var origin = observer.Character?.AsCoords() ?? new Coords();
+
+        return new NearbyInfo
+        {
+            Characters = Players.Values
+                .Where(x => x.Character is not null && playerIds.Contains(x.SessionId))
+                .Where(x => _tileService.InClientRange(origin, x.Character!.AsCoords()))
+                .Select(x => x.Character!.AsCharacterMapInfo(x.SessionId, WarpEffect.None, _paperdollService))
+                .ToList(),
+            Npcs = Npcs.Values
+                .Where(npc => !npc.IsDead && npcIndexes.Contains(npc.Index))
+                .Where(npc => _tileService.InClientRange(origin, npc.AsCoords()))
+                .OrderBy(npc => npc.Index)
+                .Select(npc => npc.AsNpcMapInfo())
+                .ToList(),
+            Items = []
+        };
+    }
+
+    /// <summary>
+    ///     Builds a single-character <see cref="NearbyInfo" /> used when a player appears in
+    ///     view. The warp effect is applied only to that player's own character info.
+    /// </summary>
+    public NearbyInfo AsCharacterInfo(PlayerState player, WarpEffect warpEffect = WarpEffect.None)
+    {
+        if (player.Character is null)
+        {
+            return new NearbyInfo();
+        }
+
+        return new NearbyInfo
+        {
+            Characters =
+            [
+                player.Character.AsCharacterMapInfo(player.SessionId, warpEffect, _paperdollService)
+            ],
+            Npcs = [],
+            Items = []
         };
     }
 
@@ -247,20 +314,109 @@ public class MapState
         player.Character.Map = Id;
 
         Players.TryAdd(player.SessionId, player);
-
-        await BroadcastPacket(new PlayersAgreeServerPacket
-        {
-            Nearby = AsNearbyInfo(null, warpEffect)
-        }, player);
-
         player.CurrentMap = this;
+
+        await NotifyAppear(player, warpEffect);
+    }
+
+    /// <summary>
+    ///     Tells only the players within view range of <paramref name="player" /> that the
+    ///     player has appeared. The warp effect is applied to that player's info alone.
+    /// </summary>
+    public async Task NotifyAppear(PlayerState player, WarpEffect warpEffect = WarpEffect.None)
+    {
+        if (player.Character is null)
+        {
+            return;
+        }
+
+        var origin = player.Character.AsCoords();
+        var packet = new PlayersAgreeServerPacket
+        {
+            Nearby = AsCharacterInfo(player, warpEffect)
+        };
+
+        var recipients = Players.Values
+            .Where(p => p.SessionId != player.SessionId && p.Character is not null)
+            .Where(p => _tileService.InClientRange(origin, p.Character!.AsCoords()))
+            .ToList();
+
+        foreach (var recipient in recipients)
+        {
+            await recipient.Send(packet);
+        }
     }
 
     public async Task NotifyLeave(PlayerState player, WarpEffect warpEffect = WarpEffect.None)
     {
         Players.TryRemove(player.SessionId, out _);
 
-        await _broadcastService.NotifyPlayerLeave(Players.Values.ToList(), player, warpEffect);
+        if (player.Character is null)
+        {
+            return;
+        }
+
+        var origin = player.Character.AsCoords();
+        var recipients = Players.Values
+            .Where(p => p.Character is not null)
+            .Where(p => _tileService.InClientRange(origin, p.Character!.AsCoords()))
+            .ToList();
+
+        await _broadcastService.NotifyPlayerLeave(recipients, player, warpEffect);
+    }
+
+    /// <summary>
+    ///     Sends removal packets for players and NPCs that were within <paramref name="player" />'s
+    ///     view before the move but are no longer. Used by the walk path.
+    /// </summary>
+    public async Task NotifyMoveViewChangesAsync(PlayerState player, Coords oldCoords)
+    {
+        if (player.Character is null)
+        {
+            return;
+        }
+
+        var newCoords = player.Character.AsCoords();
+
+        foreach (var other in Players.Values
+                     .Where(p => p.SessionId != player.SessionId && p.Character is not null)
+                     .ToList())
+        {
+            var otherCoords = other.Character!.AsCoords();
+            var wasInRange = _tileService.InClientRange(oldCoords, otherCoords);
+            var isInRange = _tileService.InClientRange(newCoords, otherCoords);
+
+            if (wasInRange && !isInRange)
+            {
+                // The player can no longer see the other character, and vice versa.
+                await player.Send(new AvatarRemoveServerPacket { PlayerId = other.SessionId });
+                await other.Send(new AvatarRemoveServerPacket { PlayerId = player.SessionId });
+            }
+        }
+
+        foreach (var npc in Npcs.Values.Where(n => !n.IsDead).ToList())
+        {
+            var npcCoords = npc.AsCoords();
+            if (_tileService.InClientRange(oldCoords, npcCoords)
+                && !_tileService.InClientRange(newCoords, npcCoords))
+            {
+                // The EO protocol removes an NPC from view by moving it out of bounds.
+                await player.Send(new NpcPlayerServerPacket
+                {
+                    Positions =
+                    [
+                        new NpcUpdatePosition
+                        {
+                            NpcIndex = npc.Index,
+                            Coords = new Coords { X = 252, Y = 252 },
+                            Direction = Direction.Down
+                        }
+                    ],
+                    Attacks = [],
+                    Chats = []
+                });
+            }
+        }
     }
 
     public bool IsTileOccupied(Coords coords)

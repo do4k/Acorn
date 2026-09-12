@@ -1,4 +1,3 @@
-using Acorn.Extensions;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
@@ -17,33 +16,16 @@ public class RangeRequestClientPacketHandler(
         logger.LogDebug("Player {Character} requesting range data for {PlayerCount} players and {NpcCount} NPCs",
             player.Character!.Name, packet.PlayerIds.Count, packet.NpcIndexes.Count);
 
-        // Send player data if requested
-        if (packet.PlayerIds.Count > 0)
+        if (player.CurrentMap is null)
         {
-            await player.Send(new PlayersListServerPacket
-            {
-                PlayersList = new PlayersList
-                {
-                    Players = player.CurrentMap!.Players.Values
-                        .Where(p => p.Character != null && packet.PlayerIds.Contains(p.SessionId))
-                        .Select(p => p.Character!.AsOnlinePlayer())
-                        .ToList()
-                }
-            });
+            return;
         }
 
-        // Send NPC data if requested
-        if (packet.NpcIndexes.Count > 0)
+        // Range/Request is answered with Range/Reply carrying a NearbyInfo restricted to
+        // the requested player ids and NPC indexes, range-filtered around the requester.
+        await player.Send(new RangeReplyServerPacket
         {
-            var npcs = player.CurrentMap!.AsNpcMapInfo()
-                .Where(npc => packet.NpcIndexes.Contains(npc.Index))
-                .ToList();
-
-            await player.Send(new NpcAgreeServerPacket
-            {
-                Npcs = npcs
-            });
-        }
+            Nearby = player.CurrentMap.AsNearbyInfo(player, packet.PlayerIds, packet.NpcIndexes)
+        });
     }
-
 }
