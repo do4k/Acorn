@@ -14,6 +14,13 @@ namespace Acorn.Game.Models;
 public class Character
 {
     public required string Accounts_Username { get; set; }
+
+    /// <summary>
+    ///     Stable database identifier. Populated when the character is loaded
+    ///     from the database and echoed to the client for selection/removal.
+    /// </summary>
+    public int Id { get; set; }
+
     public string? Name { get; set; }
     public string? Title { get; set; }
     public string? Home { get; set; }

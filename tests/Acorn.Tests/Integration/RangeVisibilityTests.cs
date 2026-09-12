@@ -1,3 +1,4 @@
+using Acorn.Tests.Support;
 using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
@@ -76,22 +77,22 @@ public class RangeVisibilityTests : IClassFixture<TestServerFixture>
         await client.InitAsync();
         await client.SendConnectionAcceptAsync();
 
-        var username = $"{prefix}_{Guid.NewGuid():N}"[..20];
-        var password = "testpassword123";
+        var username = $"{prefix}{Guid.NewGuid():N}"[..16];
+        var password = TestPasswords.Valid;
         var sessionId = await client.AccountRequestAsync(username);
         await client.AccountCreateAsync(username, password, sessionId);
         await client.LoginAsync(username, password);
 
         var charName = $"rg{Guid.NewGuid():N}"[..10];
-        await client.CreateCharacterAsync(sessionId, charName);
+        (await client.CreateCharacterAsync(sessionId, charName)).ReplyCode.Should().Be(CharacterReply.Ok);
 
-        await client.SendPacketAsync(new WelcomeRequestClientPacket { CharacterId = 0 });
+        await client.SendPacketAsync(new WelcomeRequestClientPacket { CharacterId = client.CharacterId });
         await client.ReceivePacketAsync();
 
         await client.SendPacketAsync(new WelcomeMsgClientPacket
         {
             SessionId = client.PlayerId,
-            CharacterId = 0
+            CharacterId = client.CharacterId
         });
         var enter = (WelcomeReplyServerPacket)await client.ReceivePacketAsync();
         enter.WelcomeCode.Should().Be(WelcomeCode.EnterGame);

@@ -19,25 +19,27 @@ internal class CharacterTakeClientPacketHandler(
             return;
         }
 
-        // Validate character index is within bounds
-        if (packet.CharacterId < 0 || packet.CharacterId >= playerState.Account.Characters.Count())
+        // Resolve the character by its stable database id (not list index).
+        var character = playerState.Account.Characters
+            .FirstOrDefault(c => c.Id == packet.CharacterId);
+
+        if (character is null)
         {
             logger.LogWarning(
                 "Invalid character ID {CharacterId} for account '{Username}' with {CharacterCount} characters",
-                packet.CharacterId, playerState.Account.Username, playerState.Account.Characters.Count());
+                packet.CharacterId, playerState.Account.Username, playerState.Account.Characters.Count);
             return;
         }
 
-        // Get the character by index
-        var character = playerState.Account.Characters.ElementAt(packet.CharacterId);
+        // Store the character id for the confirmation step.
+        playerState.CharacterIdToDelete = character.Id;
 
-        // Store the character index for the confirmation step
-        playerState.CharacterIdToDelete = packet.CharacterId;
-
-        // Send back a session ID that the client must echo in the remove request
+        // Send back a session ID and the character id that the client must echo
+        // in the remove request.
         await playerState.Send(new CharacterPlayerServerPacket
         {
-            SessionId = playerState.SessionId
+            SessionId = playerState.SessionId,
+            CharacterId = character.Id
         });
     }
 

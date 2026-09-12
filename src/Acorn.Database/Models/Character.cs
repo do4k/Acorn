@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
@@ -10,7 +11,16 @@ public class Character
 {
     public required string Accounts_Username { get; set; }
 
-    [Key] public string? Name { get; set; }
+    /// <summary>
+    ///     Stable database identifier for the character. This is what is sent to
+    ///     the client in the character selection list and echoed back for
+    ///     selection/removal, so it must not depend on list ordering.
+    /// </summary>
+    [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    public int Id { get; set; }
+
+    public required string Name { get; set; }
 
     public string? Title { get; set; }
     public string? Home { get; set; }

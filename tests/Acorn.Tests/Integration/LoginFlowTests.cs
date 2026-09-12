@@ -1,3 +1,4 @@
+using Acorn.Tests.Support;
 using FluentAssertions;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
@@ -36,8 +37,8 @@ public class LoginFlowTests : IClassFixture<TestServerFixture>
         await client.SendConnectionAcceptAsync();
 
         // 3. Account request (username availability check)
-        var username = $"tcp_{Guid.NewGuid():N}"[..20];
-        var password = "testpassword123";
+        var username = $"tcp{Guid.NewGuid():N}"[..16];
+        var password = TestPasswords.Valid;
         var sessionId = await client.AccountRequestAsync(username);
         sessionId.Should().Be(client.PlayerId, "server should echo back the session ID");
 
@@ -87,8 +88,8 @@ public class LoginFlowTests : IClassFixture<TestServerFixture>
             await client.SendConnectionAcceptAsync();
 
             // 3. Account request
-            var username = $"ws_{Guid.NewGuid():N}"[..20];
-            var password = "wspassword456";
+            var username = $"ws{Guid.NewGuid():N}"[..16];
+            var password = TestPasswords.Valid;
             var sessionId = await client.AccountRequestAsync(username);
             sessionId.Should().Be(client.PlayerId);
 
@@ -114,23 +115,23 @@ public class LoginFlowTests : IClassFixture<TestServerFixture>
         await client.InitAsync();
         await client.SendConnectionAcceptAsync();
 
-        var username = $"wg_{Guid.NewGuid():N}"[..20];
-        var password = "testpassword123";
+        var username = $"wg{Guid.NewGuid():N}"[..16];
+        var password = TestPasswords.Valid;
         var sessionId = await client.AccountRequestAsync(username);
         (await client.AccountCreateAsync(username, password, sessionId)).Should().Be(AccountReply.Created);
         (await client.LoginAsync(username, password)).ReplyCode.Should().Be(LoginReply.Ok);
 
         var charName = $"wg{Guid.NewGuid():N}"[..10];
-        (await client.CreateCharacterAsync(sessionId, charName)).Should().Be(CharacterReply.Ok);
+        (await client.CreateCharacterAsync(sessionId, charName)).ReplyCode.Should().Be(CharacterReply.Ok);
 
-        await client.SendPacketAsync(new WelcomeRequestClientPacket { CharacterId = 0 });
+        await client.SendPacketAsync(new WelcomeRequestClientPacket { CharacterId = client.CharacterId });
         var welcome = (WelcomeReplyServerPacket)await client.ReceivePacketAsync();
         welcome.WelcomeCode.Should().Be(WelcomeCode.SelectCharacter);
 
         await client.SendPacketAsync(new WelcomeMsgClientPacket
         {
             SessionId = client.PlayerId,
-            CharacterId = 0
+            CharacterId = client.CharacterId
         });
         var enter = (WelcomeReplyServerPacket)await client.ReceivePacketAsync();
         enter.WelcomeCode.Should().Be(WelcomeCode.EnterGame);
@@ -154,14 +155,14 @@ public class LoginFlowTests : IClassFixture<TestServerFixture>
         await client.SendConnectionAcceptAsync();
 
         // Create account
-        var username = $"bad_{Guid.NewGuid():N}"[..20];
-        var correctPassword = "correctpassword";
+        var username = $"bad{Guid.NewGuid():N}"[..16];
+        var correctPassword = "correct123";
         var sessionId = await client.AccountRequestAsync(username);
         var createReply = await client.AccountCreateAsync(username, correctPassword, sessionId);
         createReply.Should().Be(AccountReply.Created);
 
         // Login with wrong password
-        var loginReply = await client.LoginAsync(username, "wrongpassword");
+        var loginReply = await client.LoginAsync(username, "wrongpass");
         loginReply.ReplyCode.Should().Be(LoginReply.WrongUserPassword);
     }
 
@@ -174,7 +175,7 @@ public class LoginFlowTests : IClassFixture<TestServerFixture>
         await client.SendConnectionAcceptAsync();
 
         // Login without creating the account
-        var loginReply = await client.LoginAsync("nonexistent_user_xyz", "anypassword");
+        var loginReply = await client.LoginAsync("nonexistent_user_xyz", TestPasswords.Valid);
         loginReply.ReplyCode.Should().Be(LoginReply.WrongUser);
     }
 
@@ -186,8 +187,8 @@ public class LoginFlowTests : IClassFixture<TestServerFixture>
         await client.InitAsync();
         await client.SendConnectionAcceptAsync();
 
-        var username = $"dup_{Guid.NewGuid():N}"[..20];
-        var password = "duppassword";
+        var username = $"dup{Guid.NewGuid():N}"[..16];
+        var password = TestPasswords.Valid;
 
         // Create account first time — should succeed
         var sessionId = await client.AccountRequestAsync(username);

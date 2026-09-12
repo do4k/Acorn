@@ -50,6 +50,9 @@ public class AccountRepository : IDbRepository<Account>
     {
         try
         {
+            // Usernames are case-insensitive (eoserv lowercases them), so compare
+            // in lowercase to match accounts stored by older clients.
+            var normalized = username.ToLowerInvariant();
             var account = await _context.Accounts
                 .Include(a => a.Characters)
                 .ThenInclude(c => c.Paperdoll)
@@ -57,7 +60,7 @@ public class AccountRepository : IDbRepository<Account>
                 .ThenInclude(c => c.Items)
                 .Include(a => a.Characters)
                 .ThenInclude(c => c.Spells)
-                .FirstOrDefaultAsync(a => a.Username == username);
+                .FirstOrDefaultAsync(a => a.Username.ToLower() == normalized);
 
             if (account is null)
             {

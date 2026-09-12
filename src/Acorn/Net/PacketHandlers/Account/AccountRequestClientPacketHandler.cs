@@ -1,5 +1,8 @@
 using Acorn.Database.Repository;
+using Acorn.Game.Validation;
+using Acorn.Options;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
@@ -8,16 +11,33 @@ namespace Acorn.Net.PacketHandlers.Account;
 
 internal class AccountRequestClientPacketHandler(
     IDbRepository<Database.Models.Account> accountRepository,
+    IOptions<ServerOptions> serverOptions,
     ILogger<AccountRequestClientPacket> logger
 ) : IPacketHandler<AccountRequestClientPacket>
 {
     private readonly IDbRepository<Database.Models.Account> _accountRepository = accountRepository;
+    private readonly ServerOptions _serverOptions = serverOptions.Value;
     private readonly ILogger<AccountRequestClientPacket> _logger = logger;
 
     public async Task HandleAsync(PlayerState playerState,
         AccountRequestClientPacket packet)
     {
-        var account = await _accountRepository.GetByKeyAsync(packet.Username);
+        var username = PlayerValidation.NormalizeName(packet.Username);
+
+        if (!PlayerValidation.IsValidAccountName(username)
+            || username.Length < _serverOptions.AccountMinLength
+            || username.Length > _serverOptions.AccountMaxLength)
+        {
+            _logger.LogDebug("Rejecting account request for invalid username");
+            await playerState.Send(new AccountReplyServerPacket
+            {
+                ReplyCode = AccountReply.NotApproved,
+                ReplyCodeData = new AccountReplyServerPacket.ReplyCodeDataNotApproved()
+            });
+            return;
+        }
+
+        var account = await _accountRepository.GetByKeyAsync(username);
         if (account is not null)
         {
             _logger.LogDebug("Account exists {username}", account.Username);
@@ -29,7 +49,7 @@ internal class AccountRequestClientPacketHandler(
         }
         else
         {
-            _logger.LogDebug("Account \"{username}\" does not exist", packet.Username);
+            _logger.LogDebug("Account \"{username}\" does not exist", username);
 
             // Send back the current sequence start (matches reoserv: get_start(), no regeneration)
             await playerState.Send(new AccountReplyServerPacket
