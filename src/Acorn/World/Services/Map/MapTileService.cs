@@ -28,7 +28,15 @@ public class MapTileService : IMapTileService
         MapTileSpec.Board6,
         MapTileSpec.Board7,
         MapTileSpec.Board8,
-        MapTileSpec.Jukebox,
+        MapTileSpec.Jukebox
+    };
+
+    /// <summary>
+    ///     Tiles that only constrain NPC movement. Players may walk over an NPC boundary,
+    ///     matching eoserv's <c>Map_Tile::Walkable(npc)</c>, which blocks it for NPCs only.
+    /// </summary>
+    private static readonly HashSet<MapTileSpec> NpcOnlyNonWalkableTiles = new()
+    {
         MapTileSpec.NpcBoundary
     };
 
@@ -41,7 +49,7 @@ public class MapTileService : IMapTileService
 
     public bool IsNpcWalkable(MapTileSpec tileSpec)
     {
-        return !NonWalkableTiles.Contains(tileSpec);
+        return !NonWalkableTiles.Contains(tileSpec) && !NpcOnlyNonWalkableTiles.Contains(tileSpec);
     }
 
     public bool IsTileWalkable(Emf map, Coords coords)
@@ -52,7 +60,7 @@ public class MapTileService : IMapTileService
             return true;
         }
 
-        return IsNpcWalkable(tile.Value);
+        return !NonWalkableTiles.Contains(tile.Value);
     }
 
     public int GetDistance(Coords a, Coords b)

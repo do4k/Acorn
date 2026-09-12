@@ -25,6 +25,11 @@ public class WalkValidationTests : IClassFixture<TestServerFixture>
     private const int ChairX = 6;
     private const int ChairY = 11;
 
+    // The shared test map has an NPC boundary tile at (8, 8): NPCs cannot cross it,
+    // players must be able to.
+    private const int NpcBoundaryX = 8;
+    private const int NpcBoundaryY = 8;
+
     private readonly TestServerFixture _fixture;
 
     public WalkValidationTests(TestServerFixture fixture)
@@ -175,6 +180,25 @@ public class WalkValidationTests : IClassFixture<TestServerFixture>
         {
             map.RemoveNpc(npc);
         }
+    }
+
+    [Fact]
+    public async Task WalkOntoNpcBoundaryTile_ShouldBeAllowed()
+    {
+        await using var client = await LoginAndEnterAsync("walknpcbound");
+
+        // Walk right twice, then down twice, to reach the NPC boundary tile at (8, 8).
+        (await SendWalkAsync(client, Direction.Right, StartX + 1, StartY)).Should().BeOfType<WalkReplyServerPacket>();
+        (await SendWalkAsync(client, Direction.Right, StartX + 2, StartY)).Should().BeOfType<WalkReplyServerPacket>();
+        (await SendWalkAsync(client, Direction.Down, StartX + 2, StartY + 1)).Should().BeOfType<WalkReplyServerPacket>();
+
+        var reply = await SendWalkAsync(client, Direction.Down, NpcBoundaryX, NpcBoundaryY);
+
+        reply.Should().BeOfType<WalkReplyServerPacket>("players may walk over NPC boundary tiles");
+
+        var character = _fixture.GetPlayer(client.PlayerId)!.Character!;
+        character.X.Should().Be(NpcBoundaryX);
+        character.Y.Should().Be(NpcBoundaryY);
     }
 
     // --- Flow helpers ---
