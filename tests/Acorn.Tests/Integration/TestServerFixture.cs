@@ -617,6 +617,12 @@ public class TestServerFixture : TUnit.Core.Interfaces.IAsyncInitializer, IAsync
             TcpClient? tcp = null;
             try
             {
+                // Capture the pre-connect count: the server may register the probe as
+                // soon as the OS handshake completes, which can be before ConnectAsync
+                // returns. Reading the baseline afterwards would then already include
+                // the probe and the wait below would never observe it.
+                var baseline = OnlinePlayerCount;
+
                 tcp = new TcpClient();
                 await tcp.ConnectAsync(IPAddress.Loopback, port, cts.Token);
 
@@ -630,7 +636,6 @@ public class TestServerFixture : TUnit.Core.Interfaces.IAsyncInitializer, IAsync
                 // observable, then close it and wait for the asynchronous cleanup to
                 // remove it. Otherwise a late-arriving phantom player races the first
                 // test's baseline count (e.g. Tcp_Disconnect_ShouldCleanUpWorldState).
-                var baseline = OnlinePlayerCount;
                 if (!await WaitUntilAsync(() => OnlinePlayerCount > baseline, TimeSpan.FromSeconds(5), cts.Token))
                 {
                     throw new TimeoutException(
