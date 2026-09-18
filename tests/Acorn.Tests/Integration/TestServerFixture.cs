@@ -279,7 +279,7 @@ public class TestServerFixture : TUnit.Core.Interfaces.IAsyncInitializer, IAsync
         }
 
         await _host.StartAsync();
-        await WaitForPortReady(TcpPort);
+        await WaitForPortReady(TcpPort, registersPlayer: true);
         await WaitForPortReady(WsPort);
     }
 
@@ -603,20 +603,61 @@ public class TestServerFixture : TUnit.Core.Interfaces.IAsyncInitializer, IAsync
     /// BackgroundService.ExecuteAsync starts asynchronously, so listeners may not
     /// be ready immediately after host.StartAsync returns.
     /// </summary>
-    private async Task WaitForPortReady(int port)
+    /// <param name="port">The port to probe.</param>
+    /// <param name="registersPlayer">
+    ///     Whether the server registers accepted TCP connections as players in world
+    ///     state. The TCP listener does (so does this probe); the WebSocket listener
+    ///     only does so after a valid upgrade handshake, so a raw probe is ignored.
+    /// </param>
+    private async Task WaitForPortReady(int port, bool registersPlayer = false)
     {
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         while (!cts.Token.IsCancellationRequested)
         {
+            TcpClient? tcp = null;
             try
             {
-                using var tcp = new TcpClient();
+                tcp = new TcpClient();
                 await tcp.ConnectAsync(IPAddress.Loopback, port, cts.Token);
+
+                if (!registersPlayer)
+                {
+                    return;
+                }
+
+                // The readiness probe is itself a player as far as the server is
+                // concerned. Hold the socket open until that registration is
+                // observable, then close it and wait for the asynchronous cleanup to
+                // remove it. Otherwise a late-arriving phantom player races the first
+                // test's baseline count (e.g. Tcp_Disconnect_ShouldCleanUpWorldState).
+                var baseline = OnlinePlayerCount;
+                if (!await WaitUntilAsync(() => OnlinePlayerCount > baseline, TimeSpan.FromSeconds(5), cts.Token))
+                {
+                    throw new TimeoutException(
+                        $"Server did not register the readiness probe on port {port} within 5 seconds");
+                }
+
+                tcp.Dispose();
+                tcp = null;
+
+                if (!await WaitUntilAsync(() => OnlinePlayerCount <= baseline, TimeSpan.FromSeconds(5), cts.Token))
+                {
+                    throw new TimeoutException(
+                        $"Readiness probe player on port {port} was not cleaned up within 5 seconds");
+                }
+
                 return;
             }
             catch (SocketException)
             {
                 await Task.Delay(100, cts.Token);
+            }
+            finally
+            {
+                if (tcp is not null)
+                {
+                    tcp.Dispose();
+                }
             }
         }
 
@@ -628,5 +669,26 @@ public class TestServerFixture : TUnit.Core.Interfaces.IAsyncInitializer, IAsync
         }
 
         throw new TimeoutException($"Server port {port} did not become ready within 10 seconds");
+    }
+
+    /// <summary>
+    /// Polls <paramref name="condition" /> until it is true or <paramref name="timeout" />
+    /// elapses. Returns whether the condition was met.
+    /// </summary>
+    private static async Task<bool> WaitUntilAsync(Func<bool> condition, TimeSpan timeout,
+        CancellationToken cancellationToken = default)
+    {
+        var deadline = DateTime.UtcNow + timeout;
+        while (DateTime.UtcNow < deadline && !cancellationToken.IsCancellationRequested)
+        {
+            if (condition())
+            {
+                return true;
+            }
+
+            await Task.Delay(25, cancellationToken);
+        }
+
+        return condition();
     }
 }
