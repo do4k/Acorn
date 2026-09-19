@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Acorn.Infrastructure.Telemetry;
 using Acorn.Options;
 using Acorn.World.Services.Marriage;
@@ -34,7 +35,10 @@ internal class WorldHostedService : BackgroundService
 
         while (await timer.WaitForNextTickAsync(stoppingToken))
         {
-            var sw = System.Diagnostics.Stopwatch.StartNew();
+            using var activity = AcornActivitySource.Instance.StartActivity("world.tick", ActivityKind.Internal);
+            activity?.SetTag("acorn.maps.count", _world.Maps.Count);
+
+            var sw = Stopwatch.StartNew();
             try
             {
                 var tickTasks = _world
@@ -53,6 +57,8 @@ internal class WorldHostedService : BackgroundService
             }
             catch (Exception ex)
             {
+                activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+                activity?.AddException(ex);
                 _logger.LogError(ex, "Error during world tick");
             }
             finally

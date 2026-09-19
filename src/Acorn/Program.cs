@@ -24,8 +24,10 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OpenTelemetry;
+using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using Refit;
 
 var GREEN = Console.IsOutputRedirected ? "" : "\x1b[92m";
@@ -64,8 +66,11 @@ var configuration = config
 
 Console.WriteLine($"{GREEN}Database Engine:{NORMAL} {engine.ToUpper()}");
 
+var serviceVersion = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0";
+var sampleRatio = configuration.GetValue("Telemetry:SampleRatio", 1.0);
+
 var host = Host.CreateDefaultBuilder(args)
-    .ConfigureServices(services =>
+    .ConfigureServices((context, services) =>
     {
         services
             .AddSingleton<IConfiguration>(configuration)
@@ -82,17 +87,35 @@ var host = Host.CreateDefaultBuilder(args)
             // Database + caching infrastructure: options binding, DbContext and in-memory cache
             .AddAcornDataInfrastructure(configuration);
 
-        // Configure OpenTelemetry metrics, traces and logging export via OTLP
+        // Configure OpenTelemetry metrics, traces and logging export via OTLP.
+        // The exporter endpoint comes from OTEL_EXPORTER_OTLP_ENDPOINT (or
+        // OTEL_EXPORTER_OTLP_TRACES_ENDPOINT / _METRICS_ENDPOINT / _LOGS_ENDPOINT).
         services.AddOpenTelemetry()
-            .ConfigureResource(resource => resource.AddService("acorn"))
-            .WithMetrics(metrics =>
-            {
-                metrics.AddMeter(AcornMetrics.MeterName);
-            })
-            .WithTracing(tracing =>
-            {
-                tracing.AddSource(AcornMetrics.MeterName);
-            })
+            .ConfigureResource(resource => resource
+                .AddService("acorn", serviceVersion: serviceVersion,
+                    serviceInstanceId: $"{Environment.MachineName}:{Environment.ProcessId}")
+                .AddAttributes(new Dictionary<string, object>
+                {
+                    ["deployment.environment"] = context.HostingEnvironment.EnvironmentName,
+                    ["host.name"] = Environment.MachineName
+                }))
+            .WithMetrics(metrics => metrics
+                .AddMeter(AcornMetrics.MeterName)
+                .AddRuntimeInstrumentation()
+                .AddProcessInstrumentation())
+            .WithTracing(tracing => tracing
+                .AddSource(AcornActivitySource.Name)
+                .AddEntityFrameworkCoreInstrumentation()
+                .AddHttpClientInstrumentation()
+                .SetSampler(new ParentBasedSampler(new TraceIdRatioBasedSampler(sampleRatio))))
+            .WithLogging(
+                _ => { },
+                logging =>
+                {
+                    // Correlate structured logs with the active trace/span.
+                    logging.IncludeScopes = true;
+                    logging.IncludeFormattedMessage = true;
+                })
             .UseOtlpExporter();
 
         services

@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Reflection;
 using Acorn.Database.Models;
 using Acorn.Infrastructure.Communicators;
@@ -331,10 +332,32 @@ public class PlayerState : IDisposable
                     return (handler, playerState, pkt) => (Task)method.Invoke(handler, [playerState, pkt])!;
                 });
                 
-                var sw = System.Diagnostics.Stopwatch.StartNew();
-                await invoker(resolvedHandler, this, packet);
-                sw.Stop();
-                _metrics.PacketProcessDuration.Record(sw.Elapsed.TotalMilliseconds);
+                using var activity = AcornActivitySource.Instance.StartActivity(
+                    $"packet {family}/{action}", ActivityKind.Server);
+                activity?.SetTag("eo.packet.family", family.ToString());
+                activity?.SetTag("eo.packet.action", action.ToString());
+                activity?.SetTag("eo.packet.type", packet.GetType().Name);
+                activity?.SetTag("eo.session.id", SessionId);
+                activity?.SetTag("enduser.id", Account?.Username);
+                activity?.SetTag("acorn.character.name", Character?.Name);
+
+                var sw = Stopwatch.StartNew();
+                try
+                {
+                    await invoker(resolvedHandler, this, packet);
+                    activity?.SetStatus(ActivityStatusCode.Ok);
+                }
+                catch (Exception ex)
+                {
+                    activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+                    activity?.AddException(ex);
+                    throw;
+                }
+                finally
+                {
+                    sw.Stop();
+                    _metrics.PacketProcessDuration.Record(sw.Elapsed.TotalMilliseconds);
+                }
             }
             catch (EndOfStreamException)
             {

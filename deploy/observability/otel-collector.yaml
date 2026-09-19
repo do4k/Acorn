@@ -1,0 +1,80 @@
+# OpenTelemetry Collector configuration for Acorn.
+#
+# Receives OTLP from the game server and REST API, batches it, and forwards
+# traces, metrics and logs to a backend. By default it forwards to a
+# self-hosted SigNoz collector; set SIGNOZ_OTLP_ENDPOINT to point anywhere else.
+#
+# Run together with the main compose file (from the repo root):
+#   docker compose -f docker-compose.yml -f deploy/observability/docker-compose.yaml up -d
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  memory_limiter:
+    check_interval: 5s
+    limit_percentage: 75
+    spike_limit_percentage: 20
+
+  # Bound outbound batch sizes / export latency.
+  batch:
+    send_batch_size: 8192
+    timeout: 5s
+
+  # Example PII scrub: drop the account name from spans before export.
+  # attributes/scrub:
+  #   actions:
+  #     - key: enduser.id
+  #       action: delete
+
+  # Tail sampling keeps every error (and slow) trace plus a sample of the rest.
+  # A single collector instance is required so all spans of a trace land here.
+  # If enabled, remove the app-side ratio sampler (Telemetry:SampleRatio).
+  # tail_sampling:
+  #   decision_wait: 10s
+  #   policies:
+  #     - name: errors
+  #       type: status_code
+  #       status_code: { status_codes: [ERROR] }
+  #     - name: slow
+  #       type: latency
+  #       latency: { threshold_ms: 250 }
+  #     - name: sample
+  #       type: probabilistic
+  #       probabilistic: { sampling_percentage: 10 }
+
+exporters:
+  otlp/signoz:
+    # Set SIGNOZ_OTLP_ENDPOINT in the environment (compose defaults it to
+    # signoz-otel-collector:4317 on acorn-network).
+    endpoint: ${env:SIGNOZ_OTLP_ENDPOINT}
+    tls:
+      insecure: true
+    retry_on_failure:
+      enabled: true
+  # Prints a per-batch summary; useful when validating the pipeline.
+  debug:
+    verbosity: basic
+
+service:
+  telemetry:
+    logs:
+      level: info
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlp/signoz, debug]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlp/signoz]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlp/signoz]
