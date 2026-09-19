@@ -1,0 +1,51 @@
+# Optional observability stack for Acorn (OpenTelemetry Collector).
+#
+# Usage, from the repo root:
+#   docker compose -f docker-compose.yml -f deploy/observability/docker-compose.yaml up -d
+#
+# This adds an OpenTelemetry Collector and points the game server / REST API at
+# it. The collector forwards to SIGNOZ_OTLP_ENDPOINT (default: a self-hosted
+# SigNoz collector reachable as `signoz-otel-collector:4317` on acorn-network).
+#
+# SigNoz OSS/community edition is free to self-host. Install it with their
+# supported path (Docker/Kubernetes/Linux):
+#   https://signoz.io/docs/install/self-host/
+# then attach it to this network so the collector can reach it, e.g.:
+#   docker network connect acorn-network signoz-otel-collector
+#
+# If you only want the Aspire dashboard (development), you don't need this file.
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.161.0
+    container_name: acorn-otel-collector
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    volumes:
+      - ./otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+    environment:
+      - SIGNOZ_OTLP_ENDPOINT=${SIGNOZ_OTLP_ENDPOINT:-signoz-otel-collector:4317}
+    ports:
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+    restart: unless-stopped
+    networks:
+      - acorn-network
+
+  acorn:
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+
+  acorn-api:
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+
+  acorn-sqlite:
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+
+  acorn-postgres:
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+
+  acorn-sqlserver:
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
