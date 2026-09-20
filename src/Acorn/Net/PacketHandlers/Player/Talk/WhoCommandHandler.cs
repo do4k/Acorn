@@ -10,9 +10,7 @@ public class WhoCommandHandler(IWorldQueries world, INotificationService notific
 {
     private const int MaxListed = 50;
 
-    public bool CanHandle(string command)
-        => command.Equals("who", StringComparison.InvariantCultureIgnoreCase)
-        || command.Equals("online", StringComparison.InvariantCultureIgnoreCase);
+    public IReadOnlyList<string> Commands => ["who", "online"];
 
     public async Task HandleAsync(PlayerState playerState, string command, params string[] args)
     {

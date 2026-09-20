@@ -8,8 +8,7 @@ namespace Acorn.Net.PacketHandlers.Player.Talk;
 /// </summary>
 public class UptimeCommandHandler(IServerStatusService serverStatus, INotificationService notifications) : ITalkHandler
 {
-    public bool CanHandle(string command)
-        => command.Equals("uptime", StringComparison.InvariantCultureIgnoreCase);
+    public IReadOnlyList<string> Commands => ["uptime"];
 
     public async Task HandleAsync(PlayerState playerState, string command, params string[] args)
     {

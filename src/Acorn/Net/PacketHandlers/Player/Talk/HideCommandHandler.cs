@@ -1,12 +1,13 @@
 using Acorn.World.Services.Admin;
+using Moffat.EndlessOnline.SDK.Protocol;
 
 namespace Acorn.Net.PacketHandlers.Player.Talk;
 
 public class HideCommandHandler(IAdminService adminService) : ITalkHandler
 {
-    public bool CanHandle(string command)
-        => command.Equals("hide", StringComparison.InvariantCultureIgnoreCase)
-        || command.Equals("show", StringComparison.InvariantCultureIgnoreCase);
+    public IReadOnlyList<string> Commands => ["hide", "show"];
+
+    public AdminLevel RequiredLevel => AdminLevel.Guardian;
 
     public async Task HandleAsync(PlayerState playerState, string command, params string[] args)
     {

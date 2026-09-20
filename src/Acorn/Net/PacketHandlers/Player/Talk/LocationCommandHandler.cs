@@ -7,9 +7,7 @@ namespace Acorn.Net.PacketHandlers.Player.Talk;
 /// </summary>
 public class LocationCommandHandler(INotificationService notifications) : IPlayerCommandHandler
 {
-    public bool CanHandle(string command)
-        => command.Equals("loc", StringComparison.InvariantCultureIgnoreCase)
-        || command.Equals("location", StringComparison.InvariantCultureIgnoreCase);
+    public IReadOnlyList<string> Commands => ["loc", "location"];
 
     public async Task HandleAsync(PlayerState playerState, string command, params string[] args)
     {

@@ -1,5 +1,6 @@
 using Acorn.Extensions;
 using Acorn.Game.Services;
+using Acorn.Net.Services;
 using Acorn.World.Services.Map;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
@@ -16,7 +17,8 @@ internal class TalkReportClientPacketHandler(
     IEnumerable<IPlayerCommandHandler> playerCommandHandlers,
     WiseManTalkHandler wiseManHandler,
     IMapTileService tileService,
-    IChatSanitizer chatSanitizer)
+    IChatSanitizer chatSanitizer,
+    INotificationService notifications)
     : IPacketHandler<TalkReportClientPacket>
 {
     public async Task HandleAsync(PlayerState playerState,
@@ -30,14 +32,21 @@ internal class TalkReportClientPacketHandler(
 
         var author = playerState.Character!;
 
-        if (author?.Admin > AdminLevel.Player && packet.Message.StartsWith("$"))
+        if (author.Admin > AdminLevel.Player && packet.Message.StartsWith("$"))
         {
-            var args = packet.Message.Split(" ");
+            var args = packet.Message.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             var command = args[0][1..];
 
             var handler = talkHandlers.FirstOrDefault(x => x.CanHandle(command));
             if (handler is null)
             {
+                return;
+            }
+
+            if (author.Admin < handler.RequiredLevel)
+            {
+                await notifications.SystemMessage(playerState,
+                    $"You do not have permission to use ${command}.");
                 return;
             }
 

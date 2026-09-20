@@ -141,8 +141,10 @@ eoserv's ~25 `setX` commands into one generic `$set <player> <attr> <value>`
 **Covered:** info/player, inventory, kick, jail, free (unjail), ban, mute/unmute,
 freeze/unfreeze, warp, wmt/warpmeto (go to player), summon/bring/warptome (pull
 player to you), who/online, hide, evacuate, quake, set (≈ the whole `setX` family),
-spawnitem (sitem/si), spawnnpc (snpc), addspell (spell), global, location, usage,
-uptime, rehash (config re-read), repub (pub reload).
+spawnitem (sitem/si), spawnnpc (snpc), addspell (spell), global, help, location,
+usage, uptime, rehash (config re-read), repub (pub reload). Per-command minimum
+admin levels are now declared on the handlers (`RequiredLevel`) and enforced by
+the dispatcher; `$set admin` additionally requires HighGameMaster.
 
 **Missing vs eoserv (candidate backlog):**
 

@@ -7,9 +7,7 @@ namespace Acorn.Net.PacketHandlers.Player.Talk;
 /// </summary>
 public class PlayerInventoryCommandHandler(INotificationService notifications) : IPlayerCommandHandler
 {
-    public bool CanHandle(string command)
-        => command.Equals("inventory", StringComparison.InvariantCultureIgnoreCase)
-        || command.Equals("inv", StringComparison.InvariantCultureIgnoreCase);
+    public IReadOnlyList<string> Commands => ["inventory", "inv"];
 
     public async Task HandleAsync(PlayerState playerState, string command, params string[] args)
     {

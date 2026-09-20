@@ -20,11 +20,9 @@ internal class WarpCommandHandler : ITalkHandler
         _playerController = playerController;
     }
 
-    public bool CanHandle(string command)
-    {
-        return command.Equals("warp", StringComparison.InvariantCultureIgnoreCase) ||
-               command.Equals("w", StringComparison.InvariantCultureIgnoreCase);
-    }
+    public IReadOnlyList<string> Commands => ["warp", "w"];
+
+    public string Usage => "<map id or name> [<x> <y>]";
 
     public async Task HandleAsync(PlayerState playerState, string command, params string[] args)
     {

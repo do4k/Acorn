@@ -4,20 +4,30 @@ using Acorn.Net.Services;
 namespace Acorn.Net.PacketHandlers.Player.Talk;
 
 /// <summary>
-///     $rehash - Re-reads the server configuration sources.
+///     $rehash - Re-reads the server configuration sources and refreshes the pub
+///     data. Settings already bound at startup still require a restart.
 /// </summary>
-public class RehashCommandHandler(IConfigurationReloadService configurationReload, INotificationService notifications)
-    : ITalkHandler
+public class RehashCommandHandler(
+    IConfigurationReloadService configurationReload,
+    IPubFileReloadService pubFileReload,
+    INotificationService notifications) : ITalkHandler
 {
-    public bool CanHandle(string command)
-        => command.Equals("rehash", StringComparison.InvariantCultureIgnoreCase);
+    public IReadOnlyList<string> Commands => ["rehash"];
 
     public async Task HandleAsync(PlayerState playerState, string command, params string[] args)
     {
-        var reloaded = configurationReload.Reload();
-        var message = reloaded
-            ? "Configuration reloaded. Settings bound at startup still require a restart."
-            : "Failed to reload configuration - check the server log.";
+        var configurationReloaded = configurationReload.Reload();
+        var pubReloaded = await pubFileReload.ReloadAsync();
+
+        var message = (configurationReloaded, pubReloaded) switch
+        {
+            (true, true) =>
+                "Configuration reloaded and pub files refreshed. Settings bound at startup still require a restart.",
+            (true, false) => "Configuration reloaded, but pub files failed to reload - check the server log.",
+            (false, true) => "Pub files refreshed, but configuration failed to reload - check the server log.",
+            (false, false) => "Reload failed - check the server log."
+        };
+
         await notifications.SystemMessage(playerState, message);
     }
 }

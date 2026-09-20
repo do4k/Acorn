@@ -21,11 +21,9 @@ public class AddSpellCommandHandler : ITalkHandler
         _notifications = notifications;
     }
 
-    public bool CanHandle(string command)
-    {
-        return command.Equals("addspell", StringComparison.InvariantCultureIgnoreCase)
-               || command.Equals("spell", StringComparison.InvariantCultureIgnoreCase);
-    }
+    public IReadOnlyList<string> Commands => ["addspell", "spell"];
+
+    public string Usage => "<character_name> <spell_id> [level]";
 
     public async Task HandleAsync(PlayerState playerState, string command, params string[] args)
     {

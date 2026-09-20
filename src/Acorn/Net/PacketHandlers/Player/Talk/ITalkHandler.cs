@@ -1,7 +1,15 @@
-﻿namespace Acorn.Net.PacketHandlers.Player.Talk;
+﻿using Moffat.EndlessOnline.SDK.Protocol;
 
-public interface ITalkHandler
+namespace Acorn.Net.PacketHandlers.Player.Talk;
+
+/// <summary>
+///     Interface for admin <c>$</c> commands.
+/// </summary>
+public interface ITalkHandler : ICommandHandler
 {
-    bool CanHandle(string command);
-    Task HandleAsync(PlayerState playerState, string command, params string[] args);
+    /// <summary>
+    ///     Minimum admin level required to run this command. Enforced by the
+    ///     command dispatcher before <see cref="ICommandHandler.HandleAsync" />.
+    /// </summary>
+    AdminLevel RequiredLevel => AdminLevel.Spy;
 }

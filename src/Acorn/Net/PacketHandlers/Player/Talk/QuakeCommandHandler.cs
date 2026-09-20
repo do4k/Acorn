@@ -1,12 +1,16 @@
 using Acorn.Net.Services;
+using Moffat.EndlessOnline.SDK.Protocol;
 using Acorn.World.Services.Admin;
 
 namespace Acorn.Net.PacketHandlers.Player.Talk;
 
 public class QuakeCommandHandler(IAdminService adminService) : ITalkHandler
 {
-    public bool CanHandle(string command)
-        => command.Equals("quake", StringComparison.InvariantCultureIgnoreCase);
+    public IReadOnlyList<string> Commands => ["quake"];
+
+    public string Usage => "[strength]";
+
+    public AdminLevel RequiredLevel => AdminLevel.GameMaster;
 
     public async Task HandleAsync(PlayerState playerState, string command, params string[] args)
     {

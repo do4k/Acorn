@@ -1,12 +1,16 @@
 using Acorn.Net.Services;
 using Acorn.World.Services.Admin;
+using Moffat.EndlessOnline.SDK.Protocol;
 
 namespace Acorn.Net.PacketHandlers.Player.Talk;
 
 public class UnfreezeCommandHandler(IAdminService adminService, INotificationService notifications) : ITalkHandler
 {
-    public bool CanHandle(string command)
-        => command.Equals("unfreeze", StringComparison.InvariantCultureIgnoreCase);
+    public IReadOnlyList<string> Commands => ["unfreeze"];
+
+    public string Usage => "<name>";
+
+    public AdminLevel RequiredLevel => AdminLevel.Guardian;
 
     public async Task HandleAsync(PlayerState playerState, string command, params string[] args)
     {

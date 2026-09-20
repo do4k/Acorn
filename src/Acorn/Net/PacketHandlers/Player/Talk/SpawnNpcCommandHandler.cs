@@ -32,11 +32,9 @@ public class SpawnNpcCommandHandler : ITalkHandler
         _npcController = npcController;
     }
 
-    public bool CanHandle(string command)
-    {
-        return command.Equals("spawnnpc", StringComparison.InvariantCultureIgnoreCase)
-               || command.Equals("snpc", StringComparison.InvariantCultureIgnoreCase);
-    }
+    public IReadOnlyList<string> Commands => ["spawnnpc", "snpc"];
+
+    public string Usage => "<npc_id|npc_name> [count]";
 
     public async Task HandleAsync(PlayerState playerState, string command, params string[] args)
     {

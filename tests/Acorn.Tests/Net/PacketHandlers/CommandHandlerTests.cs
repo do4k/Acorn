@@ -158,17 +158,37 @@ public class CommandHandlerTests
     // --- $rehash ---
 
     [Test]
-    public async Task Rehash_WhenReloadSucceeds_ReportsWithRestartCaveat()
+    public async Task Rehash_WhenBothReloadsSucceed_ReportsWithRestartCaveat()
     {
         var configurationReload = Substitute.For<IConfigurationReloadService>();
         configurationReload.Reload().Returns(true);
+        var pubFileReload = Substitute.For<IPubFileReloadService>();
+        pubFileReload.ReloadAsync().Returns(true);
         var notifications = Substitute.For<INotificationService>();
-        var handler = new RehashCommandHandler(configurationReload, notifications);
+        var handler = new RehashCommandHandler(configurationReload, pubFileReload, notifications);
         var (player, _) = FakePlayer.Create();
 
         await handler.HandleAsync(player, "rehash");
 
         await notifications.Received(1)
-            .SystemMessage(player, "Configuration reloaded. Settings bound at startup still require a restart.");
+            .SystemMessage(player,
+                "Configuration reloaded and pub files refreshed. Settings bound at startup still require a restart.");
+    }
+
+    [Test]
+    public async Task Rehash_WhenOnlyPubReloads_ReportsPartialFailure()
+    {
+        var configurationReload = Substitute.For<IConfigurationReloadService>();
+        configurationReload.Reload().Returns(false);
+        var pubFileReload = Substitute.For<IPubFileReloadService>();
+        pubFileReload.ReloadAsync().Returns(true);
+        var notifications = Substitute.For<INotificationService>();
+        var handler = new RehashCommandHandler(configurationReload, pubFileReload, notifications);
+        var (player, _) = FakePlayer.Create();
+
+        await handler.HandleAsync(player, "rehash");
+
+        await notifications.Received(1)
+            .SystemMessage(player, "Pub files refreshed, but configuration failed to reload - check the server log.");
     }
 }
