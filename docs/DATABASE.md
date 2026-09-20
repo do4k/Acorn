@@ -116,6 +116,29 @@ be overridden with the `Database__Engine` / `Database__ConnectionString` environ
 > Migrations are generated against SQLite (the development default). Generate provider-specific
 > migrations before deploying against MySQL/PostgreSQL/SQL Server.
 
+#### PostgreSQL
+
+PostgreSQL keeps its own migrations in `src/Acorn.Database.PostgreSql`. Selecting the PostgreSQL
+engine sets `MigrationsAssembly` to that project, so the SQLite migrations are not used. Generate
+and apply them with `ASPNETCORE_ENVIRONMENT=Production` (design-time scope validation otherwise
+prevents the server's host from starting):
+
+```bash
+cd src/Acorn
+
+# Add a migration
+ASPNETCORE_ENVIRONMENT=Production Database__Engine=PostgreSQL \
+  Database__ConnectionString="Host=localhost;Port=5432;Database=acorn;Username=acorn;Password=acornpassword" \
+  dotnet ef migrations add MigrationName --project ../Acorn.Database.PostgreSql --startup-project .
+
+# Apply it
+ASPNETCORE_ENVIRONMENT=Production Database__Engine=PostgreSQL \
+  Database__ConnectionString="Host=localhost;Port=5432;Database=acorn;Username=acorn;Password=acornpassword" \
+  dotnet ef database update --project ../Acorn.Database.PostgreSql --startup-project .
+```
+
+MySQL and SQL Server still require their own migrations generated the same way.
+
 ### Tables
 - **Accounts** - User accounts with authentication
 - **Characters** - Character data (stats, position, etc.)

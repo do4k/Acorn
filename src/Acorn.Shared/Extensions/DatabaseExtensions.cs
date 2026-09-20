@@ -15,7 +15,9 @@ public static class DatabaseExtensions
         {
             case "postgresql":
             case "postgres":
-                options.UseNpgsql(connectionString);
+                options.UseNpgsql(
+                    connectionString,
+                    npgsql => npgsql.MigrationsAssembly("Acorn.Database.PostgreSql"));
                 break;
             case "mysql":
             case "mariadb":
