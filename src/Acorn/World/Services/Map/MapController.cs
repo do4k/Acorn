@@ -3,6 +3,7 @@ using Acorn.Game.Services;
 using Acorn.Net;
 using Acorn.Shared.Caching;
 using Acorn.World.Map;
+using Acorn.World.Npc;
 using Acorn.World.Services.Npc;
 using Acorn.World.Services.Player;
 using Microsoft.Extensions.Logging;
@@ -233,6 +234,40 @@ public class MapController : IMapController
         {
             await recipient.Send(packet);
         }
+    }
+
+    public async Task JunkBossChildrenAsync(MapState map, NpcState boss)
+    {
+        if (!boss.Data.Boss)
+        {
+            return;
+        }
+
+        // Children are marked dead (so they take part in the normal respawn lifecycle)
+        // and cleared from every client with a single NPC_JUNK packet.
+        var children = map.Npcs.Values
+            .Where(npc => npc.Data.Child && !npc.IsDead)
+            .ToList();
+
+        if (children.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var child in children)
+        {
+            child.IsDead = true;
+            child.DeathTime = boss.DeathTime ?? DateTime.UtcNow;
+            child.Opponents.Clear();
+        }
+
+        await SendToInRangePlayersAsync(map, boss.AsCoords(), new NpcJunkServerPacket
+        {
+            NpcId = boss.Index
+        });
+
+        _logger.LogInformation("Cleared {Count} child NPC(s) after boss {Boss} died", children.Count,
+            boss.Data.Name);
     }
 
     public async Task ProcessNpcRespawnsAsync(MapState map)

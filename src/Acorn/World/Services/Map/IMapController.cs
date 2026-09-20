@@ -1,5 +1,6 @@
 using Acorn.Net;
 using Acorn.World.Map;
+using Acorn.World.Npc;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
@@ -21,6 +22,11 @@ public interface IMapController
     ///     Process all NPC respawns for the map.
     /// </summary>
     Task ProcessNpcRespawnsAsync(MapState map);
+
+    /// <summary>
+    ///     When a boss dies, despawn its children (NPC_JUNK), matching eoserv.
+    /// </summary>
+    Task JunkBossChildrenAsync(MapState map, NpcState boss);
 
     /// <summary>
     ///     Process NPC movement and combat for all alive NPCs.
