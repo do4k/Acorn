@@ -151,8 +151,7 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
         var damage = _formulaService.CalculateDamageToNpc(character, target.Data, remainingHp,
             attackingBackOrSide: attackingBackOrSide, criticalFirstHit: _criticalFirstHit);
 
-        // Report at most the damage needed to kill the target (matches eoserv's LimitDamage).
-        damage = Math.Min(damage, remainingHp);
+        // Report the full rolled damage even when it overkills the target; only its HP is clamped.
         target.Hp = Math.Max(target.Hp - damage, 0);
 
         // Register player as opponent for NPC aggro
@@ -403,12 +402,10 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
         var attackingBackOrSide =
             Math.Abs((int)target.Character.Direction - (int)attacker.Character.Direction) != 2;
 
-        var remainingHp = target.Character.Hp;
         var damage = _formulaService.CalculateDamageToPlayer(attacker.Character, target.Character,
             attackingBackOrSide, criticalFirstHit: _criticalFirstHit);
 
-        // Report at most the damage needed to kill the target (matches eoserv's LimitDamage).
-        damage = Math.Min(damage, remainingHp);
+        // Report the full rolled damage even when it overkills the target; only their HP is clamped.
         target.Character.Hp = Math.Max(0, target.Character.Hp - damage);
 
         var dead = target.Character.Hp == 0;
