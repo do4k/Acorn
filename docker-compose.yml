@@ -1,5 +1,40 @@
+# Each database is a Compose profile that brings up a complete environment:
+# its database, the game server and the REST API.
+#
+#   docker compose --profile mysql up
+#   docker compose --profile sqlite up
+#   docker compose --profile postgres up
+#   docker compose --profile sqlserver up
+#
+# The Aspire dashboard has no profile, so it runs for every environment.
+# `COMPOSE_PROFILES` in .env selects the environment used by a bare
+# `docker compose up` (default: mysql).
+
+x-acorn-server: &acorn-server
+  build:
+    context: .
+    dockerfile: src/Acorn/Dockerfile
+  ports:
+    - "8078:8078"   # Game TCP
+    - "8079:8079"   # Game WebSocket
+  volumes:
+    - ./src/Acorn/Data:/app/Data:ro
+  restart: unless-stopped
+  networks:
+    - acorn-network
+
+x-acorn-api: &acorn-api
+  build:
+    context: .
+    dockerfile: src/Acorn.Api/Dockerfile
+  ports:
+    - "5000:8080"
+  restart: unless-stopped
+  networks:
+    - acorn-network
+
 services:
-  # Aspire Dashboard (OpenTelemetry metrics/traces/logs UI)
+  # Aspire Dashboard (OpenTelemetry metrics/traces/logs UI) - runs for every profile
   aspire-dashboard:
     image: mcr.microsoft.com/dotnet/aspire-dashboard:latest
     container_name: acorn-aspire
@@ -12,33 +47,9 @@ services:
     networks:
       - acorn-network
 
-  # Acorn Server with MySQL (default for Docker)
-  acorn:
-    build:
-      context: .
-      dockerfile: src/Acorn/Dockerfile
-    container_name: acorn
-    ports:
-      - "8078:8078"
-      - "8079:8079"
-    volumes:
-      - ./src/Acorn/Data:/app/Data:ro
-    environment:
-      - Database__Engine=${DATABASE_ENGINE}
-      - Database__ConnectionString=${DATABASE_CONNECTION_STRING}
-      - Cache__Enabled=${CACHE_ENABLED}
-      - Server__Hosting__SLN__Enabled=${SERVER_SLN_ENABLED}
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
-    depends_on:
-      mysql:
-        condition: service_healthy
-      aspire-dashboard:
-        condition: service_started
-    restart: unless-stopped
-    networks:
-      - acorn-network
-
-  # MySQL Database (default for Docker)
+  # ------------------------------------------------------------------
+  # MySQL environment
+  # ------------------------------------------------------------------
   mysql:
     image: mysql:9.1
     container_name: acorn-mysql-db
@@ -59,79 +70,84 @@ services:
     restart: unless-stopped
     networks:
       - acorn-network
+    profiles:
+      - mysql
 
-  # Acorn API
-  acorn-api:
-    build:
-      context: .
-      dockerfile: src/Acorn.Api/Dockerfile
-    container_name: acorn-api
-    ports:
-      - "5000:8080"
+  acorn:
+    <<: *acorn-server
+    container_name: acorn
     environment:
-      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
-      - Database__Engine=${DATABASE_ENGINE}
-      - Database__ConnectionString=${DATABASE_CONNECTION_STRING}
+      - Database__Engine=MySQL
+      - Database__ConnectionString=Server=mysql;Port=3306;Database=acorn;User=acorn;Password=acornpassword
       - Cache__Enabled=${CACHE_ENABLED}
+      - Server__Hosting__SLN__Enabled=${SERVER_SLN_ENABLED}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
     depends_on:
       mysql:
         condition: service_healthy
-    restart: unless-stopped
-    networks:
-      - acorn-network
-
-  # Acorn Server with SQLite (for profile: sqlite)
-  acorn-sqlite:
-    build:
-      context: .
-      dockerfile: src/Acorn/Dockerfile
-    container_name: acorn-sqlite
-    ports:
-      - "8078:8078"
-      - "8079:8079"
-    volumes:
-      - ./data/sqlite:/app/mnt
-      - ./src/Acorn/Data:/app/Data:ro
-    environment:
-      - Database__Engine=SQLite
-      - Database__ConnectionString=Data Source=/app/mnt/Acorn.db;
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
-    depends_on:
       aspire-dashboard:
         condition: service_started
-    restart: unless-stopped
-    networks:
-      - acorn-network
     profiles:
-      - sqlite
+      - mysql
 
-  # Acorn Server with PostgreSQL
-  acorn-postgres:
-    build:
-      context: .
-      dockerfile: src/Acorn/Dockerfile
-    container_name: acorn-postgres
-    ports:
-      - "8078:8078"
-      - "8079:8079"
-    volumes:
-      - ./src/Acorn/Data:/app/Data:ro
+  acorn-api:
+    <<: *acorn-api
+    container_name: acorn-api
     environment:
-      - Database__Engine=PostgreSQL
-      - Database__ConnectionString=Host=postgres;Port=5432;Database=acorn;Username=acorn;Password=acornpassword
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+      - Database__Engine=MySQL
+      - Database__ConnectionString=Server=mysql;Port=3306;Database=acorn;User=acorn;Password=acornpassword
+      - Cache__Enabled=${CACHE_ENABLED}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
     depends_on:
-      postgres:
+      mysql:
         condition: service_healthy
       aspire-dashboard:
         condition: service_started
-    restart: unless-stopped
-    networks:
-      - acorn-network
     profiles:
-      - postgres
+      - mysql
 
-  # PostgreSQL Database
+  # ------------------------------------------------------------------
+  # SQLite environment
+  # ------------------------------------------------------------------
+  acorn-sqlite:
+    <<: *acorn-server
+    container_name: acorn-sqlite
+    volumes:
+      - ./src/Acorn/Data:/app/Data:ro
+      - ./data/sqlite:/app/mnt
+    environment:
+      - Database__Engine=SQLite
+      - Database__ConnectionString=Data Source=/app/mnt/Acorn.db;
+      - Cache__Enabled=${CACHE_ENABLED}
+      - Server__Hosting__SLN__Enabled=${SERVER_SLN_ENABLED}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
+    depends_on:
+      aspire-dashboard:
+        condition: service_started
+    profiles:
+      - sqlite
+
+  acorn-api-sqlite:
+    <<: *acorn-api
+    container_name: acorn-api-sqlite
+    volumes:
+      - ./data/sqlite:/app/mnt
+    environment:
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+      - Database__Engine=SQLite
+      - Database__ConnectionString=Data Source=/app/mnt/Acorn.db;
+      - Cache__Enabled=${CACHE_ENABLED}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
+    depends_on:
+      aspire-dashboard:
+        condition: service_started
+    profiles:
+      - sqlite
+
+  # ------------------------------------------------------------------
+  # PostgreSQL environment
+  # ------------------------------------------------------------------
   postgres:
     image: postgres:17-alpine
     container_name: acorn-postgres-db
@@ -154,33 +170,43 @@ services:
     profiles:
       - postgres
 
-  # Acorn Server with SQL Server (for profile: sqlserver)
-  acorn-sqlserver:
-    build:
-      context: .
-      dockerfile: src/Acorn/Dockerfile
-    container_name: acorn-sqlserver
-    ports:
-      - "8078:8078"
-      - "8079:8079"
-    volumes:
-      - ./src/Acorn/Data:/app/Data:ro
+  acorn-postgres:
+    <<: *acorn-server
+    container_name: acorn-postgres
     environment:
-      - Database__Engine=SqlServer
-      - Database__ConnectionString=Server=sqlserver;Database=acorn;User Id=sa;Password=AcornPassword123!;TrustServerCertificate=True
+      - Database__Engine=PostgreSQL
+      - Database__ConnectionString=Host=postgres;Port=5432;Database=acorn;Username=acorn;Password=acornpassword
+      - Cache__Enabled=${CACHE_ENABLED}
+      - Server__Hosting__SLN__Enabled=${SERVER_SLN_ENABLED}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
     depends_on:
-      sqlserver:
+      postgres:
         condition: service_healthy
       aspire-dashboard:
         condition: service_started
-    restart: unless-stopped
-    networks:
-      - acorn-network
     profiles:
-      - sqlserver
+      - postgres
 
-  # SQL Server Database
+  acorn-api-postgres:
+    <<: *acorn-api
+    container_name: acorn-api-postgres
+    environment:
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+      - Database__Engine=PostgreSQL
+      - Database__ConnectionString=Host=postgres;Port=5432;Database=acorn;Username=acorn;Password=acornpassword
+      - Cache__Enabled=${CACHE_ENABLED}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
+    depends_on:
+      postgres:
+        condition: service_healthy
+      aspire-dashboard:
+        condition: service_started
+    profiles:
+      - postgres
+
+  # ------------------------------------------------------------------
+  # SQL Server environment
+  # ------------------------------------------------------------------
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: acorn-sqlserver-db
@@ -200,6 +226,40 @@ services:
     restart: unless-stopped
     networks:
       - acorn-network
+    profiles:
+      - sqlserver
+
+  acorn-sqlserver:
+    <<: *acorn-server
+    container_name: acorn-sqlserver
+    environment:
+      - Database__Engine=SqlServer
+      - Database__ConnectionString=Server=sqlserver;Database=acorn;User Id=sa;Password=AcornPassword123!;TrustServerCertificate=True
+      - Cache__Enabled=${CACHE_ENABLED}
+      - Server__Hosting__SLN__Enabled=${SERVER_SLN_ENABLED}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      aspire-dashboard:
+        condition: service_started
+    profiles:
+      - sqlserver
+
+  acorn-api-sqlserver:
+    <<: *acorn-api
+    container_name: acorn-api-sqlserver
+    environment:
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+      - Database__Engine=SqlServer
+      - Database__ConnectionString=Server=sqlserver;Database=acorn;User Id=sa;Password=AcornPassword123!;TrustServerCertificate=True
+      - Cache__Enabled=${CACHE_ENABLED}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      aspire-dashboard:
+        condition: service_started
     profiles:
       - sqlserver
 

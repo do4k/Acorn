@@ -55,18 +55,23 @@ The server starts with **SQLite** by default—no database setup required.
 
 ### Quick Start with Docker Compose
 
+Each database is a Compose profile that brings up a complete environment: the
+database, the game server (TCP `:8078` / WebSocket `:8079`), the REST API
+(`:5000`) and the Aspire dashboard (`:18888`). The dashboard runs for every
+profile.
+
+`COMPOSE_PROFILES` in `.env` selects the environment started by a bare
+`docker compose up` (default: `mysql`).
+
 ```bash
-# MySQL (default)
-docker-compose up
+# Default environment from COMPOSE_PROFILES
+docker compose up
 
-# SQLite
-docker-compose --profile sqlite up acorn-sqlite
-
-# PostgreSQL
-docker-compose --profile postgres up
-
-# SQL Server
-docker-compose --profile sqlserver up
+# Or choose an environment explicitly
+docker compose --profile mysql up
+docker compose --profile sqlite up
+docker compose --profile postgres up
+docker compose --profile sqlserver up
 ```
 
 ### Pull from GitHub Container Registry
