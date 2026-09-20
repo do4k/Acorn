@@ -125,8 +125,11 @@ profile:
 - `game.acornhost.io` — the eoweb browser client (`deploy/eoweb`) and the
   WebSocket endpoint. `wss://game.acornhost.io` is proxied to the game server's
   WebSocket port (`8079`), which is bound to loopback and not exposed directly.
+- `aspire.acornhost.io` — the Aspire dashboard, behind Caddy basic auth.
+  Credentials come from `ASPIRE_USER` / `ASPIRE_PASSWORD_HASH` in `.env` (the
+  hash is bcrypt; escape each `$` as `$$`).
 
-Both hostnames must resolve to the host and ports `80`/`443` must be reachable
+All hostnames must resolve to the host and ports `80`/`443` must be reachable
 so Caddy can obtain and renew Let's Encrypt certificates. Native clients still
 connect directly to TCP `8078`.
 

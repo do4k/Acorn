@@ -38,9 +38,10 @@ game.acornhost.io {
 }
 
 # Aspire dashboard (OpenTelemetry metrics/traces/logs), protected with basic auth.
+# Credentials come from ASPIRE_USER / ASPIRE_PASSWORD_HASH (see .env).
 aspire.acornhost.io {
 	basic_auth {
-		acorn $2a$14$Fo9T2khL2L5RXYfhP7Lve.DApb3xC3eF290bshSgST.11no4tYnbq
+		{$ASPIRE_USER:acorn} {$ASPIRE_PASSWORD_HASH}
 	}
 	reverse_proxy acorn-aspire:18888
 }

@@ -57,6 +57,9 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    environment:
+      - ASPIRE_USER=${ASPIRE_USER:-acorn}
+      - ASPIRE_PASSWORD_HASH=${ASPIRE_PASSWORD_HASH}
     volumes:
       - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - ./deploy/landing:/srv/landing:ro
