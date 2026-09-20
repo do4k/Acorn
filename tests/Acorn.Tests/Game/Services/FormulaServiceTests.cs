@@ -133,6 +133,28 @@ public class FormulaServiceTests
     }
 
     [Test]
+    public void CalculateNpcDamageToPlayer_WhenDamageExceedsRemainingHp_ShouldNotBeCapped()
+    {
+        var sut = CreateSut();
+        var target = CreateCharacter();
+        target.Armor = 0;
+        target.Evade = 0;
+        target.MaxHp = 100;
+        target.Hp = 1;
+
+        var npc = CreateNpc();
+        npc.Accuracy = 100;
+        npc.MinDamage = 50;
+        npc.MaxDamage = 50;
+
+        var sawFullDamage = Enumerable.Range(0, 200)
+            .Select(_ => sut.CalculateNpcDamageToPlayer(npc, target))
+            .Any(damage => damage == 50);
+
+        sawFullDamage.Should().BeTrue("damage is reported in full even when it exceeds the target's remaining HP");
+    }
+
+    [Test]
     public void LevelUp_WhenEnoughExperience_ShouldGrantDefaultPoints()
     {
         var character = GameTestFactory.Character();

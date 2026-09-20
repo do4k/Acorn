@@ -570,8 +570,8 @@ public class MapController : IMapController
             }
 
             var damage = (int)Math.Floor(player.Character.MaxHp * SPIKE_DAMAGE_PERCENT);
-            damage = Math.Min(damage, player.Character.Hp);
-            player.Character.Hp -= damage;
+            // Report the full spike damage even when it overkills the player; only their HP is clamped.
+            player.Character.Hp = Math.Max(0, player.Character.Hp - damage);
 
             var hpPercentage = player.Character.MaxHp > 0
                 ? (int)((double)player.Character.Hp / player.Character.MaxHp * 100)

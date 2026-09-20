@@ -115,7 +115,7 @@ public class FormulaService : IFormulaService
         // Critical hit if NPC is attacking from back or side
         var critical = attackingBackOrSide;
 
-        return Math.Min(CalculateDamage(rawDamage, target.Armor, critical), target.Hp);
+        return CalculateDamage(rawDamage, target.Armor, critical);
     }
 
     /// <summary>
