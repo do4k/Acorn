@@ -64,7 +64,7 @@ public class NpcCombatService : INpcCombatService
         // Find players on adjacent tiles
         var playerList = players.ToList();
         var adjacentPlayers = playerList
-            .Where(p => p.Character != null &&
+            .Where(p => p.Character != null && !p.Character.Hidden &&
                         adjacentCoords.Any(c => c.X == p.Character.X && c.Y == p.Character.Y))
             .ToList();
 

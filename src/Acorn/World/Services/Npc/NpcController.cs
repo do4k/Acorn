@@ -197,7 +197,7 @@ public class NpcController : INpcController
                 .Where(o =>
                 {
                     var player = players.FirstOrDefault(p => p.SessionId == o.PlayerId);
-                    if (player?.Character == null)
+                    if (player?.Character == null || player.Character.Hidden)
                     {
                         return false;
                     }
@@ -218,7 +218,7 @@ public class NpcController : INpcController
         if (npc.Data.Type == PubNpcType.Aggressive)
         {
             var closestPlayer = players
-                .Where(p => p.Character != null)
+                .Where(p => p.Character != null && !p.Character.Hidden)
                 .Select(p => new
                 { Player = p, Distance = Math.Abs(npc.X - p.Character!.X) + Math.Abs(npc.Y - p.Character.Y) })
                 .Where(x => x.Distance <= CHASE_DISTANCE)
