@@ -494,6 +494,17 @@ $RECYCLE.BIN/
 *.enf
 *.evf
 *.etf
+*.eqf
 
-src/Acorn/Data/Quests/*.txt
+# Per-deployment game data (pub files, maps, quests, shops, inns, skill masters).
+# These are supplied per deployment and must not be committed. Sample shop/inn/
+# skill-master files are generated at runtime when the directory is empty.
+src/Acorn/Data/pub/
+src/Acorn/Data/maps/
+src/Acorn/Data/Data/
+src/Acorn/Data/quests/
+src/Acorn/Data/Quests/
+src/Acorn/Data/Inns/
+src/Acorn/Data/Shops/
+src/Acorn/Data/SkillMasters/
 Acorn.db*
