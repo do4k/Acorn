@@ -2,6 +2,7 @@
 #
 #   acornhost.io        -> static landing page
 #   game.acornhost.io   -> eoweb static client + WebSocket bridge to Acorn
+#   aspire.acornhost.io -> Aspire dashboard (basic auth)
 #
 # TLS certificates are obtained and renewed automatically (Let's Encrypt).
 # Both hostnames must resolve to this host and ports 80/443 must be reachable.
@@ -34,4 +35,12 @@ game.acornhost.io {
 	root * /srv/eoweb
 	try_files {path} /index.html
 	file_server
+}
+
+# Aspire dashboard (OpenTelemetry metrics/traces/logs), protected with basic auth.
+aspire.acornhost.io {
+	basic_auth {
+		acorn $2a$14$Fo9T2khL2L5RXYfhP7Lve.DApb3xC3eF290bshSgST.11no4tYnbq
+	}
+	reverse_proxy acorn-aspire:18888
 }
