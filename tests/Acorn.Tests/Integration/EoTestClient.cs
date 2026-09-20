@@ -29,6 +29,10 @@ public sealed class EoTestClient : IAsyncDisposable
     private int _clientEncryptionMulti;
     private int _serverEncryptionMulti;
 
+    // Optional background ping responder (see StartKeepAlive)
+    private CancellationTokenSource? _keepAliveCts;
+    private Task? _keepAliveTask;
+
     public int PlayerId { get; private set; }
 
     /// <summary>
@@ -344,6 +348,41 @@ public sealed class EoTestClient : IAsyncDisposable
     }
 
     /// <summary>
+    ///     Starts a background loop that answers server Connection_Player pings so a
+    ///     connection held open without the test reading isn't dropped by the ping
+    ///     service. Only use on clients the test does not otherwise read from.
+    /// </summary>
+    public void StartKeepAlive()
+    {
+        if (_keepAliveTask is not null)
+        {
+            return;
+        }
+
+        _keepAliveCts = new CancellationTokenSource();
+        _keepAliveTask = Task.Run(() => KeepAliveLoopAsync(_keepAliveCts.Token));
+    }
+
+    private async Task KeepAliveLoopAsync(CancellationToken ct)
+    {
+        try
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                var packet = await ReceivePacketAsync(TimeSpan.FromSeconds(30));
+                if (packet is ConnectionPlayerServerPacket)
+                {
+                    await SendConnectionPingAsync();
+                }
+            }
+        }
+        catch
+        {
+            // Connection closed or the test finished; keep-alive is best effort.
+        }
+    }
+
+    /// <summary>
     ///     Sends a CharacterCreateClientPacket and returns the full reply.
     /// </summary>
     public async Task<CharacterReplyServerPacket> CreateCharacterAsync(int sessionId, string name,
@@ -450,6 +489,10 @@ public sealed class EoTestClient : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        _keepAliveCts?.Cancel();
+        _keepAliveCts?.Dispose();
+        _keepAliveCts = null;
+
         if (_tcp is not null)
         {
             _tcp.Close();
