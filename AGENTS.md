@@ -262,6 +262,7 @@ Migrations live in `src/Acorn.Database/Migrations` and are applied as a startup 
 - [Database Configuration](docs/DATABASE.md)
 - [Caching Layer](docs/CACHING.md)
 - [REST API](docs/API.md)
+- [Command Reference](docs/COMMANDS.md)
 - [Gemini AI Integration](docs/GEMINI_WISEMAN.md)
 - [Inventory System](docs/INVENTORY.md)
 - [Codebase Review](docs/CODEBASE_REVIEW.md)

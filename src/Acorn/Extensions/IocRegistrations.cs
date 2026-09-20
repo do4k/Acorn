@@ -4,6 +4,7 @@ using Acorn.Database;
 using Acorn.Database.Models;
 using Acorn.Database.Repository;
 using Acorn.Game.Services;
+using Acorn.Infrastructure;
 using Acorn.Net.PacketHandlers;
 using Acorn.Shared.Caching;
 using Acorn.World.Services.Admin;
@@ -98,6 +99,10 @@ internal static class IocRegistrations
             .AddSingleton<IMarriageService, MarriageService>()
             .AddSingleton<IMapItemService, MapItemService>()
             .AddSingleton<ISpellCastService, SpellCastService>()
+            // Server status / runtime reload support ($uptime, $repub, $rehash)
+            .AddSingleton<IServerStatusService, ServerStatusService>()
+            .AddSingleton<IPubFileReloadService, PubFileReloadService>()
+            .AddSingleton<IConfigurationReloadService, ConfigurationReloadService>()
             // Lazy<T> registration to break circular dependencies
             .AddTransient(typeof(Lazy<>), typeof(LazyServiceProvider<>));
     }

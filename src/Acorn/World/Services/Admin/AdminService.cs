@@ -429,6 +429,48 @@ public class AdminService(
         await notifications.SystemMessage(admin, $"Evacuated {players.Count} players from map {admin.CurrentMap.Id}.");
     }
 
+    public async Task WarpToPlayerAsync(PlayerState admin, string targetName)
+    {
+        if (!RequireAdminLevel(admin, AdminLevel.LightGuide))
+            return;
+
+        var target = world.FindPlayerByName(targetName);
+        if (target?.Character is null || target.CurrentMap is null)
+        {
+            await notifications.SystemMessage(admin, $"Player '{targetName}' is not online.");
+            return;
+        }
+
+        logger.LogInformation("Admin {Admin} warped to player {Target}", admin.Character!.Name, targetName);
+
+        await playerController.WarpAsync(admin, target.CurrentMap,
+            target.Character.X, target.Character.Y, WarpEffect.Admin);
+        await notifications.SystemMessage(admin, $"Warped to {target.Character.Name}.");
+    }
+
+    public async Task SummonPlayerAsync(PlayerState admin, string targetName)
+    {
+        if (!RequireAdminLevel(admin, AdminLevel.Guardian))
+            return;
+
+        if (admin.Character is null || admin.CurrentMap is null)
+            return;
+
+        var target = world.FindPlayerByName(targetName);
+        if (target?.Character is null)
+        {
+            await notifications.SystemMessage(admin, $"Player '{targetName}' is not online.");
+            return;
+        }
+
+        logger.LogInformation("Admin {Admin} summoned player {Target}", admin.Character.Name, targetName);
+
+        await playerController.WarpAsync(target, admin.CurrentMap,
+            admin.Character.X, admin.Character.Y, WarpEffect.Admin);
+        await notifications.SystemMessage(target, $"You have been summoned by {admin.Character.Name}.");
+        await notifications.SystemMessage(admin, $"Summoned {target.Character.Name} to you.");
+    }
+
     public async Task ToggleHideAsync(PlayerState admin)
     {
         if (!RequireAdminLevel(admin, AdminLevel.Guardian))
