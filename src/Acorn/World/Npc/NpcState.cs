@@ -72,6 +72,12 @@ public class NpcState
     public bool IsDead { get; set; }
     public DateTime? DeathTime { get; set; }
 
+    /// <summary>
+    ///     Set when a boss dies and this child NPC is cleared with it. Such children have no
+    ///     respawn timer of their own; they are brought back when their boss respawns.
+    /// </summary>
+    public bool AwaitingBossRespawn { get; set; }
+
     // Combat/aggro tracking
     /// <summary>
     ///     List of players who have attacked this NPC.

@@ -257,7 +257,10 @@ public class MapController : IMapController
         foreach (var child in children)
         {
             child.IsDead = true;
-            child.DeathTime = boss.DeathTime ?? DateTime.UtcNow;
+            // No respawn timer of its own: a stationary child has a 0s respawn and would
+            // pop straight back. It waits for the boss to respawn instead.
+            child.DeathTime = null;
+            child.AwaitingBossRespawn = true;
             child.Opponents.Clear();
         }
 
@@ -306,49 +309,68 @@ public class MapController : IMapController
 
         foreach (var npc in deadNpcs)
         {
-            if (npc.DeathTime.HasValue)
+            if (!npc.DeathTime.HasValue)
             {
-                var timeSinceDeath = DateTime.UtcNow - npc.DeathTime.Value;
-                if (timeSinceDeath.TotalSeconds >= npc.RespawnTimeSeconds)
+                continue;
+            }
+
+            var timeSinceDeath = DateTime.UtcNow - npc.DeathTime.Value;
+            if (timeSinceDeath.TotalSeconds < npc.RespawnTimeSeconds)
+            {
+                continue;
+            }
+
+            await RespawnNpcAsync(map, npc);
+
+            // A boss brings its children back with it.
+            if (npc.Data.Boss)
+            {
+                foreach (var child in map.Npcs.Values.Where(c => c.IsDead && c.AwaitingBossRespawn).ToList())
                 {
-                    // Respawn the NPC - reset all state
-                    npc.IsDead = false;
-                    npc.DeathTime = null;
-                    npc.Hp = npc.Data.Hp;
-                    npc.Opponents.Clear();
-                    npc.ActTicks = 0;
-
-                    // Calculate spawn position with variance for non-fixed NPCs
-                    if (_npcController.ShouldUseSpawnVariance(npc))
-                    {
-                        var (spawnX, spawnY) = _npcController.FindSpawnPosition(npc, npc.SpawnX, npc.SpawnY,
-                            map.Players.Values, map.Npcs.Values, map.Data);
-                        npc.X = spawnX;
-                        npc.Y = spawnY;
-                    }
-                    else
-                    {
-                        npc.X = npc.SpawnX;
-                        npc.Y = npc.SpawnY;
-                    }
-
-                    // Reset direction using controller
-                    npc.Direction = _npcController.GetSpawnDirection(npc);
-
-                    _logger.LogInformation("NPC {NpcName} (ID: {NpcId}) respawned at ({X}, {Y})",
-                        npc.Data.Name, npc.Id, npc.X, npc.Y);
-
-                    // Only tell players who can actually see the respawned NPC.
-                    await SendToInRangePlayersAsync(map, npc.AsCoords(), new NpcAgreeServerPacket
-                    {
-                        Npcs = new List<NpcMapInfo>
-                        {
-                            npc.AsNpcMapInfo()
-                        }
-                    });
+                    await RespawnNpcAsync(map, child);
                 }
             }
         }
+    }
+
+    private async Task RespawnNpcAsync(MapState map, NpcState npc)
+    {
+        // Reset all state
+        npc.IsDead = false;
+        npc.DeathTime = null;
+        npc.AwaitingBossRespawn = false;
+        npc.Hp = npc.Data.Hp;
+        npc.Opponents.Clear();
+        npc.ActTicks = 0;
+
+        // Calculate spawn position with variance for non-fixed NPCs
+        if (_npcController.ShouldUseSpawnVariance(npc))
+        {
+            var (spawnX, spawnY) = _npcController.FindSpawnPosition(npc, npc.SpawnX, npc.SpawnY,
+                map.Players.Values, map.Npcs.Values, map.Data);
+            npc.X = spawnX;
+            npc.Y = spawnY;
+        }
+        else
+        {
+            npc.X = npc.SpawnX;
+            npc.Y = npc.SpawnY;
+        }
+
+        // Reset direction using controller
+        npc.Direction = _npcController.GetSpawnDirection(npc);
+
+        _logger.LogInformation("NPC {NpcName} (ID: {NpcId}) respawned at ({X}, {Y})",
+            npc.Data.Name, npc.Id, npc.X, npc.Y);
+
+        // Only tell players who can actually see the respawned NPC.
+        await SendToInRangePlayersAsync(map, npc.AsCoords(), new NpcAgreeServerPacket
+        {
+            Npcs = new List<NpcMapInfo>
+            {
+                npc.AsNpcMapInfo()
+            }
+        });
     }
 
     public async Task<HashSet<int>> ProcessNpcActionsAsync(MapState map)

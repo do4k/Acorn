@@ -124,8 +124,50 @@ public class MapControllerNpcCleanupTests
 
         child1.IsDead.Should().BeTrue();
         child2.IsDead.Should().BeTrue();
+        child1.DeathTime.Should().BeNull("children wait for the boss instead of running their own timer");
+        child1.AwaitingBossRespawn.Should().BeTrue();
         other.IsDead.Should().BeFalse("only child NPCs are cleared");
         boss.IsDead.Should().BeFalse("the boss's own death is handled by the caller");
+    }
+
+    [Test]
+    public async Task ProcessNpcRespawnsAsync_WhenChildAwaitsBoss_ShouldNotRespawnItAlone()
+    {
+        var map = FakeMap.Create();
+        var boss = AddNpcState(map, index: 0, boss: true);
+        boss.IsDead = true;
+        boss.DeathTime = DateTime.UtcNow.AddSeconds(60); // not due yet
+
+        var child = AddNpcState(map, index: 1, child: true);
+        child.IsDead = true;
+        child.DeathTime = null;
+        child.AwaitingBossRespawn = true;
+
+        await CreateController().ProcessNpcRespawnsAsync(map);
+
+        child.IsDead.Should().BeTrue("a stationary child would otherwise respawn instantly");
+        child.AwaitingBossRespawn.Should().BeTrue();
+    }
+
+    [Test]
+    public async Task ProcessNpcRespawnsAsync_WhenBossRespawns_ShouldRespawnItsChildren()
+    {
+        var map = FakeMap.Create();
+        var boss = AddNpcState(map, index: 0, boss: true);
+        boss.IsDead = true;
+        boss.DeathTime = DateTime.UtcNow.AddSeconds(-1); // due now
+        boss.SpawnTime = 0;
+
+        var child = AddNpcState(map, index: 1, child: true);
+        child.IsDead = true;
+        child.DeathTime = null;
+        child.AwaitingBossRespawn = true;
+
+        await CreateController().ProcessNpcRespawnsAsync(map);
+
+        boss.IsDead.Should().BeFalse();
+        child.IsDead.Should().BeFalse("the boss brings its children back");
+        child.AwaitingBossRespawn.Should().BeFalse();
     }
 
     [Test]
