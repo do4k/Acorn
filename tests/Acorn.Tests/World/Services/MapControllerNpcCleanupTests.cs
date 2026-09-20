@@ -87,4 +87,56 @@ public class MapControllerNpcCleanupTests
 
         map.Npcs.Should().ContainKey(0);
     }
+
+    private static NpcState AddNpcState(MapState map, int index, bool boss = false, bool child = false)
+    {
+        var npc = new NpcState(new EnfRecord
+        {
+            Name = $"Npc{index}",
+            Hp = 10,
+            Level = 1,
+            Type = PubNpcType.Aggressive,
+            Boss = boss,
+            Child = child
+        })
+        {
+            Index = index,
+            Id = 1,
+            X = 5,
+            Y = 5,
+            Hp = 10
+        };
+
+        map.Npcs[index] = npc;
+        return npc;
+    }
+
+    [Test]
+    public async Task JunkBossChildrenAsync_WhenBossDies_ShouldDespawnChildrenOnly()
+    {
+        var map = FakeMap.Create();
+        var boss = AddNpcState(map, index: 0, boss: true);
+        var child1 = AddNpcState(map, index: 1, child: true);
+        var child2 = AddNpcState(map, index: 2, child: true);
+        var other = AddNpcState(map, index: 3);
+
+        await CreateController().JunkBossChildrenAsync(map, boss);
+
+        child1.IsDead.Should().BeTrue();
+        child2.IsDead.Should().BeTrue();
+        other.IsDead.Should().BeFalse("only child NPCs are cleared");
+        boss.IsDead.Should().BeFalse("the boss's own death is handled by the caller");
+    }
+
+    [Test]
+    public async Task JunkBossChildrenAsync_WhenNotABoss_ShouldDoNothing()
+    {
+        var map = FakeMap.Create();
+        var npc = AddNpcState(map, index: 0);
+        var child = AddNpcState(map, index: 1, child: true);
+
+        await CreateController().JunkBossChildrenAsync(map, npc);
+
+        child.IsDead.Should().BeFalse();
+    }
 }

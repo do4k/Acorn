@@ -44,13 +44,14 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
     private readonly bool _criticalFirstHit;
     private readonly IQuestService _questService;
     private readonly IMapItemService _mapItemService;
+    private readonly IMapController _mapController;
 
     public AttackUseClientPacketHandler(UtcNowDelegate now, ILogger<AttackUseClientPacketHandler> logger,
         IFormulaService formulaService, IDataFileRepository dataFiles, ILootService lootService,
         IOptions<ServerOptions> serverOptions, ICharacterCacheService characterCache,
         IPaperdollService paperdollService, IArenaService arenaService, IPartyService partyService,
         IPlayerController playerController, IMapTileService tileService, IQuestService questService,
-        IMapItemService mapItemService, AcornMetrics metrics)
+        IMapItemService mapItemService, IMapController mapController, AcornMetrics metrics)
     {
         _now = now;
         _logger = logger;
@@ -69,6 +70,7 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
         _criticalFirstHit = serverOptions.Value.CriticalFirstHit;
         _questService = questService;
         _mapItemService = mapItemService;
+        _mapController = mapController;
         _metrics = metrics;
     }
 
@@ -179,6 +181,9 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
             target.IsDead = true;
             target.DeathTime = DateTime.UtcNow;
             target.Opponents.Clear();
+
+            // A boss takes its children with it (NPC_JUNK).
+            await _mapController.JunkBossChildrenAsync(map, target);
 
             _metrics.NpcKills.Add(1,
                 new("npc_id", target.Id),

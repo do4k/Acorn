@@ -31,6 +31,7 @@ public class SpellCastService(
     IPaperdollService paperdollService,
     IQuestService questService,
     IMapItemService mapItemService,
+    IMapController mapController,
     IOptions<ServerOptions> serverOptions,
     AcornMetrics metrics,
     ILogger<SpellCastService> logger)
@@ -374,6 +375,9 @@ public class SpellCastService(
 
         npc.IsDead = true;
         npc.DeathTime = DateTime.UtcNow;
+
+        // A boss takes its children with it (NPC_JUNK).
+        await mapController.JunkBossChildrenAsync(map, npc);
         npc.Opponents.Clear();
 
         var experienceGained = npc.Data.Experience;
