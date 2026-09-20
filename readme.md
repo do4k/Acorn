@@ -127,7 +127,10 @@ profile. Site hostnames are derived from `BASE_DOMAIN` in `.env`:
   WebSocket port (`8079`), which is bound to loopback and not exposed directly.
 - `aspire.<BASE_DOMAIN>` — the Aspire dashboard, behind basic auth, served only
   when `ASPIRE_ENABLED=true`. Credentials come from `ASPIRE_USER` /
-  `ASPIRE_PASSWORD_HASH` (bcrypt; escape each `$` as `$$`).
+  `ASPIRE_PASSWORD_HASH` (bcrypt; escape each `$` as `$$`). The same flag gates
+  the `aspire-dashboard` container: when false it is not started. If it is
+  already running when you flip the flag, remove it with
+  `docker compose up -d --remove-orphans` (or `docker compose down` then `up`).
 
 All hostnames must resolve to the host and ports `80`/`443` must be reachable
 so Caddy can obtain and renew Let's Encrypt certificates. Native clients still

@@ -40,6 +40,11 @@ services:
   aspire-dashboard:
     image: mcr.microsoft.com/dotnet/aspire-dashboard:latest
     container_name: acorn-aspire
+    # Only started when the dashboard is enabled. The profile name mirrors
+    # ASPIRE_ENABLED and COMPOSE_PROFILES includes "true", so flipping the flag
+    # to false leaves the service with no active profile and it is not started.
+    profiles:
+      - "${ASPIRE_ENABLED:-true}"
     ports:
       - "127.0.0.1:18888:18888"   # Web UI (local only; public access is via Caddy + basic auth)
       - "127.0.0.1:4317:18889"    # OTLP gRPC receiver (local only)
@@ -115,6 +120,7 @@ services:
         condition: service_healthy
       aspire-dashboard:
         condition: service_started
+        required: false
     profiles:
       - mysql
 
@@ -132,6 +138,7 @@ services:
         condition: service_healthy
       aspire-dashboard:
         condition: service_started
+        required: false
     profiles:
       - mysql
 
@@ -153,6 +160,7 @@ services:
     depends_on:
       aspire-dashboard:
         condition: service_started
+        required: false
     profiles:
       - sqlite
 
@@ -170,6 +178,7 @@ services:
     depends_on:
       aspire-dashboard:
         condition: service_started
+        required: false
     profiles:
       - sqlite
 
@@ -212,6 +221,7 @@ services:
         condition: service_healthy
       aspire-dashboard:
         condition: service_started
+        required: false
     profiles:
       - postgres
 
@@ -229,6 +239,7 @@ services:
         condition: service_healthy
       aspire-dashboard:
         condition: service_started
+        required: false
     profiles:
       - postgres
 
@@ -271,6 +282,7 @@ services:
         condition: service_healthy
       aspire-dashboard:
         condition: service_started
+        required: false
     profiles:
       - sqlserver
 
@@ -288,6 +300,7 @@ services:
         condition: service_healthy
       aspire-dashboard:
         condition: service_started
+        required: false
     profiles:
       - sqlserver
 
