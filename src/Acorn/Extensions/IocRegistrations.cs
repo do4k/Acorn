@@ -37,7 +37,9 @@ internal static class IocRegistrations
         foreach (var handler in handlers)
         {
             var interfaceType = handler.GetInterfaces()
-                .First(i => !i.IsGenericType || (i.IsGenericType && i.GetGenericTypeDefinition() == type));
+                .First(i => type.IsGenericType
+                    ? i.IsGenericType && i.GetGenericTypeDefinition() == type
+                    : i == type);
             services.AddTransient(interfaceType, handler);
         }
 

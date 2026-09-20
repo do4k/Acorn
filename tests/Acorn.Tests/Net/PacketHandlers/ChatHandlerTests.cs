@@ -297,13 +297,14 @@ public class ChatHandlerTests
     public async Task Report_WhenMutedAdmin_SkipsDollarCommands()
     {
         var talkHandler = Substitute.For<ITalkHandler>();
-        talkHandler.CanHandle("global").Returns(true);
+        talkHandler.Commands.Returns(new[] { "global" });
         var handler = new TalkReportClientPacketHandler(
             [talkHandler],
             Array.Empty<IPlayerCommandHandler>(),
             null!,
             null!,
-            PassthroughSanitizer());
+            PassthroughSanitizer(),
+            null!);
         var (player, _) = FakePlayer.Create();
         player.Character!.Admin = AdminLevel.Guardian;
         player.MutedUntil = DateTime.UtcNow.AddMinutes(1);
@@ -318,13 +319,14 @@ public class ChatHandlerTests
     public async Task Report_WhenMuted_SkipsPlayerCommands()
     {
         var playerCommand = Substitute.For<IPlayerCommandHandler>();
-        playerCommand.CanHandle("help").Returns(true);
+        playerCommand.Commands.Returns(new[] { "help" });
         var handler = new TalkReportClientPacketHandler(
             Array.Empty<ITalkHandler>(),
             [playerCommand],
             null!,
             null!,
-            PassthroughSanitizer());
+            PassthroughSanitizer(),
+            null!);
         var (player, _) = FakePlayer.Create();
         player.MutedUntil = DateTime.UtcNow.AddMinutes(1);
 

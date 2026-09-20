@@ -8,8 +8,7 @@ namespace Acorn.Net.PacketHandlers.Player.Talk;
 /// </summary>
 public class RepubCommandHandler(IPubFileReloadService pubFileReload, INotificationService notifications) : ITalkHandler
 {
-    public bool CanHandle(string command)
-        => command.Equals("repub", StringComparison.InvariantCultureIgnoreCase);
+    public IReadOnlyList<string> Commands => ["repub"];
 
     public async Task HandleAsync(PlayerState playerState, string command, params string[] args)
     {

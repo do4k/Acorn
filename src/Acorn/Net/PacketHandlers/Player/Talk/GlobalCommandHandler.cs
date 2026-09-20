@@ -1,12 +1,16 @@
 using Acorn.Net.Services;
 using Acorn.World.Services.Admin;
+using Moffat.EndlessOnline.SDK.Protocol;
 
 namespace Acorn.Net.PacketHandlers.Player.Talk;
 
 public class GlobalCommandHandler(IAdminService adminService, INotificationService notifications) : ITalkHandler
 {
-    public bool CanHandle(string command)
-        => command.Equals("global", StringComparison.InvariantCultureIgnoreCase);
+    public IReadOnlyList<string> Commands => ["global"];
+
+    public string Usage => "<message>";
+
+    public AdminLevel RequiredLevel => AdminLevel.GameMaster;
 
     public async Task HandleAsync(PlayerState playerState, string command, params string[] args)
     {

@@ -8,19 +8,24 @@ namespace Acorn.Infrastructure;
 /// <summary>
 ///     Reloads the pub data files and repopulates the pub cache. Used at startup
 ///     by <see cref="PubFileCacheHostedService" /> and at runtime by the
-///     <c>$repub</c> admin command.
+///     <c>$repub</c>/<c>$rehash</c> admin commands.
 /// </summary>
 public class PubFileReloadService(
     IDataFileRepository dataFiles,
     IPubCacheService pubCache,
     ILogger<PubFileReloadService> logger) : IPubFileReloadService
 {
+    // Serialises reloads so a request can never observe the data files part-way
+    // through being replaced.
+    private readonly SemaphoreSlim _gate = new(1, 1);
+
     public async Task<bool> ReloadAsync()
     {
+        await _gate.WaitAsync();
         try
         {
             dataFiles.Reload();
-            await RefreshCacheAsync();
+            await RefreshCacheCoreAsync();
             logger.LogInformation("Reloaded pub files");
             return true;
         }
@@ -29,9 +34,26 @@ public class PubFileReloadService(
             logger.LogError(ex, "Failed to reload pub files");
             return false;
         }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task RefreshCacheAsync()
+    {
+        await _gate.WaitAsync();
+        try
+        {
+            await RefreshCacheCoreAsync();
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    private async Task RefreshCacheCoreAsync()
     {
         // Cache Items
         var items = dataFiles.Eif.Items

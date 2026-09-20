@@ -1,6 +1,7 @@
 using Acorn.Game.Services;
 using Acorn.Net.PacketHandlers.Player;
 using Acorn.Net.PacketHandlers.Player.Talk;
+using Acorn.Net.Services;
 using Acorn.Tests.TestSupport;
 using Acorn.World.Services.Map;
 using FluentAssertions;
@@ -32,7 +33,8 @@ public class ChatRangeTests
             Array.Empty<IPlayerCommandHandler>(),
             FakePlayer.CreateWiseManHandler(),
             new MapTileService(),
-            PassthroughSanitizer());
+            PassthroughSanitizer(),
+            Substitute.For<INotificationService>());
     }
 
     [Test]

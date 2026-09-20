@@ -1,4 +1,5 @@
 using Acorn.Net.Services;
+using Moffat.EndlessOnline.SDK.Protocol;
 using Acorn.World.Services.Admin;
 
 namespace Acorn.Net.PacketHandlers.Player.Talk;
@@ -8,9 +9,11 @@ namespace Acorn.Net.PacketHandlers.Player.Talk;
 /// </summary>
 public class WarpMeToCommandHandler(IAdminService adminService, INotificationService notifications) : ITalkHandler
 {
-    public bool CanHandle(string command)
-        => command.Equals("wmt", StringComparison.InvariantCultureIgnoreCase)
-        || command.Equals("warpmeto", StringComparison.InvariantCultureIgnoreCase);
+    public IReadOnlyList<string> Commands => ["wmt", "warpmeto"];
+
+    public string Usage => "<player>";
+
+    public AdminLevel RequiredLevel => AdminLevel.LightGuide;
 
     public async Task HandleAsync(PlayerState playerState, string command, params string[] args)
     {
