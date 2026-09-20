@@ -41,6 +41,16 @@ public class TelemetryTests
             activity => (string?)activity.GetTagItem("eo.packet.family") == "Init",
             "the server should emit a span for every handled packet");
 
+        // Outbound packets are instrumented at PlayerState.Send, so the reply the Init
+        // handler sends must nest inside the Init packet's trace rather than forming a
+        // separate one. That is what makes a cascade of packets show up as one flame graph.
+        var initPacket = activities.First(
+            activity => activity.DisplayName.StartsWith("packet ")
+                        && (string?)activity.GetTagItem("eo.packet.family") == "Init");
+        activities.Should().Contain(
+            activity => activity.DisplayName.StartsWith("send ") && activity.TraceId == initPacket.TraceId,
+            "packets produced by a handler should join the trace of the packet that caused them");
+
         // The world tick loop runs on a timer; give it a moment to produce a span.
         await WaitUntilAsync(() => activities.Any(a => a.DisplayName == "world.tick"),
             TimeSpan.FromSeconds(5));

@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using Acorn.Database.Repository;
 using Acorn.Extensions;
+using Acorn.Game.Models;
 using Acorn.Game.Services;
 using Acorn.Infrastructure.Telemetry;
 using Acorn.Net;
@@ -373,6 +375,11 @@ public class SpellCastService(
         var character = player.Character!;
         var map = player.CurrentMap!;
 
+        // Everything below is a consequence of the kill, so it groups under one span,
+        // with the loot roll, the ground item and each broadcast packet nested inside.
+        using var deathActivity = AcornActivities.StartNpcDeath(
+            npc.Id, npc.Data.Name, character.Map, character.Name);
+
         npc.IsDead = true;
         npc.DeathTime = DateTime.UtcNow;
 
@@ -398,7 +405,13 @@ public class SpellCastService(
             await player.CacheCharacterStateAsync(characterCache, paperdollService);
         }
 
-        var dropItem = lootService.RollDrop(npc.Id);
+        LootDrop? dropItem;
+        using (var lootActivity = AcornActivities.StartLootRoll(npc.Id))
+        {
+            dropItem = lootService.RollDrop(npc.Id);
+            lootActivity?.SetStatus(ActivityStatusCode.Ok);
+        }
+
         var dropId = 0;
         var dropAmount = 0;
         var dropIndex = 0;
@@ -408,21 +421,24 @@ public class SpellCastService(
             dropAmount = lootService.RollDropAmount(dropItem);
             dropId = dropItem.ItemId;
 
+            using var dropActivity = AcornActivities.StartItemDrop(dropId, dropAmount);
             var (itemIndex, _) = mapItemService.AddGroundItem(
                 map, dropId, dropAmount, new Coords { X = npc.X, Y = npc.Y },
                 player.SessionId, _dropProtectionTicks);
             dropIndex = itemIndex;
+            dropActivity?.SetTag("acorn.item.index", dropIndex);
+            dropActivity?.SetStatus(ActivityStatusCode.Ok);
 
-                // Gold is item ID 1; count NPC gold separately from item loot.
-                if (dropId == 1)
-                {
-                    metrics.NpcGoldDropped.Add(dropAmount);
-                }
-                else
-                {
-                    metrics.NpcItemsDropped.Add(dropAmount);
-                }
+            // Gold is item ID 1; count NPC gold separately from item loot.
+            if (dropId == 1)
+            {
+                metrics.NpcGoldDropped.Add(dropAmount);
             }
+            else
+            {
+                metrics.NpcItemsDropped.Add(dropAmount);
+            }
+        }
 
         var npcKilledData = new NpcKilledData
         {
@@ -480,6 +496,8 @@ public class SpellCastService(
 
         // Advance any NPC-kill quest objectives for the caster
         await questService.NotifyNpcKilled(player, npc.Id);
+
+        deathActivity?.SetStatus(ActivityStatusCode.Ok);
     }
 
     private async Task CastDamagePlayer(PlayerState player, int targetSessionId, int spellId, EsfRecord spell)
