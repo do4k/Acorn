@@ -224,7 +224,7 @@ public class PlayerController : IPlayerController
 
         var recipients = actor.CurrentMap.Players.Values
             .Where(p => p.SessionId != actor.SessionId && p.Character is not null)
-            .Where(p => _tileService.InClientRange(origin, p.Character!.AsCoords()))
+            .Where(p => _tileService.InClientRange(p.Character!.AsCoords(), origin))
             .ToList();
 
         foreach (var recipient in recipients)

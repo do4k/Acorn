@@ -83,4 +83,23 @@ public class MapTileServiceTests
 
         new MapTileService().IsTileWalkable(map, new Coords { X = 5, Y = 5 }).Should().BeTrue();
     }
+
+    [Test]
+    public void InClientRange_ShouldUseTheClientsAsymmetricManhattanRange()
+    {
+        var service = new MapTileService();
+        var observer = new Coords { X = 5, Y = 5 };
+
+        // Same row/column (or up/left of the observer): the client keeps up to 11.
+        service.InClientRange(observer, new Coords { X = 5, Y = 16 }).Should().BeTrue();   // 11
+        service.InClientRange(observer, new Coords { X = 5, Y = 17 }).Should().BeFalse();  // 12
+
+        // Down/right of the observer: the client keeps up to 14.
+        service.InClientRange(observer, new Coords { X = 6, Y = 17 }).Should().BeTrue();   // 13
+        service.InClientRange(observer, new Coords { X = 6, Y = 19 }).Should().BeFalse();  // 15
+
+        // A diagonal corner is out of range - Chebyshev distance would wrongly keep it,
+        // which is what made far-away NPCs flicker against the client's own culling.
+        service.InClientRange(observer, new Coords { X = 16, Y = 16 }).Should().BeFalse();
+    }
 }

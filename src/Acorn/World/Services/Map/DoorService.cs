@@ -93,7 +93,7 @@ public class DoorService(
         var packet = new DoorOpenServerPacket { Coords = coords };
         var recipients = map.Players.Values
             .Where(p => p.Character is not null)
-            .Where(p => tileService.InClientRange(coords, p.Character!.AsCoords()))
+            .Where(p => tileService.InClientRange(p.Character!.AsCoords(), coords))
             .ToList();
 
         foreach (var recipient in recipients)

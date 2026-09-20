@@ -28,7 +28,7 @@ public class EmoteReportClientPacketHandler(IMapTileService tileService) : IPack
         var recipients = playerState.CurrentMap.Players.Values
             .Where(player => player.SessionId != playerState.SessionId
                              && player.Character is not null
-                             && tileService.InClientRange(origin, player.Character.AsCoords()));
+                             && tileService.InClientRange(player.Character.AsCoords(), origin));
 
         await Task.WhenAll(recipients.Select(player => player.Send(new EmotePlayerServerPacket
         {
