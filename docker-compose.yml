@@ -15,13 +15,15 @@ x-acorn-server: &acorn-server
     context: .
     dockerfile: src/Acorn/Dockerfile
   ports:
-    - "8078:8078"   # Game TCP
-    - "8079:8079"   # Game WebSocket
+    - "8078:8078"            # Game TCP (native clients + SLN)
+    - "127.0.0.1:8079:8079"  # Game WebSocket, only reached via the Caddy proxy
   volumes:
     - ./src/Acorn/Data:/app/Data:ro
   restart: unless-stopped
   networks:
-    - acorn-network
+    acorn-network:
+      aliases:
+        - acorn-server
 
 x-acorn-api: &acorn-api
   build:
@@ -43,6 +45,24 @@ services:
       - "4317:18889"    # OTLP gRPC receiver (mapped to host 4317)
     environment:
       - DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS=true
+    restart: unless-stopped
+    networks:
+      - acorn-network
+
+  # Caddy: TLS termination and reverse proxy (landing page + eoweb + wss).
+  # Runs for every profile; talks to whichever server is on the acorn-server alias.
+  caddy:
+    image: caddy:2
+    container_name: acorn-caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./deploy/landing:/srv/landing:ro
+      - ./deploy/eoweb:/srv/eoweb:ro
+      - caddy-data:/data
+      - caddy-config:/config
     restart: unless-stopped
     networks:
       - acorn-network
@@ -267,6 +287,8 @@ volumes:
   postgres-data:
   mysql-data:
   sqlserver-data:
+  caddy-data:
+  caddy-config:
 
 networks:
   acorn-network:
