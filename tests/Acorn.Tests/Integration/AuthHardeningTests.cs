@@ -146,6 +146,8 @@ public class AuthHardeningTests
     [Test]
     public async Task Tcp_ExceedingMaxConnectionsPerPc_ShouldRejectExtraConnection()
     {
+        // Let a previous test's asynchronous disconnect cleanup drain so the baseline is stable.
+        await WaitForNoPlayersAsync();
         var baseline = _fixture.OnlinePlayerCount;
         var clients = new List<EoTestClient>();
 
@@ -155,6 +157,12 @@ public class AuthHardeningTests
             {
                 var client = await EoTestClient.ConnectTcpAsync(_fixture.TcpPort);
                 await client.InitAsync();
+
+                // Complete the handshake so the idle-handshake hangup doesn't drop the
+                // client, then keep answering pings so it survives until the limit is
+                // reached. All three must stay connected.
+                await client.SendConnectionAcceptAsync();
+                client.StartKeepAlive();
                 clients.Add(client);
             }
 
@@ -182,6 +190,23 @@ public class AuthHardeningTests
     }
 
     [Test]
+    public async Task Tcp_IdleAcceptedConnection_ShouldStayConnected_WhenPingsAreAnswered()
+    {
+        await using var client = await EoTestClient.ConnectTcpAsync(_fixture.TcpPort);
+        await client.InitAsync();
+        await client.SendConnectionAcceptAsync();
+        client.StartKeepAlive();
+
+        // The ping service starts 3s after the fixture and then pings every second,
+        // dropping clients that don't answer on the following tick. Stay well past
+        // that to prove keep-alive works.
+        await Task.Delay(TimeSpan.FromSeconds(8));
+
+        _fixture.GetPlayer(client.PlayerId).Should().NotBeNull(
+            "an accepted connection that answers pings must not be dropped");
+    }
+
+    [Test]
     public async Task Tcp_HandshakeHangup_ShouldDisconnectIdleConnection()
     {
         var baseline = _fixture.OnlinePlayerCount;
@@ -201,6 +226,17 @@ public class AuthHardeningTests
         var deadline = DateTime.UtcNow +
                        (timeout > TimeSpan.FromSeconds(30) ? timeout : TimeSpan.FromSeconds(30));
         while (!condition() && DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(25);
+        }
+    }
+
+    private async Task WaitForNoPlayersAsync()
+    {
+        // Best-effort: wait for the shared fixture's world state to drain so a
+        // previous test's asynchronous disconnect cleanup can't skew the baseline.
+        var deadline = DateTime.UtcNow.AddSeconds(30);
+        while (_fixture.OnlinePlayerCount > 0 && DateTime.UtcNow < deadline)
         {
             await Task.Delay(25);
         }
