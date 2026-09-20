@@ -12,8 +12,15 @@ public static class QuestRuleEvaluator
     /// <summary>
     ///     Returns true when the given rule's condition is satisfied for the character.
     /// </summary>
-    public static bool Evaluate(QuestRule rule, Character character, CharacterQuestProgress progress)
+    /// <param name="now">
+    ///     The current time, used by day-scoped rules such as <c>DoneDaily</c>. Callers
+    ///     should pass the injected clock so the result is deterministic in tests.
+    /// </param>
+    public static bool Evaluate(QuestRule rule, Character character, CharacterQuestProgress progress,
+        DateTime? now = null)
     {
+        var currentTime = now ?? DateTime.UtcNow;
+
         return rule.Name switch
         {
             "Always" => true,
@@ -27,8 +34,26 @@ public static class QuestRuleEvaluator
             "IsClass" => IsClass(character, rule),
             "IsGender" => IsGender(character, rule),
             "IsRace" => IsRace(character, rule),
+            "DoneDaily" => DoneDaily(progress, rule, currentTime),
             _ => false
         };
+    }
+
+    /// <summary>
+    ///     True when the character has already completed the quest at least N times
+    ///     today. The daily counter is reset by the <c>ResetDaily</c> action whenever
+    ///     the last completion fell on an earlier day.
+    /// </summary>
+    private static bool DoneDaily(CharacterQuestProgress progress, QuestRule rule, DateTime now)
+    {
+        var required = rule.Args.Count >= 1 ? rule.Args[0].AsInt() : 1;
+
+        if (progress.DoneAt is null || progress.DoneAt.Value.Date != now.Date)
+        {
+            return false;
+        }
+
+        return progress.Completions >= required;
     }
 
     private static bool HasItems(Character character, QuestRule rule, bool atLeast)

@@ -9,6 +9,7 @@ using Acorn.Infrastructure.Telemetry;
 using Acorn.Net;
 using Acorn.Shared.Caching;
 using Acorn.World;
+using Acorn.World.Services.Map;
 using Acorn.World.Services.Player;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -34,6 +35,8 @@ public class QuestService(
     IPlayerController playerController,
     IWorldQueries worldQueries,
     IServiceScopeFactory scopeFactory,
+    IMapEffectService mapEffectService,
+    UtcNowDelegate utcNow,
     AcornMetrics metrics,
     ILogger<QuestService> logger) : IQuestService
 {
@@ -468,7 +471,7 @@ public class QuestService(
         var state = quest.States[progress.State];
         foreach (var rule in state.Rules)
         {
-            if (!QuestRuleEvaluator.Evaluate(rule, character, progress)) continue;
+            if (!QuestRuleEvaluator.Evaluate(rule, character, progress, utcNow())) continue;
 
             var nextStateIndex = quest.States.FindIndex(s => s.Name == rule.Goto);
             if (nextStateIndex < 0) continue;
@@ -524,9 +527,17 @@ public class QuestService(
                 break;
 
             case "ResetDaily":
-                if (progress.DoneAt == null)
-                    progress.DoneAt = DateTime.UtcNow;
+                var now = utcNow();
+
+                // The completion counter is day-scoped: start a fresh count when the
+                // last completion was on an earlier day so DoneDaily resets at midnight.
+                if (progress.DoneAt is null || progress.DoneAt.Value.Date != now.Date)
+                {
+                    progress.Completions = 0;
+                }
+
                 progress.Completions++;
+                progress.DoneAt = now;
                 progress.State = 0;
                 break;
 
@@ -576,6 +587,10 @@ public class QuestService(
 
             case "ShowHint":
                 await ShowHint(player, action);
+                break;
+
+            case "Quake":
+                await Quake(player, action);
                 break;
 
             default:
@@ -774,6 +789,14 @@ public class QuestService(
         if (string.IsNullOrEmpty(message)) return;
 
         await player.Send(new MessageOpenServerPacket { Message = message });
+    }
+
+    private async Task Quake(PlayerState player, QuestAction action)
+    {
+        if (action.Args.Count == 0 || player.CurrentMap is null) return;
+
+        var magnitude = action.Args[0].AsInt();
+        await mapEffectService.QuakeAsync(player.CurrentMap, magnitude);
     }
 
     private static CharacterQuestProgress GetOrCreateProgress(GameCharacter character, int questId)
