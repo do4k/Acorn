@@ -1,6 +1,6 @@
 # 🌰 Project Acorn
 
-> A modern C# server emulator for Endless Online, built with .NET 10 and Entity Framework Core
+> A modern C# server emulator for Endless Online, built with .NET 11 and Entity Framework Core
 
 ```
           _          Acorn Endless-Online Server Software   
@@ -34,18 +34,25 @@
 
 ### Prerequisites
 
-- [.NET 10 SDK](https://dotnet.microsoft.com/download)
+- [.NET 11 SDK](https://dotnet.microsoft.com/download)
 - [Docker](https://www.docker.com/) *(optional)*
 
 ### Run Locally
 
+The server does not create or upgrade the schema at runtime, so apply the SQLite
+migrations once before the first run:
+
 ```bash
 git clone https://github.com/do4k/acorn.git
-cd acorn/src/Acorn
+cd acorn
+dotnet tool restore
+
+cd src/Acorn
+dotnet ef database update --project ../Acorn.Database --startup-project .
 dotnet run
 ```
 
-The server starts with **SQLite** by default—no database setup required.
+The server then starts with **SQLite** by default.
 
 > **No account is pre-created.** Register one from the Endless Online client's login screen on first run.
 
@@ -74,6 +81,41 @@ docker compose --profile postgres up
 docker compose --profile sqlserver up
 ```
 
+### Apply Database Migrations
+
+`docker compose up` does **not** apply EF Core migrations. The server and API
+never create or upgrade the schema at runtime, so apply migrations once before
+starting the app containers. Each environment publishes its database port on
+the host, so run them from the repository root with the local .NET SDK.
+
+The example below uses the PostgreSQL environment. Point `COMPOSE_PROFILES` in
+`.env` at the environment you want (`COMPOSE_PROFILES=postgres`); for a
+different engine, use its profile in step 1/3 and its provider in step 2.
+
+```bash
+# 1. Start just the database container
+docker compose up -d postgres
+
+# 2. Apply that engine's migrations
+dotnet tool restore
+cd src/Acorn
+ASPNETCORE_ENVIRONMENT=Production \
+Database__Engine=PostgreSQL \
+Database__ConnectionString="Host=localhost;Port=5432;Database=acorn;Username=acorn;Password=acornpassword" \
+  dotnet ef database update --project ../Acorn.Database.PostgreSql --startup-project .
+
+# 3. Start the rest of the environment
+cd ../..
+docker compose up -d
+```
+
+`ASPNETCORE_ENVIRONMENT=Production` matters here: in Development the server
+enables scope validation, which the design-time tooling cannot build.
+
+> Use the provider that matches the profile. SQLite and PostgreSQL ship
+> migrations in this repository; MySQL and SQL Server need their own generated
+> first — see [docs/DATABASE.md](docs/DATABASE.md#migrations).
+
 ### Pull from GitHub Container Registry
 
 ```bash
@@ -98,10 +140,10 @@ docker buildx build --platform linux/amd64,linux/arm64 -t acorn:latest ./src/Aco
 
 ### Supported Databases
 
-| Engine | Use Case | Configuration |
-|--------|----------|---------------|
-| **SQLite** | Development, testing | `dotnet run` (default) |
-| **MySQL** | Docker default, production | `docker-compose up` |
+| Engine | Use Case | Docker profile |
+|--------|----------|----------------|
+| **SQLite** | Development, testing | `--profile sqlite` |
+| **MySQL** | Default Docker environment | `--profile mysql` |
 | **PostgreSQL** | Production with JSON support | `--profile postgres` |
 | **SQL Server** | Enterprise environments | `--profile sqlserver` |
 
@@ -126,16 +168,26 @@ Or edit `appsettings.json`:
 
 ### Entity Framework Migrations
 
-```bash
-# Create a migration
-dotnet ef migrations add MigrationName
+The server does not create or upgrade the schema at runtime; migrations are
+always applied explicitly.
 
-# Apply migrations (automatic on startup)
-dotnet ef database update
+```bash
+dotnet tool restore
+
+# Add a migration after changing the model
+dotnet ef migrations add MigrationName --project src/Acorn.Database --startup-project src/Acorn
+
+# Apply migrations to the development SQLite database
+cd src/Acorn
+dotnet ef database update --project ../Acorn.Database --startup-project .
 
 # Rollback
-dotnet ef database update PreviousMigrationName
+dotnet ef database update PreviousMigrationName --project ../Acorn.Database --startup-project .
 ```
+
+PostgreSQL uses its own migrations assembly (`Acorn.Database.PostgreSql`) and
+the commands differ; see
+[docs/DATABASE.md](docs/DATABASE.md#migrations) for provider-specific details.
 
 > 📖 See [docs/DATABASE.md](docs/DATABASE.md) for detailed configuration options.
 
