@@ -15,7 +15,7 @@ partial class AcornDbContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20260912182944_InitialCreate";
+    public override string LastMigrationId => "20260920215251_AddBanTable";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
@@ -65,6 +65,24 @@ partial class AcornDbContextModelSnapshot : ModelSnapshot
                 b.HasKey("Username");
 
                 b.ToTable("Accounts");
+            });
+
+        modelBuilder.Entity("Acorn.Database.Models.Ban", b =>
+            {
+                b.Property<string>("Key")
+                    .HasMaxLength(64)
+                    .HasColumnType("TEXT");
+
+                b.Property<DateTime?>("ExpiresAt")
+                    .HasColumnType("TEXT");
+
+                b.Property<string>("Reason")
+                    .HasMaxLength(200)
+                    .HasColumnType("TEXT");
+
+                b.HasKey("Key");
+
+                b.ToTable("Bans");
             });
 
         modelBuilder.Entity("Acorn.Database.Models.BoardPost", b =>
@@ -154,6 +172,9 @@ partial class AcornDbContextModelSnapshot : ModelSnapshot
                     .HasMaxLength(16)
                     .HasColumnType("TEXT");
 
+                b.Property<bool>("Frozen")
+                    .HasColumnType("INTEGER");
+
                 b.Property<int>("Gender")
                     .HasColumnType("INTEGER");
 
@@ -179,6 +200,9 @@ partial class AcornDbContextModelSnapshot : ModelSnapshot
                 b.Property<int>("Int")
                     .HasColumnType("INTEGER")
                     .HasColumnName("\"Int\"");
+
+                b.Property<bool>("Jailed")
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Karma")
                     .HasColumnType("INTEGER");

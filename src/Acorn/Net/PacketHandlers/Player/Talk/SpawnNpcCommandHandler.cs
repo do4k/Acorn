@@ -1,4 +1,5 @@
 ﻿using Acorn.Database.Repository;
+using Moffat.EndlessOnline.SDK.Protocol;
 using Acorn.Net.Services;
 using Acorn.World;
 using Acorn.World.Npc;
@@ -35,6 +36,8 @@ public class SpawnNpcCommandHandler : ITalkHandler
     public IReadOnlyList<string> Commands => ["spawnnpc", "snpc"];
 
     public string Usage => "<npc_id|npc_name> [count]";
+
+    public AdminLevel RequiredLevel => AdminLevel.Guardian;
 
     public async Task HandleAsync(PlayerState playerState, string command, params string[] args)
     {

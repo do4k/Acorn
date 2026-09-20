@@ -75,6 +75,73 @@ public class CommandHandlerTests
         await adminService.Received(1).SummonPlayerAsync(player, "Bob");
     }
 
+    // --- Silent command variants ---
+
+    [Test]
+    public async Task Ban_WhenSilentAlias_DoesNotAnnounce()
+    {
+        var adminService = Substitute.For<IAdminService>();
+        var notifications = Substitute.For<INotificationService>();
+        var handler = new BanCommandHandler(adminService, notifications);
+        var (player, _) = FakePlayer.Create();
+
+        await handler.HandleAsync(player, "sban", "Bob");
+
+        await adminService.Received(1).BanPlayerAsync(player, "Bob", true);
+    }
+
+    [Test]
+    public async Task Ban_WhenNormalAlias_Announces()
+    {
+        var adminService = Substitute.For<IAdminService>();
+        var notifications = Substitute.For<INotificationService>();
+        var handler = new BanCommandHandler(adminService, notifications);
+        var (player, _) = FakePlayer.Create();
+
+        await handler.HandleAsync(player, "ban", "Bob");
+
+        await adminService.Received(1).BanPlayerAsync(player, "Bob", false);
+    }
+
+    [Test]
+    public async Task Kick_WhenSilentAlias_DoesNotAnnounce()
+    {
+        var adminService = Substitute.For<IAdminService>();
+        var notifications = Substitute.For<INotificationService>();
+        var handler = new KickCommandHandler(adminService, notifications);
+        var (player, _) = FakePlayer.Create();
+
+        await handler.HandleAsync(player, "skick", "Bob");
+
+        await adminService.Received(1).KickPlayerAsync(player, "Bob", true);
+    }
+
+    [Test]
+    public async Task Jail_WhenSilentAlias_DoesNotAnnounce()
+    {
+        var adminService = Substitute.For<IAdminService>();
+        var notifications = Substitute.For<INotificationService>();
+        var handler = new JailCommandHandler(adminService, notifications);
+        var (player, _) = FakePlayer.Create();
+
+        await handler.HandleAsync(player, "sjail", "Bob");
+
+        await adminService.Received(1).JailPlayerAsync(player, "Bob", true);
+    }
+
+    [Test]
+    public async Task Mute_WhenSilentAlias_DoesNotAnnounce()
+    {
+        var adminService = Substitute.For<IAdminService>();
+        var notifications = Substitute.For<INotificationService>();
+        var handler = new MuteCommandHandler(adminService, notifications);
+        var (player, _) = FakePlayer.Create();
+
+        await handler.HandleAsync(player, "smute", "Bob");
+
+        await adminService.Received(1).MutePlayerAsync(player, "Bob", true);
+    }
+
     // --- $who / $online ---
 
     [Test]

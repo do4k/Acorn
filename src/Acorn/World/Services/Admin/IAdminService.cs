@@ -8,13 +8,16 @@ namespace Acorn.World.Services.Admin;
 public interface IAdminService
 {
     /// <summary>Kick a player from the server.</summary>
-    Task KickPlayerAsync(PlayerState admin, string targetName);
+    /// <param name="silent">When true, do not announce the kick to the server.</param>
+    Task KickPlayerAsync(PlayerState admin, string targetName, bool silent = false);
 
     /// <summary>Ban a player's account and disconnect them.</summary>
-    Task BanPlayerAsync(PlayerState admin, string targetName);
+    /// <param name="silent">When true, do not announce the ban to the server.</param>
+    Task BanPlayerAsync(PlayerState admin, string targetName, bool silent = false);
 
     /// <summary>Warp a player to the jail map.</summary>
-    Task JailPlayerAsync(PlayerState admin, string targetName);
+    /// <param name="silent">When true, do not announce the jailing to the server.</param>
+    Task JailPlayerAsync(PlayerState admin, string targetName, bool silent = false);
 
     /// <summary>Free a player from jail, warping them to their home map.</summary>
     Task FreePlayerAsync(PlayerState admin, string targetName);
@@ -26,7 +29,8 @@ public interface IAdminService
     Task UnfreezePlayerAsync(PlayerState admin, string targetName);
 
     /// <summary>Mute a player, preventing chat.</summary>
-    Task MutePlayerAsync(PlayerState admin, string targetName);
+    /// <param name="silent">When true, do not announce the mute to the server.</param>
+    Task MutePlayerAsync(PlayerState admin, string targetName, bool silent = false);
 
     /// <summary>Unmute a player, restoring chat.</summary>
     Task UnmutePlayerAsync(PlayerState admin, string targetName);

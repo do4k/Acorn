@@ -39,6 +39,8 @@ public class SpawnItemCommandHandler : ITalkHandler
 
     public string Usage => "<item_id|item_name> [amount]";
 
+    public AdminLevel RequiredLevel => AdminLevel.Guardian;
+
     public async Task HandleAsync(PlayerState playerState, string command, params string[] args)
     {
         if (args.Length < 1)

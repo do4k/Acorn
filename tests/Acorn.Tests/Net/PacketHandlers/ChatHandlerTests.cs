@@ -1,6 +1,7 @@
 using Acorn.Game.Services;
 using Acorn.Net;
 using Acorn.Net.PacketHandlers.Player.Talk;
+using Acorn.Net.Services;
 using Acorn.Tests.TestSupport;
 using Acorn.World;
 using Acorn.World.Services.Guild;
@@ -334,5 +335,23 @@ public class ChatHandlerTests
 
         await playerCommand.DidNotReceiveWithAnyArgs()
             .HandleAsync(Arg.Any<PlayerState>(), Arg.Any<string>(), Arg.Any<string[]>());
+    }
+
+    [Test]
+    public async Task Report_WhenUnknownPlayerCommand_RepliesUnknown()
+    {
+        var notifications = Substitute.For<INotificationService>();
+        var handler = new TalkReportClientPacketHandler(
+            Array.Empty<ITalkHandler>(),
+            Array.Empty<IPlayerCommandHandler>(),
+            null!,
+            null!,
+            PassthroughSanitizer(),
+            notifications);
+        var (player, _) = FakePlayer.Create();
+
+        await handler.HandleAsync(player, new TalkReportClientPacket { Message = "#nope" });
+
+        await notifications.Received(1).SystemMessage(player, "Unknown command: #nope. Try #help.");
     }
 }

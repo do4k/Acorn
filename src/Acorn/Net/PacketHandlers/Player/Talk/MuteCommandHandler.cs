@@ -6,7 +6,7 @@ namespace Acorn.Net.PacketHandlers.Player.Talk;
 
 public class MuteCommandHandler(IAdminService adminService, INotificationService notifications) : ITalkHandler
 {
-    public IReadOnlyList<string> Commands => ["mute"];
+    public IReadOnlyList<string> Commands => ["mute", "smute"];
 
     public string Usage => "<name>";
 
@@ -20,6 +20,7 @@ public class MuteCommandHandler(IAdminService adminService, INotificationService
             return;
         }
 
-        await adminService.MutePlayerAsync(playerState, args[0]);
+        var silent = command.Equals("smute", StringComparison.InvariantCultureIgnoreCase);
+        await adminService.MutePlayerAsync(playerState, args[0], silent);
     }
 }

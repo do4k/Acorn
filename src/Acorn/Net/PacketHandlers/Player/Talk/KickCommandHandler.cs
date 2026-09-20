@@ -6,7 +6,7 @@ namespace Acorn.Net.PacketHandlers.Player.Talk;
 
 public class KickCommandHandler(IAdminService adminService, INotificationService notifications) : ITalkHandler
 {
-    public IReadOnlyList<string> Commands => ["kick"];
+    public IReadOnlyList<string> Commands => ["kick", "skick"];
 
     public string Usage => "<name>";
 
@@ -20,6 +20,7 @@ public class KickCommandHandler(IAdminService adminService, INotificationService
             return;
         }
 
-        await adminService.KickPlayerAsync(playerState, args[0]);
+        var silent = command.Equals("skick", StringComparison.InvariantCultureIgnoreCase);
+        await adminService.KickPlayerAsync(playerState, args[0], silent);
     }
 }

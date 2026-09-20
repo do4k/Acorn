@@ -3,69 +3,62 @@ using System;
 using Acorn.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Acorn.Database.PostgreSql.Migrations;
+namespace Acorn.Database.Migrations;
 
 [DbContext(typeof(AcornDbContext))]
-partial class AcornDbContextModelSnapshot : ModelSnapshot
+[Migration("20260920215251_AddBanTable")]
+partial class _20260920215251_AddBanTable
 {
-    // If you encounter a merge conflict in the line below, it means you need to
-    // discard one of the migration branches and recreate its migrations on top of
-    // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20260920215300_AddBanTable";
-
-    protected override void BuildModel(ModelBuilder modelBuilder)
+    /// <inheritdoc />
+    protected override void BuildTargetModel(ModelBuilder modelBuilder)
     {
 #pragma warning disable 612, 618
-        modelBuilder
-            .HasAnnotation("ProductVersion", "11.0.0-preview.6.26359.118")
-            .HasAnnotation("Relational:MaxIdentifierLength", 63);
-
-        NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+        modelBuilder.HasAnnotation("ProductVersion", "11.0.0-preview.6.26359.118");
 
         modelBuilder.Entity("Acorn.Database.Models.Account", b =>
             {
                 b.Property<string>("Username")
                     .HasMaxLength(16)
-                    .HasColumnType("character varying(16)");
+                    .HasColumnType("TEXT");
 
                 b.Property<string>("Country")
                     .IsRequired()
                     .HasMaxLength(100)
-                    .HasColumnType("character varying(100)");
+                    .HasColumnType("TEXT");
 
                 b.Property<DateTime>("Created")
-                    .HasColumnType("timestamp with time zone");
+                    .HasColumnType("TEXT");
 
                 b.Property<string>("Email")
                     .IsRequired()
                     .HasMaxLength(100)
-                    .HasColumnType("character varying(100)");
+                    .HasColumnType("TEXT");
 
                 b.Property<string>("FullName")
                     .IsRequired()
                     .HasMaxLength(100)
-                    .HasColumnType("character varying(100)");
+                    .HasColumnType("TEXT");
 
                 b.Property<DateTime>("LastUsed")
-                    .HasColumnType("timestamp with time zone");
+                    .HasColumnType("TEXT");
 
                 b.Property<string>("Location")
                     .IsRequired()
                     .HasMaxLength(100)
-                    .HasColumnType("character varying(100)");
+                    .HasColumnType("TEXT");
 
                 b.Property<string>("Password")
                     .IsRequired()
-                    .HasColumnType("text");
+                    .HasColumnType("TEXT");
 
                 b.Property<string>("Salt")
                     .IsRequired()
-                    .HasColumnType("text");
+                    .HasColumnType("TEXT");
 
                 b.HasKey("Username");
 
@@ -76,14 +69,14 @@ partial class AcornDbContextModelSnapshot : ModelSnapshot
             {
                 b.Property<string>("Key")
                     .HasMaxLength(64)
-                    .HasColumnType("character varying(64)");
+                    .HasColumnType("TEXT");
 
                 b.Property<DateTime?>("ExpiresAt")
-                    .HasColumnType("timestamp with time zone");
+                    .HasColumnType("TEXT");
 
                 b.Property<string>("Reason")
                     .HasMaxLength(200)
-                    .HasColumnType("character varying(200)");
+                    .HasColumnType("TEXT");
 
                 b.HasKey("Key");
 
@@ -92,35 +85,33 @@ partial class AcornDbContextModelSnapshot : ModelSnapshot
 
         modelBuilder.Entity("Acorn.Database.Models.BoardPost", b =>
             {
-                var id = b.Property<int>("Id")
+                b.Property<int>("Id")
                     .ValueGeneratedOnAdd()
-                    .HasColumnType("integer");
-
-                NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(id);
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("AuthorAdmin")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("BoardId")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<string>("Body")
                     .IsRequired()
                     .HasMaxLength(2048)
-                    .HasColumnType("character varying(2048)");
+                    .HasColumnType("TEXT");
 
                 b.Property<string>("CharacterName")
                     .IsRequired()
                     .HasMaxLength(16)
-                    .HasColumnType("character varying(16)");
+                    .HasColumnType("TEXT");
 
                 b.Property<DateTime>("CreatedAt")
-                    .HasColumnType("timestamp with time zone");
+                    .HasColumnType("TEXT");
 
                 b.Property<string>("Subject")
                     .IsRequired()
                     .HasMaxLength(64)
-                    .HasColumnType("character varying(64)");
+                    .HasColumnType("TEXT");
 
                 b.HasKey("Id");
 
@@ -133,161 +124,159 @@ partial class AcornDbContextModelSnapshot : ModelSnapshot
 
         modelBuilder.Entity("Acorn.Database.Models.Character", b =>
             {
-                var id = b.Property<int>("Id")
+                b.Property<int>("Id")
                     .ValueGeneratedOnAdd()
-                    .HasColumnType("integer");
-
-                NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(id);
+                    .HasColumnType("INTEGER");
 
                 b.Property<string>("Accounts_Username")
                     .IsRequired()
                     .HasMaxLength(16)
-                    .HasColumnType("character varying(16)");
+                    .HasColumnType("TEXT");
 
                 b.Property<int>("Accuracy")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Admin")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Agi")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Armor")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("BankMax")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Cha")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Class")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Con")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Direction")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Evade")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Exp")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<string>("Fiance")
                     .HasMaxLength(16)
-                    .HasColumnType("character varying(16)");
+                    .HasColumnType("TEXT");
 
                 b.Property<bool>("Frozen")
-                    .HasColumnType("boolean");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Gender")
                     .HasColumnType("INTEGER");
 
                 b.Property<int>("GoldBank")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("HairColor")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("HairStyle")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<bool>("Hidden")
-                    .HasColumnType("boolean");
+                    .HasColumnType("INTEGER");
 
                 b.Property<string>("Home")
                     .HasMaxLength(100)
-                    .HasColumnType("character varying(100)");
+                    .HasColumnType("TEXT");
 
                 b.Property<int>("Hp")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Int")
-                    .HasColumnType("integer")
+                    .HasColumnType("INTEGER")
                     .HasColumnName("\"Int\"");
 
                 b.Property<bool>("Jailed")
-                    .HasColumnType("boolean");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Karma")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Level")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Map")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("MaxDamage")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("MaxHp")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("MaxSp")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("MaxTp")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("MaxWeight")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("MinDamage")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<string>("Name")
                     .IsRequired()
                     .HasMaxLength(16)
-                    .HasColumnType("character varying(16)");
+                    .HasColumnType("TEXT");
 
                 b.Property<bool>("NoInteract")
-                    .HasColumnType("boolean");
+                    .HasColumnType("INTEGER");
 
                 b.Property<string>("Partner")
                     .HasMaxLength(16)
-                    .HasColumnType("character varying(16)");
+                    .HasColumnType("TEXT");
 
                 b.Property<int>("Race")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("SitState")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("SkillPoints")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Sp")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("StatPoints")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Str")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<string>("Title")
                     .HasMaxLength(100)
-                    .HasColumnType("character varying(100)");
+                    .HasColumnType("TEXT");
 
                 b.Property<int>("Tp")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Usage")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Wis")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("X")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Y")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.HasKey("Id");
 
@@ -298,25 +287,23 @@ partial class AcornDbContextModelSnapshot : ModelSnapshot
 
         modelBuilder.Entity("Acorn.Database.Models.CharacterItem", b =>
             {
-                var id = b.Property<int>("Id")
+                b.Property<int>("Id")
                     .ValueGeneratedOnAdd()
-                    .HasColumnType("integer");
-
-                NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(id);
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Amount")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<string>("CharacterName")
                     .IsRequired()
                     .HasMaxLength(16)
-                    .HasColumnType("character varying(16)");
+                    .HasColumnType("TEXT");
 
                 b.Property<int>("ItemId")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Slot")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.HasKey("Id");
 
@@ -329,52 +316,52 @@ partial class AcornDbContextModelSnapshot : ModelSnapshot
             {
                 b.Property<string>("CharacterName")
                     .HasMaxLength(16)
-                    .HasColumnType("character varying(16)");
+                    .HasColumnType("TEXT");
 
                 b.Property<int>("Accessory")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Armlet1")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Armlet2")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Armor")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Belt")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Boots")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Bracer1")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Bracer2")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Gloves")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Hat")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Necklace")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Ring1")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Ring2")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Shield")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("Weapon")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.HasKey("CharacterName");
 
@@ -383,22 +370,20 @@ partial class AcornDbContextModelSnapshot : ModelSnapshot
 
         modelBuilder.Entity("Acorn.Database.Models.CharacterSpell", b =>
             {
-                var id = b.Property<int>("Id")
+                b.Property<int>("Id")
                     .ValueGeneratedOnAdd()
-                    .HasColumnType("integer");
-
-                NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(id);
+                    .HasColumnType("INTEGER");
 
                 b.Property<string>("CharacterName")
                     .IsRequired()
                     .HasMaxLength(16)
-                    .HasColumnType("character varying(16)");
+                    .HasColumnType("TEXT");
 
                 b.Property<int>("Level")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("SpellId")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.HasKey("Id");
 
@@ -414,28 +399,28 @@ partial class AcornDbContextModelSnapshot : ModelSnapshot
             {
                 b.Property<string>("Tag")
                     .HasMaxLength(3)
-                    .HasColumnType("character varying(3)");
+                    .HasColumnType("TEXT");
 
                 b.Property<int>("Bank")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<DateTime>("CreatedAt")
-                    .HasColumnType("timestamp with time zone");
+                    .HasColumnType("TEXT");
 
                 b.Property<string>("Description")
                     .IsRequired()
                     .HasMaxLength(500)
-                    .HasColumnType("character varying(500)");
+                    .HasColumnType("TEXT");
 
                 b.Property<string>("Name")
                     .IsRequired()
                     .HasMaxLength(100)
-                    .HasColumnType("character varying(100)");
+                    .HasColumnType("TEXT");
 
                 b.Property<string>("Ranks")
                     .IsRequired()
                     .HasMaxLength(500)
-                    .HasColumnType("character varying(500)");
+                    .HasColumnType("TEXT");
 
                 b.HasKey("Tag");
 
@@ -444,24 +429,22 @@ partial class AcornDbContextModelSnapshot : ModelSnapshot
 
         modelBuilder.Entity("Acorn.Database.Models.GuildMember", b =>
             {
-                var id = b.Property<int>("Id")
+                b.Property<int>("Id")
                     .ValueGeneratedOnAdd()
-                    .HasColumnType("integer");
-
-                NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(id);
+                    .HasColumnType("INTEGER");
 
                 b.Property<string>("CharacterName")
                     .IsRequired()
                     .HasMaxLength(16)
-                    .HasColumnType("character varying(16)");
+                    .HasColumnType("TEXT");
 
                 b.Property<string>("GuildTag")
                     .IsRequired()
                     .HasMaxLength(3)
-                    .HasColumnType("character varying(3)");
+                    .HasColumnType("TEXT");
 
                 b.Property<int>("RankIndex")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.HasKey("Id");
 
@@ -475,36 +458,34 @@ partial class AcornDbContextModelSnapshot : ModelSnapshot
 
         modelBuilder.Entity("Acorn.Database.Models.QuestProgress", b =>
             {
-                var id = b.Property<int>("Id")
+                b.Property<int>("Id")
                     .ValueGeneratedOnAdd()
-                    .HasColumnType("integer");
-
-                NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(id);
+                    .HasColumnType("INTEGER");
 
                 b.Property<string>("CharacterName")
                     .IsRequired()
                     .HasMaxLength(16)
-                    .HasColumnType("character varying(16)");
+                    .HasColumnType("TEXT");
 
                 b.Property<int>("Completions")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<DateTime?>("DoneAt")
-                    .HasColumnType("timestamp with time zone");
+                    .HasColumnType("TEXT");
 
                 b.Property<string>("NpcKillsJson")
                     .IsRequired()
                     .HasMaxLength(1024)
-                    .HasColumnType("character varying(1024)");
+                    .HasColumnType("TEXT");
 
                 b.Property<int>("PlayerKills")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("QuestId")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.Property<int>("State")
-                    .HasColumnType("integer");
+                    .HasColumnType("INTEGER");
 
                 b.HasKey("Id");
 

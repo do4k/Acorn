@@ -142,9 +142,11 @@ eoserv's ~25 `setX` commands into one generic `$set <player> <attr> <value>`
 freeze/unfreeze, warp, wmt/warpmeto (go to player), summon/bring/warptome (pull
 player to you), who/online, hide, evacuate, quake, set (≈ the whole `setX` family),
 spawnitem (sitem/si), spawnnpc (snpc), addspell (spell), global, help, location,
-usage, uptime, rehash (config re-read), repub (pub reload). Per-command minimum
-admin levels are now declared on the handlers (`RequiredLevel`) and enforced by
-the dispatcher; `$set admin` additionally requires HighGameMaster.
+usage, uptime, rehash (config re-read), repub (pub reload), item/npc/spellinfo/
+class lookups, qstate, and the silent variants (skick/sjail/sban/smute). Per-command
+minimum admin levels are now declared on the handlers (`RequiredLevel`) and enforced
+by the dispatcher; `$set admin` additionally requires HighGameMaster. Jail, freeze
+and bans are persisted (jail/freeze on the character, bans in the database).
 
 **Missing vs eoserv (candidate backlog):**
 
@@ -153,10 +155,7 @@ the dispatcher; `$set admin` additionally requires HighGameMaster.
 | `remap` | Hot-reload a single map | Med |
 | `shutdown`, `request` | Server control / request logging | Med |
 | `strip` / `dress` / `undress` / `dress2` | Force-equip/unequip a player | Low |
-| `qstate` | Inspect/force a player's quest state | Med (debug) |
-| `item`/`npc`/`spell`/`class`/`paperdoll`/`book` | In-game data lookups | Low |
 | Privilege flags: `nowall`, `seehide`, `killnpc`, `cmdprotect`, `unlimitedweight` | GM toggles | Low |
-| Silent variants: `skick`, `sjail`, `sban`, `smute` | Act without announcing | Low |
 
 None of these are gameplay-critical. The high-frequency GM warp tools and the
 uptime/`repub`/`rehash` trio are now implemented; see [COMMANDS.md](COMMANDS.md)

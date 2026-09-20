@@ -77,7 +77,7 @@ public class HelpCommandHandlerTests
         await sut.HandleAsync(admin, "help", "warp");
 
         await notifications.Received(1)
-            .SystemMessage(admin, "$warp <map id or name>");
+            .SystemMessage(admin, Arg.Is<string>(m => m.StartsWith("$warp <map id or name>")));
     }
 
     [Test]

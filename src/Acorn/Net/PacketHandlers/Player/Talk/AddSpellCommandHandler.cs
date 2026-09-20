@@ -1,4 +1,5 @@
 using Acorn.Database.Models;
+using Moffat.EndlessOnline.SDK.Protocol;
 using Acorn.Database.Repository;
 using Acorn.Net.Services;
 using Microsoft.Extensions.Logging;
@@ -24,6 +25,8 @@ public class AddSpellCommandHandler : ITalkHandler
     public IReadOnlyList<string> Commands => ["addspell", "spell"];
 
     public string Usage => "<character_name> <spell_id> [level]";
+
+    public AdminLevel RequiredLevel => AdminLevel.Guardian;
 
     public async Task HandleAsync(PlayerState playerState, string command, params string[] args)
     {

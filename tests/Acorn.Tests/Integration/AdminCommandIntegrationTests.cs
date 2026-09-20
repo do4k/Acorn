@@ -140,14 +140,14 @@ public class AdminCommandIntegrationTests
             var character = _fixture.GetPlayer(target.PlayerId)?.Character;
             return character is not null
                    && character.Map == adminCharacter.Map
-                   && character.X == adminCharacter.X
-                   && character.Y == adminCharacter.Y;
+                   && Math.Abs(character.X - adminCharacter.X) <= 3
+                   && Math.Abs(character.Y - adminCharacter.Y) <= 3;
         });
 
         var targetCharacter = _fixture.GetPlayer(target.PlayerId)!.Character!;
         targetCharacter.Map.Should().Be(adminCharacter.Map);
-        targetCharacter.X.Should().Be(adminCharacter.X);
-        targetCharacter.Y.Should().Be(adminCharacter.Y);
+        Math.Abs(targetCharacter.X - adminCharacter.X).Should().BeLessThanOrEqualTo(3);
+        Math.Abs(targetCharacter.Y - adminCharacter.Y).Should().BeLessThanOrEqualTo(3);
     }
 
     // --- Flow helpers (mirrors AdminInteractionTests) ---

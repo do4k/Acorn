@@ -29,4 +29,24 @@ public class CharacterMapperTests
             new Spell(7, 5)
         });
     }
+
+    [Test]
+    public void JailedAndFrozen_ShouldRoundTripThroughMapper()
+    {
+        var dbCharacter = new DatabaseCharacter
+        {
+            Accounts_Username = "testuser",
+            Name = "TestCharacter",
+            Jailed = true,
+            Frozen = true
+        };
+
+        var gameCharacter = CharacterMapper.FromDatabaseModel(dbCharacter);
+        gameCharacter.Jailed.Should().BeTrue();
+        gameCharacter.Frozen.Should().BeTrue();
+
+        var mappedBack = new CharacterMapper().ToDatabase(gameCharacter);
+        mappedBack.Jailed.Should().BeTrue();
+        mappedBack.Frozen.Should().BeTrue();
+    }
 }
