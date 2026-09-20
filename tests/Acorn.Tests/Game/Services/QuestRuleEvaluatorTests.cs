@@ -182,4 +182,52 @@ public class QuestRuleEvaluatorTests
 
         result.Should().BeTrue();
     }
+
+    [Test]
+    public void Evaluate_DoneDaily_WhenCompletedEnoughTimesToday_ShouldBeTrue()
+    {
+        var progress = new CharacterQuestProgress
+        {
+            DoneAt = new DateTime(2026, 1, 1, 9, 0, 0, DateTimeKind.Utc),
+            Completions = 3
+        };
+
+        var result = QuestRuleEvaluator.Evaluate(
+            Rule("DoneDaily", "next", new QuestArg.IntArg(3)), CreateCharacter(), progress,
+            new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc));
+
+        result.Should().BeTrue();
+    }
+
+    [Test]
+    public void Evaluate_DoneDaily_WhenBelowThreshold_ShouldBeFalse()
+    {
+        var progress = new CharacterQuestProgress
+        {
+            DoneAt = new DateTime(2026, 1, 1, 9, 0, 0, DateTimeKind.Utc),
+            Completions = 1
+        };
+
+        var result = QuestRuleEvaluator.Evaluate(
+            Rule("DoneDaily", "next", new QuestArg.IntArg(3)), CreateCharacter(), progress,
+            new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc));
+
+        result.Should().BeFalse();
+    }
+
+    [Test]
+    public void Evaluate_DoneDaily_WhenCompletedOnAnEarlierDay_ShouldBeFalse()
+    {
+        var progress = new CharacterQuestProgress
+        {
+            DoneAt = new DateTime(2025, 12, 31, 23, 0, 0, DateTimeKind.Utc),
+            Completions = 5
+        };
+
+        var result = QuestRuleEvaluator.Evaluate(
+            Rule("DoneDaily", "next", new QuestArg.IntArg(1)), CreateCharacter(), progress,
+            new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc));
+
+        result.Should().BeFalse();
+    }
 }

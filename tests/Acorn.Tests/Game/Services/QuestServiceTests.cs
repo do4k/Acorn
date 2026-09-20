@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using Acorn.Data;
 using Acorn.Database.Repository;
+using Acorn.Extensions;
 using Acorn.Game.Models;
 using Acorn.Game.Services;
 using Acorn.Infrastructure.Communicators;
@@ -9,7 +10,10 @@ using Acorn.Net;
 using Acorn.Net.PacketHandlers;
 using Acorn.Options;
 using Acorn.Shared.Caching;
+using Acorn.Tests.TestSupport;
 using Acorn.World;
+using Acorn.World.Map;
+using Acorn.World.Services.Map;
 using Acorn.World.Services.Player;
 using Acorn.World.Services.Quest;
 using FluentAssertions;
@@ -36,10 +40,14 @@ public class QuestServiceTests
     private readonly IPlayerController _playerController = Substitute.For<IPlayerController>();
     private readonly IWorldQueries _worldQueries = Substitute.For<IWorldQueries>();
     private readonly IServiceScopeFactory _scopeFactory = Substitute.For<IServiceScopeFactory>();
+    private readonly IMapEffectService _mapEffectService = Substitute.For<IMapEffectService>();
     private readonly AcornMetrics _metrics = new();
+    private DateTime _now = new(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc);
 
-    private QuestService CreateService()
+    private QuestService CreateService(UtcNowDelegate? clock = null)
     {
+        clock ??= () => _now;
+
         return new QuestService(
             _questRepository,
             _inventoryService,
@@ -52,6 +60,8 @@ public class QuestServiceTests
             _playerController,
             _worldQueries,
             _scopeFactory,
+            _mapEffectService,
+            clock,
             _metrics,
             NullLogger<QuestService>.Instance);
     }
@@ -405,5 +415,84 @@ public class QuestServiceTests
 
         await act.Should().NotThrowAsync();
         progress.State.Should().Be(0);
+    }
+
+    [Test]
+    public async Task CheckQuestRules_WhenResetDailyAction_ShouldCountCompletionForToday()
+    {
+        var quest = DailyQuest();
+        RegisterQuest(quest);
+
+        var character = CreateCharacter();
+        character.Inventory.Items.Add(new ItemWithAmount { Id = 100, Amount = 1 });
+        var progress = new CharacterQuestProgress { QuestId = 1, State = 0 };
+        character.Quests.Add(progress);
+        var player = CreatePlayer(character);
+
+        await CreateService().CheckQuestRules(player);
+
+        progress.State.Should().Be(0);
+        progress.Completions.Should().Be(1);
+        progress.DoneAt.Should().Be(_now);
+    }
+
+    [Test]
+    public async Task CheckQuestRules_WhenResetDailyOnANewDay_ShouldResetDailyCounter()
+    {
+        RegisterQuest(DailyQuest());
+
+        var character = CreateCharacter();
+        var progress = new CharacterQuestProgress { QuestId = 1, State = 0 };
+        character.Quests.Add(progress);
+        var player = CreatePlayer(character);
+
+        var now = _now;
+        var sut = CreateService(() => now);
+
+        character.Inventory.Items.Add(new ItemWithAmount { Id = 100, Amount = 1 });
+        await sut.CheckQuestRules(player);
+        progress.Completions.Should().Be(1);
+
+        // A second completion on the same day increments the counter.
+        character.Inventory.Items.Add(new ItemWithAmount { Id = 100, Amount = 1 });
+        await sut.CheckQuestRules(player);
+        progress.Completions.Should().Be(2);
+
+        // The next day the counter starts over before incrementing.
+        now = now.AddDays(1);
+        character.Inventory.Items.Add(new ItemWithAmount { Id = 100, Amount = 1 });
+        await sut.CheckQuestRules(player);
+        progress.Completions.Should().Be(1);
+        progress.DoneAt.Should().Be(now);
+    }
+
+    [Test]
+    public async Task CheckQuestRules_WhenQuakeAction_ShouldTriggerMapQuake()
+    {
+        var quest = new QuestData(1, "Shake", 1,
+        [
+            new QuestState("begin", "", [], [Rule("Always", "reward")]),
+            new QuestState("reward", "", [Action("Quake", I(5))], [])
+        ]);
+        RegisterQuest(quest);
+
+        var character = CreateCharacter();
+        var progress = new CharacterQuestProgress { QuestId = 1, State = 0 };
+        character.Quests.Add(progress);
+        var player = CreatePlayer(character);
+        player.CurrentMap = FakeMap.Create();
+
+        await CreateService().CheckQuestRules(player);
+
+        await _mapEffectService.Received(1).QuakeAsync(Arg.Any<MapState>(), 5);
+    }
+
+    private static QuestData DailyQuest()
+    {
+        return new QuestData(1, "Daily", 1,
+        [
+            new QuestState("begin", "", [], [Rule("GotItems", "reward", I(100), I(1))]),
+            new QuestState("reward", "", [Action("RemoveItem", I(100), I(1)), Action("ResetDaily")], [])
+        ]);
     }
 }
