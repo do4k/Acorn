@@ -364,7 +364,7 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
         var recipients = map.Players.Values
             .Where(p => p.Character is not null)
             .Where(p => except is null || p.SessionId != except.SessionId)
-            .Where(p => _tileService.InClientRange(origin, p.Character!.AsCoords()))
+            .Where(p => _tileService.InClientRange(p.Character!.AsCoords(), origin))
             .Select(p => p.Send(packet));
 
         await Task.WhenAll(recipients);

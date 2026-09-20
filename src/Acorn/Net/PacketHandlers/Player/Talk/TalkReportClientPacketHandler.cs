@@ -76,7 +76,7 @@ internal class TalkReportClientPacketHandler(
         var recipients = playerState.CurrentMap!.Players.Values
             .Where(p => p.SessionId != playerState.SessionId
                         && p.Character is not null
-                        && tileService.InClientRange(origin, p.Character!.AsCoords()));
+                        && tileService.InClientRange(p.Character!.AsCoords(), origin));
 
         await Task.WhenAll(recipients.Select(p => p.Send(new TalkPlayerServerPacket
         {

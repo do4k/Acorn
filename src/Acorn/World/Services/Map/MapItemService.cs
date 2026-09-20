@@ -84,7 +84,7 @@ public class MapItemService : IMapItemService
         var recipients = map.Players.Values
             .Where(p => p.SessionId != player.SessionId)
             .Where(p => p.Character is not null)
-            .Where(p => _tileService.InClientRange(coords, p.Character!.AsCoords()))
+            .Where(p => _tileService.InClientRange(p.Character!.AsCoords(), coords))
             .ToList();
 
         await _broadcastService.BroadcastPacket(recipients, new ItemAddServerPacket

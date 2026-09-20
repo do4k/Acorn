@@ -37,9 +37,12 @@ public interface IMapTileService
     int GetManhattanDistance(Coords a, Coords b);
 
     /// <summary>
-    ///     Check if two coordinates are within client render range.
+    ///     Check if two coordinates are within client render range. Mirrors the client's
+    ///     own cull range: Manhattan distance, asymmetric (the native client keeps up to
+    ///     12/15; we use 11/14 so web clients that cull at 11/14 never discard something
+    ///     the server just sent).
     /// </summary>
-    bool InClientRange(Coords a, Coords b);
+    bool InClientRange(Coords observer, Coords other);
 
     /// <summary>
     ///     Check if a player is within range of a specific tile type.

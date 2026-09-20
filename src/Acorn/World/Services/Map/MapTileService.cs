@@ -5,7 +5,8 @@ namespace Acorn.World.Services.Map;
 
 public class MapTileService : IMapTileService
 {
-    private const int CLIENT_RANGE = 13;
+    private const int CLIENT_VIEW_RANGE_UPPER = 11;
+    private const int CLIENT_VIEW_RANGE_LOWER = 14;
 
     private static readonly HashSet<MapTileSpec> NonWalkableTiles = new()
     {
@@ -73,9 +74,18 @@ public class MapTileService : IMapTileService
         return Math.Abs(a.X - b.X) + Math.Abs(a.Y - b.Y);
     }
 
-    public bool InClientRange(Coords a, Coords b)
+    public bool InClientRange(Coords observer, Coords other)
     {
-        return GetDistance(a, b) <= CLIENT_RANGE;
+        var distance = Math.Abs(observer.X - other.X) + Math.Abs(observer.Y - other.Y);
+
+        // Mirrors the client's own cull range: Manhattan distance, asymmetric. The native
+        // client keeps entities up to 12 tiles away when they are above/left of the
+        // observer and 15 otherwise; eoweb culls at 11/14. Send the smaller of the two so
+        // a client never immediately discards an entity we just sent (which made far-away
+        // NPCs flicker in and out).
+        return observer.X >= other.X || observer.Y >= other.Y
+            ? distance <= CLIENT_VIEW_RANGE_UPPER
+            : distance <= CLIENT_VIEW_RANGE_LOWER;
     }
 
     public bool PlayerInRangeOfTile(Emf map, Coords playerCoords, MapTileSpec tileSpec)
