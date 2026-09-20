@@ -28,6 +28,7 @@
     <ItemGroup>
         <ProjectReference Include="..\Acorn.Shared\Acorn.Shared.csproj" />
         <ProjectReference Include="..\Acorn.Database\Acorn.Database.csproj" />
+        <ProjectReference Include="..\Acorn.Database.PostgreSql\Acorn.Database.PostgreSql.csproj" />
     </ItemGroup>
 
     <ItemGroup>
