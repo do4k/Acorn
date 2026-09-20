@@ -1,6 +1,6 @@
 # Agents Guide for Project Acorn
 
-> A modern C# server emulator for Endless Online, built with .NET 10 and Entity Framework Core
+> A modern C# server emulator for Endless Online, built with .NET 11 and Entity Framework Core
 
 ## Project Overview
 
@@ -10,11 +10,11 @@
 
 | Component | Technology |
 |-----------|------------|
-| Language | C# 13+ |
-| Framework | .NET 10 |
-| ORM | Entity Framework Core 10 |
+| Language | C# 15+ |
+| Framework | .NET 11 |
+| ORM | Entity Framework Core 11 |
 | Databases | SQLite (dev), MySQL, PostgreSQL, SQL Server |
-| Caching | Redis / In-Memory |
+| Caching | In-Memory (Redis optional via AppHost) |
 | Testing | TUnit, NSubstitute, FluentAssertions |
 | Protocol | Moffat.EndlessOnline.SDK (eolib-dotnet) |
 | API | ASP.NET Core Minimal APIs |
@@ -35,7 +35,9 @@ acorn/
 │   │   ├── SLN/                # Server Link Network integration
 │   │   └── World/              # World state, maps, NPCs, services
 │   ├── Acorn.Api/              # REST API for game state queries
+│   ├── Acorn.AppHost/          # .NET Aspire orchestration for the full stack
 │   ├── Acorn.Database/         # EF Core DbContext, entities and repositories
+│   ├── Acorn.Database.PostgreSql/  # PostgreSQL-specific EF Core extensions
 │   └── Acorn.Shared/           # Shared contract models, caching, extensions, options
 ├── tests/
 │   └── Acorn.Tests/            # Unit tests
@@ -114,9 +116,17 @@ The game world is managed through:
 
 ### Caching
 
-Two-tier caching via `ICacheService`:
-- Redis (production) - Distributed cache
-- In-Memory (development) - Simple fallback
+Caching is in-memory via `ICacheService` (`InMemoryCacheService`), plus specialised
+caches for pub files, realtime map state and online characters:
+
+- `ICacheService` - Generic key/value cache (in-memory)
+- `IPubCacheService` - Cached pub data (items, NPCs, spells, classes)
+- `IMapCacheService` - Realtime map state
+- `ICharacterCacheService` - Online character state
+
+`AddCaching()` registers these; caching can be disabled with `Cache:Enabled`.
+Redis is not wired up - `Acorn.AppHost` keeps an optional, commented-out Redis
+resource for local experimentation.
 
 ## Code Conventions
 
@@ -166,10 +176,13 @@ public void MethodName_WhenCondition_ShouldExpectedBehavior()
 
 ### Project References
 
-- `Acorn` depends on `Acorn.Shared`, `Acorn.Database`
-- `Acorn.Api` depends on `Acorn.Shared`, `Acorn.Database`
+- `Acorn` depends on `Acorn.Shared`, `Acorn.Database`, `Acorn.Database.PostgreSql`
+- `Acorn.Api` depends on `Acorn.Shared`, `Acorn.Database`, `Acorn.Database.PostgreSql`
+- `Acorn.AppHost` depends on `Acorn`, `Acorn.Api`
+- `Acorn.Database.PostgreSql` depends on `Acorn.Database`
 - `Acorn.Database` depends on `Acorn.Shared`
 - `Acorn.Shared` is standalone
+- `Acorn.Tests` depends on `Acorn`
 
 ## Common Tasks
 
@@ -212,9 +225,9 @@ Migrations live in `src/Acorn.Database/Migrations` and are applied as a startup 
 
 | File | What it does |
 |------|--------------|
-| `global.json` | .NET SDK version (10.0.0) |
+| `global.json` | .NET SDK version (11.0.100-rc.1.26425.128) |
 | `.editorconfig` | Code style rules |
-| `appsettings.json` | Server configuration |
+| `src/Acorn/appsettings.json` | Server configuration |
 | `docker-compose.yml` | Multi-database Docker setup |
 | `.github/workflows/ci.yml` | CI pipeline |
 
@@ -251,7 +264,7 @@ Migrations live in `src/Acorn.Database/Migrations` and are applied as a startup 
 - [REST API](docs/API.md)
 - [Gemini AI Integration](docs/GEMINI_WISEMAN.md)
 - [Inventory System](docs/INVENTORY.md)
-- [Redis Real-time State](docs/REDIS_REALTIME.md)
+- [Codebase Review](docs/CODEBASE_REVIEW.md)
 
 ## Additional Context
 
