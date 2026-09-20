@@ -14,6 +14,7 @@ using Acorn.World.Services.Player;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Moffat.EndlessOnline.SDK.Data;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
@@ -105,8 +106,8 @@ public class QuestService(
         // Set interaction state
         player.InteractingNpcIndex = npcIndex;
 
-        // Generate a new session ID
-        var sessionId = player.Rnd.Next(1, int.MaxValue);
+        // The session id is a two-byte protocol field (EoWriter.AddShort max is SHORT_MAX - 1).
+        var sessionId = player.Rnd.Next(1, (int)EoNumericLimits.SHORT_MAX);
         player.DialogSessionId = sessionId;
 
         await player.Send(new QuestDialogServerPacket
@@ -204,8 +205,8 @@ public class QuestService(
             .Select(q => new DialogQuestEntry { QuestId = q.Id, QuestName = q.Name })
             .ToList();
 
-        // Generate new session
-        var newSessionId = player.Rnd.Next(1, int.MaxValue);
+        // The session id is a two-byte protocol field (EoWriter.AddShort max is SHORT_MAX - 1).
+        var newSessionId = player.Rnd.Next(1, (int)EoNumericLimits.SHORT_MAX);
         player.DialogSessionId = newSessionId;
 
         await player.Send(new QuestDialogServerPacket

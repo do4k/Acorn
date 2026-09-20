@@ -13,6 +13,7 @@ using Acorn.Shared.Caching;
 using Acorn.Tests.TestSupport;
 using Acorn.World;
 using Acorn.World.Map;
+using Acorn.World.Npc;
 using Acorn.World.Services.Map;
 using Acorn.World.Services.Player;
 using Acorn.World.Services.Quest;
@@ -20,9 +21,11 @@ using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Moffat.EndlessOnline.SDK.Data;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
 using NSubstitute;
+using NpcType = Moffat.EndlessOnline.SDK.Protocol.Pub.NpcType;
 using System.Threading.Tasks;
 
 namespace Acorn.Tests.Game.Services;
@@ -142,6 +145,11 @@ public class QuestServiceTests
     private static QuestArg I(int value)
     {
         return new QuestArg.IntArg(value);
+    }
+
+    private static QuestArg S(string value)
+    {
+        return new QuestArg.StrArg(value);
     }
 
     [Test]
@@ -485,6 +493,40 @@ public class QuestServiceTests
         await CreateService().CheckQuestRules(player);
 
         await _mapEffectService.Received(1).QuakeAsync(Arg.Any<MapState>(), 5);
+    }
+
+    [Test]
+    public async Task TalkToQuestNpc_ShouldGenerateASessionIdTheProtocolCanEncode()
+    {
+        const int behaviorId = 7;
+        var quest = new QuestData(1, "Talk", 1,
+        [
+            new QuestState("begin", "", [Action("AddNpcText", I(behaviorId), S("Hello"))], [])
+        ]);
+        RegisterQuest(quest);
+
+        var character = CreateCharacter();
+        character.Quests.Add(new CharacterQuestProgress { QuestId = 1, State = 0 });
+        var player = CreatePlayer(character);
+
+        var map = FakeMap.Create();
+        map.Npcs[3] = new NpcState(new EnfRecord
+        {
+            Name = "Dan",
+            Type = NpcType.Quest,
+            BehaviorId = behaviorId
+        });
+        player.CurrentMap = map;
+
+        var sut = CreateService();
+
+        // The dialog session id is serialized as a two-byte short, so values above
+        // EoNumericLimits.SHORT_MAX - 1 throw during packet serialization.
+        for (var i = 0; i < 10; i++)
+        {
+            await sut.TalkToQuestNpc(player, 3, 1);
+            player.DialogSessionId.Should().BeInRange(1, (int)EoNumericLimits.SHORT_MAX - 1);
+        }
     }
 
     private static QuestData DailyQuest()
