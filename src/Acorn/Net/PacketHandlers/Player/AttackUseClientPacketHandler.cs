@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using Acorn.Database.Repository;
 using Acorn.Extensions;
+using Acorn.Game.Models;
 using Acorn.Game.Services;
 using Acorn.Options;
 using Acorn.Shared.Caching;
@@ -177,6 +179,11 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
         // Handle NPC death
         if (target.Hp == 0 && !target.IsDead)
         {
+            // Everything below is a consequence of the kill, so it groups under one span,
+            // with the loot roll, the ground item and each broadcast packet nested inside.
+            using var deathActivity = AcornActivities.StartNpcDeath(
+                target.Id, target.Data.Name, character.Map, character.Name);
+
             target.IsDead = true;
             target.DeathTime = DateTime.UtcNow;
             target.Opponents.Clear();
@@ -218,7 +225,13 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
 
             // Roll for a drop (item or gold — gold is item ID 1, rolled from the NPC's
             // specific loot table plus the global drop table)
-            var dropItem = _lootService.RollDrop(target.Id);
+            LootDrop? dropItem;
+            using (var lootActivity = AcornActivities.StartLootRoll(target.Id))
+            {
+                dropItem = _lootService.RollDrop(target.Id);
+                lootActivity?.SetStatus(ActivityStatusCode.Ok);
+            }
+
             var dropId = 0;
             var dropAmount = 0;
             var dropIndex = 0;
@@ -229,10 +242,13 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
                 dropId = dropItem.ItemId;
 
                 // Create map item with killer's protection
+                using var dropActivity = AcornActivities.StartItemDrop(dropId, dropAmount);
                 var (itemIndex, _) = _mapItemService.AddGroundItem(
                     map, dropId, dropAmount, new Coords { X = target.X, Y = target.Y },
                     playerState.SessionId, _dropProtectionTicks);
                 dropIndex = itemIndex;
+                dropActivity?.SetTag("acorn.item.index", dropIndex);
+                dropActivity?.SetStatus(ActivityStatusCode.Ok);
 
                 // Gold is item ID 1; count NPC gold separately from item loot.
                 if (dropId == 1)
@@ -297,6 +313,8 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
 
             // Advance any NPC-kill quest objectives for the killer
             await _questService.NotifyNpcKilled(playerState, target.Id);
+
+            deathActivity?.SetStatus(ActivityStatusCode.Ok);
         }
 
         await BroadcastInRangeAsync(map, origin, new AttackPlayerServerPacket

@@ -476,20 +476,35 @@ public class PlayerState : IDisposable
             _logger.LogDebug("[Server] {Packet}", packet.ToString());
         }
 
-        var writer = new EoWriter();
-        writer.AddByte((int)packet.Action);
-        writer.AddByte((int)packet.Family);
-        packet.Serialize(writer);
-        var bytes = packet switch
-        {
-            InitInitServerPacket _ => writer.ToByteArray(),
-            _ => DataEncrypter.FlipMSB(
-                DataEncrypter.Interleave(DataEncrypter.SwapMultiples(writer.ToByteArray(), ServerEncryptionMulti)))
-        };
+        // This is the single choke point for every reply and broadcast, so instrumenting
+        // it here ties the whole cascade of packets produced by one incoming packet into
+        // the same trace (and therefore the same flame graph).
+        using var activity = AcornActivities.StartPacketSend(
+            packet, SessionId, Account?.Username, Character?.Name);
 
-        var encodedLength = NumberEncoder.EncodeNumber(bytes.Length);
-        var fullBytes = encodedLength[..2].Concat(bytes);
-        await Communicator.Send(fullBytes);
+        try
+        {
+            var writer = new EoWriter();
+            writer.AddByte((int)packet.Action);
+            writer.AddByte((int)packet.Family);
+            packet.Serialize(writer);
+            var bytes = packet switch
+            {
+                InitInitServerPacket _ => writer.ToByteArray(),
+                _ => DataEncrypter.FlipMSB(
+                    DataEncrypter.Interleave(DataEncrypter.SwapMultiples(writer.ToByteArray(), ServerEncryptionMulti)))
+            };
+
+            var encodedLength = NumberEncoder.EncodeNumber(bytes.Length);
+            var fullBytes = encodedLength[..2].Concat(bytes);
+            await Communicator.Send(fullBytes);
+            activity?.SetStatus(ActivityStatusCode.Ok);
+        }
+        catch (Exception ex)
+        {
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            throw;
+        }
     }
 
     public void Disconnect()
