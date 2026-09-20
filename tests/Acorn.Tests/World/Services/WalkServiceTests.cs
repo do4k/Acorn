@@ -152,6 +152,62 @@ public class WalkServiceTests
     }
 
     [Test]
+    public async Task WalkAsync_WhenDoorWarpIsClosed_ShouldNotMoveAndShouldRefresh()
+    {
+        var doorCoords = new Coords { X = 7, Y = 6 };
+        var map = CreateMap(withDoorAt: doorCoords, doorSpec: 1, doorDestinationMap: 2);
+        var (player, _) = CreatePlayer(map, SessionId, 6, 6);
+        var playerController = Substitute.For<IPlayerController>();
+        var world = Substitute.For<IWorldQueries>();
+        var targetMap = CreateMap();
+        world.FindMap(2).Returns(targetMap);
+        var service = CreateService(playerController, world: world);
+
+        await service.WalkAsync(player, Direction.Right, timestamp: 0, doorCoords);
+
+        player.Character!.X.Should().Be(6, "a closed door blocks the move");
+        player.Character.Y.Should().Be(6);
+        await playerController.Received(1).RefreshAsync(player);
+        await playerController.DidNotReceive().WarpAsync(
+            Arg.Any<PlayerState>(), Arg.Any<MapState>(), Arg.Any<int>(), Arg.Any<int>(),
+            Arg.Any<WarpEffect>());
+    }
+
+    [Test]
+    public async Task WalkAsync_WhenDoorWarpIsOpen_ShouldWarp()
+    {
+        var doorCoords = new Coords { X = 7, Y = 6 };
+        var map = CreateMap(withDoorAt: doorCoords, doorSpec: 1, doorDestinationMap: 2);
+        map.RegisterOpenedDoor(doorCoords);
+        var (player, _) = CreatePlayer(map, SessionId, 6, 6);
+        var playerController = Substitute.For<IPlayerController>();
+        var targetMap = CreateMap();
+        var world = Substitute.For<IWorldQueries>();
+        world.FindMap(2).Returns(targetMap);
+        var service = CreateService(playerController, world: world);
+
+        await service.WalkAsync(player, Direction.Right, timestamp: 0, doorCoords);
+
+        await playerController.Received(1).WarpAsync(player, targetMap, 5, 5, Arg.Any<WarpEffect>());
+    }
+
+    [Test]
+    public async Task WalkAsync_WhenWarpDestinationMissing_ShouldNotMoveAndShouldRefresh()
+    {
+        var doorCoords = new Coords { X = 7, Y = 6 };
+        var map = CreateMap(withDoorAt: doorCoords, doorSpec: 1, doorDestinationMap: 2);
+        map.RegisterOpenedDoor(doorCoords);
+        var (player, _) = CreatePlayer(map, SessionId, 6, 6);
+        var playerController = Substitute.For<IPlayerController>();
+        var service = CreateService(playerController, world: Substitute.For<IWorldQueries>());
+
+        await service.WalkAsync(player, Direction.Right, timestamp: 0, doorCoords);
+
+        player.Character!.X.Should().Be(6, "an unknown destination map blocks the move");
+        await playerController.Received(1).RefreshAsync(player);
+    }
+
+    [Test]
     public async Task WalkAsync_WhenDesynced_ShouldStillMoveButRefreshTheClient()
     {
         var map = CreateMap();
@@ -214,7 +270,8 @@ public class WalkServiceTests
         };
     }
 
-    private static WalkService CreateService(IPlayerController playerController, bool enforceTimestamps = false)
+    private static WalkService CreateService(IPlayerController playerController, bool enforceTimestamps = false,
+        IWorldQueries? world = null)
     {
         var serverOptions = new ServerOptions
         {
@@ -226,7 +283,7 @@ public class WalkServiceTests
 
         return new WalkService(
             NullLogger<WalkService>.Instance,
-            Substitute.For<IWorldQueries>(),
+            world ?? Substitute.For<IWorldQueries>(),
             playerController,
             new MapTileService(),
             Substitute.For<ICharacterCacheService>(),
@@ -254,7 +311,8 @@ public class WalkServiceTests
         };
     }
 
-    private static MapState CreateMap(Coords? withWallAt = null)
+    private static MapState CreateMap(Coords? withWallAt = null, Coords? withDoorAt = null, int doorSpec = 1,
+        int doorDestinationMap = 2)
     {
         var dataRepository = Substitute.For<IDataFileRepository>();
         dataRepository.Enf.Returns(new Enf
@@ -278,12 +336,36 @@ public class WalkServiceTests
             });
         }
 
+        var warpRows = new List<MapWarpRow>();
+        if (withDoorAt is { } door)
+        {
+            warpRows.Add(new MapWarpRow
+            {
+                Y = door.Y,
+                Tiles = new List<MapWarpRowTile>
+                {
+                    new()
+                    {
+                        X = door.X,
+                        Warp = new MapWarp
+                        {
+                            DestinationMap = doorDestinationMap,
+                            DestinationCoords = new Coords { X = 5, Y = 5 },
+                            LevelRequired = 0,
+                            Door = doorSpec
+                        }
+                    }
+                }
+            });
+        }
+
         var emf = new Emf
         {
             Width = 20,
             Height = 20,
             Npcs = new List<MapNpc>(),
-            TileSpecRows = tileSpecRows
+            TileSpecRows = tileSpecRows,
+            WarpRows = warpRows
         };
 
         return new MapState(

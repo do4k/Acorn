@@ -109,9 +109,24 @@ public class WalkService : IWalkService
                     warpTargetMap,
                     warpTile.Warp.DestinationCoords.X,
                     warpTile.Warp.DestinationCoords.Y);
+                return;
             }
 
-            return;
+            // The warp cannot be used (a closed/locked door, an unmet level
+            // requirement or a missing destination map). eoserv returns WalkFail
+            // here, which forces a refresh so the client is snapped back instead
+            // of silently drifting onto a tile the server never accepted.
+            // Admins with #nowall skip the warp and walk onto the tile instead.
+            if (!admin)
+            {
+                _logger.LogDebug(
+                    "Rejected walk for {Character} onto unusable warp at ({X}, {Y}) on map {MapId}",
+                    player.Character.Name, target.X, target.Y, player.CurrentMap.Id);
+
+                await ClearInteractionsAsync(player);
+                await _playerController.RefreshAsync(player);
+                return;
+            }
         }
 
         // Moving always drops any open NPC/board/chest interaction and cancels an

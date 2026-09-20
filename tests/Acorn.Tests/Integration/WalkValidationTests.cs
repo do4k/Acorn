@@ -121,6 +121,34 @@ public class WalkValidationTests
     }
 
     [Test]
+    public async Task WalkIntoClosedDoor_ShouldBeRejected_AndRefresh()
+    {
+        await using var client = await LoginAndEnterAsync("walkdoor");
+
+        // The shared test map has an unlocked door directly above spawn at (6, 5).
+        // While it is closed, walking onto it must be refused and the client must be
+        // refreshed, otherwise the client silently drifts one tile ahead of the server.
+        var rejected = await SendWalkAsync(client, Direction.Up, StartX, StartY - 1);
+
+        rejected.Should().BeOfType<WarpRequestServerPacket>("a closed door blocks the move and refreshes the client");
+        ((WarpRequestServerPacket)rejected).WarpType.Should().Be(WarpType.Local);
+
+        var character = _fixture.GetPlayer(client.PlayerId)!.Character!;
+        character.X.Should().Be(StartX, "the rejected walk must not change the server position");
+        character.Y.Should().Be(StartY);
+
+        // Complete the refresh; the client must be told where it actually is.
+        await client.SendPacketAsync(new WarpAcceptClientPacket
+        {
+            MapId = character.Map,
+            SessionId = client.PlayerId
+        });
+
+        var agree = await ReceiveUntilAsync(client, p => p is WarpAgreeServerPacket);
+        ((WarpAgreeServerPacket)agree).WarpType.Should().Be(WarpType.Local);
+    }
+
+    [Test]
     public async Task WalkWithDesyncedCoords_ShouldApplyServerMove_AndRefresh()
     {
         await using var client = await LoginAndEnterAsync("walkdesync");
