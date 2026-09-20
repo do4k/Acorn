@@ -130,9 +130,10 @@ Both hostnames must resolve to the host and ports `80`/`443` must be reachable
 so Caddy can obtain and renew Let's Encrypt certificates. Native clients still
 connect directly to TCP `8078`.
 
-`deploy/eoweb` is a placeholder until a built
-[sorokya/eoweb](https://github.com/sorokya/eoweb) `dist/` (with its `data`,
-`gfx`, `sfx`, `mfx`, `jbox` and `maps` folders) is placed there.
+`deploy/eoweb` is a placeholder. To deploy a real client, point `EOWEB_DIST` in
+`.env` at a built [sorokya/eoweb](https://github.com/sorokya/eoweb) `dist/`
+(including its `data`, `gfx`, `sfx`, `mfx`, `jbox` and `maps` folders). That
+keeps the large asset set out of the repository.
 
 ### Pull from GitHub Container Registry
 
