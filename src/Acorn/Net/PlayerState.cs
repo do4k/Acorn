@@ -105,6 +105,17 @@ public class PlayerState : IDisposable
     public Account? Account { get; set; }
     public bool IsListeningToGlobal { get; set; }
 
+    /// <summary>
+    ///     Sequence of the most recent global message this player has already been sent.
+    ///     Used so reopening the global tab only replays messages that arrived since.
+    /// </summary>
+    public long LastGlobalMessageSequence { get; set; }
+
+    /// <summary>
+    ///     Whether the global chat welcome has already been sent on this connection.
+    /// </summary>
+    public bool HasReceivedGlobalWelcome { get; set; }
+
     public int SessionId { get; set; }
     public WarpSession? WarpSession { get; set; }
 

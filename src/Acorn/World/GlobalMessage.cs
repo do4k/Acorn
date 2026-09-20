@@ -4,7 +4,8 @@ public record GlobalMessage(
     Guid Id,
     string Message,
     string Author,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    long Sequence = 0
 )
 {
     public static GlobalMessage Welcome()

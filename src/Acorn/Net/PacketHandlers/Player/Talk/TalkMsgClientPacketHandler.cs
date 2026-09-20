@@ -34,17 +34,26 @@ internal class TalkMsgClientPacketHandler : IPacketHandler<TalkMsgClientPacket>
         var message = _chatSanitizer.Sanitize(packet.Message, playerState.Character?.Name);
 
         var globalMessage = new GlobalMessage(Guid.NewGuid(), message,
-            playerState.Character?.Name ?? "Unknown", DateTime.UtcNow);
+            playerState.Character?.Name ?? "Unknown", DateTime.UtcNow, _world.NextGlobalMessageSequence());
         _world.AddGlobalMessage(globalMessage);
 
-        var broadcast = _world.GetGlobalChatListeners()
-            .Where(x => x != playerState)
-            .Select(x => x.Send(new TalkMsgServerPacket
-            {
-                Message = message,
-                PlayerName = playerState.Character?.Name!
-            }));
+        // The sender's client echoes their own global message locally, so advance
+        // their cursor too and never replay their own message back to them.
+        playerState.LastGlobalMessageSequence = globalMessage.Sequence;
 
-        await Task.WhenAll(broadcast);
+        var recipients = _world.GetGlobalChatListeners()
+            .Where(x => x != playerState)
+            .ToList();
+
+        await Task.WhenAll(recipients.Select(x => x.Send(new TalkMsgServerPacket
+        {
+            Message = message,
+            PlayerName = playerState.Character?.Name!
+        })));
+
+        foreach (var recipient in recipients)
+        {
+            recipient.LastGlobalMessageSequence = globalMessage.Sequence;
+        }
     }
 }
