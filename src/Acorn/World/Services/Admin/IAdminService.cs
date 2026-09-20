@@ -54,6 +54,12 @@ public interface IAdminService
     /// <summary>Evacuate all players from the admin's current map.</summary>
     Task EvacuateMapAsync(PlayerState admin);
 
+    /// <summary>Warp the requesting admin to another player's current location.</summary>
+    Task WarpToPlayerAsync(PlayerState admin, string targetName);
+
+    /// <summary>Warp another player to the requesting admin's current location.</summary>
+    Task SummonPlayerAsync(PlayerState admin, string targetName);
+
     /// <summary>Toggle admin hidden/visible state.</summary>
     Task ToggleHideAsync(PlayerState admin);
 

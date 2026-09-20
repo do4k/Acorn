@@ -28,29 +28,7 @@ public class DataFileRepository : IDataFileRepository
         _esfFile = options.EsfFile;
         _mapsPath = options.MapsPath;
 
-        if (File.Exists(_ecfFile))
-        {
-            Ecf.Deserialize(new EoReader(File.ReadAllBytes(_ecfFile)));
-            RecalculateRid(Ecf);
-        }
-
-        if (File.Exists(_eifFile))
-        {
-            Eif.Deserialize(new EoReader(File.ReadAllBytes(_eifFile)));
-            RecalculateRid(Eif);
-        }
-
-        if (File.Exists(_enfFile))
-        {
-            Enf.Deserialize(new EoReader(File.ReadAllBytes(_enfFile)));
-            RecalculateRid(Enf);
-        }
-
-        if (File.Exists(_esfFile))
-        {
-            Esf.Deserialize(new EoReader(File.ReadAllBytes(_esfFile)));
-            RecalculateRid(Esf);
-        }
+        LoadPubFiles();
 
         if (Directory.Exists(_mapsPath))
         {
@@ -69,11 +47,51 @@ public class DataFileRepository : IDataFileRepository
         }
     }
 
-    public Ecf Ecf { get; } = new();
-    public Eif Eif { get; } = new();
-    public Enf Enf { get; } = new();
-    public Esf Esf { get; } = new();
+    public Ecf Ecf { get; private set; } = new();
+    public Eif Eif { get; private set; } = new();
+    public Enf Enf { get; private set; } = new();
+    public Esf Esf { get; private set; } = new();
     public IEnumerable<MapWithId> Maps { get; }
+
+    /// <summary>
+    ///     Re-reads the pub data files (ECF/EIF/ENF/ESF) from disk, replacing the
+    ///     in-memory records. Map files are not reloaded.
+    /// </summary>
+    public void Reload()
+    {
+        LoadPubFiles();
+    }
+
+    private void LoadPubFiles()
+    {
+        if (File.Exists(_ecfFile))
+        {
+            Ecf = new Ecf();
+            Ecf.Deserialize(new EoReader(File.ReadAllBytes(_ecfFile)));
+            RecalculateRid(Ecf);
+        }
+
+        if (File.Exists(_eifFile))
+        {
+            Eif = new Eif();
+            Eif.Deserialize(new EoReader(File.ReadAllBytes(_eifFile)));
+            RecalculateRid(Eif);
+        }
+
+        if (File.Exists(_enfFile))
+        {
+            Enf = new Enf();
+            Enf.Deserialize(new EoReader(File.ReadAllBytes(_enfFile)));
+            RecalculateRid(Enf);
+        }
+
+        if (File.Exists(_esfFile))
+        {
+            Esf = new Esf();
+            Esf.Deserialize(new EoReader(File.ReadAllBytes(_esfFile)));
+            RecalculateRid(Esf);
+        }
+    }
 
     /// <summary>
     ///     Manually encode a uint32 value as 4 EO-encoded bytes.

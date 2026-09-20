@@ -139,27 +139,26 @@ eoserv's ~25 `setX` commands into one generic `$set <player> <attr> <value>`
 (supports admin, class, gender, level, exp, hp/maxhp, tp/maxtp, sp/maxsp, skin…).
 
 **Covered:** info/player, inventory, kick, jail, free (unjail), ban, mute/unmute,
-freeze/unfreeze, warp, hide, evacuate, quake, set (≈ the whole `setX` family),
-spawnitem (sitem/ditem), spawnnpc (snpc/dnpc), addspell (learn), global,
-location, usage.
+freeze/unfreeze, warp, wmt/warpmeto (go to player), summon/bring/warptome (pull
+player to you), who/online, hide, evacuate, quake, set (≈ the whole `setX` family),
+spawnitem (sitem/si), spawnnpc (snpc), addspell (spell), global, location, usage,
+uptime, rehash (config re-read), repub (pub reload).
 
 **Missing vs eoserv (candidate backlog):**
 
 | Command(s) | Purpose | Priority |
 |---|---|---|
-| `warptome` / `warpmeto` | Pull a player to you / go to a player | High (common GM tool) |
-| `uptime` | Server uptime readout | Low |
 | `remap` | Hot-reload a single map | Med |
-| `shutdown`, `rehash`, `repub`, `request` | Server control / config & pub reload | Med |
+| `shutdown`, `request` | Server control / request logging | Med |
 | `strip` / `dress` / `undress` / `dress2` | Force-equip/unequip a player | Low |
 | `qstate` | Inspect/force a player's quest state | Med (debug) |
 | `item`/`npc`/`spell`/`class`/`paperdoll`/`book` | In-game data lookups | Low |
 | Privilege flags: `nowall`, `seehide`, `killnpc`, `cmdprotect`, `unlimitedweight` | GM toggles | Low |
 | Silent variants: `skick`, `sjail`, `sban`, `smute` | Act without announcing | Low |
 
-None of these are gameplay-critical, but `warptome`/`warpmeto` and the
-server-control trio (`rehash`/`repub`/`shutdown`) are the ones operators will
-miss first.
+None of these are gameplay-critical. The high-frequency GM warp tools and the
+uptime/`repub`/`rehash` trio are now implemented; see [COMMANDS.md](COMMANDS.md)
+for the full command reference.
 
 ---
 

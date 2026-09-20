@@ -16,4 +16,10 @@ public interface IDataFileRepository
     Enf Enf { get; }
     Esf Esf { get; }
     IEnumerable<MapWithId> Maps { get; }
+
+    /// <summary>
+    ///     Re-reads the pub data files (ECF/EIF/ENF/ESF) from disk, replacing the
+    ///     in-memory records. Map files are not reloaded.
+    /// </summary>
+    void Reload();
 }
