@@ -40,9 +40,14 @@ services:
   aspire-dashboard:
     image: mcr.microsoft.com/dotnet/aspire-dashboard:latest
     container_name: acorn-aspire
+    # Only started when the dashboard is enabled. The profile name mirrors
+    # ASPIRE_ENABLED and COMPOSE_PROFILES includes "true", so flipping the flag
+    # to false leaves the service with no active profile and it is not started.
+    profiles:
+      - "${ASPIRE_ENABLED:-true}"
     ports:
-      - "18888:18888"   # Web UI
-      - "4317:18889"    # OTLP gRPC receiver (mapped to host 4317)
+      - "127.0.0.1:18888:18888"   # Web UI (local only; public access is via Caddy + basic auth)
+      - "127.0.0.1:4317:18889"    # OTLP gRPC receiver (local only)
     environment:
       - DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS=true
     restart: unless-stopped
@@ -54,11 +59,19 @@ services:
   caddy:
     image: caddy:2
     container_name: acorn-caddy
+    entrypoint: ["/bin/sh", "/etc/caddy/entrypoint.sh"]
     ports:
       - "80:80"
       - "443:443"
+    environment:
+      - BASE_DOMAIN=${BASE_DOMAIN:-acornhost.io}
+      - ASPIRE_ENABLED=${ASPIRE_ENABLED:-true}
+      - ASPIRE_USER=${ASPIRE_USER:-acorn}
+      - ASPIRE_PASSWORD_HASH=${ASPIRE_PASSWORD_HASH}
     volumes:
       - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./deploy/caddy/aspire.caddy:/etc/caddy/aspire.caddy:ro
+      - ./deploy/caddy/entrypoint.sh:/etc/caddy/entrypoint.sh:ro
       - ./deploy/landing:/srv/landing:ro
       - ${EOWEB_DIST:-./deploy/eoweb}:/srv/eoweb:ro
       - caddy-data:/data
@@ -107,6 +120,7 @@ services:
         condition: service_healthy
       aspire-dashboard:
         condition: service_started
+        required: false
     profiles:
       - mysql
 
@@ -124,6 +138,7 @@ services:
         condition: service_healthy
       aspire-dashboard:
         condition: service_started
+        required: false
     profiles:
       - mysql
 
@@ -145,6 +160,7 @@ services:
     depends_on:
       aspire-dashboard:
         condition: service_started
+        required: false
     profiles:
       - sqlite
 
@@ -162,6 +178,7 @@ services:
     depends_on:
       aspire-dashboard:
         condition: service_started
+        required: false
     profiles:
       - sqlite
 
@@ -204,6 +221,7 @@ services:
         condition: service_healthy
       aspire-dashboard:
         condition: service_started
+        required: false
     profiles:
       - postgres
 
@@ -221,6 +239,7 @@ services:
         condition: service_healthy
       aspire-dashboard:
         condition: service_started
+        required: false
     profiles:
       - postgres
 
@@ -263,6 +282,7 @@ services:
         condition: service_healthy
       aspire-dashboard:
         condition: service_started
+        required: false
     profiles:
       - sqlserver
 
@@ -280,6 +300,7 @@ services:
         condition: service_healthy
       aspire-dashboard:
         condition: service_started
+        required: false
     profiles:
       - sqlserver
 

@@ -1,0 +1,10 @@
+# Aspire dashboard (OpenTelemetry metrics/traces/logs), protected with basic auth.
+#
+# This fragment is appended to the Caddy config by entrypoint.sh only when
+# ASPIRE_ENABLED=true. Credentials come from ASPIRE_USER / ASPIRE_PASSWORD_HASH.
+aspire.{$BASE_DOMAIN} {
+	basic_auth {
+		{$ASPIRE_USER:acorn} {$ASPIRE_PASSWORD_HASH}
+	}
+	reverse_proxy acorn-aspire:18888
+}

@@ -119,14 +119,20 @@ enables scope validation, which the design-time tooling cannot build.
 ### Web Client, TLS & Domains
 
 A `caddy` service terminates TLS and reverse-proxies, so it runs for every
-profile:
+profile. Site hostnames are derived from `BASE_DOMAIN` in `.env`:
 
-- `acornhost.io` — static landing page (`deploy/landing`)
-- `game.acornhost.io` — the eoweb browser client (`deploy/eoweb`) and the
-  WebSocket endpoint. `wss://game.acornhost.io` is proxied to the game server's
+- `<BASE_DOMAIN>` — static landing page (`deploy/landing`)
+- `game.<BASE_DOMAIN>` — the eoweb browser client (`deploy/eoweb`) and the
+  WebSocket endpoint. `wss://game.<BASE_DOMAIN>` is proxied to the game server's
   WebSocket port (`8079`), which is bound to loopback and not exposed directly.
+- `aspire.<BASE_DOMAIN>` — the Aspire dashboard, behind basic auth, served only
+  when `ASPIRE_ENABLED=true`. Credentials come from `ASPIRE_USER` /
+  `ASPIRE_PASSWORD_HASH` (bcrypt; escape each `$` as `$$`). The same flag gates
+  the `aspire-dashboard` container: when false it is not started. If it is
+  already running when you flip the flag, remove it with
+  `docker compose up -d --remove-orphans` (or `docker compose down` then `up`).
 
-Both hostnames must resolve to the host and ports `80`/`443` must be reachable
+All hostnames must resolve to the host and ports `80`/`443` must be reachable
 so Caddy can obtain and renew Let's Encrypt certificates. Native clients still
 connect directly to TCP `8078`.
 
