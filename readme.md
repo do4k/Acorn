@@ -116,6 +116,24 @@ enables scope validation, which the design-time tooling cannot build.
 > migrations in this repository; MySQL and SQL Server need their own generated
 > first — see [docs/DATABASE.md](docs/DATABASE.md#migrations).
 
+### Web Client, TLS & Domains
+
+A `caddy` service terminates TLS and reverse-proxies, so it runs for every
+profile:
+
+- `acornhost.io` — static landing page (`deploy/landing`)
+- `game.acornhost.io` — the eoweb browser client (`deploy/eoweb`) and the
+  WebSocket endpoint. `wss://game.acornhost.io` is proxied to the game server's
+  WebSocket port (`8079`), which is bound to loopback and not exposed directly.
+
+Both hostnames must resolve to the host and ports `80`/`443` must be reachable
+so Caddy can obtain and renew Let's Encrypt certificates. Native clients still
+connect directly to TCP `8078`.
+
+`deploy/eoweb` is a placeholder until a built
+[sorokya/eoweb](https://github.com/sorokya/eoweb) `dist/` (with its `data`,
+`gfx`, `sfx`, `mfx`, `jbox` and `maps` folders) is placed there.
+
 ### Pull from GitHub Container Registry
 
 ```bash

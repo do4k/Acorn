@@ -1,0 +1,37 @@
+# Caddy configuration for the acornhost.io deployment.
+#
+#   acornhost.io        -> static landing page
+#   game.acornhost.io   -> eoweb static client + WebSocket bridge to Acorn
+#
+# TLS certificates are obtained and renewed automatically (Let's Encrypt).
+# Both hostnames must resolve to this host and ports 80/443 must be reachable.
+
+{
+	# Set an email to receive expiry notices from Let's Encrypt (optional).
+	# email admin@acornhost.io
+
+	# Uncomment to test with the staging CA and avoid rate limits:
+	# acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+}
+
+# Landing page
+acornhost.io {
+	root * /srv/landing
+	file_server
+}
+
+# eoweb browser client + WebSocket endpoint (wss://game.acornhost.io)
+game.acornhost.io {
+	# Any request that is a WebSocket upgrade (any path, including "/")
+	# is forwarded to the Acorn WebSocket listener.
+	@ws {
+		header Connection *Upgrade*
+		header Upgrade websocket
+	}
+	reverse_proxy @ws acorn-server:8079
+
+	# Everything else is the static eoweb build.
+	root * /srv/eoweb
+	try_files {path} /index.html
+	file_server
+}
