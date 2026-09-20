@@ -64,4 +64,10 @@ public interface IWorldQueries
     ///     Add a new global message
     /// </summary>
     void AddGlobalMessage(GlobalMessage message);
+
+    /// <summary>
+    ///     Allocates the next strictly increasing sequence number for global messages.
+    ///     Used to track which messages a player has already been sent.
+    /// </summary>
+    long NextGlobalMessageSequence();
 }

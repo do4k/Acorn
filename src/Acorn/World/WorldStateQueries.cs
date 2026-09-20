@@ -13,6 +13,7 @@ public class WorldStateQueries : IWorldQueries
 {
     private readonly ILogger<WorldStateQueries> _logger;
     private readonly WorldState _world;
+    private long _globalMessageSequence;
 
     public WorldStateQueries(WorldState world, IDataFileRepository dataRepository, ILogger<WorldStateQueries> logger)
     {
@@ -67,8 +68,13 @@ public class WorldStateQueries : IWorldQueries
     public IEnumerable<GlobalMessage> GetRecentGlobalMessages(int count = 10)
     {
         return _world.GlobalMessages.Values
-            .OrderByDescending(x => x.CreatedAt)
+            .OrderByDescending(x => x.Sequence)
             .Take(count);
+    }
+
+    public long NextGlobalMessageSequence()
+    {
+        return Interlocked.Increment(ref _globalMessageSequence);
     }
 
     public void AddGlobalMessage(GlobalMessage message)
@@ -85,7 +91,7 @@ public class WorldStateQueries : IWorldQueries
         }
 
         var oldestMessages = _world.GlobalMessages.Values
-            .OrderBy(x => x.CreatedAt);
+            .OrderBy(x => x.Sequence);
 
         foreach (var oldMessage in oldestMessages.Take(_world.GlobalMessageCount - 100))
         {
