@@ -54,14 +54,19 @@ services:
   caddy:
     image: caddy:2
     container_name: acorn-caddy
+    entrypoint: ["/bin/sh", "/etc/caddy/entrypoint.sh"]
     ports:
       - "80:80"
       - "443:443"
     environment:
+      - BASE_DOMAIN=${BASE_DOMAIN:-acornhost.io}
+      - ASPIRE_ENABLED=${ASPIRE_ENABLED:-true}
       - ASPIRE_USER=${ASPIRE_USER:-acorn}
       - ASPIRE_PASSWORD_HASH=${ASPIRE_PASSWORD_HASH}
     volumes:
       - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./deploy/caddy/aspire.caddy:/etc/caddy/aspire.caddy:ro
+      - ./deploy/caddy/entrypoint.sh:/etc/caddy/entrypoint.sh:ro
       - ./deploy/landing:/srv/landing:ro
       - ${EOWEB_DIST:-./deploy/eoweb}:/srv/eoweb:ro
       - caddy-data:/data

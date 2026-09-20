@@ -1,28 +1,31 @@
-# Caddy configuration for the acornhost.io deployment.
+# Caddy configuration for the Acorn deployment.
 #
-#   acornhost.io        -> static landing page
-#   game.acornhost.io   -> eoweb static client + WebSocket bridge to Acorn
-#   aspire.acornhost.io -> Aspire dashboard (basic auth)
+#   <BASE_DOMAIN>          -> static landing page
+#   game.<BASE_DOMAIN>     -> eoweb static client + WebSocket bridge to Acorn
+#   aspire.<BASE_DOMAIN>   -> Aspire dashboard (only when ASPIRE_ENABLED=true)
 #
-# TLS certificates are obtained and renewed automatically (Let's Encrypt).
-# Both hostnames must resolve to this host and ports 80/443 must be reachable.
+# All site addresses come from BASE_DOMAIN (see .env). TLS certificates are
+# obtained and renewed automatically (Let's Encrypt); every hostname must
+# resolve to this host and ports 80/443 must be reachable.
+#
+# The Aspire site lives in aspire.caddy and is appended by entrypoint.sh.
 
 {
 	# Set an email to receive expiry notices from Let's Encrypt (optional).
-	# email admin@acornhost.io
+	# email admin@{$BASE_DOMAIN}
 
 	# Uncomment to test with the staging CA and avoid rate limits:
 	# acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
 }
 
 # Landing page
-acornhost.io {
+{$BASE_DOMAIN} {
 	root * /srv/landing
 	file_server
 }
 
-# eoweb browser client + WebSocket endpoint (wss://game.acornhost.io)
-game.acornhost.io {
+# eoweb browser client + WebSocket endpoint (wss://game.<BASE_DOMAIN>)
+game.{$BASE_DOMAIN} {
 	# Any request that is a WebSocket upgrade (any path, including "/")
 	# is forwarded to the Acorn WebSocket listener.
 	@ws {
@@ -35,13 +38,4 @@ game.acornhost.io {
 	root * /srv/eoweb
 	try_files {path} /index.html
 	file_server
-}
-
-# Aspire dashboard (OpenTelemetry metrics/traces/logs), protected with basic auth.
-# Credentials come from ASPIRE_USER / ASPIRE_PASSWORD_HASH (see .env).
-aspire.acornhost.io {
-	basic_auth {
-		{$ASPIRE_USER:acorn} {$ASPIRE_PASSWORD_HASH}
-	}
-	reverse_proxy acorn-aspire:18888
 }
