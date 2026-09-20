@@ -77,18 +77,7 @@ public class MapItemService : IMapItemService
         }
 
         // Add to map
-        var itemIndex = GetNextItemIndex(map);
-        var mapItem = new MapItem
-        {
-            Id = itemId,
-            Amount = amount,
-            Coords = coords,
-            OwnerId = player.SessionId,
-            ProtectedTicks = DropProtectTicks,
-            DroppedAtTick = map.TotalTicks
-        };
-
-        map.Items[itemIndex] = mapItem;
+        var (itemIndex, mapItem) = AddGroundItem(map, itemId, amount, coords, player.SessionId, DropProtectTicks);
 
         // Announce the new ground item to every player who can see it, excluding the
         // dropper (they already get Item/Drop). Matches eoserv Map::AddItem.
@@ -110,6 +99,24 @@ public class MapItemService : IMapItemService
             player.Character.Name, itemId, amount, coords.X, coords.Y);
 
         return new ItemDropResult(true, itemIndex);
+    }
+
+    public (int Index, MapItem Item) AddGroundItem(MapState map, int itemId, int amount, Coords coords, int ownerId,
+        int protectionTicks)
+    {
+        var index = GetNextItemIndex(map);
+        var item = new MapItem
+        {
+            Id = itemId,
+            Amount = amount,
+            Coords = coords,
+            OwnerId = ownerId,
+            ProtectedTicks = protectionTicks,
+            DroppedAtTick = map.TotalTicks
+        };
+
+        map.Items[index] = item;
+        return (index, item);
     }
 
     public async Task<ItemPickupResult> TryPickupItem(PlayerState player, MapState map, int itemIndex)

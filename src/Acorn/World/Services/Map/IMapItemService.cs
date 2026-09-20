@@ -18,4 +18,11 @@ public interface IMapItemService
     ///     Attempts to pick up an item from the map into a player's inventory.
     /// </summary>
     Task<ItemPickupResult> TryPickupItem(PlayerState player, MapState map, int itemIndex);
+
+    /// <summary>
+    ///     Adds a ground item to the map (e.g. from an NPC kill), stamping it with the
+    ///     current tick so ground-item cleanup does not expire it immediately.
+    /// </summary>
+    (int Index, MapItem Item) AddGroundItem(MapState map, int itemId, int amount, Coords coords, int ownerId,
+        int protectionTicks);
 }

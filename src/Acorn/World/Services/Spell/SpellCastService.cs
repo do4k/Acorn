@@ -6,6 +6,7 @@ using Acorn.Net;
 using Acorn.Options;
 using Acorn.Shared.Caching;
 using Acorn.World.Map;
+using Acorn.World.Services.Map;
 using NpcState = Acorn.World.Npc.NpcState;
 using Acorn.World.Services.Party;
 using Acorn.World.Services.Player;
@@ -29,6 +30,7 @@ public class SpellCastService(
     ICharacterCacheService characterCache,
     IPaperdollService paperdollService,
     IQuestService questService,
+    IMapItemService mapItemService,
     IOptions<ServerOptions> serverOptions,
     AcornMetrics metrics,
     ILogger<SpellCastService> logger)
@@ -402,16 +404,10 @@ public class SpellCastService(
             dropAmount = lootService.RollDropAmount(dropItem);
             dropId = dropItem.ItemId;
 
-            var itemIndex = map.GetNextItemIndex();
-                map.Items.TryAdd(itemIndex, new MapItem
-                {
-                    Id = dropId,
-                    Amount = dropAmount,
-                    Coords = new Coords { X = npc.X, Y = npc.Y },
-                    OwnerId = player.SessionId,
-                    ProtectedTicks = _dropProtectionTicks
-                });
-                dropIndex = itemIndex;
+            var (itemIndex, _) = mapItemService.AddGroundItem(
+                map, dropId, dropAmount, new Coords { X = npc.X, Y = npc.Y },
+                player.SessionId, _dropProtectionTicks);
+            dropIndex = itemIndex;
 
                 // Gold is item ID 1; count NPC gold separately from item loot.
                 if (dropId == 1)

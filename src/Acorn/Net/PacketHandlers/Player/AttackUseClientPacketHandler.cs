@@ -43,13 +43,14 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
     private readonly int _attackCooldownMs;
     private readonly bool _criticalFirstHit;
     private readonly IQuestService _questService;
+    private readonly IMapItemService _mapItemService;
 
     public AttackUseClientPacketHandler(UtcNowDelegate now, ILogger<AttackUseClientPacketHandler> logger,
         IFormulaService formulaService, IDataFileRepository dataFiles, ILootService lootService,
         IOptions<ServerOptions> serverOptions, ICharacterCacheService characterCache,
         IPaperdollService paperdollService, IArenaService arenaService, IPartyService partyService,
         IPlayerController playerController, IMapTileService tileService, IQuestService questService,
-        AcornMetrics metrics)
+        IMapItemService mapItemService, AcornMetrics metrics)
     {
         _now = now;
         _logger = logger;
@@ -67,6 +68,7 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
         _attackCooldownMs = serverOptions.Value.AttackCooldownMs;
         _criticalFirstHit = serverOptions.Value.CriticalFirstHit;
         _questService = questService;
+        _mapItemService = mapItemService;
         _metrics = metrics;
     }
 
@@ -223,17 +225,9 @@ internal class AttackUseClientPacketHandler : IPacketHandler<AttackUseClientPack
                 dropId = dropItem.ItemId;
 
                 // Create map item with killer's protection
-                var itemIndex = map.GetNextItemIndex();
-                var mapItem = new MapItem
-                {
-                    Id = dropId,
-                    Amount = dropAmount,
-                    Coords = new Coords { X = target.X, Y = target.Y },
-                    OwnerId = playerState.SessionId,
-                    ProtectedTicks = _dropProtectionTicks
-                };
-
-                map.Items.TryAdd(itemIndex, mapItem);
+                var (itemIndex, _) = _mapItemService.AddGroundItem(
+                    map, dropId, dropAmount, new Coords { X = target.X, Y = target.Y },
+                    playerState.SessionId, _dropProtectionTicks);
                 dropIndex = itemIndex;
 
                 // Gold is item ID 1; count NPC gold separately from item loot.
