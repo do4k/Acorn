@@ -88,7 +88,7 @@ public class MapControllerNpcCleanupTests
         map.Npcs.Should().ContainKey(0);
     }
 
-    private static NpcState AddNpcState(MapState map, int index, bool boss = false, bool child = false)
+    private static NpcState AddNpcState(MapState map, int index, bool boss = false, bool child = false, int id = 1)
     {
         var npc = new NpcState(new EnfRecord
         {
@@ -101,7 +101,7 @@ public class MapControllerNpcCleanupTests
         })
         {
             Index = index,
-            Id = 1,
+            Id = id,
             X = 5,
             Y = 5,
             Hp = 10
@@ -138,5 +138,20 @@ public class MapControllerNpcCleanupTests
         await CreateController().JunkBossChildrenAsync(map, npc);
 
         child.IsDead.Should().BeFalse();
+    }
+
+    [Test]
+    public void GetJunkIds_ShouldUseEnfIdsNotMapIndexes()
+    {
+        // Clients match NPC_JUNK against the NPC's ENF id (NpcMapInfo.Id), so the
+        // packet must carry the child's ENF id, not its map index.
+        var map = FakeMap.Create();
+        var tentacleA = AddNpcState(map, index: 5, child: true, id: 119);
+        var tentacleB = AddNpcState(map, index: 6, child: true, id: 119);
+        var other = AddNpcState(map, index: 7, child: true, id: 120);
+
+        var ids = MapController.GetJunkIds([tentacleA, tentacleB, other]);
+
+        ids.Should().BeEquivalentTo(new[] { 119, 120 });
     }
 }

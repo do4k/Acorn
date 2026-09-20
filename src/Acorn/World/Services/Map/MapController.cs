@@ -244,7 +244,7 @@ public class MapController : IMapController
         }
 
         // Children are marked dead (so they take part in the normal respawn lifecycle)
-        // and cleared from every client with a single NPC_JUNK packet.
+        // and cleared from clients with NPC_JUNK.
         var children = map.Npcs.Values
             .Where(npc => npc.Data.Child && !npc.IsDead)
             .ToList();
@@ -261,13 +261,26 @@ public class MapController : IMapController
             child.Opponents.Clear();
         }
 
-        await SendToInRangePlayersAsync(map, boss.AsCoords(), new NpcJunkServerPacket
+        // NPC_JUNK is matched by the client against the NPC's ENF id (NpcMapInfo.Id),
+        // not the map index - so send one packet per distinct child id.
+        foreach (var childId in GetJunkIds(children))
         {
-            NpcId = boss.Index
-        });
+            await SendToInRangePlayersAsync(map, boss.AsCoords(), new NpcJunkServerPacket
+            {
+                NpcId = childId
+            });
+        }
 
         _logger.LogInformation("Cleared {Count} child NPC(s) after boss {Boss} died", children.Count,
             boss.Data.Name);
+    }
+
+    /// <summary>
+    ///     The distinct ENF ids of the child NPCs to junk.
+    /// </summary>
+    internal static IEnumerable<int> GetJunkIds(IEnumerable<NpcState> children)
+    {
+        return children.Select(child => child.Id).Distinct();
     }
 
     public async Task ProcessNpcRespawnsAsync(MapState map)
