@@ -45,22 +45,13 @@ docker-compose --profile postgres up
 docker-compose --profile sqlserver up
 ```
 
-## Default Account & Character
+## Account & Character Creation
 
-On first startup, if no accounts or characters exist, Acorn will automatically create:
+Acorn does **not** seed a default account. Accounts are created by the client using the account-creation flow, and characters are created after logging in.
 
-**Account:**
-- Username: `acorn`
-- Password: `acorn`
+The first character is granted administrator rights when `Server:FirstCharacterAdmin` is enabled (default: `true`).
 
-**Character:**
-- Name: `acorn`
-- Admin Level: High Game Master (5)
-- Starting Location: Map 192 (6, 6)
-- Level: 100
-- All stats: 10
-
-You can log in immediately with these credentials to test the server.
+The server does not create or upgrade the schema at runtime — apply migrations before starting it (see [Migrations](#migrations)).
 
 ## Switching Database Engines
 
