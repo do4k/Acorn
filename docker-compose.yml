@@ -60,7 +60,7 @@ services:
     volumes:
       - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - ./deploy/landing:/srv/landing:ro
-      - ./deploy/eoweb:/srv/eoweb:ro
+      - ${EOWEB_DIST:-./deploy/eoweb}:/srv/eoweb:ro
       - caddy-data:/data
       - caddy-config:/config
     restart: unless-stopped
