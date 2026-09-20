@@ -47,18 +47,27 @@ Console.WriteLine($"""
                           `-._.-'    {NORMAL}
                    """);
 
+// Bootstrap configuration used only to resolve the selected database engine.
+// Environment variables are included so Database__Engine can choose the
+// provider-specific config file below.
+var bootstrapConfig = new ConfigurationBuilder()
+    .SetBasePath(AppContext.BaseDirectory)
+    .AddJsonFile("appsettings.json", false, true)
+    .AddJsonFile("appsettings.Development.json", true, true)
+    .AddEnvironmentVariables()
+    .Build();
+
+var engine = bootstrapConfig["Database:Engine"] ?? "sqlite";
+
+// The provider-specific file is layered *below* environment variables so that
+// deployment overrides such as Database__ConnectionString take precedence over
+// appsettings.{Engine}.json (e.g. in Docker/PaaS where the host name differs).
 var config = new ConfigurationBuilder()
     .SetBasePath(AppContext.BaseDirectory)
     .AddJsonFile("appsettings.json", false, true)
     .AddJsonFile("appsettings.Development.json", true, true)
+    .AddJsonFile($"appsettings.{engine}.json", true, true)
     .AddEnvironmentVariables();
-
-var engine = config.Build()["Database:Engine"] ?? "sqlite";
-
-if (!string.IsNullOrWhiteSpace(engine))
-{
-    config.AddJsonFile($"appsettings.{engine}.json", true, true);
-}
 
 var configuration = config
     .AddUserSecrets(Assembly.GetExecutingAssembly(), true)
