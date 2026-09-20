@@ -25,24 +25,30 @@ The MySQL database is automatically created and initialized with:
 
 ### Running with Docker (MySQL - default)
 ```bash
-docker-compose up
+docker compose --profile mysql up
 ```
 
 ### Running with Other Databases
 
+Each database is a Compose profile that brings up a complete environment: the
+database, the game server, the REST API and the Aspire dashboard. Set
+`COMPOSE_PROFILES` in `.env` to choose the environment started by a bare
+`docker compose up` (default: `mysql`).
+
 #### SQLite
 ```bash
-docker-compose --profile sqlite up acorn-sqlite
+docker compose --profile sqlite up
 ```
+(The server and API share the same `./data/sqlite` database file.)
 
 #### PostgreSQL
 ```bash
-docker-compose --profile postgres up
+docker compose --profile postgres up
 ```
 
 #### SQL Server
 ```bash
-docker-compose --profile sqlserver up
+docker compose --profile sqlserver up
 ```
 
 ## Account & Character Creation
