@@ -159,7 +159,7 @@ EF Core with multi-provider support:
 
 - **AcornDbContext**: Main DbContext
 - **Repositories**: `IAccountRepository`, `ICharacterRepository`
-- **DbInitialiser**: Seeds default account, applies migrations
+- **Migrations** (`src/Acorn.Database/Migrations`): schema is applied with `dotnet ef database update`; there is no runtime initialiser
 
 ## Hosted Services
 

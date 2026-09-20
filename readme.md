@@ -47,7 +47,7 @@ dotnet run
 
 The server starts with **SQLite** by default—no database setup required.
 
-> **Default Login:** `acorn` / `acorn`
+> **No account is pre-created.** Register one from the Endless Online client's login screen on first run.
 
 ---
 
@@ -136,14 +136,11 @@ dotnet ef database update PreviousMigrationName
 
 ---
 
-## 🎮 Default Account
+## 🎮 First Login
 
-On first startup, Acorn creates:
+Acorn does **not** seed a default account. The first account and character are created from the Endless Online client: use the login screen's "Create account" flow, then create a character.
 
-| Type | Value |
-|------|-------|
-| **Account** | `acorn` / `acorn` |
-| **Character** | `acorn` (Admin, Level 100, Map 192) |
+The first character is granted administrator rights when `Server:FirstCharacterAdmin` is enabled (default: `true`).
 
 ---
 
