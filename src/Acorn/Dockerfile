@@ -53,6 +53,6 @@ USER acorn
 
 # Health check - verify the server is listening on port 8078
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD nc -z localhost 8078 || exit 1
+    CMD nc -z 127.0.0.1 8078 || exit 1
 
 ENTRYPOINT ["dotnet", "Acorn.dll"]
