@@ -10,20 +10,33 @@ public class TcpCommunicator(TcpClient client) : ICommunicator
 
     public async Task Send(IEnumerable<byte> bytes)
     {
+        if (_disposed)
+        {
+            throw new ConnectionClosedException("Cannot send data - client is not connected");
+        }
+
+        // The connection may be closed while we are waiting for the lock. The lock itself
+        // is never disposed (see CloseAsync), so a guard before and after acquiring it
+        // keeps this safe without racing on a disposed synchronisation primitive.
         await _sendLock.WaitAsync();
         try
         {
             if (!IsConnected)
             {
-                throw new InvalidOperationException("Cannot send data - client is not connected");
+                throw new ConnectionClosedException("Cannot send data - client is not connected");
             }
 
             await client.GetStream().WriteAsync(bytes.AsReadOnly());
         }
-        catch (IOException ex) when (ex.InnerException is SocketException)
+        catch (ObjectDisposedException ex)
         {
             _disposed = true;
-            throw;
+            throw new ConnectionClosedException("Cannot send data - client is not connected", ex);
+        }
+        catch (IOException ex)
+        {
+            _disposed = true;
+            throw new ConnectionClosedException("Cannot send data - connection failed", ex);
         }
         finally
         {
@@ -64,7 +77,12 @@ public class TcpCommunicator(TcpClient client) : ICommunicator
         finally
         {
             client.Close();
-            _sendLock.Dispose();
+
+            // _sendLock is deliberately not disposed. A broadcast can be waiting on it
+            // for this player at the exact moment they disconnect, and disposing the
+            // semaphore under that waiter turns an ordinary disconnect into an
+            // ObjectDisposedException that would abort the broadcast (and, before this
+            // fix, disconnect whoever was broadcasting).
         }
     }
 

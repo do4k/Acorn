@@ -30,6 +30,15 @@ internal static class FakePlayer
         int sessionId = 1)
     {
         var communicator = new CapturingCommunicator();
+        return (Create(name, sessionId, communicator), communicator);
+    }
+
+    /// <summary>
+    ///     Builds a <see cref="PlayerState" /> with a caller-supplied communicator, so tests
+    ///     can simulate a transport that fails (for example a player mid-disconnect).
+    /// </summary>
+    public static PlayerState Create(string name, int sessionId, ICommunicator communicator)
+    {
         var player = new PlayerState(
             Enumerable.Empty<IPacketHandler>(),
             communicator,
@@ -40,7 +49,7 @@ internal static class FakePlayer
             _ => Task.CompletedTask);
 
         player.Character = CreateCharacter(name);
-        return (player, communicator);
+        return player;
     }
 
     public static Character CreateCharacter(string name = "Tester")

@@ -605,7 +605,9 @@ public class AdminService(
             Message = $"[Server] {message}"
         };
 
-        foreach (var player in world.GetAllPlayers())
+        // Only deliver to players who have actually entered the game; connections still
+        // in the handshake/character select screens must not receive global messages.
+        foreach (var player in world.GetAllPlayers().Where(p => p.Character is not null))
         {
             await player.Send(packet);
         }
@@ -619,7 +621,7 @@ public class AdminService(
     private async Task BroadcastServerMessage(string message)
     {
         var packet = new TalkServerServerPacket { Message = message };
-        foreach (var player in world.GetAllPlayers())
+        foreach (var player in world.GetAllPlayers().Where(p => p.Character is not null))
         {
             await player.Send(packet);
         }

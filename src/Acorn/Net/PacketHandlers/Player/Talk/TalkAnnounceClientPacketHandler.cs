@@ -43,8 +43,11 @@ public class TalkAnnounceClientPacketHandler : IPacketHandler<TalkAnnounceClient
 
         var message = _chatSanitizer.Sanitize(packet.Message, playerState.Character.Name);
 
+        // Only deliver to players who have actually entered the game. Broadcasting to
+        // every raw connection would target clients still in the handshake/character
+        // select screens and connections that are mid-teardown.
         var announcePackets = _world.GetAllPlayers()
-            .Where(x => x != playerState)
+            .Where(x => x != playerState && x.Character is not null)
             .Select(async x => await x.Send(new TalkAnnounceServerPacket
             {
                 Message = message,
