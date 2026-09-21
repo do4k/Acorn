@@ -511,6 +511,16 @@ public class PlayerState : IDisposable
             await Communicator.Send(fullBytes);
             activity?.SetStatus(ActivityStatusCode.Ok);
         }
+        catch (ConnectionClosedException ex)
+        {
+            // The recipient disconnected while the packet was in flight. Sending is
+            // best-effort: one departing player must not abort a broadcast to everyone
+            // else (e.g. a global announcement) or take down the sender's connection.
+            _logger.LogDebug(ex,
+                "Dropped {Packet} for session {SessionId}: connection already closed",
+                packet.GetType().Name, SessionId);
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+        }
         catch (Exception ex)
         {
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);

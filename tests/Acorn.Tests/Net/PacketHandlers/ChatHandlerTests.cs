@@ -1,4 +1,5 @@
 using Acorn.Game.Services;
+using Acorn.Infrastructure.Communicators;
 using Acorn.Net;
 using Acorn.Net.PacketHandlers.Player.Talk;
 using Acorn.Tests.TestSupport;
@@ -289,6 +290,45 @@ public class ChatHandlerTests
         await handler.HandleAsync(player, new TalkAnnounceClientPacket { Message = "hi" });
 
         world.DidNotReceive().GetAllPlayers();
+    }
+
+    [Test]
+    public async Task Announce_WhenRecipientHasNoCharacter_DoesNotReceiveAnnouncement()
+    {
+        var world = Substitute.For<IWorldQueries>();
+        var (recipient, recipientComms) = FakePlayer.Create("NotLoggedIn", 2);
+        recipient.Character = null;
+        world.GetAllPlayers().Returns([recipient]);
+
+        var handler = new TalkAnnounceClientPacketHandler(world, PassthroughSanitizer(),
+            NullLogger<TalkAnnounceClientPacketHandler>.Instance);
+        var (player, _) = FakePlayer.Create();
+        player.Character!.Admin = AdminLevel.Guardian;
+
+        await handler.HandleAsync(player, new TalkAnnounceClientPacket { Message = "hi" });
+
+        recipientComms.Sent.Should().BeEmpty();
+    }
+
+    [Test]
+    public async Task Announce_WhenRecipientConnectionClosed_DoesNotThrow()
+    {
+        var world = Substitute.For<IWorldQueries>();
+        var communicator = Substitute.For<ICommunicator>();
+        communicator.IsConnected.Returns(false);
+        communicator.Send(Arg.Any<IEnumerable<byte>>())
+            .Returns(Task.FromException(new ConnectionClosedException("Connection closed")));
+        var recipient = FakePlayer.Create("Disconnecting", 2, communicator);
+        world.GetAllPlayers().Returns([recipient]);
+
+        var handler = new TalkAnnounceClientPacketHandler(world, PassthroughSanitizer(),
+            NullLogger<TalkAnnounceClientPacketHandler>.Instance);
+        var (player, _) = FakePlayer.Create();
+        player.Character!.Admin = AdminLevel.Guardian;
+
+        var act = async () => await handler.HandleAsync(player, new TalkAnnounceClientPacket { Message = "hi" });
+
+        await act.Should().NotThrowAsync();
     }
 
     // --- Muted players cannot run commands ---
