@@ -28,6 +28,14 @@ public class MapInteractionTests
     private const int LockedDoorX = 5;
     private const int LockedDoorY = 5;
 
+    // A dedicated unlocked door that actually warps to map 2, used to verify the
+    // full open-then-walk-through flow.
+    private const int WalkDoorX = 9;
+    private const int WalkDoorY = 5;
+    private const int WalkDoorTargetMap = 2;
+    private const int WalkDoorTargetX = 5;
+    private const int WalkDoorTargetY = 5;
+
     private readonly TestServerFixture _fixture;
 
     public MapInteractionTests(TestServerFixture fixture)
@@ -108,7 +116,60 @@ public class MapInteractionTests
         _fixture.GetMap(1)!.OpenedDoors.Keys.Should().NotContain(c => c.X == LockedDoorX && c.Y == LockedDoorY);
     }
 
+    [Test]
+    public async Task DoorOpen_WhenWalkedThrough_ShouldWarpToDestination()
+    {
+        await using var client = await LoginAndEnterAsync("doorwalk");
+
+        // Walk along the spawn row until standing directly below the door.
+        for (var x = StartX + 1; x <= WalkDoorX; x++)
+        {
+            await SendWalkAsync(client, Direction.Right, x, StartY);
+            await ReceiveUntilAsync(client, p => p is WalkReplyServerPacket);
+        }
+
+        await client.SendPacketAsync(new DoorOpenClientPacket
+        {
+            Coords = new Coords { X = WalkDoorX, Y = WalkDoorY }
+        });
+        await ReceiveUntilAsync(client, p => p is DoorOpenServerPacket);
+
+        // Stepping onto the now-open door must warp to its destination map.
+        await SendWalkAsync(client, Direction.Up, WalkDoorX, WalkDoorY);
+
+        var request = await ReceiveUntilAsync(client, p => p is WarpRequestServerPacket) as WarpRequestServerPacket;
+        request.Should().NotBeNull("walking through an open door must trigger its warp");
+        request!.WarpType.Should().Be(WarpType.MapSwitch);
+        request.MapId.Should().Be(WalkDoorTargetMap);
+
+        // The map change is applied server-side before the client accepts it.
+        var player = _fixture.GetPlayer(client.PlayerId)!;
+        player.Character!.Map.Should().Be(WalkDoorTargetMap);
+        player.Character.X.Should().Be(WalkDoorTargetX);
+        player.Character.Y.Should().Be(WalkDoorTargetY);
+
+        await client.SendPacketAsync(new WarpAcceptClientPacket
+        {
+            MapId = WalkDoorTargetMap,
+            SessionId = client.PlayerId
+        });
+        await ReceiveUntilAsync(client, p => p is WarpAgreeServerPacket);
+    }
+
     // --- Flow helpers ---
+
+    private static Task SendWalkAsync(EoTestClient client, Direction direction, int x, int y)
+    {
+        return client.SendPacketAsync(new WalkPlayerClientPacket
+        {
+            WalkAction = new WalkAction
+            {
+                Direction = direction,
+                Timestamp = 0,
+                Coords = new Coords { X = x, Y = y }
+            }
+        });
+    }
 
     private async Task<EoTestClient> LoginAndEnterAsync(string prefix)
     {
@@ -147,6 +208,12 @@ public class MapInteractionTests
         while (!cts.IsCancellationRequested)
         {
             var packet = await client.ReceivePacketAsync();
+            if (packet is ConnectionPlayerServerPacket)
+            {
+                await client.SendConnectionPingAsync();
+                continue;
+            }
+
             if (predicate(packet))
             {
                 return packet;
