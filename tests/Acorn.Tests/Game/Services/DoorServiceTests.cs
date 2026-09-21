@@ -2,6 +2,7 @@ using Acorn.Database.Repository;
 using Acorn.World.Services.Map;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using Moffat.EndlessOnline.SDK.Data;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
 using NSubstitute;
@@ -27,6 +28,21 @@ public class DoorServiceTests
 
         return new DoorService(new MapTileService(), dataFileRepository,
             Substitute.For<ILogger<DoorService>>());
+    }
+
+    /// <summary>
+    ///     Builds a <see cref="Coords" /> the same way packet deserialization does, so
+    ///     its <c>ByteSize</c> is non-zero (unlike a code-constructed instance).
+    /// </summary>
+    private static Coords WireCoords(int x, int y)
+    {
+        var writer = new EoWriter();
+        writer.AddChar(x);
+        writer.AddChar(y);
+
+        var coords = new Coords();
+        coords.Deserialize(new EoReader(writer.ToByteArray()));
+        return coords;
     }
 
     [Test]
@@ -96,6 +112,22 @@ public class DoorServiceTests
         var character = MapTestData.CreateCharacter(x: 5, y: 6);
 
         var result = CreateSut().ValidateDoorOpen(character, new Coords { X = 5, Y = 5 }, map, out _);
+
+        result.Should().Be(DoorOpenResult.AlreadyOpen);
+    }
+
+    [Test]
+    public void ValidateDoorOpen_WhenAlreadyOpenFromPacketCoords_ShouldReturnAlreadyOpen()
+    {
+        // The open door may have been registered from code-built coords while the
+        // open request carries deserialized (packet) coords. Both must resolve to
+        // the same door even though Coords hashes ByteSize.
+        var map = MapTestData.CreateMap(MapTestData.CreateEmf());
+        MapTestData.AddWarp(map.Data, 5, 5, door: 1);
+        map.RegisterOpenedDoor(new Coords { X = 5, Y = 5 });
+        var character = MapTestData.CreateCharacter(x: 5, y: 6);
+
+        var result = CreateSut().ValidateDoorOpen(character, WireCoords(5, 5), map, out _);
 
         result.Should().Be(DoorOpenResult.AlreadyOpen);
     }

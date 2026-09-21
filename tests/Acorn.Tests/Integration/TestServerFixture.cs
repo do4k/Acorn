@@ -417,11 +417,13 @@ public class TestServerFixture : TUnit.Core.Interfaces.IAsyncInitializer, IAsync
         Directory.CreateDirectory(dir);
 
         // Map 1 is where every test character starts. It has the door tiles at
-        // (5,5)/(6,5) and a warp tile at (7,8) leading to map 2, placed off the paths
-        // the other integration tests walk.
+        // (5,5)/(6,5), a walk-through door at (9,5) and a warp tile at (7,8)
+        // leading to map 2, placed off the paths the other integration tests walk.
         WriteMap(dir, 1, "TestMap", new List<MapWarpRow>
         {
-            // Doors above the spawn point: (6,5) is unlocked, (5,5) is locked.
+            // Doors above the spawn point: (6,5) is unlocked, (5,5) is locked,
+            // (9,5) is unlocked and actually warps to map 2 so a test can walk
+            // through it end to end.
             new()
             {
                 Y = 5,
@@ -445,6 +447,17 @@ public class TestServerFixture : TUnit.Core.Interfaces.IAsyncInitializer, IAsync
                         {
                             DestinationMap = 0,
                             DestinationCoords = new Coords { X = 0, Y = 0 },
+                            LevelRequired = 0,
+                            Door = 1
+                        }
+                    },
+                    new()
+                    {
+                        X = 9,
+                        Warp = new MapWarp
+                        {
+                            DestinationMap = 2,
+                            DestinationCoords = new Coords { X = 5, Y = 5 },
                             LevelRequired = 0,
                             Door = 1
                         }

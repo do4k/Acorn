@@ -113,12 +113,14 @@ public class MapState
     public ConcurrentDictionary<int, NpcState> Npcs { get; set; } = new();
     public ConcurrentDictionary<int, PlayerState> Players { get; set; } = new();
     public ConcurrentDictionary<int, MapItem> Items { get; set; } = new();
-    public ConcurrentDictionary<Coords, MapChest> Chests { get; set; } = new();
+    // Coords must use CoordsComparer: packet coordinates and code-built
+    // coordinates compare equal but hash differently (see CoordsComparer).
+    public ConcurrentDictionary<Coords, MapChest> Chests { get; set; } = new(CoordsComparer.Instance);
 
     /// <summary>
     ///     Doors currently open with auto-close timers.
     /// </summary>
-    public ConcurrentDictionary<Coords, OpenedDoor> OpenedDoors { get; set; } = new();
+    public ConcurrentDictionary<Coords, OpenedDoor> OpenedDoors { get; set; } = new(CoordsComparer.Instance);
 
     /// <summary>
     ///     Remaining ticks for the currently playing jukebox track.

@@ -16,6 +16,7 @@ using Acorn.World.Services.Player;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Moffat.EndlessOnline.SDK.Data;
 using Moffat.EndlessOnline.SDK.Protocol;
 using Moffat.EndlessOnline.SDK.Protocol.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
@@ -192,6 +193,30 @@ public class WalkServiceTests
     }
 
     [Test]
+    public async Task WalkAsync_WhenDoorWasOpenedFromPacketCoords_ShouldWarp()
+    {
+        // Regression: doors are registered from the coordinates carried by
+        // DoorOpenClientPacket, which are deserialized (ByteSize != 0), while the
+        // walk handler looks the door up with freshly built coordinates
+        // (ByteSize == 0). Coords hashes ByteSize, so without CoordsComparer the
+        // open door is never found and the walk is rejected instead of warping.
+        var doorCoords = new Coords { X = 7, Y = 6 };
+        var map = CreateMap(withDoorAt: doorCoords, doorSpec: 1, doorDestinationMap: 2);
+        map.RegisterOpenedDoor(WireCoords(7, 6));
+        var (player, _) = CreatePlayer(map, SessionId, 6, 6);
+        var playerController = Substitute.For<IPlayerController>();
+        var targetMap = CreateMap();
+        var world = Substitute.For<IWorldQueries>();
+        world.FindMap(2).Returns(targetMap);
+        var service = CreateService(playerController, world: world);
+
+        await service.WalkAsync(player, Direction.Right, timestamp: 0, doorCoords);
+
+        await playerController.Received(1).WarpAsync(player, targetMap, 5, 5, Arg.Any<WarpEffect>());
+        await playerController.DidNotReceive().RefreshAsync(Arg.Any<PlayerState>());
+    }
+
+    [Test]
     public async Task WalkAsync_WhenWarpDestinationMissing_ShouldNotMoveAndShouldRefresh()
     {
         var doorCoords = new Coords { X = 7, Y = 6 };
@@ -256,6 +281,21 @@ public class WalkServiceTests
     }
 
     // --- Helpers ---
+
+    /// <summary>
+    ///     Builds a <see cref="Coords" /> the same way packet deserialization does, so
+    ///     its <c>ByteSize</c> is non-zero (unlike a code-constructed instance).
+    /// </summary>
+    private static Coords WireCoords(int x, int y)
+    {
+        var writer = new EoWriter();
+        writer.AddChar(x);
+        writer.AddChar(y);
+
+        var coords = new Coords();
+        coords.Deserialize(new EoReader(writer.ToByteArray()));
+        return coords;
+    }
 
     private static WalkAdminClientPacket CreateAdminWalkPacket(Direction direction, int x, int y)
     {
