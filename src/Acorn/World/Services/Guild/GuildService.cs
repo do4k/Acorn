@@ -814,4 +814,74 @@ public class GuildService(
         public string Name { get; } = name;
         public List<int> Recruits { get; } = [];
     }
+
+    public async Task<AdminCreateGuildResult> AdminCreateGuild(PlayerState player, string guildTag, string guildName)
+    {
+        if (player.Character is null)
+        {
+            return AdminCreateGuildResult.InvalidTagOrName;
+        }
+
+        guildTag = guildTag.Trim().ToUpperInvariant();
+        guildName = guildName.Trim().ToLowerInvariant();
+
+        if (!GuildRules.IsValidTag(guildTag, _options) || !GuildRules.IsValidName(guildName, _options))
+        {
+            return AdminCreateGuildResult.InvalidTagOrName;
+        }
+
+        if (player.Character.GuildTag is not null)
+        {
+            return AdminCreateGuildResult.AlreadyInGuild;
+        }
+
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AcornDbContext>();
+
+        if (await GuildExists(db, guildTag, guildName))
+        {
+            return AdminCreateGuildResult.GuildExists;
+        }
+
+        var ranks = GuildRules.ParseRanks(_options.DefaultRanks);
+
+        var guild = new Database.Models.Guild
+        {
+            Tag = guildTag,
+            Name = guildName,
+            Description = "",
+            Ranks = string.Join(",", ranks),
+            Bank = 0,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        db.Guilds.Add(guild);
+        db.GuildMembers.Add(new Database.Models.GuildMember
+        {
+            CharacterName = player.Character.Name!,
+            GuildTag = guildTag,
+            RankIndex = GuildRules.LeaderRank
+        });
+
+        await db.SaveChangesAsync();
+
+        player.Character.GuildTag = guildTag;
+        player.Character.GuildName = guildName;
+        player.Character.GuildRankIndex = GuildRules.LeaderRank;
+        player.Character.GuildRankName = GuildRules.GetRankName(ranks, GuildRules.LeaderRank);
+
+        await player.Send(new GuildCreateServerPacket
+        {
+            LeaderPlayerId = player.SessionId,
+            GuildTag = guildTag,
+            GuildName = guildName,
+            RankName = player.Character.GuildRankName,
+            GoldAmount = inventoryService.GetItemAmount(player.Character, GuildRules.GoldItemId)
+        });
+
+        logger.LogInformation("Guild {GuildTag} ({GuildName}) admin-created by {Player}",
+            guildTag, guildName, player.Character.Name);
+
+        return AdminCreateGuildResult.Created;
+    }
 }
