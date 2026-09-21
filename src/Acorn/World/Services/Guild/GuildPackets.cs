@@ -20,12 +20,12 @@ internal static class GuildPackets
 
     /// <summary>
     ///     Invite sent to nearby unguilded players. <see cref="GuildRequestServerPacket.GuildIdentity" />
-    ///     carries the "Name (TAG)" identity shown by the client.
+    ///     carries the "Name (TAG)" identity shown by the client. The name is displayed exactly as typed.
     /// </summary>
     public static GuildRequestServerPacket CreateInvite(int leaderPlayerId, string guildName, string guildTag) => new()
     {
         PlayerId = leaderPlayerId,
-        GuildIdentity = $"{Capitalize(guildName.ToLowerInvariant())} ({guildTag.ToUpperInvariant()})"
+        GuildIdentity = $"{guildName} ({guildTag.ToUpperInvariant()})"
     };
 
     /// <summary>A player accepted; more members are still required.</summary>

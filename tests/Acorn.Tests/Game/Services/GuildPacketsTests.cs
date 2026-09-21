@@ -18,10 +18,10 @@ public class GuildPacketsTests
     [Test]
     public void CreateInvite_ShouldIncludeLeaderIdAndGuildIdentity()
     {
-        var packet = GuildPackets.CreateInvite(leaderPlayerId: 7, guildName: "my guild", guildTag: "abc");
+        var packet = GuildPackets.CreateInvite(leaderPlayerId: 7, guildName: "My Guild", guildTag: "abc");
 
         packet.PlayerId.Should().Be(7);
-        packet.GuildIdentity.Should().Be("My guild (ABC)");
+        packet.GuildIdentity.Should().Be("My Guild (ABC)");
     }
 
     [Test]

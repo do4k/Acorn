@@ -47,7 +47,7 @@ public class GuildService(
         if (player.InteractingNpcIndex is null) return;
 
         guildTag = guildTag.Trim().ToUpperInvariant();
-        guildName = guildName.Trim().ToLowerInvariant();
+        guildName = guildName.Trim();
 
         if (!GuildRules.IsValidTag(guildTag, _options) || !GuildRules.IsValidName(guildName, _options))
         {
@@ -140,7 +140,7 @@ public class GuildService(
         if (player.SessionId != sessionId) return;
 
         guildTag = guildTag.Trim().ToUpperInvariant();
-        guildName = guildName.Trim().ToLowerInvariant();
+        guildName = guildName.Trim();
         description = description.Trim();
 
         if (!GuildRules.IsValidTag(guildTag, _options)
@@ -589,11 +589,13 @@ public class GuildService(
         if (player.SessionId != sessionId) return;
         if (player.InteractingNpcIndex is null) return;
 
+        var identity = guildIdentity.Trim();
+
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AcornDbContext>();
 
         var guild = await db.Guilds
-            .FirstOrDefaultAsync(g => g.Tag == guildIdentity || g.Name == guildIdentity);
+            .FirstOrDefaultAsync(g => g.Tag == guildIdentity || g.Name.ToLower() == identity.ToLower());
 
         if (guild is null)
         {
@@ -631,11 +633,13 @@ public class GuildService(
         if (player.SessionId != sessionId) return;
         if (player.InteractingNpcIndex is null) return;
 
+        var identity = guildIdentity.Trim();
+
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AcornDbContext>();
 
         var guild = await db.Guilds
-            .FirstOrDefaultAsync(g => g.Tag == guildIdentity || g.Name == guildIdentity);
+            .FirstOrDefaultAsync(g => g.Tag == guildIdentity || g.Name.ToLower() == identity.ToLower());
 
         if (guild is null)
         {
@@ -815,19 +819,26 @@ public class GuildService(
         public List<int> Recruits { get; } = [];
     }
 
-    public async Task<AdminCreateGuildResult> AdminCreateGuild(PlayerState player, string guildTag, string guildName)
+    public async Task<AdminCreateGuildResult> AdminCreateGuild(
+        PlayerState player,
+        string guildTag,
+        string guildName,
+        string description)
     {
         if (player.Character is null)
         {
-            return AdminCreateGuildResult.InvalidTagOrName;
+            return AdminCreateGuildResult.InvalidInput;
         }
 
         guildTag = guildTag.Trim().ToUpperInvariant();
-        guildName = guildName.Trim().ToLowerInvariant();
+        guildName = guildName.Trim();
+        description = description.Trim();
 
-        if (!GuildRules.IsValidTag(guildTag, _options) || !GuildRules.IsValidName(guildName, _options))
+        if (!GuildRules.IsValidTag(guildTag, _options)
+            || !GuildRules.IsValidName(guildName, _options)
+            || !GuildRules.IsValidDescription(description.ToLowerInvariant(), _options))
         {
-            return AdminCreateGuildResult.InvalidTagOrName;
+            return AdminCreateGuildResult.InvalidInput;
         }
 
         if (player.Character.GuildTag is not null)
@@ -849,7 +860,7 @@ public class GuildService(
         {
             Tag = guildTag,
             Name = guildName,
-            Description = "",
+            Description = description,
             Ranks = string.Join(",", ranks),
             Bank = 0,
             CreatedAt = DateTime.UtcNow
