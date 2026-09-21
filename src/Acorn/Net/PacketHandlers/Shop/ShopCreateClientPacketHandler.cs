@@ -55,6 +55,14 @@ public class ShopCreateClientPacketHandler(
             }
         }
 
+        // Check the player can carry the crafted item before consuming ingredients
+        if (!inventoryService.CanHoldItem(player.Character!, dataFileRepository.Eif, craftItemId))
+        {
+            logger.LogDebug("Player {Character} cannot carry crafted item {ItemId}",
+                player.Character!.Name, craftItemId);
+            return;
+        }
+
         // Remove all ingredients
         foreach (var ingredient in craft.Ingredients)
         {
@@ -69,8 +77,20 @@ public class ShopCreateClientPacketHandler(
             }
         }
 
-        // Add crafted item
-        inventoryService.TryAddItem(player.Character!, craftItemId, 1);
+        // Add crafted item, refunding the ingredients if it can't be added
+        if (!inventoryService.TryAddItem(player.Character!, craftItemId, 1))
+        {
+            logger.LogWarning("Failed to add crafted item {ItemId} to player {Character}, refunding ingredients",
+                craftItemId, player.Character!.Name);
+            foreach (var ingredient in craft.Ingredients)
+            {
+                if (ingredient.ItemId > 0)
+                {
+                    inventoryService.TryAddItem(player.Character!, ingredient.ItemId, ingredient.Amount);
+                }
+            }
+            return;
+        }
 
         var itemData = dataFileRepository.Eif.GetItem(craftItemId);
         logger.LogInformation("Player {Character} crafted {ItemName}",

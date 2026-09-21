@@ -8,6 +8,13 @@ namespace Acorn.Net.PacketHandlers;
 public static class NpcInteractionHelper
 {
     /// <summary>
+    ///     Maximum distance (Chebyshev) a player may be from an NPC to interact with it.
+    ///     Two tiles covers talking across a one-tile counter while still blocking
+    ///     cross-map interactions from modified clients.
+    /// </summary>
+    private const int MaxInteractionDistance = 2;
+
+    /// <summary>
     /// Validates that the NPC exists on the player's map, is of the expected type,
     /// and sets the player's InteractingNpcIndex. Returns the NPC state if valid, null otherwise.
     /// </summary>
@@ -27,6 +34,13 @@ public static class NpcInteractionHelper
         {
             logger.LogWarning("Player {Character} tried to interact with NPC {NpcIndex} but it is not type {ExpectedType}",
                 player.Character?.Name, npcIndex, expectedType);
+            return null;
+        }
+
+        if (!IsInRange(player, npc))
+        {
+            logger.LogWarning("Player {Character} tried to interact with NPC {NpcIndex} from out of range",
+                player.Character?.Name, npcIndex);
             return null;
         }
 
@@ -66,6 +80,24 @@ public static class NpcInteractionHelper
             return null;
         }
 
+        if (!IsInRange(player, npc))
+        {
+            logger.LogWarning("Player {Character} tried to interact with NPC {NpcIndex} from out of range",
+                player.Character?.Name, npcIndex);
+            return null;
+        }
+
         return npc;
+    }
+
+    private static bool IsInRange(PlayerState player, NpcState npc)
+    {
+        if (player.Character is null) return false;
+
+        var distance = Math.Max(
+            Math.Abs(player.Character.X - npc.X),
+            Math.Abs(player.Character.Y - npc.Y));
+
+        return distance <= MaxInteractionDistance;
     }
 }

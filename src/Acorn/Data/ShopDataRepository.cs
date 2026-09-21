@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Acorn.Database.Repository;
 using Acorn.Infrastructure.Telemetry;
 using Microsoft.Extensions.Logging;
 
@@ -10,12 +11,15 @@ namespace Acorn.Data;
 public class ShopDataRepository : IShopDataRepository
 {
     private readonly ILogger<ShopDataRepository> _logger;
+    private readonly IDataFileRepository _dataFileRepository;
     private readonly List<ShopData> _shops = [];
     private const string ShopsDirectory = "Data/Shops";
+    private const int MaxCraftIngredients = 4;
 
-    public ShopDataRepository(ILogger<ShopDataRepository> logger)
+    public ShopDataRepository(ILogger<ShopDataRepository> logger, IDataFileRepository dataFileRepository)
     {
         _logger = logger;
+        _dataFileRepository = dataFileRepository;
         LoadShops();
     }
 
@@ -32,16 +36,25 @@ public class ShopDataRepository : IShopDataRepository
             catch (IOException ex)
             {
                 _logger.DataDirectoryCreateFailed(ex, ShopsDirectory);
+                return;
             }
-            return;
         }
 
         var jsonFiles = Directory.GetFiles(ShopsDirectory, "*.json");
         if (jsonFiles.Length == 0)
         {
             _logger.DataDirectoryEmpty(ShopsDirectory);
-            CreateSampleShop();
-            return;
+            try
+            {
+                CreateSampleShop();
+            }
+            catch (IOException ex)
+            {
+                _logger.DataDirectoryCreateFailed(ex, ShopsDirectory);
+                return;
+            }
+
+            jsonFiles = Directory.GetFiles(ShopsDirectory, "*.json");
         }
 
         foreach (var file in jsonFiles)
@@ -51,7 +64,9 @@ public class ShopDataRepository : IShopDataRepository
                 var json = File.ReadAllText(file);
                 var shopJson = JsonSerializer.Deserialize<ShopJsonModel>(json, new JsonSerializerOptions
                 {
-                    PropertyNameCaseInsensitive = true
+                    PropertyNameCaseInsensitive = true,
+                    // Data files use snake_case keys (behavior_id, item_id, ...)
+                    PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
                 });
 
                 if (shopJson == null)
@@ -78,6 +93,15 @@ public class ShopDataRepository : IShopDataRepository
                     )).ToList() ?? []
                 );
 
+                shop = ValidateShop(shop);
+
+                if (_shops.Any(s => s.BehaviorId == shop.BehaviorId))
+                {
+                    _logger.ShopDataValidationFailed(shop.Name, shop.BehaviorId,
+                        "duplicate behavior ID, keeping the first shop loaded");
+                    continue;
+                }
+
                 _shops.Add(shop);
                 _logger.ShopLoaded(shop.Name, shop.BehaviorId, shop.Trades.Count, shop.Crafts.Count);
             }
@@ -88,6 +112,74 @@ public class ShopDataRepository : IShopDataRepository
         }
 
         _logger.ShopsLoaded(_shops.Count);
+    }
+
+    /// <summary>
+    /// Validates a shop against the item database and common misconfigurations,
+    /// logging warnings. Returns a corrected copy where necessary (e.g. truncated
+    /// craft ingredient lists, which the protocol limits to 4).
+    /// </summary>
+    private ShopData ValidateShop(ShopData shop)
+    {
+        foreach (var trade in shop.Trades)
+        {
+            if (_dataFileRepository.Eif.GetItem(trade.ItemId) == null)
+            {
+                _logger.ShopDataValidationFailed(shop.Name, shop.BehaviorId,
+                    $"trade item {trade.ItemId} does not exist in the EIF");
+            }
+
+            if (trade.BuyPrice < 0 || trade.SellPrice < 0)
+            {
+                _logger.ShopDataValidationFailed(shop.Name, shop.BehaviorId,
+                    $"trade item {trade.ItemId} has a negative price");
+            }
+
+            if (trade.BuyPrice > 0 && trade.SellPrice > trade.BuyPrice)
+            {
+                _logger.ShopDataValidationFailed(shop.Name, shop.BehaviorId,
+                    $"trade item {trade.ItemId} sells for more than it costs (infinite money exploit)");
+            }
+        }
+
+        var crafts = shop.Crafts;
+        foreach (var craft in crafts)
+        {
+            if (_dataFileRepository.Eif.GetItem(craft.ItemId) == null)
+            {
+                _logger.ShopDataValidationFailed(shop.Name, shop.BehaviorId,
+                    $"craft item {craft.ItemId} does not exist in the EIF");
+            }
+
+            foreach (var ingredient in craft.Ingredients.Where(i => i.ItemId > 0))
+            {
+                if (ingredient.Amount <= 0)
+                {
+                    _logger.ShopDataValidationFailed(shop.Name, shop.BehaviorId,
+                        $"craft item {craft.ItemId} has ingredient {ingredient.ItemId} with invalid amount {ingredient.Amount}");
+                }
+
+                if (_dataFileRepository.Eif.GetItem(ingredient.ItemId) == null)
+                {
+                    _logger.ShopDataValidationFailed(shop.Name, shop.BehaviorId,
+                        $"craft item {craft.ItemId} has ingredient {ingredient.ItemId} which does not exist in the EIF");
+                }
+            }
+        }
+
+        if (crafts.Any(c => c.Ingredients.Count > MaxCraftIngredients))
+        {
+            _logger.ShopDataValidationFailed(shop.Name, shop.BehaviorId,
+                $"one or more crafts have more than {MaxCraftIngredients} ingredients, truncating");
+
+            crafts = crafts
+                .Select(c => c.Ingredients.Count > MaxCraftIngredients
+                    ? c with { Ingredients = c.Ingredients.Take(MaxCraftIngredients).ToList() }
+                    : c)
+                .ToList();
+        }
+
+        return crafts == shop.Crafts ? shop : shop with { Crafts = crafts };
     }
 
     private void CreateSampleShop()

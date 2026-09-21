@@ -350,6 +350,7 @@ apply command and how to confirm the database is up to date.
 - [Command Reference](docs/COMMANDS.md)
 - [Gemini AI Integration](docs/GEMINI_WISEMAN.md)
 - [Inventory System](docs/INVENTORY.md)
+- [Shops](docs/SHOPS.md)
 - [Codebase Review](docs/CODEBASE_REVIEW.md)
 
 ## Additional Context

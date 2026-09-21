@@ -100,6 +100,9 @@ public static partial class Log
     [LoggerMessage(Level = LogLevel.Information, Message = "Loaded {Count} shops")]
     public static partial void ShopsLoaded(this ILogger logger, int count);
 
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Shop {ShopName} (BehaviorId: {BehaviorId}): {Problem}")]
+    public static partial void ShopDataValidationFailed(this ILogger logger, string shopName, int behaviorId, string problem);
+
     [LoggerMessage(Level = LogLevel.Information, Message = "Loaded inn: {Name} (BehaviorId: {BehaviorId})")]
     public static partial void InnLoaded(this ILogger logger, string name, int behaviorId);
 
