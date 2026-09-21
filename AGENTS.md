@@ -80,6 +80,88 @@ dotnet build -c Release
 | `src/Acorn.Api/Program.cs` | REST API entry |
 | `src/Acorn.Database/AcornDbContext.cs` | Database context |
 
+## Deployment
+
+### Current setup (manual, agent-orchestrated)
+
+The hosted stack runs with Docker Compose on this host using the **postgres**
+profile. There is no CI runner on the host yet: deployments are orchestrated by an
+AI agent running on the host. When asked to "deploy the latest", the agent fetches
+`origin/main`, rebuilds the images, applies migrations, recreates the app
+containers and verifies health.
+
+Containers and the images they run:
+
+| Container | Image | Notes |
+|-----------|-------|-------|
+| `acorn-postgres` | `acorn-acorn-postgres` | Game server: TCP `8078`, WebSocket `8079` (localhost) |
+| `acorn-api-postgres` | `acorn-acorn-api-postgres` | REST API: `5000` → `8080` |
+| `acorn-postgres-db` | `postgres:17-alpine` | Database, published on `5432`; data in the `acorn_postgres-data` volume |
+| `acorn-caddy` | `caddy:2` | TLS reverse proxy, landing page and eoweb client (`80`/`443`) |
+| `acorn-aspire` | `aspire-dashboard` | OTel UI on `127.0.0.1:18888` |
+
+Compose settings come from the repo-root `.env` (`COMPOSE_PROFILES=postgres,true`,
+`BASE_DOMAIN`, `CACHE_ENABLED`, ...). Recreating containers preserves the database
+volume, so data survives a redeploy.
+
+### Agent deployment checklist
+
+1. **Get the latest `main`.** `main` may be checked out in another worktree
+   (`../acorn.worktrees/main-deploy`); in that case detach it first, or use
+   `git checkout --detach origin/main`. Preserve any uncommitted work with
+   `git stash push --include-untracked` before switching.
+2. **Apply migrations** (see below) - always before restarting the server.
+3. **Rebuild the images** from the repo root:
+   ```bash
+   docker build -f src/Acorn/Dockerfile -t acorn-acorn-postgres:latest .
+   docker build -f src/Acorn.Api/Dockerfile -t acorn-acorn-api-postgres:latest .
+   ```
+   The compose service image names are `<project>-<service>`, i.e.
+   `acorn-acorn-postgres` / `acorn-acorn-api-postgres` for the `acorn` project.
+4. **Recreate only the app containers**, reusing the DB/network/`.env`:
+   ```bash
+   docker compose --profile postgres up -d --no-build --force-recreate \
+     acorn-postgres acorn-api-postgres
+   ```
+5. **Verify:** `docker ps` shows both healthy and `docker logs --tail 50
+   acorn-postgres` shows the world/listeners started.
+
+### Database migrations
+
+The server never creates or upgrades the schema at runtime, and `docker compose up`
+does **not** apply migrations - run them explicitly. Migrations are provider
+specific:
+
+- SQLite (local dev): `src/Acorn.Database/Migrations`
+- PostgreSQL (deployed): `src/Acorn.Database.PostgreSql/Migrations`
+
+Apply the PostgreSQL migrations against the database published on `localhost:5432`.
+`ASPNETCORE_ENVIRONMENT=Production` is required so design-time scope validation does
+not stop the host from starting:
+
+```bash
+dotnet tool restore
+cd src/Acorn
+ASPNETCORE_ENVIRONMENT=Production Database__Engine=PostgreSQL \
+  Database__ConnectionString="Host=localhost;Port=5432;Database=acorn;Username=acorn;Password=acornpassword" \
+  dotnet ef database update --project ../Acorn.Database.PostgreSql --startup-project .
+```
+
+A successful no-op run prints `No migrations were applied. The database is already
+up to date.` Confirm the applied rows match the migration files:
+
+```bash
+docker exec acorn-postgres-db psql -U acorn -d acorn \
+  -c 'SELECT "MigrationId" FROM "__EFMigrationsHistory" ORDER BY "MigrationId";'
+```
+
+### Future: automated deploys
+
+The goal is a self-hosted GitHub Actions runner on this host that, on every push to
+`main` (i.e. after a PR merge), pulls the latest revision, applies migrations and
+runs the same build-and-recreate flow above. Until that exists, redeploys stay
+manual and agent-orchestrated.
+
 ## Architecture Patterns
 
 ### Packet Handlers
@@ -214,6 +296,9 @@ cd src/Acorn && dotnet ef database update --project ../Acorn.Database --startup-
 
 Migrations live in `src/Acorn.Database/Migrations` and are applied as a startup step by
 `scripts/run-apphost.sh`; the server does not create or upgrade schemas at runtime.
+PostgreSQL uses its own migrations assembly (`src/Acorn.Database.PostgreSql/Migrations`),
+which is what the hosted deployment needs - see [Deployment](#deployment) for the exact
+apply command and how to confirm the database is up to date.
 
 ### Adding a New API Endpoint
 
