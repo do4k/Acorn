@@ -77,8 +77,14 @@ public class ShopBuyClientPacketHandler(
         var amount = Math.Min(canHold, trade.MaxAmount);
         amount = Math.Min(amount, requestedAmount);
 
-        // Calculate total cost
-        var totalCost = trade.BuyPrice * amount;
+        // Calculate total cost (64-bit to avoid overflow with extreme shop data)
+        var totalCost = (long)trade.BuyPrice * amount;
+        if (totalCost > MaxItem)
+        {
+            logger.LogWarning("Player {Character} purchase of {Amount}x item {ItemId} from shop {Shop} exceeds max cost",
+                player.Character!.Name, amount, itemId, shop.Name);
+            return;
+        }
 
         // Check if player has enough gold
         var playerGold = inventoryService.GetItemAmount(player.Character!, GoldItemId);
@@ -90,16 +96,22 @@ public class ShopBuyClientPacketHandler(
         }
 
         // Remove gold
-        if (!inventoryService.TryRemoveItem(player.Character!, GoldItemId, totalCost))
+        if (!inventoryService.TryRemoveItem(player.Character!, GoldItemId, (int)totalCost))
         {
             logger.LogWarning("Failed to remove gold from player {Character}", player.Character!.Name);
             return;
         }
 
-        metrics.GoldSpent.Add(totalCost);
+        // Add purchased item, refunding the gold if it can't be added
+        if (!inventoryService.TryAddItem(player.Character!, itemId, amount))
+        {
+            logger.LogWarning("Failed to add purchased item {ItemId} to player {Character}, refunding {Cost} gold",
+                itemId, player.Character!.Name, totalCost);
+            inventoryService.TryAddItem(player.Character!, GoldItemId, (int)totalCost);
+            return;
+        }
 
-        // Add purchased item
-        inventoryService.TryAddItem(player.Character!, itemId, amount);
+        metrics.GoldSpent.Add((int)totalCost);
 
         logger.LogInformation("Player {Character} bought {Amount}x {ItemName} for {Cost} gold",
             player.Character!.Name, amount, itemData.Name, totalCost);

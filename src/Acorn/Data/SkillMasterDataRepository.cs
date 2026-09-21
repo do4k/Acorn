@@ -51,7 +51,9 @@ public class SkillMasterDataRepository : ISkillMasterDataRepository
                 var json = File.ReadAllText(file);
                 var model = JsonSerializer.Deserialize<SkillMasterJsonModel>(json, new JsonSerializerOptions
                 {
-                    PropertyNameCaseInsensitive = true
+                    PropertyNameCaseInsensitive = true,
+                    // Data files use snake_case keys (behavior_id, level_requirement, ...)
+                    PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
                 });
 
                 if (model == null)

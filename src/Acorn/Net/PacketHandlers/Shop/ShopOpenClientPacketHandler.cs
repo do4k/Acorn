@@ -27,6 +27,15 @@ public class ShopOpenClientPacketHandler(
             return;
         }
 
+        if (!MeetsRequirements(player, shop))
+        {
+            logger.LogDebug("Player {Character} does not meet requirements for shop {ShopName} " +
+                "(level {Level}, class {Class}; requires level {MinLevel}-{MaxLevel}, class {ClassRequirement})",
+                player.Character!.Name, shop.Name, player.Character.Level, player.Character.Class,
+                shop.MinLevel, shop.MaxLevel, shop.ClassRequirement);
+            return;
+        }
+
         logger.LogInformation("Player {Character} opening shop {ShopName}",
             player.Character!.Name, shop.Name);
 
@@ -71,4 +80,15 @@ public class ShopOpenClientPacketHandler(
         });
     }
 
+    private static bool MeetsRequirements(PlayerState player, ShopData shop)
+    {
+        var character = player.Character;
+        if (character is null) return false;
+
+        if (shop.MinLevel > 0 && character.Level < shop.MinLevel) return false;
+        if (shop.MaxLevel > 0 && character.Level > shop.MaxLevel) return false;
+        if (shop.ClassRequirement > 0 && character.Class != shop.ClassRequirement) return false;
+
+        return true;
+    }
 }

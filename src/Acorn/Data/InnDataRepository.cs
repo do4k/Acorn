@@ -54,7 +54,9 @@ public class InnDataRepository : IInnDataRepository
                 var json = File.ReadAllText(file);
                 var innJson = JsonSerializer.Deserialize<InnJsonModel>(json, new JsonSerializerOptions
                 {
-                    PropertyNameCaseInsensitive = true
+                    PropertyNameCaseInsensitive = true,
+                    // Data files use snake_case keys (behavior_id, spawn_map, ...)
+                    PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
                 });
 
                 if (innJson == null)

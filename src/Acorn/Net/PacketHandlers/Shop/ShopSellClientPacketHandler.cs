@@ -77,13 +77,19 @@ public class ShopSellClientPacketHandler(
         var amount = Math.Min(requestedAmount, playerItemAmount);
         amount = Math.Min(amount, trade.MaxAmount);
 
-        if (amount == 0)
+        // Never pay out more than the player's gold stack can hold (64-bit to avoid overflow)
+        var playerGold = inventoryService.GetItemAmount(player.Character!, GoldItemId);
+        var maxPayable = (long)MaxItem - playerGold;
+        amount = (int)Math.Min(amount, maxPayable / trade.SellPrice);
+
+        if (amount <= 0)
         {
+            logger.LogDebug("Player {Character} cannot sell item {ItemId}: gold stack full",
+                player.Character!.Name, itemId);
             return;
         }
 
-        // Calculate sell value (capped at max item value)
-        var sellValue = Math.Min(trade.SellPrice * amount, MaxItem);
+        var sellValue = trade.SellPrice * amount;
 
         // Remove sold item from inventory
         if (!inventoryService.TryRemoveItem(player.Character!, itemId, amount))
@@ -92,8 +98,15 @@ public class ShopSellClientPacketHandler(
             return;
         }
 
-        // Add gold to inventory
-        inventoryService.TryAddItem(player.Character!, GoldItemId, sellValue);
+        // Add gold to inventory, returning the items if the gold can't be added
+        if (!inventoryService.TryAddItem(player.Character!, GoldItemId, sellValue))
+        {
+            logger.LogWarning("Failed to pay gold to player {Character}, returning {Amount}x item {ItemId}",
+                player.Character!.Name, amount, itemId);
+            inventoryService.TryAddItem(player.Character!, itemId, amount);
+            return;
+        }
+
         metrics.GoldEarned.Add(sellValue, [new("source", "shop")]);
 
         logger.LogInformation("Player {Character} sold {Amount}x {ItemName} for {Value} gold",
