@@ -57,4 +57,10 @@ public interface IGuildService
 
     /// <summary>Send guild chat message to all online guild members.</summary>
     Task SendGuildMessage(PlayerState player, string message);
+
+    /// <summary>
+    ///     Admin command: create a guild immediately with the player as leader,
+    ///     bypassing the recruit flow, the gold cost and the guild master NPC.
+    /// </summary>
+    Task<AdminCreateGuildResult> AdminCreateGuild(PlayerState player, string guildTag, string guildName);
 }
