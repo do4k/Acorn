@@ -61,4 +61,28 @@ public class CommandRegistrationTests
 
         duplicates.Should().BeEmpty("each # command name may be claimed by only one handler");
     }
+
+    [Test]
+    public void EveryCommand_ShouldHaveAHelpDescription()
+    {
+        var missing = new List<string>();
+
+        foreach (var handler in _fixture.GetService<IEnumerable<ITalkHandler>>())
+        {
+            if (handler.Commands.Count > 0 && CommandDescriptions.Get('$', handler.Commands[0]) is null)
+            {
+                missing.Add($"${handler.Commands[0]}");
+            }
+        }
+
+        foreach (var handler in _fixture.GetService<IEnumerable<IPlayerCommandHandler>>())
+        {
+            if (handler.Commands.Count > 0 && CommandDescriptions.Get('#', handler.Commands[0]) is null)
+            {
+                missing.Add($"#{handler.Commands[0]}");
+            }
+        }
+
+        missing.Should().BeEmpty("every command should appear in the help output");
+    }
 }

@@ -58,17 +58,21 @@ internal class TalkReportClientPacketHandler(
         if (packet.Message.StartsWith('#'))
         {
             var args = packet.Message[1..].Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (args.Length > 0)
+            if (args.Length == 0)
             {
-                var command = args[0];
-                var handler = playerCommandHandlers.FirstOrDefault(x => x.CanHandle(command));
-                if (handler is not null)
-                {
-                    await handler.HandleAsync(playerState, command, args[1..]);
-                    return;
-                }
+                return;
             }
-            // If no handler found, fall through to normal chat
+
+            var command = args[0];
+            var handler = playerCommandHandlers.FirstOrDefault(x => x.CanHandle(command));
+            if (handler is null)
+            {
+                await notifications.SystemMessage(playerState, $"Unknown command: #{command}. Try #help.");
+                return;
+            }
+
+            await handler.HandleAsync(playerState, command, args[1..]);
+            return;
         }
 
         // Check if the message is directed at the Wise Man NPC

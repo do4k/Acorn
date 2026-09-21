@@ -6,7 +6,7 @@ namespace Acorn.Net.PacketHandlers.Player.Talk;
 
 public class JailCommandHandler(IAdminService adminService, INotificationService notifications) : ITalkHandler
 {
-    public IReadOnlyList<string> Commands => ["jail"];
+    public IReadOnlyList<string> Commands => ["jail", "sjail"];
 
     public string Usage => "<name>";
 
@@ -20,6 +20,7 @@ public class JailCommandHandler(IAdminService adminService, INotificationService
             return;
         }
 
-        await adminService.JailPlayerAsync(playerState, args[0]);
+        var silent = command.Equals("sjail", StringComparison.InvariantCultureIgnoreCase);
+        await adminService.JailPlayerAsync(playerState, args[0], silent);
     }
 }

@@ -71,6 +71,8 @@ public class Character
     public SitState SitState { get; set; }
     public bool Hidden { get; set; }
     public bool NoInteract { get; set; }
+    public bool Jailed { get; set; }
+    public bool Frozen { get; set; }
     public int BankMax { get; set; }
     public int GoldBank { get; set; }
     public int Usage { get; set; }

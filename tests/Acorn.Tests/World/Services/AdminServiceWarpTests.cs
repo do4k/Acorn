@@ -102,6 +102,36 @@ public class AdminServiceWarpTests
     }
 
     [Test]
+    public async Task WarpToPlayer_WhenTargetIsSelf_DoesNotWarp()
+    {
+        var (sut, world, playerController, notifications) = CreateSut();
+        var (admin, _) = FakePlayer.Create("Admin", 1);
+        admin.Character!.Admin = AdminLevel.LightGuide;
+        admin.CurrentMap = FakeMap.Create();
+        world.FindPlayerByName("Admin").Returns(admin);
+
+        await sut.WarpToPlayerAsync(admin, "Admin");
+
+        await playerController.DidNotReceiveWithAnyArgs().WarpAsync(default!, default!, default, default, default);
+        await notifications.Received(1).SystemMessage(admin, "You cannot warp to yourself.");
+    }
+
+    [Test]
+    public async Task SummonPlayer_WhenTargetIsSelf_DoesNotWarp()
+    {
+        var (sut, world, playerController, notifications) = CreateSut();
+        var (admin, _) = FakePlayer.Create("Admin", 1);
+        admin.Character!.Admin = AdminLevel.Guardian;
+        admin.CurrentMap = FakeMap.Create();
+        world.FindPlayerByName("Admin").Returns(admin);
+
+        await sut.SummonPlayerAsync(admin, "Admin");
+
+        await playerController.DidNotReceiveWithAnyArgs().WarpAsync(default!, default!, default, default, default);
+        await notifications.Received(1).SystemMessage(admin, "You cannot summon yourself.");
+    }
+
+    [Test]
     public async Task SummonPlayer_WhenTargetOffline_DoesNotWarp()
     {
         var (sut, world, playerController, notifications) = CreateSut();

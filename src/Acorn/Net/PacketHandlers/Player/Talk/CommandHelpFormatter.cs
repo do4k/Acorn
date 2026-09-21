@@ -17,7 +17,13 @@ internal static class CommandHelpFormatter
             name += $" ({string.Join(", ", handler.Commands.Skip(1).Select(alias => $"{prefix}{alias}"))})";
         }
 
-        return handler.Usage.Length > 0 ? $"{name} {handler.Usage}" : name;
+        if (handler.Usage.Length > 0)
+        {
+            name += $" {handler.Usage}";
+        }
+
+        var description = CommandDescriptions.Get(prefix, primary);
+        return description is null ? name : $"{name} - {description}";
     }
 
     public static IEnumerable<string> DescribeAll(IEnumerable<ICommandHandler> handlers, char prefix)

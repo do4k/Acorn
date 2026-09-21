@@ -64,33 +64,65 @@ public class DataFileRepository : IDataFileRepository
 
     private void LoadPubFiles()
     {
-        if (File.Exists(_ecfFile))
+        // Deserialise every file into locals first and only swap the in-memory
+        // records once all of them parsed. A single malformed file therefore
+        // cannot leave a mix of old and new pub data behind.
+        var ecf = File.Exists(_ecfFile) ? DeserialiseEcf(_ecfFile) : null;
+        var eif = File.Exists(_eifFile) ? DeserialiseEif(_eifFile) : null;
+        var enf = File.Exists(_enfFile) ? DeserialiseEnf(_enfFile) : null;
+        var esf = File.Exists(_esfFile) ? DeserialiseEsf(_esfFile) : null;
+
+        if (ecf is not null)
         {
-            Ecf = new Ecf();
-            Ecf.Deserialize(new EoReader(File.ReadAllBytes(_ecfFile)));
-            RecalculateRid(Ecf);
+            Ecf = ecf;
         }
 
-        if (File.Exists(_eifFile))
+        if (eif is not null)
         {
-            Eif = new Eif();
-            Eif.Deserialize(new EoReader(File.ReadAllBytes(_eifFile)));
-            RecalculateRid(Eif);
+            Eif = eif;
         }
 
-        if (File.Exists(_enfFile))
+        if (enf is not null)
         {
-            Enf = new Enf();
-            Enf.Deserialize(new EoReader(File.ReadAllBytes(_enfFile)));
-            RecalculateRid(Enf);
+            Enf = enf;
         }
 
-        if (File.Exists(_esfFile))
+        if (esf is not null)
         {
-            Esf = new Esf();
-            Esf.Deserialize(new EoReader(File.ReadAllBytes(_esfFile)));
-            RecalculateRid(Esf);
+            Esf = esf;
         }
+    }
+
+    private Ecf DeserialiseEcf(string path)
+    {
+        var ecf = new Ecf();
+        ecf.Deserialize(new EoReader(File.ReadAllBytes(path)));
+        RecalculateRid(ecf);
+        return ecf;
+    }
+
+    private Eif DeserialiseEif(string path)
+    {
+        var eif = new Eif();
+        eif.Deserialize(new EoReader(File.ReadAllBytes(path)));
+        RecalculateRid(eif);
+        return eif;
+    }
+
+    private Enf DeserialiseEnf(string path)
+    {
+        var enf = new Enf();
+        enf.Deserialize(new EoReader(File.ReadAllBytes(path)));
+        RecalculateRid(enf);
+        return enf;
+    }
+
+    private Esf DeserialiseEsf(string path)
+    {
+        var esf = new Esf();
+        esf.Deserialize(new EoReader(File.ReadAllBytes(path)));
+        RecalculateRid(esf);
+        return esf;
     }
 
     /// <summary>

@@ -21,6 +21,7 @@ public class AcornDbContext : DbContext
     public DbSet<CharacterSpell> CharacterSpells { get; set; }
     public DbSet<BoardPost> BoardPosts { get; set; }
     public DbSet<QuestProgress> QuestProgress { get; set; }
+    public DbSet<Ban> Bans { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -204,6 +205,14 @@ public class AcornDbContext : DbContext
 
             entity.HasIndex(e => e.CharacterName);
             entity.HasIndex(e => new { e.CharacterName, e.QuestId }).IsUnique();
+        });
+
+        // Configure Ban entity
+        modelBuilder.Entity<Ban>(entity =>
+        {
+            entity.HasKey(e => e.Key);
+            entity.Property(e => e.Key).IsRequired().HasMaxLength(64);
+            entity.Property(e => e.Reason).HasMaxLength(200);
         });
 
         // Note: Do NOT seed Character data here - HasConversion doesn't work with HasData

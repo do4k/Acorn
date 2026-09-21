@@ -4,6 +4,7 @@ using Acorn.Net;
 using Acorn.Net.PacketHandlers.Board;
 using Acorn.Net.Services;
 using Acorn.Options;
+using Acorn.World.Map;
 using Acorn.World.Services.Bans;
 using Acorn.World.Services.Player;
 using Microsoft.Extensions.DependencyInjection;
@@ -33,7 +34,7 @@ public class AdminService(
     private int JailX => serverOptions.Value.Jail?.X ?? serverOptions.Value.Rescue?.X ?? serverOptions.Value.NewCharacter.X;
     private int JailY => serverOptions.Value.Jail?.Y ?? serverOptions.Value.Rescue?.Y ?? serverOptions.Value.NewCharacter.Y;
 
-    public async Task KickPlayerAsync(PlayerState admin, string targetName)
+    public async Task KickPlayerAsync(PlayerState admin, string targetName, bool silent = false)
     {
         if (!RequireAdminLevel(admin, AdminLevel.Guardian))
             return;
@@ -47,11 +48,15 @@ public class AdminService(
 
         logger.LogInformation("Admin {Admin} kicked player {Target}", admin.Character!.Name, targetName);
 
-        await BroadcastServerMessage($"{targetName} has been kicked by {admin.Character!.Name}.");
+        if (!silent)
+        {
+            await BroadcastServerMessage($"{targetName} has been kicked by {admin.Character!.Name}.");
+        }
+
         target.Disconnect();
     }
 
-    public async Task BanPlayerAsync(PlayerState admin, string targetName)
+    public async Task BanPlayerAsync(PlayerState admin, string targetName, bool silent = false)
     {
         if (!RequireAdminLevel(admin, AdminLevel.GameMaster))
             return;
@@ -75,11 +80,15 @@ public class AdminService(
             banService.Ban(BanKeys.Hdid(target.Hdid), reason: $"banned by {admin.Character.Name}");
         }
 
-        await BroadcastServerMessage($"{targetName} has been banned by {admin.Character!.Name}.");
+        if (!silent)
+        {
+            await BroadcastServerMessage($"{targetName} has been banned by {admin.Character!.Name}.");
+        }
+
         target.Disconnect();
     }
 
-    public async Task JailPlayerAsync(PlayerState admin, string targetName)
+    public async Task JailPlayerAsync(PlayerState admin, string targetName, bool silent = false)
     {
         if (!RequireAdminLevel(admin, AdminLevel.GameMaster))
             return;
@@ -99,10 +108,18 @@ public class AdminService(
         }
 
         target.IsJailed = true;
+        if (target.Character is not null)
+        {
+            target.Character.Jailed = true;
+        }
+
         logger.LogInformation("Admin {Admin} jailed player {Target}", admin.Character!.Name, targetName);
 
         await playerController.WarpAsync(target, jailMap, JailX, JailY, WarpEffect.Admin);
-        await BroadcastServerMessage($"{targetName} has been jailed by {admin.Character!.Name}.");
+        if (!silent)
+        {
+            await BroadcastServerMessage($"{targetName} has been jailed by {admin.Character!.Name}.");
+        }
     }
 
     public async Task FreePlayerAsync(PlayerState admin, string targetName)
@@ -118,6 +135,10 @@ public class AdminService(
         }
 
         target.IsJailed = false;
+        if (target.Character is not null)
+        {
+            target.Character.Jailed = false;
+        }
 
         // Warp to new character spawn (home)
         var homeMap = world.FindMap(serverOptions.Value.NewCharacter.Map);
@@ -146,6 +167,11 @@ public class AdminService(
         }
 
         target.IsFrozen = true;
+        if (target.Character is not null)
+        {
+            target.Character.Frozen = true;
+        }
+
         logger.LogInformation("Admin {Admin} froze player {Target}", admin.Character!.Name, targetName);
 
         // Send WalkCloseServerPacket to freeze client-side movement
@@ -166,12 +192,17 @@ public class AdminService(
         }
 
         target.IsFrozen = false;
+        if (target.Character is not null)
+        {
+            target.Character.Frozen = false;
+        }
+
         logger.LogInformation("Admin {Admin} unfroze player {Target}", admin.Character!.Name, targetName);
         await notifications.SystemMessage(target, "You have been unfrozen.");
         await notifications.SystemMessage(admin, $"Player '{targetName}' has been unfrozen.");
     }
 
-    public async Task MutePlayerAsync(PlayerState admin, string targetName)
+    public async Task MutePlayerAsync(PlayerState admin, string targetName, bool silent = false)
     {
         if (!RequireAdminLevel(admin, AdminLevel.GameMaster))
             return;
@@ -189,7 +220,10 @@ public class AdminService(
 
         // Send TalkSpecServerPacket to notify client
         await target.Send(new TalkSpecServerPacket { AdminName = admin.Character!.Name! });
-        await BroadcastServerMessage($"{targetName} has been muted by {admin.Character!.Name}.");
+        if (!silent)
+        {
+            await BroadcastServerMessage($"{targetName} has been muted by {admin.Character!.Name}.");
+        }
     }
 
     public async Task UnmutePlayerAsync(PlayerState admin, string targetName)
@@ -441,6 +475,12 @@ public class AdminService(
             return;
         }
 
+        if (target.SessionId == admin.SessionId)
+        {
+            await notifications.SystemMessage(admin, "You cannot warp to yourself.");
+            return;
+        }
+
         logger.LogInformation("Admin {Admin} warped to player {Target}", admin.Character!.Name, targetName);
 
         await playerController.WarpAsync(admin, target.CurrentMap,
@@ -463,13 +503,57 @@ public class AdminService(
             return;
         }
 
+        if (target.SessionId == admin.SessionId)
+        {
+            await notifications.SystemMessage(admin, "You cannot summon yourself.");
+            return;
+        }
+
         logger.LogInformation("Admin {Admin} summoned player {Target}", admin.Character.Name, targetName);
 
-        await playerController.WarpAsync(target, admin.CurrentMap,
-            admin.Character.X, admin.Character.Y, WarpEffect.Admin);
+        // Land the summoned player on a free tile next to the admin rather than
+        // stacking them on an occupied square.
+        var (x, y) = FindFreeTile(admin.CurrentMap, admin.Character.X, admin.Character.Y);
+        await playerController.WarpAsync(target, admin.CurrentMap, x, y, WarpEffect.Admin);
         await notifications.SystemMessage(target, $"You have been summoned by {admin.Character.Name}.");
         await notifications.SystemMessage(admin, $"Summoned {target.Character.Name} to you.");
     }
+
+    /// <summary>
+    ///     Returns the first unoccupied tile at or spiralling out from
+    ///     (<paramref name="x" />, <paramref name="y" />), falling back to the
+    ///     original coordinates when nothing nearby is free.
+    /// </summary>
+    private static (int X, int Y) FindFreeTile(MapState map, int x, int y)
+    {
+        if (IsFree(map, x, y))
+        {
+            return (x, y);
+        }
+
+        for (var radius = 1; radius <= 3; radius++)
+        {
+            for (var dx = -radius; dx <= radius; dx++)
+            {
+                for (var dy = -radius; dy <= radius; dy++)
+                {
+                    var candidateX = x + dx;
+                    var candidateY = y + dy;
+                    if (IsFree(map, candidateX, candidateY))
+                    {
+                        return (candidateX, candidateY);
+                    }
+                }
+            }
+        }
+
+        return (x, y);
+    }
+
+    private static bool IsFree(MapState map, int x, int y)
+        => x >= 0 && y >= 0
+           && x <= map.Data.Width && y <= map.Data.Height
+           && !map.IsTileOccupied(new Coords { X = x, Y = y });
 
     public async Task ToggleHideAsync(PlayerState admin)
     {

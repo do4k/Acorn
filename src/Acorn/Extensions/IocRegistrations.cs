@@ -95,7 +95,7 @@ internal static class IocRegistrations
             .AddSingleton<IPartyService, PartyService>()
             .AddSingleton<IGuildService, GuildService>()
             .AddSingleton<IQuestService, QuestService>()
-            .AddSingleton<IBanService, InMemoryBanService>()
+            .AddSingleton<IBanService, DatabaseBanService>()
             .AddSingleton<IAdminService, AdminService>()
             .AddSingleton<IAdminCountService, AdminCountService>()
             .AddSingleton<IMarriageService, MarriageService>()

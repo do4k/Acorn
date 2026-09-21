@@ -99,6 +99,8 @@ internal class WelcomeRequestClientPacketHandler : IPacketHandler<WelcomeRequest
         }
 
         playerState.Character = CharacterMapper.FromDatabaseModel(character);
+        playerState.IsJailed = playerState.Character.Jailed;
+        playerState.IsFrozen = playerState.Character.Frozen;
         playerState.ClientState = ClientState.EnteringGame;
 
         // Guild leaders are reported as rank 1 to unlock the client guild-management tools (eoserv behaviour).

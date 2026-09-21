@@ -6,7 +6,7 @@ namespace Acorn.Net.PacketHandlers.Player.Talk;
 
 public class BanCommandHandler(IAdminService adminService, INotificationService notifications) : ITalkHandler
 {
-    public IReadOnlyList<string> Commands => ["ban"];
+    public IReadOnlyList<string> Commands => ["ban", "sban"];
 
     public string Usage => "<name>";
 
@@ -20,6 +20,7 @@ public class BanCommandHandler(IAdminService adminService, INotificationService 
             return;
         }
 
-        await adminService.BanPlayerAsync(playerState, args[0]);
+        var silent = command.Equals("sban", StringComparison.InvariantCultureIgnoreCase);
+        await adminService.BanPlayerAsync(playerState, args[0], silent);
     }
 }
