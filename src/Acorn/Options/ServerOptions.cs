@@ -235,6 +235,15 @@ public class ServerOptions
     public int HangupDelaySeconds { get; set; } = 10;
 
     /// <summary>
+    ///     How long, in seconds, a connection may remain after completing the
+    ///     Init/Accept handshake before it must be logged in. Connections that do not
+    ///     authenticate within this window are disconnected so half-open sockets cannot
+    ///     accumulate, and they are never sent keep-alive pings. 0 disables the login
+    ///     timeout.
+    /// </summary>
+    public int LoginTimeoutSeconds { get; set; } = 120;
+
+    /// <summary>
     ///     Maximum number of concurrent connections allowed from the same HDID
     ///     (hardware id). 0 disables the per-PC limit.
     /// </summary>

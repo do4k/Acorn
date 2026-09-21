@@ -101,6 +101,9 @@ public class PacketSequenceTests
         await using var client = await LoginAndCreateAsync(_fixture.TcpPort, "ping");
         await EnterGameAsync(client);
 
+        // Observe pings directly rather than letting the client answer them transparently.
+        client.AutoRespondToPings = false;
+
         // Wait for the server's Connection_Player ping. ReceivePacketAsync automatically
         // resyncs the client's outbound sequencer to the received ping value.
         using var pingCts = new CancellationTokenSource(TimeSpan.FromSeconds(15));

@@ -52,24 +52,27 @@ public class PlayerPingHostedService(
         {
             try
             {
-                // Disconnect connections that never complete the Init/Accept handshake.
-                if (player.ClientState < ClientState.Accepted && _serverOptions.HangupDelaySeconds > 0)
+                var decision = Decide(player.ClientState, DateTime.UtcNow - player.ConnectedAt,
+                    _serverOptions.HangupDelaySeconds, _serverOptions.LoginTimeoutSeconds);
+
+                switch (decision)
                 {
-                    var elapsed = DateTime.UtcNow - player.ConnectedAt;
-                    if (elapsed.TotalSeconds > _serverOptions.HangupDelaySeconds)
-                    {
+                    case PingDecision.DisconnectHandshakeTimeout:
                         logger.LogWarning(
                             "Player {SessionId} failed to complete handshake within {Delay}s, disconnecting",
                             player.SessionId, _serverOptions.HangupDelaySeconds);
                         player.Disconnect();
                         continue;
-                    }
-                }
-
-                // Skip uninitialized connections (matches reoserv ping.rs:12-14)
-                if (player.ClientState == ClientState.Uninitialized)
-                {
-                    continue;
+                    case PingDecision.DisconnectLoginTimeout:
+                        logger.LogWarning(
+                            "Player {SessionId} did not log in within {Delay}s, disconnecting",
+                            player.SessionId, _serverOptions.LoginTimeoutSeconds);
+                        player.Disconnect();
+                        continue;
+                    case PingDecision.Skip:
+                        continue;
+                    case PingDecision.Ping:
+                        break;
                 }
 
                 // Check if player needs a pong response
@@ -99,5 +102,58 @@ public class PlayerPingHostedService(
                 logger.LogError(ex, "Error pinging player {SessionId}", player.SessionId);
             }
         }
+    }
+
+    /// <summary>
+    ///     Decides what to do with a connection on the current tick.
+    /// </summary>
+    internal static PingDecision Decide(ClientState state, TimeSpan age, int hangupDelaySeconds,
+        int loginTimeoutSeconds)
+    {
+        // Handshake: Init -> Connection/Accept. The client performs this automatically, so
+        // a connection that has not got this far within the hangup delay is not a player.
+        if (state < ClientState.Accepted && hangupDelaySeconds > 0 && age.TotalSeconds > hangupDelaySeconds)
+        {
+            return PingDecision.DisconnectHandshakeTimeout;
+        }
+
+        // Login: Account/Login. This needs a human, so allow a much longer grace period
+        // before dropping the still-unauthenticated connection.
+        if (state < ClientState.LoggedIn && loginTimeoutSeconds > 0 && age.TotalSeconds > loginTimeoutSeconds)
+        {
+            return PingDecision.DisconnectLoginTimeout;
+        }
+
+        // Never ping a connection that is still authenticating. The ping carries a
+        // sequence start that resets the client sequencer, which can corrupt the login
+        // exchange, and a half-open socket would otherwise stay alive forever as long as
+        // it answered pings.
+        return state < ClientState.LoggedIn ? PingDecision.Skip : PingDecision.Ping;
+    }
+
+    /// <summary>
+    ///     What the ping service should do with a connection on the current tick.
+    /// </summary>
+    internal enum PingDecision
+    {
+        /// <summary>
+        ///     The connection is still inside a grace period; leave it alone.
+        /// </summary>
+        Skip,
+
+        /// <summary>
+        ///     The connection never completed the Init/Accept handshake.
+        /// </summary>
+        DisconnectHandshakeTimeout,
+
+        /// <summary>
+        ///     The connection completed the handshake but never logged in.
+        /// </summary>
+        DisconnectLoginTimeout,
+
+        /// <summary>
+        ///     The connection is authenticated and should receive a keep-alive ping.
+        /// </summary>
+        Ping
     }
 }
