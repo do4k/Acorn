@@ -56,6 +56,14 @@ public sealed class EoTestClient : IAsyncDisposable
     public bool PingReceived { get; private set; }
 
     /// <summary>
+    ///     When <c>true</c> (the default), a server Connection_Player ping is answered with
+    ///     a Connection_Ping automatically and is never returned from
+    ///     <see cref="ReceivePacketAsync()" />, mirroring a real client. Set to <c>false</c>
+    ///     to observe pings directly (see <c>PacketSequenceTests</c>).
+    /// </summary>
+    public bool AutoRespondToPings { get; set; } = true;
+
+    /// <summary>
     ///     Whether the underlying transport is still connected to the server.
     /// </summary>
     public bool IsConnected =>
@@ -172,49 +180,60 @@ public sealed class EoTestClient : IAsyncDisposable
 
     private async Task<IPacket> ReceivePacketCoreAsync(CancellationToken ct)
     {
-        // Read 2-byte length prefix
-        var lenBytes = await ReceiveBytesAsync(2, ct);
-        var length = NumberEncoder.DecodeNumber(lenBytes);
-
-        if (length <= 0 || length > 65535)
+        while (true)
         {
-            throw new InvalidOperationException($"Invalid packet length: {length}");
+            // Read 2-byte length prefix
+            var lenBytes = await ReceiveBytesAsync(2, ct);
+            var length = NumberEncoder.DecodeNumber(lenBytes);
+
+            if (length <= 0 || length > 65535)
+            {
+                throw new InvalidOperationException($"Invalid packet length: {length}");
+            }
+
+            // Read payload
+            var payload = await ReceiveBytesAsync(length, ct);
+
+            // Decrypt (skip for pre-init packets where serverMulti is 0)
+            var decrypted = _serverEncryptionMulti switch
+            {
+                0 => payload,
+                _ => DataEncrypter.SwapMultiples(
+                    DataEncrypter.Deinterleave(
+                        DataEncrypter.FlipMSB(payload)),
+                    _serverEncryptionMulti)
+            };
+
+            // Deserialize
+            var reader = new EoReader(decrypted);
+            var action = (PacketAction)reader.GetByte();
+            var family = (PacketFamily)reader.GetByte();
+
+            var dataReader = reader.Slice();
+            var packet = _resolver.Create(family, action);
+            packet.Deserialize(dataReader);
+
+            // Server-initiated Connection_Player ping: resync the outbound sequencer.
+            // The server pre-increments and sets its start to the ping value (seq1 - seq2),
+            // so resetting our start (which preserves the counter offset) makes the
+            // Connection_Ping response and every subsequent packet line up exactly.
+            if (packet is ConnectionPlayerServerPacket ping)
+            {
+                PingReceived = true;
+                var pingStart = PingSequenceStart.FromPingValues(ping.Seq1, ping.Seq2);
+                _sequencer = _sequencer.WithSequenceStart(pingStart);
+
+                // Real clients answer pings transparently; do the same by default so a
+                // ping can never be mistaken for the reply a caller is waiting for.
+                if (AutoRespondToPings)
+                {
+                    await SendConnectionPingAsync();
+                    continue;
+                }
+            }
+
+            return packet;
         }
-
-        // Read payload
-        var payload = await ReceiveBytesAsync(length, ct);
-
-        // Decrypt (skip for pre-init packets where serverMulti is 0)
-        var decrypted = _serverEncryptionMulti switch
-        {
-            0 => payload,
-            _ => DataEncrypter.SwapMultiples(
-                DataEncrypter.Deinterleave(
-                    DataEncrypter.FlipMSB(payload)),
-                _serverEncryptionMulti)
-        };
-
-        // Deserialize
-        var reader = new EoReader(decrypted);
-        var action = (PacketAction)reader.GetByte();
-        var family = (PacketFamily)reader.GetByte();
-
-        var dataReader = reader.Slice();
-        var packet = _resolver.Create(family, action);
-        packet.Deserialize(dataReader);
-
-        // Server-initiated Connection_Player ping: resync the outbound sequencer.
-        // The server pre-increments and sets its start to the ping value (seq1 - seq2),
-        // so resetting our start (which preserves the counter offset) makes the
-        // Connection_Ping response and every subsequent packet line up exactly.
-        if (packet is ConnectionPlayerServerPacket ping)
-        {
-            PingReceived = true;
-            var pingStart = PingSequenceStart.FromPingValues(ping.Seq1, ping.Seq2);
-            _sequencer = _sequencer.WithSequenceStart(pingStart);
-        }
-
-        return packet;
     }
 
     // --- High-level protocol methods ---
