@@ -48,7 +48,7 @@ public class GuildServiceAdminCreateTests
         var sut = CreateSut(scopeFactory);
         var (player, _) = FakePlayer.Create("Leader", 1);
 
-        var result = await sut.AdminCreateGuild(player, "TST", "test guild");
+        var result = await sut.AdminCreateGuild(player, "TST", "test guild", string.Empty);
 
         result.Should().Be(AdminCreateGuildResult.Created);
 
@@ -73,7 +73,7 @@ public class GuildServiceAdminCreateTests
         var sut = CreateSut(scopeFactory);
         var (player, _) = FakePlayer.Create("Leader", 1);
 
-        var result = await sut.AdminCreateGuild(player, "TST", "test guild");
+        var result = await sut.AdminCreateGuild(player, "TST", "test guild", string.Empty);
 
         result.Should().Be(AdminCreateGuildResult.Created);
         player.Character!.GuildTag.Should().Be("TST");
@@ -89,9 +89,9 @@ public class GuildServiceAdminCreateTests
         var sut = CreateSut(scopeFactory);
         var (player, _) = FakePlayer.Create("Leader", 1);
 
-        await sut.AdminCreateGuild(player, "TST", "test guild");
+        await sut.AdminCreateGuild(player, "TST", "test guild", string.Empty);
 
-        var result = await sut.AdminCreateGuild(player, "ABC", "another guild");
+        var result = await sut.AdminCreateGuild(player, "ABC", "another guild", string.Empty);
 
         result.Should().Be(AdminCreateGuildResult.AlreadyInGuild);
     }
@@ -105,9 +105,9 @@ public class GuildServiceAdminCreateTests
         var (player1, _) = FakePlayer.Create("Leader1", 1);
         var (player2, _) = FakePlayer.Create("Leader2", 2);
 
-        await sut.AdminCreateGuild(player1, "TST", "test guild");
+        await sut.AdminCreateGuild(player1, "TST", "test guild", string.Empty);
 
-        var result = await sut.AdminCreateGuild(player2, "TST", "different name");
+        var result = await sut.AdminCreateGuild(player2, "TST", "different name", string.Empty);
 
         result.Should().Be(AdminCreateGuildResult.GuildExists);
     }
@@ -121,9 +121,9 @@ public class GuildServiceAdminCreateTests
         var (player1, _) = FakePlayer.Create("Leader1", 1);
         var (player2, _) = FakePlayer.Create("Leader2", 2);
 
-        await sut.AdminCreateGuild(player1, "TST", "test guild");
+        await sut.AdminCreateGuild(player1, "TST", "test guild", string.Empty);
 
-        var result = await sut.AdminCreateGuild(player2, "ABC", "test guild");
+        var result = await sut.AdminCreateGuild(player2, "ABC", "test guild", string.Empty);
 
         result.Should().Be(AdminCreateGuildResult.GuildExists);
     }
@@ -131,45 +131,83 @@ public class GuildServiceAdminCreateTests
     [Test]
     [Arguments("A")]
     [Arguments("ABCD")]
-    public async Task AdminCreate_InvalidTag_ReturnsInvalidTagOrName(string badTag)
+    public async Task AdminCreate_InvalidTag_ReturnsInvalidInput(string badTag)
     {
         var provider = CreateProvider();
         var scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
         var sut = CreateSut(scopeFactory);
         var (player, _) = FakePlayer.Create("Leader", 1);
 
-        var result = await sut.AdminCreateGuild(player, badTag, "test guild");
+        var result = await sut.AdminCreateGuild(player, badTag, "test guild", string.Empty);
 
-        result.Should().Be(AdminCreateGuildResult.InvalidTagOrName);
+        result.Should().Be(AdminCreateGuildResult.InvalidInput);
     }
 
     [Test]
     [Arguments("abc")]
     [Arguments("ab1c")]
-    public async Task AdminCreate_InvalidName_ReturnsInvalidTagOrName(string badName)
+    public async Task AdminCreate_InvalidName_ReturnsInvalidInput(string badName)
     {
         var provider = CreateProvider();
         var scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
         var sut = CreateSut(scopeFactory);
         var (player, _) = FakePlayer.Create("Leader", 1);
 
-        var result = await sut.AdminCreateGuild(player, "TST", badName);
+        var result = await sut.AdminCreateGuild(player, "TST", badName, string.Empty);
 
-        result.Should().Be(AdminCreateGuildResult.InvalidTagOrName);
+        result.Should().Be(AdminCreateGuildResult.InvalidInput);
     }
 
     [Test]
-    public async Task AdminCreate_NormalizesTagAndName()
+    [Arguments("Cool guild!")]
+    [Arguments("tabs\tand more")]
+    public async Task AdminCreate_InvalidDescription_ReturnsInvalidInput(string badDescription)
     {
         var provider = CreateProvider();
         var scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
         var sut = CreateSut(scopeFactory);
         var (player, _) = FakePlayer.Create("Leader", 1);
 
-        await sut.AdminCreateGuild(player, " ts ", "  My Guild  ");
+        var result = await sut.AdminCreateGuild(player, "TST", "test guild", badDescription);
+
+        result.Should().Be(AdminCreateGuildResult.InvalidInput);
+    }
+
+    [Test]
+    public async Task AdminCreate_PreservesTagAndNameCasing()
+    {
+        var provider = CreateProvider();
+        var scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
+        var sut = CreateSut(scopeFactory);
+        var (player, _) = FakePlayer.Create("Leader", 1);
+
+        await sut.AdminCreateGuild(player, " ts ", "  My Guild  ", string.Empty);
 
         player.Character!.GuildTag.Should().Be("TS");
-        player.Character.GuildName.Should().Be("my guild");
+        player.Character.GuildName.Should().Be("My Guild");
+
+        using var verify = provider.CreateScope();
+        var db = verify.ServiceProvider.GetRequiredService<AcornDbContext>();
+        var guild = await db.Guilds.FindAsync("TS");
+        guild!.Name.Should().Be("My Guild");
+    }
+
+    [Test]
+    public async Task AdminCreate_PersistsDescriptionAsTyped()
+    {
+        var provider = CreateProvider();
+        var scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
+        var sut = CreateSut(scopeFactory);
+        var (player, _) = FakePlayer.Create("Leader", 1);
+
+        var result = await sut.AdminCreateGuild(player, "TST", "test guild", "  A cool guild.  ");
+
+        result.Should().Be(AdminCreateGuildResult.Created);
+
+        using var verify = provider.CreateScope();
+        var db = verify.ServiceProvider.GetRequiredService<AcornDbContext>();
+        var guild = await db.Guilds.FindAsync("TST");
+        guild!.Description.Should().Be("A cool guild.");
     }
 
     [Test]
@@ -182,7 +220,7 @@ public class GuildServiceAdminCreateTests
         var sut = CreateSut(scopeFactory, inventoryService);
         var (player, communicator) = FakePlayer.Create("Leader", 1);
 
-        await sut.AdminCreateGuild(player, "TST", "test guild");
+        await sut.AdminCreateGuild(player, "TST", "test guild", string.Empty);
 
         communicator.Sent.Should().NotBeEmpty("a GuildCreateServerPacket should have been sent");
     }

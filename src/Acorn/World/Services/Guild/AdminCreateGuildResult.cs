@@ -9,8 +9,8 @@ public enum AdminCreateGuildResult
     /// <summary>The guild was created and the player is its leader.</summary>
     Created,
 
-    /// <summary>The tag or name failed validation.</summary>
-    InvalidTagOrName,
+    /// <summary>The tag, name or description failed validation.</summary>
+    InvalidInput,
 
     /// <summary>The player is already a member of a guild.</summary>
     AlreadyInGuild,

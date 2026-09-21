@@ -61,6 +61,7 @@ public interface IGuildService
     /// <summary>
     ///     Admin command: create a guild immediately with the player as leader,
     ///     bypassing the recruit flow, the gold cost and the guild master NPC.
+    ///     The name is stored as typed; an empty description is allowed.
     /// </summary>
-    Task<AdminCreateGuildResult> AdminCreateGuild(PlayerState player, string guildTag, string guildName);
+    Task<AdminCreateGuildResult> AdminCreateGuild(PlayerState player, string guildTag, string guildName, string description);
 }

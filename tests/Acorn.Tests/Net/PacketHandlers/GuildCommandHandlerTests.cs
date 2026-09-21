@@ -7,7 +7,6 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moffat.EndlessOnline.SDK.Protocol;
 using NSubstitute;
-using NSubstitute.ReturnsExtensions;
 
 namespace Acorn.Tests.Net.PacketHandlers;
 
@@ -65,10 +64,10 @@ public class GuildCommandHandlerTests
     public async Task Handle_CreateSuccess_SendsConfirmation()
     {
         var (sut, guildService, notifications) = CreateSut();
-        guildService.AdminCreateGuild(Arg.Any<PlayerState>(), "TST", "test guild")
+        guildService.AdminCreateGuild(Arg.Any<PlayerState>(), "TST", "my guild", string.Empty)
             .Returns(AdminCreateGuildResult.Created);
 
-        await sut.HandleAsync(Admin(), "guild", "create", "TST", "test", "guild");
+        await sut.HandleAsync(Admin(), "guild", "create", "TST", "my", "guild");
 
         await notifications.Received(1)
             .SystemMessage(
@@ -77,13 +76,66 @@ public class GuildCommandHandlerTests
     }
 
     [Test]
-    public async Task Handle_CreateInvalidTag_SendsError()
+    public async Task Handle_CreateJoinsNameWordsAndPassesEmptyDescription()
+    {
+        var (sut, guildService, _) = CreateSut();
+        guildService.AdminCreateGuild(Arg.Any<PlayerState>(), "TST", "my guild", string.Empty)
+            .Returns(AdminCreateGuildResult.Created);
+
+        await sut.HandleAsync(Admin(), "guild", "create", "TST", "my", "guild");
+
+        await guildService.Received(1)
+            .AdminCreateGuild(Arg.Any<PlayerState>(), "TST", "my guild", string.Empty);
+    }
+
+    [Test]
+    public async Task Handle_CreateWithSeparator_ParsesNameAndDescription()
+    {
+        var (sut, guildService, _) = CreateSut();
+        guildService.AdminCreateGuild(Arg.Any<PlayerState>(), "TST", "my guild", "a cool guild")
+            .Returns(AdminCreateGuildResult.Created);
+
+        await sut.HandleAsync(
+            Admin(), "guild", "create", "TST", "my", "guild", "--", "a", "cool", "guild");
+
+        await guildService.Received(1)
+            .AdminCreateGuild(Arg.Any<PlayerState>(), "TST", "my guild", "a cool guild");
+    }
+
+    [Test]
+    public async Task Handle_CreateWithSeparatorButNoName_ShowsUsage()
     {
         var (sut, guildService, notifications) = CreateSut();
-        guildService.AdminCreateGuild(Arg.Any<PlayerState>(), "A", "test guild")
-            .Returns(AdminCreateGuildResult.InvalidTagOrName);
 
-        await sut.HandleAsync(Admin(), "guild", "create", "A", "test", "guild");
+        await sut.HandleAsync(Admin(), "guild", "create", "TST", "--", "a description");
+
+        await notifications.Received(1)
+            .SystemMessage(Arg.Any<PlayerState>(), Arg.Is<string>(m => m.Contains("Usage")));
+        await guildService.DidNotReceive()
+            .AdminCreateGuild(Arg.Any<PlayerState>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
+    }
+
+    [Test]
+    public async Task Handle_CreateWithSeparatorButNoDescription_ShowsUsage()
+    {
+        var (sut, guildService, notifications) = CreateSut();
+
+        await sut.HandleAsync(Admin(), "guild", "create", "TST", "my", "guild", "--");
+
+        await notifications.Received(1)
+            .SystemMessage(Arg.Any<PlayerState>(), Arg.Is<string>(m => m.Contains("Usage")));
+        await guildService.DidNotReceive()
+            .AdminCreateGuild(Arg.Any<PlayerState>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
+    }
+
+    [Test]
+    public async Task Handle_CreateInvalidInput_SendsError()
+    {
+        var (sut, guildService, notifications) = CreateSut();
+        guildService.AdminCreateGuild(Arg.Any<PlayerState>(), "A", "my guild", string.Empty)
+            .Returns(AdminCreateGuildResult.InvalidInput);
+
+        await sut.HandleAsync(Admin(), "guild", "create", "A", "my", "guild");
 
         await notifications.Received(1)
             .SystemMessage(Arg.Any<PlayerState>(), Arg.Is<string>(m => m.Contains("Invalid")));
@@ -93,10 +145,10 @@ public class GuildCommandHandlerTests
     public async Task Handle_AlreadyInGuild_SendsError()
     {
         var (sut, guildService, notifications) = CreateSut();
-        guildService.AdminCreateGuild(Arg.Any<PlayerState>(), "TST", "test guild")
+        guildService.AdminCreateGuild(Arg.Any<PlayerState>(), "TST", "my guild", string.Empty)
             .Returns(AdminCreateGuildResult.AlreadyInGuild);
 
-        await sut.HandleAsync(Admin(), "guild", "create", "TST", "test", "guild");
+        await sut.HandleAsync(Admin(), "guild", "create", "TST", "my", "guild");
 
         await notifications.Received(1)
             .SystemMessage(Arg.Any<PlayerState>(), Arg.Is<string>(m => m.Contains("already")));
@@ -106,25 +158,12 @@ public class GuildCommandHandlerTests
     public async Task Handle_GuildExists_SendsError()
     {
         var (sut, guildService, notifications) = CreateSut();
-        guildService.AdminCreateGuild(Arg.Any<PlayerState>(), "TST", "test guild")
+        guildService.AdminCreateGuild(Arg.Any<PlayerState>(), "TST", "my guild", string.Empty)
             .Returns(AdminCreateGuildResult.GuildExists);
 
-        await sut.HandleAsync(Admin(), "guild", "create", "TST", "test", "guild");
+        await sut.HandleAsync(Admin(), "guild", "create", "TST", "my", "guild");
 
         await notifications.Received(1)
             .SystemMessage(Arg.Any<PlayerState>(), Arg.Is<string>(m => m.Contains("already exists")));
-    }
-
-    [Test]
-    public async Task Handle_Create_PassesArgsToService()
-    {
-        var (sut, guildService, notifications) = CreateSut();
-        guildService.AdminCreateGuild(Arg.Any<PlayerState>(), "TST", "test guild")
-            .Returns(AdminCreateGuildResult.Created);
-
-        await sut.HandleAsync(Admin(), "guild", "create", "TST", "test", "guild");
-
-        await guildService.Received(1)
-            .AdminCreateGuild(Arg.Any<PlayerState>(), "TST", "test guild");
     }
 }

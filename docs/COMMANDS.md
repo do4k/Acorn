@@ -57,7 +57,7 @@ Run `$help` in game for the list of commands your admin level can use.
 | `$spellinfo` | | Spy | Look up spell data by id or name. |
 | `$class` | | Spy | Look up class data by id or name. |
 | `$qstate` | | GameMaster | Show a character's quest progress. |
-| `$guild` | | GameMaster | Create a guild with yourself as leader: `$guild create <tag> <name>`. Tags are 2–3 uppercase letters; names are lowercase words. Bypasses the gold cost and NPC requirement. |
+| `$guild` | | GameMaster | Create a guild with yourself as leader: `$guild create <tag> <name> [-- <description>]`. Tags are 2–3 uppercase letters; names keep the casing you type. Bypasses the gold cost and NPC requirement. |
 | `$repub` | | Spy | Re-read the pub data files (`ECF`/`EIF`/`ENF`/`ESF`) and refresh the pub cache. |
 | `$rehash` | | Spy | Re-read configuration sources and refresh pub files. Settings bound at startup still need a restart. |
 | `$uptime` | | Spy | Show how long the server has been running. |

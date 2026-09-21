@@ -26,12 +26,12 @@ public class GuildRulesTests
     [Test]
     [Arguments("test", true)]
     [Arguments("my guild", true)]
+    [Arguments("My Guild", true)]  // casing is preserved, not rejected
     [Arguments("abc", false)]
-    [Arguments("Guild", false)]
     [Arguments("guild1", false)]
     [Arguments("guild-name", false)]
     [Arguments("", false)]
-    public void IsValidName_ShouldMatchEoservRules(string name, bool expected)
+    public void IsValidName_ShouldAllowLettersAndSpacesRegardlessOfCase(string name, bool expected)
     {
         GuildRules.IsValidName(name, _options).Should().Be(expected);
     }

@@ -41,7 +41,7 @@ internal static class CommandDescriptions
         ["$spellinfo"] = "Look up spell data by id or name.",
         ["$class"] = "Look up class data by id or name.",
         ["$qstate"] = "Show a character's quest progress.",
-        ["$guild"] = "Create a guild and become its leader: $guild create <tag> <name>.",
+        ["$guild"] = "Create a guild with yourself as leader: $guild create <tag> <name> [-- <description>].",
 
         // Player commands
         ["#help"] = "List available commands or show a command's usage.",

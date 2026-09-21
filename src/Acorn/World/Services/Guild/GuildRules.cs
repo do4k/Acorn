@@ -52,7 +52,9 @@ public static class GuildRules
             return false;
         }
 
-        return name.All(c => (c is >= 'a' and <= 'z') || c == ' ');
+        // eoserv forces lowercase; Acorn preserves the creator's casing, so validation
+        // is case-insensitive and uniqueness checks compare names lowercased.
+        return name.All(c => (c is >= 'a' and <= 'z') || (c is >= 'A' and <= 'Z') || c == ' ');
     }
 
     public static bool IsValidRank(string rank, GuildOptions options)

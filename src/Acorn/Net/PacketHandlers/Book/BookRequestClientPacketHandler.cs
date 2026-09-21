@@ -45,8 +45,8 @@ public class BookRequestClientPacketHandler(
                 Admin = character.Admin,
                 Partner = character.Partner ?? "",
                 Title = character.Title ?? "",
-                Guild = "", // TODO: Implement guilds
-                GuildRank = "", // TODO: Implement guilds
+                Guild = character.GuildName ?? "",
+                GuildRank = character.GuildRankName ?? "",
                 PlayerId = packet.PlayerId,
                 ClassId = character.Class,
                 Gender = character.Gender
