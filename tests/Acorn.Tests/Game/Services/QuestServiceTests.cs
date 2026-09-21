@@ -71,8 +71,15 @@ public class QuestServiceTests
 
     private void RegisterQuest(QuestData quest)
     {
-        _questRepository.GetQuest(quest.Id).Returns(quest);
-        _questRepository.Quests.Returns(new Dictionary<int, QuestData> { [quest.Id] = quest });
+        RegisterQuests(quest);
+    }
+
+    private void RegisterQuests(params QuestData[] quests)
+    {
+        foreach (var quest in quests)
+            _questRepository.GetQuest(quest.Id).Returns(quest);
+
+        _questRepository.Quests.Returns(quests.ToDictionary(q => q.Id));
     }
 
     private static Character CreateCharacter()
@@ -527,6 +534,101 @@ public class QuestServiceTests
             await sut.TalkToQuestNpc(player, 3, 1);
             player.DialogSessionId.Should().BeInRange(1, (int)EoNumericLimits.SHORT_MAX - 1);
         }
+    }
+
+    [Test]
+    public async Task TalkToQuestNpc_WhenCharacterHasNoProgress_ShouldNotAssignAnyQuests()
+    {
+        const int behaviorId = 7;
+        RegisterQuests(TalkingQuest(behaviorId));
+
+        var character = CreateCharacter();
+        var player = CreatePlayer(character);
+        player.CurrentMap = CreateMapWithQuestNpc(behaviorId);
+
+        await CreateService().TalkToQuestNpc(player, 3, 0);
+
+        // The Begin dialog is offered, but no quest is assigned until a reply
+        // advances it. Regresses the bug where talking to a quest NPC created a
+        // progress row for every quest in the repository.
+        character.Quests.Should().BeEmpty();
+        player.DialogSessionId.Should().NotBeNull();
+    }
+
+    [Test]
+    public async Task ReplyToQuestNpc_WhenLinkAdvancesQuest_ShouldAssignOnlyThatQuest()
+    {
+        const int behaviorId = 7;
+        RegisterQuests(
+            TalkingQuest(behaviorId),
+            new QuestData(2, "Unrelated", 1,
+            [
+                new QuestState("begin", "", [Action("AddNpcText", I(99), S("Other NPC"))], [])
+            ]));
+
+        var character = CreateCharacter();
+        var player = CreatePlayer(character);
+        player.CurrentMap = CreateMapWithQuestNpc(behaviorId);
+
+        var sut = CreateService();
+        await sut.TalkToQuestNpc(player, 3, 0);
+        var sessionId = player.DialogSessionId!.Value;
+
+        await sut.ReplyToQuestNpc(player, sessionId, 1, actionId: 1);
+
+        var progress = character.Quests.Should().ContainSingle().Which;
+        progress.QuestId.Should().Be(1);
+        progress.State.Should().Be(1);
+        progress.DoneAt.Should().NotBeNull(); // advancing into the state runs its End action
+    }
+
+    [Test]
+    public async Task ReplyToQuestNpc_WhenNoRuleMatches_ShouldNotAssignTheQuest()
+    {
+        const int behaviorId = 7;
+        RegisterQuests(TalkingQuest(behaviorId));
+
+        var character = CreateCharacter();
+        var player = CreatePlayer(character);
+        player.CurrentMap = CreateMapWithQuestNpc(behaviorId);
+
+        var sut = CreateService();
+        await sut.TalkToQuestNpc(player, 3, 0);
+        var sessionId = player.DialogSessionId!.Value;
+
+        await sut.ReplyToQuestNpc(player, sessionId, 1, actionId: 42);
+
+        character.Quests.Should().BeEmpty();
+    }
+
+    /// <summary>
+    ///     A quest whose Begin state offers dialog for the given NPC behavior and
+    ///     advances on link 1 into a state that ends the quest.
+    /// </summary>
+    private static QuestData TalkingQuest(int behaviorId)
+    {
+        return new QuestData(1, "Pjedro's Son", 2,
+        [
+            new QuestState("begin", "Talk to Pjedro",
+                [
+                    Action("AddNpcText", I(behaviorId), S("Hi, learn my quest?")),
+                    Action("AddNpcInput", I(behaviorId), I(1), S("Yes please"))
+                ],
+                [Rule("InputNpc", "learn", I(1))]),
+            new QuestState("learn", "", [Action("End")], [])
+        ]);
+    }
+
+    private static MapState CreateMapWithQuestNpc(int behaviorId)
+    {
+        var map = FakeMap.Create();
+        map.Npcs[3] = new NpcState(new EnfRecord
+        {
+            Name = "Pjedro",
+            Type = NpcType.Quest,
+            BehaviorId = behaviorId
+        });
+        return map;
     }
 
     private static QuestData DailyQuest()
