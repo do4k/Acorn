@@ -44,6 +44,7 @@ public class PlayerState : IDisposable
     private readonly CancellationTokenSource _tokenSource = new();
     private string? _disconnectReason;
     private int _cleanupStarted;
+    private bool _disposed;
     private int _upcomingSequenceStart;
 
     public PlayerState(
@@ -96,6 +97,13 @@ public class PlayerState : IDisposable
     /// </summary>
     public int MissedPings { get; set; }
 
+    /// <summary>
+    ///     Set once a handshake/login timeout warning has been logged for this session, so the
+    ///     ping sweep does not repeat the same warning every interval for a connection it has
+    ///     already tried to disconnect.
+    /// </summary>
+    internal bool ReapWarningLogged { get; set; }
+
     public int ClientEncryptionMulti { get; set; } = 0;
     public int ServerEncryptionMulti { get; set; } = 0;
 
@@ -118,7 +126,7 @@ public class PlayerState : IDisposable
     /// <summary>
     ///     When the underlying transport connected, used for handshake timeouts.
     /// </summary>
-    public DateTime ConnectedAt { get; }
+    public DateTime ConnectedAt { get; internal set; }
     public Sequencer Sequencer { get; } = new(0);
     public InitSequenceStart StartSequence { get; set; }
     public ICommunicator Communicator { get; }
@@ -207,6 +215,15 @@ public class PlayerState : IDisposable
 
     public void Dispose()
     {
+        // Disconnect cleanup can legitimately race with the reap sweep (see
+        // PlayerPingHostedService); run the disconnect side-effects exactly once.
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+
         _logger.PlayerDisconnected(SessionId, Account?.Username, Character?.Name, _disconnectReason ?? "unknown");
         _metrics.DisconnectionsTotal.Add(1);
         _metrics.PlayersOnline.Add(-1);
