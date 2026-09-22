@@ -81,6 +81,66 @@ Run `#help` in game for this list.
 | `#inventory` | `#inv` | Show how many items you are carrying. |
 | `#usage` | | Show your total play time. |
 
+## Acornbot (whisper commands)
+
+Acornbot is a built-in bot that players reach by whispering it, e.g.
+`!acornbot title Cool Dude` in local chat (the client sends that as a whisper)
+or by whispering `title Cool Dude` to a character named `Acornbot`. It exposes a
+curated set of self-service commands to everyone - like admin commands, but only
+the ones a player may run. Acornbot answers back in the whisper channel.
+Send just `help` (or an empty whisper) for the command list.
+
+| Command | Description |
+|---------|-------------|
+| `title <text>` | Set the title shown under your character name. `title clear` removes it. |
+| `whoami` (`me`) | Read-only summary of your own character: identity, location, vitals, gold. |
+| `help` | List the commands this bot accepts. |
+
+Every player can use the bot regardless of admin level - an admin is implicitly a
+player here; there is no `RequiredLevel` on bot commands. While the bot is
+configured, character creation refuses names matching the bot handle
+(case-insensitively) so the whisper handle can never be shadowed.
+
+Title changes are persisted and the player is re-announced to nearby viewers via
+`Msg_Players`/Agree (no re-warp animation). Note: the map `Player` struct in this
+protocol revision carries no title field, so viewers see the new title via the
+book/paperdoll windows and the acting player's own client picks it up on
+re-login - a protocol/client limitation, not a server one.
+
+Configure via the `Acornbot` section of `appsettings.json`:
+
+```json
+"Acornbot": {
+  "Enabled": true,
+  "Name": "Acornbot",
+  "Title": { "MaxLength": 32, "CostItemId": 1, "CostAmount": 0 }
+}
+```
+
+- `Enabled` turns the whole bot on/off; while off, whispers to the name fall
+  through to normal player lookup.
+- `Title` options are the cost model: `CostItemId` is the inventory id consumed
+  per `title` use - `1` is gold - with `CostAmount` the quantity. The default
+  (`CostAmount: 0`) makes titles free. Servers using a "title certificate" item
+  set that item's id instead. Clearing a title is always free.
+
+New bot commands implement `IAcornbotCommand` under
+`src/Acorn/Net/PacketHandlers/Player/Talk/Acornbot/` and are discovered by
+`AddAllOfType<IAcornbotCommand>()`.
+
+## Banned symbols (global text policy)
+
+`IBannedTextPolicy` (section `BannedText` in `appsettings.json`) is a single
+global deny list of case-insensitive substrings applied to all user-supplied
+naming text: character names at creation, guild tags/names/descriptions and
+Acornbot titles.
+
+```json
+"BannedText": { "Symbols": ["#", "$", "'", "~"] }
+```
+
+An empty list (the code default) disables the check. Entries may be multi-character.
+
 ## Adding a command
 
 1. Create `<Name>CommandHandler.cs` in `src/Acorn/Net/PacketHandlers/Player/Talk/`

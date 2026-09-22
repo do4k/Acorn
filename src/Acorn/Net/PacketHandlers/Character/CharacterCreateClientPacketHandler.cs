@@ -6,6 +6,7 @@ using Acorn.Game.Services;
 using Acorn.Game.Validation;
 using Acorn.Infrastructure.Telemetry;
 using Acorn.Net.Models;
+using Acorn.Net.PacketHandlers.Player.Talk.Acornbot;
 using Acorn.Options;
 using Acorn.World.Services.Admin;
 using Microsoft.Extensions.Logging;
@@ -24,6 +25,8 @@ internal class CharacterCreateClientPacketHandler(
     ILogger<CharacterCreateClientPacketHandler> logger,
     IOptions<ServerOptions> serverOptions,
     IAdminCountService adminCountService,
+    IBannedTextPolicy bannedText,
+    IAcornbotService acornbot,
     AcornMetrics metrics)
     : IPacketHandler<CharacterCreateClientPacket>
 {
@@ -67,6 +70,16 @@ internal class CharacterCreateClientPacketHandler(
         {
             logger.LogDebug("Rejecting character creation for invalid name. Account: {Username}",
                 playerState.Account.Username);
+            await SendNotApproved(playerState);
+            return;
+        }
+
+        // Global banned symbols and the reserved Acornbot handle apply on top of
+        // the base name rules.
+        if (bannedText.FirstViolation(name) is { Length: > 0 } || acornbot.ReservesName(name))
+        {
+            logger.LogDebug("Rejecting character creation for banned or reserved name {Name}. Account: {Username}",
+                name, playerState.Account.Username);
             await SendNotApproved(playerState);
             return;
         }

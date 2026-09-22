@@ -13,6 +13,7 @@ using Acorn.Infrastructure.Gemini;
 using Acorn.Infrastructure.Telemetry;
 using Acorn.Net;
 using Acorn.Net.PacketHandlers.Player.Talk;
+using Acorn.Net.PacketHandlers.Player.Talk.Acornbot;
 using Acorn.Net.Services;
 using Acorn.Options;
 using Acorn.Shared.Extensions;
@@ -168,6 +169,12 @@ public class TestServerFixture : TUnit.Core.Interfaces.IAsyncInitializer, IAsync
             // Marriage
             ["Marriage:ApprovalCost"] = "1000",
             ["Marriage:DivorceCost"] = "5000",
+            // Acornbot — enabled, default name, free titles
+            ["Acornbot:Enabled"] = "true",
+            ["Acornbot:Name"] = "Acornbot",
+            ["Acornbot:Title:MaxLength"] = "32",
+            ["Acornbot:Title:CostItemId"] = "1",
+            ["Acornbot:Title:CostAmount"] = "0",
         };
 
         _host = Host.CreateDefaultBuilder()
@@ -193,6 +200,8 @@ public class TestServerFixture : TUnit.Core.Interfaces.IAsyncInitializer, IAsync
                     .Configure<MarriageOptions>(cfg.GetSection(MarriageOptions.SectionName))
                     .Configure<PartyOptions>(cfg.GetSection(PartyOptions.SectionName))
                     .Configure<GuildOptions>(cfg.GetSection(GuildOptions.SectionName))
+                    .Configure<AcornbotOptions>(cfg.GetSection(AcornbotOptions.SectionName))
+                    .Configure<BannedTextOptions>(cfg.GetSection(BannedTextOptions.SectionName))
                     .AddSingleton<UtcNowDelegate>(() => DateTime.UtcNow)
                     .AddSingleton<AcornMetrics>();
 
@@ -235,6 +244,7 @@ public class TestServerFixture : TUnit.Core.Interfaces.IAsyncInitializer, IAsync
                     .AddSingleton<IWorldQueries, WorldStateQueries>()
                     .AddAllOfType<ITalkHandler>()
                     .AddAllOfType<IPlayerCommandHandler>()
+                    .AddAllOfType<IAcornbotCommand>()
                     .AddPacketHandlers()
                     .AddRepositories()
                     .AddWorldServices();
@@ -258,6 +268,11 @@ public class TestServerFixture : TUnit.Core.Interfaces.IAsyncInitializer, IAsync
                 services.AddSingleton<WiseManTalkHandler>();
                 services.AddSingleton(provider =>
                     provider.GetRequiredService<IOptions<WiseManAgentOptions>>().Value);
+
+                // Acornbot: PM-driven self-service commands (mirrors Program.cs)
+                services
+                    .AddTransient<IAcornbotReplyChannel, AcornbotReplyChannel>()
+                    .AddTransient<IAcornbotService, AcornbotService>();
                 services
                     .AddSingleton<IWiseManAgent, WiseManGeminiAgent>()
                     .AddSingleton<WiseManQueueService>()

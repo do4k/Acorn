@@ -2,6 +2,7 @@ using Acorn.Game.Services;
 using Acorn.Infrastructure.Communicators;
 using Acorn.Net;
 using Acorn.Net.PacketHandlers.Player.Talk;
+using Acorn.Net.PacketHandlers.Player.Talk.Acornbot;
 using Acorn.Net.Services;
 using Acorn.Tests.TestSupport;
 using Acorn.World;
@@ -131,7 +132,7 @@ public class ChatHandlerTests
         var world = Substitute.For<IWorldQueries>();
         var (target, targetComms) = FakePlayer.Create("Target", 2);
         world.FindPlayerByName("Target").Returns(target);
-        var handler = new TalkTellClientPacketHandler(world, PassthroughSanitizer());
+        var handler = new TalkTellClientPacketHandler(world, PassthroughSanitizer(), Substitute.For<IAcornbotService>());
         var (sender, senderComms) = FakePlayer.Create("Sender", 1);
         sender.MutedUntil = DateTime.UtcNow.AddMinutes(1);
 
@@ -148,7 +149,7 @@ public class ChatHandlerTests
         var (target, targetComms) = FakePlayer.Create("Target", 2);
         target.Whispers = false;
         world.FindPlayerByName("Target").Returns(target);
-        var handler = new TalkTellClientPacketHandler(world, PassthroughSanitizer());
+        var handler = new TalkTellClientPacketHandler(world, PassthroughSanitizer(), Substitute.For<IAcornbotService>());
         var (sender, senderComms) = FakePlayer.Create("Sender", 1);
 
         await handler.HandleAsync(sender, new TalkTellClientPacket { Name = "Target", Message = "hi" });
@@ -164,7 +165,7 @@ public class ChatHandlerTests
         var (target, targetComms) = FakePlayer.Create("Target", 2);
         target.Character!.Hidden = true;
         world.FindPlayerByName("Target").Returns(target);
-        var handler = new TalkTellClientPacketHandler(world, PassthroughSanitizer());
+        var handler = new TalkTellClientPacketHandler(world, PassthroughSanitizer(), Substitute.For<IAcornbotService>());
         var (sender, senderComms) = FakePlayer.Create("Sender", 1);
 
         await handler.HandleAsync(sender, new TalkTellClientPacket { Name = "Target", Message = "hi" });
@@ -178,7 +179,7 @@ public class ChatHandlerTests
     {
         var world = Substitute.For<IWorldQueries>();
         world.FindPlayerByName("Ghost").Returns((PlayerState?)null);
-        var handler = new TalkTellClientPacketHandler(world, PassthroughSanitizer());
+        var handler = new TalkTellClientPacketHandler(world, PassthroughSanitizer(), Substitute.For<IAcornbotService>());
         var (sender, senderComms) = FakePlayer.Create("Sender", 1);
 
         await handler.HandleAsync(sender, new TalkTellClientPacket { Name = "Ghost", Message = "hi" });
@@ -192,13 +193,44 @@ public class ChatHandlerTests
         var world = Substitute.For<IWorldQueries>();
         var (target, targetComms) = FakePlayer.Create("Target", 2);
         world.FindPlayerByName("Target").Returns(target);
-        var handler = new TalkTellClientPacketHandler(world, PassthroughSanitizer());
+        var handler = new TalkTellClientPacketHandler(world, PassthroughSanitizer(), Substitute.For<IAcornbotService>());
         var (sender, senderComms) = FakePlayer.Create("Sender", 1);
 
         await handler.HandleAsync(sender, new TalkTellClientPacket { Name = "Target", Message = "hi" });
 
         targetComms.Sent.Should().HaveCount(1);
         senderComms.Sent.Should().BeEmpty();
+    }
+
+    [Test]
+    public async Task Tell_WhenAddressedToAcornbot_RoutesToBotAndSkipsLookup()
+    {
+        var world = Substitute.For<IWorldQueries>();
+        var acornbot = Substitute.For<IAcornbotService>();
+        acornbot.IsBotName("acornbot").Returns(true);
+        var handler = new TalkTellClientPacketHandler(world, PassthroughSanitizer(), acornbot);
+        var (sender, senderComms) = FakePlayer.Create("Sender", 1);
+
+        await handler.HandleAsync(sender, new TalkTellClientPacket { Name = "acornbot", Message = "title Dev" });
+
+        await acornbot.Received(1).HandleWhisperAsync(sender, "title Dev");
+        world.DidNotReceive().FindPlayerByName("acornbot");
+        senderComms.Sent.Should().BeEmpty("the bot handler owns the reply");
+    }
+
+    [Test]
+    public async Task Tell_WhenSenderMuted_BotIsNotInvoked()
+    {
+        var world = Substitute.For<IWorldQueries>();
+        var acornbot = Substitute.For<IAcornbotService>();
+        acornbot.IsBotName("acornbot").Returns(true);
+        var handler = new TalkTellClientPacketHandler(world, PassthroughSanitizer(), acornbot);
+        var (sender, _) = FakePlayer.Create("Sender", 1);
+        sender.MutedUntil = DateTime.UtcNow.AddMinutes(1);
+
+        await handler.HandleAsync(sender, new TalkTellClientPacket { Name = "acornbot", Message = "title Dev" });
+
+        await acornbot.DidNotReceiveWithAnyArgs().HandleWhisperAsync(default!, default!);
     }
 
     // --- Admin chat thresholds / mute ---

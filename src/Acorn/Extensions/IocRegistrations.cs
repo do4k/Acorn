@@ -81,6 +81,7 @@ internal static class IocRegistrations
             .AddSingleton<IStatSkillService, StatSkillService>()
             .AddSingleton<ILootService, LootService>()
             .AddSingleton<IChatSanitizer, ChatSanitizer>()
+            .AddSingleton<IBannedTextPolicy, BannedTextPolicy>()
             .AddSingleton<IMapTileService, MapTileService>()
             .AddSingleton<IMapBroadcastService, MapBroadcastService>()
             .AddSingleton<IDoorService, DoorService>()

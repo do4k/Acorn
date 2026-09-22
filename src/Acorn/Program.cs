@@ -11,6 +11,7 @@ using Acorn.Infrastructure.Logging;
 using Acorn.Infrastructure.Telemetry;
 using Acorn.Net;
 using Acorn.Net.PacketHandlers.Player.Talk;
+using Acorn.Net.PacketHandlers.Player.Talk.Acornbot;
 using Acorn.Net.Services;
 using Acorn.Options;
 using Acorn.Shared.Options;
@@ -91,6 +92,8 @@ var host = Host.CreateDefaultBuilder(args)
             .Configure<MarriageOptions>(configuration.GetSection(MarriageOptions.SectionName))
             .Configure<PartyOptions>(configuration.GetSection(PartyOptions.SectionName))
             .Configure<GuildOptions>(configuration.GetSection(GuildOptions.SectionName))
+            .Configure<AcornbotOptions>(configuration.GetSection(AcornbotOptions.SectionName))
+            .Configure<BannedTextOptions>(configuration.GetSection(BannedTextOptions.SectionName))
             .AddSingleton<UtcNowDelegate>(() => DateTime.UtcNow)
             .AddSingleton<AcornMetrics>()
             // Database + caching infrastructure: options binding, DbContext and in-memory cache
@@ -152,6 +155,7 @@ var host = Host.CreateDefaultBuilder(args)
             .AddSingleton<IWorldQueries, WorldStateQueries>()
             .AddAllOfType<ITalkHandler>()
             .AddAllOfType<IPlayerCommandHandler>()
+            .AddAllOfType<IAcornbotCommand>()
             .AddPacketHandlers()
             .AddRepositories()
             .AddWorldServices()
@@ -176,6 +180,12 @@ var host = Host.CreateDefaultBuilder(args)
         // Always register WiseManTalkHandler so it is available for DI, regardless of Gemini/WiseMan feature flag
         services.AddSingleton<WiseManTalkHandler>();
         services.AddSingleton(provider => provider.GetRequiredService<IOptions<WiseManAgentOptions>>().Value);
+
+        // Acornbot: PM-driven self-service commands. Transient so each connection
+        // scope gets command handlers with that scope's repositories.
+        services
+            .AddTransient<IAcornbotReplyChannel, AcornbotReplyChannel>()
+            .AddTransient<IAcornbotService, AcornbotService>();
 
         services
             .AddSingleton<IWiseManAgent, WiseManGeminiAgent>()

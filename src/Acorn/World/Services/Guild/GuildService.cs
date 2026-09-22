@@ -18,9 +18,17 @@ public class GuildService(
     IWorldQueries world,
     IInventoryService inventoryService,
     IOptions<GuildOptions> options,
+    IBannedTextPolicy bannedText,
     ILogger<GuildService> logger) : IGuildService
 {
     private readonly GuildOptions _options = options.Value;
+
+    /// <summary>
+    ///     True when any of the given user-supplied texts contains a globally banned
+    ///     symbol. Applied on top of the <see cref="GuildRules" /> allow lists.
+    /// </summary>
+    private bool HasBanned(params string?[] texts) =>
+        texts.Any(t => bannedText.FirstViolation(t) is { Length: > 0 });
 
     // Track guild creation sessions per leader session id
     private readonly ConcurrentDictionary<int, GuildCreation> _creations = new();
@@ -49,7 +57,8 @@ public class GuildService(
         guildTag = guildTag.Trim().ToUpperInvariant();
         guildName = guildName.Trim();
 
-        if (!GuildRules.IsValidTag(guildTag, _options) || !GuildRules.IsValidName(guildName, _options))
+        if (!GuildRules.IsValidTag(guildTag, _options) || !GuildRules.IsValidName(guildName, _options)
+            || HasBanned(guildTag, guildName))
         {
             await SendGuildReply(player, GuildReply.NotApproved);
             return;
@@ -145,7 +154,8 @@ public class GuildService(
 
         if (!GuildRules.IsValidTag(guildTag, _options)
             || !GuildRules.IsValidName(guildName, _options)
-            || !GuildRules.IsValidDescription(description.ToLowerInvariant(), _options))
+            || !GuildRules.IsValidDescription(description.ToLowerInvariant(), _options)
+            || HasBanned(guildTag, guildName, description))
         {
             await SendGuildReply(player, GuildReply.NotApproved);
             return;
@@ -503,7 +513,8 @@ public class GuildService(
         if (player.Character.GuildTag is null) return;
         if (!GuildRules.CanEdit(player.Character.GuildRankIndex, _options)) return;
 
-        if (!GuildRules.IsValidDescription(description.ToLowerInvariant(), _options)) return;
+        if (!GuildRules.IsValidDescription(description.ToLowerInvariant(), _options)
+            || HasBanned(description)) return;
 
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AcornDbContext>();
@@ -918,7 +929,8 @@ public class GuildService(
 
         if (!GuildRules.IsValidTag(guildTag, _options)
             || !GuildRules.IsValidName(guildName, _options)
-            || !GuildRules.IsValidDescription(description.ToLowerInvariant(), _options))
+            || !GuildRules.IsValidDescription(description.ToLowerInvariant(), _options)
+            || HasBanned(guildTag, guildName, description))
         {
             return AdminCreateGuildResult.InvalidInput;
         }
