@@ -29,7 +29,10 @@ public class ConnectionHandler(
 )
 {
     /// <summary>
-    /// Creates a PlayerState for a new connection, adds it to the world, and returns the session ID.
+    /// Creates a PlayerState for a new connection, adds it to the world, and starts its
+    /// read loop. The player is registered before the loop starts so that a connection
+    /// which drops immediately cannot run its disposal path (and be removed) before it
+    /// was ever added - which would leave a ghost entry in the world state forever.
     /// </summary>
     public int AcceptConnection(ICommunicator communicator)
     {
@@ -42,13 +45,29 @@ public class ConnectionHandler(
         if (!added)
         {
             logger.LogWarning("Failed to add player session {SessionId} to world state", sessionId);
+            _ = AbortUnregisteredConnectionAsync(playerState);
+            return sessionId;
         }
+
+        playerState.StartListening();
 
         logger.LogInformation("Connection accepted. {PlayersConnected} players connected",
             worldState.Players.Count);
         UpdateConnectedCount();
 
         return sessionId;
+    }
+
+    private async Task AbortUnregisteredConnectionAsync(PlayerState playerState)
+    {
+        try
+        {
+            await playerState.AbortAsync();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error aborting unregistered connection {SessionId}", playerState.SessionId);
+        }
     }
 
     private async Task OnClientDisposedAsync(PlayerState player, int sessionId)
@@ -91,7 +110,7 @@ public class ConnectionHandler(
             await questService.SaveQuestProgress(player.Character);
         }
 
-        worldState.TryRemovePlayer(sessionId, out _);
+        worldState.TryRemovePlayer(sessionId, player);
         logger.LogInformation(
             "Player disconnected (Session {SessionId}, Character: {Character}). {PlayersConnected} players remaining",
             sessionId, player.Character?.Name ?? "none", worldState.Players.Count);

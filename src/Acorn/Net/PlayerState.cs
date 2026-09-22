@@ -43,6 +43,7 @@ public class PlayerState : IDisposable
     private readonly ServerOptions _serverOptions;
     private readonly CancellationTokenSource _tokenSource = new();
     private string? _disconnectReason;
+    private int _cleanupStarted;
     private int _upcomingSequenceStart;
 
     public PlayerState(
@@ -69,7 +70,18 @@ public class PlayerState : IDisposable
         StartSequence = ConstrainedSequence.GenerateInitStart(Rnd);
         Communicator = communicator;
         ConnectedAt = DateTime.UtcNow;
-        Task.Run(Listen);
+    }
+
+    /// <summary>
+    ///     Starts reading packets from the underlying transport. The caller must register this
+    ///     player in <see cref="Acorn.World.WorldState"/> <em>before</em> calling it: a connection
+    ///     that drops immediately runs its disposal path synchronously, and disposing a player
+    ///     that was never registered would otherwise let the later registration resurrect a
+    ///     ghost session that nothing can remove anymore.
+    /// </summary>
+    public void StartListening()
+    {
+        _ = Task.Run(Listen);
     }
 
     public Random Rnd { get; } = new();
@@ -395,6 +407,29 @@ public class PlayerState : IDisposable
 
         Disconnect();
 
+        await RunCleanupOnceAsync();
+        Dispose();
+    }
+
+    /// <summary>
+    ///     Aborts a connection that never completed registration in the world state: cancels the
+    ///     read loop (which was never started or is already gone), runs the disconnect cleanup
+    ///     chain once so the per-connection DI scope is released, and closes the transport.
+    /// </summary>
+    public async Task AbortAsync()
+    {
+        Disconnect();
+        await RunCleanupOnceAsync();
+        Dispose();
+    }
+
+    private async Task RunCleanupOnceAsync()
+    {
+        if (Interlocked.Exchange(ref _cleanupStarted, 1) != 0)
+        {
+            return;
+        }
+
         try
         {
             await _onDispose(this);
@@ -403,8 +438,6 @@ public class PlayerState : IDisposable
         {
             _logger.LogError(ex, "Error during player disconnect cleanup for session {SessionId}", SessionId);
         }
-
-        Dispose();
     }
 
     /// <summary>
