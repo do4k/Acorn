@@ -22,4 +22,11 @@ public interface IDataFileRepository
     ///     in-memory records. Map files are not reloaded.
     /// </summary>
     void Reload();
+
+    /// <summary>
+    ///     Re-reads a single <c>{mapId}.emf</c> file from disk and replaces the
+    ///     in-memory record for that map. Returns false when the file is missing
+    ///     or cannot be deserialized, leaving the previous record in place.
+    /// </summary>
+    bool TryReloadMap(int mapId, out MapWithId? map);
 }

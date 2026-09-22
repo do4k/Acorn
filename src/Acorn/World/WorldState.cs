@@ -3,6 +3,7 @@ using Acorn.Database.Repository;
 using Acorn.Net;
 using Acorn.World.Map;
 using Microsoft.Extensions.Logging;
+using Moffat.EndlessOnline.SDK.Protocol.Pub;
 
 namespace Acorn.World;
 
@@ -12,6 +13,7 @@ public class WorldState
     private readonly ConcurrentDictionary<Guid, GlobalMessage> _globalMessages = [];
     private readonly ConcurrentDictionary<int, MapState> _maps = [];
     private readonly ConcurrentDictionary<int, PlayerState> _players = [];
+    private readonly MapStateFactory _mapStateFactory;
 
     public IReadOnlyDictionary<Guid, GlobalMessage> GlobalMessages => _globalMessages;
 
@@ -27,6 +29,7 @@ public class WorldState
         ILogger<WorldState> logger)
     {
         _logger = logger;
+        _mapStateFactory = mapStateFactory;
         foreach (var map in dataRepository.Maps)
         {
             var added = _maps.TryAdd(map.Id, mapStateFactory.Create(map));
@@ -35,6 +38,23 @@ public class WorldState
                 _logger.LogWarning("Failed to add map {MapId} to world state", map.Id);
             }
         }
+    }
+
+    /// <summary>
+    ///     Replaces the live map state for <paramref name="map"/> with one built from
+    ///     freshly loaded data. Fails if players are still on the map, because their
+    ///     sessions hold a direct reference to the old state.
+    /// </summary>
+    public bool TryReplaceMap(MapWithId map)
+    {
+        if (_maps.TryGetValue(map.Id, out var existing) && existing.Players.Count > 0)
+        {
+            return false;
+        }
+
+        _maps[map.Id] = _mapStateFactory.Create(map);
+        _logger.LogInformation("Replaced map {MapId} in world state with freshly loaded data", map.Id);
+        return true;
     }
 
     public MapState? MapForId(int mapId)
