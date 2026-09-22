@@ -60,6 +60,9 @@ Run `$help` in game for the list of commands your admin level can use.
 | `$guild` | | GameMaster | Create a guild with yourself as leader: `$guild create <tag> <name> [-- <description>]`. Tags are 2–3 uppercase letters; names keep the casing you type. Bypasses the gold cost and NPC requirement. |
 | `$repub` | | Spy | Re-read the pub data files (`ECF`/`EIF`/`ENF`/`ESF`) and refresh the pub cache. |
 | `$rehash` | | Spy | Re-read configuration sources and refresh pub files. Settings bound at startup still need a restart. |
+| `$remap` | | GameMaster | Re-read a single map file (`<id>.emf`) from disk and swap it into the world. The map must be empty of players; run again after they leave. |
+| `$shutdown` | | HighGameMaster | Broadcast a shutdown notice (optional reason) and stop the host gracefully. All online characters are persisted first. |
+| `$undress` | | GameMaster | Force-unequip everything a named online player is wearing into their inventory. Cursed items resist removal. |
 | `$uptime` | | Spy | Show how long the server has been running. |
 
 ### `$set` attributes

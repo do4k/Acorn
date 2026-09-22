@@ -64,17 +64,7 @@ public class QuestService(
         var behaviorId = npc.Data.BehaviorId;
 
         // Find all quests that have dialog for this NPC behavior at their current state
-        var questsForNpc = questDataRepository.Quests.Values
-            .Where(q =>
-            {
-                var progress = GetOrCreateProgress(character, q.Id);
-                if (progress.State >= q.States.Count) return false;
-                var state = q.States[progress.State];
-                return state.Actions.Any(a =>
-                    (a.Name == "AddNpcText" || a.Name == "AddNpcInput") &&
-                    a.Args.Count > 0 && a.Args[0].AsInt() == behaviorId);
-            })
-            .ToList();
+        var questsForNpc = GetQuestsWithDialog(character, behaviorId);
 
         if (questsForNpc.Count == 0)
         {
@@ -89,10 +79,12 @@ public class QuestService(
 
         if (quest == null) return;
 
-        var currentProgress = GetOrCreateProgress(character, quest.Id);
-        if (currentProgress.State >= quest.States.Count) return;
+        // A character with no progress sees the quest's Begin dialog without the
+        // quest being assigned; progress is created once they actually advance it.
+        var currentStateIndex = TryGetProgress(character, quest.Id)?.State ?? 0;
+        if (currentStateIndex >= quest.States.Count) return;
 
-        var currentState = quest.States[currentProgress.State];
+        var currentState = quest.States[currentStateIndex];
 
         // Build dialog entries
         var dialogEntries = BuildDialogEntries(currentState, behaviorId);
@@ -169,29 +161,20 @@ public class QuestService(
         var quest = questDataRepository.GetQuest(questId);
         if (quest == null) return;
 
-        var progress = GetOrCreateProgress(character, questId);
-        var previousState = progress.State;
+        var previousState = TryGetProgress(character, questId)?.State ?? 0;
 
         // Process the NPC reply - advance quest state
         await TalkedToNpc(player, behaviorId, questId, actionId);
 
         // Re-check which quests have dialog at this NPC after state change
-        var questsForNpc = questDataRepository.Quests.Values
-            .Where(q =>
-            {
-                var p = GetOrCreateProgress(character, q.Id);
-                if (p.State >= q.States.Count) return false;
-                var state = q.States[p.State];
-                return state.Actions.Any(a =>
-                    (a.Name == "AddNpcText" || a.Name == "AddNpcInput") &&
-                    a.Args.Count > 0 && a.Args[0].AsInt() == behaviorId);
-            })
-            .ToList();
+        var questsForNpc = GetQuestsWithDialog(character, behaviorId);
 
         if (questsForNpc.Count == 0) return;
 
-        // Refresh progress after state change
-        progress = GetOrCreateProgress(character, questId);
+        // The reply only has an effect once the quest was started; a reply that
+        // matched no rule leaves the character without any progress to refresh.
+        var progress = TryGetProgress(character, questId);
+        if (progress == null) return;
 
         // Only show new dialog if state advanced
         if (previousState >= progress.State) return;
@@ -373,12 +356,14 @@ public class QuestService(
     private async Task TalkedToNpc(PlayerState player, int behaviorId, int questId, int? actionId)
     {
         var character = player.Character!;
-        var progress = GetOrCreateProgress(character, questId);
         var quest = questDataRepository.GetQuest(questId);
         if (quest == null) return;
-        if (progress.State >= quest.States.Count) return;
 
-        var state = quest.States[progress.State];
+        var progress = TryGetProgress(character, questId);
+        var currentStateIndex = progress?.State ?? 0;
+        if (currentStateIndex >= quest.States.Count) return;
+
+        var state = quest.States[currentStateIndex];
 
         // Find matching rule
         QuestRule? matchedRule = null;
@@ -407,6 +392,15 @@ public class QuestService(
         // Find the target state index
         var nextStateIndex = quest.States.FindIndex(s => s.Name == matchedRule.Goto);
         if (nextStateIndex < 0) return;
+
+        // Advancing a rule is the moment the character starts the quest; only now
+        // is a progress entry created (and persisted at next save).
+        if (progress == null)
+        {
+            progress = CreateProgress(character, questId);
+            logger.LogInformation("Player {Character} started quest {QuestId}: {QuestName}",
+                character.Name, quest.Id, quest.Name);
+        }
 
         progress.State = nextStateIndex;
 
@@ -800,11 +794,31 @@ public class QuestService(
         await mapEffectService.QuakeAsync(player.CurrentMap, magnitude);
     }
 
-    private static CharacterQuestProgress GetOrCreateProgress(GameCharacter character, int questId)
+    /// <summary>
+    ///     Quests that currently offer dialog for the given NPC behavior id. Never
+    ///     mutates the character: a quest without progress is evaluated at its Begin
+    ///     state so that unstarted quests can be offered in the dialog without being
+    ///     assigned to the character.
+    /// </summary>
+    private List<QuestData> GetQuestsWithDialog(GameCharacter character, int behaviorId)
     {
-        var existing = character.Quests.FirstOrDefault(q => q.QuestId == questId);
-        if (existing != null) return existing;
+        return questDataRepository.Quests.Values
+            .Where(q =>
+            {
+                var stateIndex = TryGetProgress(character, q.Id)?.State ?? 0;
+                if (stateIndex >= q.States.Count) return false;
+                return q.States[stateIndex].Actions.Any(a =>
+                    (a.Name == "AddNpcText" || a.Name == "AddNpcInput") &&
+                    a.Args.Count > 0 && a.Args[0].AsInt() == behaviorId);
+            })
+            .ToList();
+    }
 
+    private static CharacterQuestProgress? TryGetProgress(GameCharacter character, int questId) =>
+        character.Quests.FirstOrDefault(q => q.QuestId == questId);
+
+    private static CharacterQuestProgress CreateProgress(GameCharacter character, int questId)
+    {
         var newProgress = new CharacterQuestProgress { QuestId = questId, State = 0 };
         character.Quests.Add(newProgress);
         return newProgress;

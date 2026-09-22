@@ -18,6 +18,12 @@ public class DataFileRepository : IDataFileRepository
     private readonly string _mapsPath;
     private readonly ILogger<DataFileRepository> _logger;
 
+    /// <summary>
+    ///     Loaded map files keyed by id. A dictionary so <see cref="TryReloadMap" />
+    ///     can atomically swap one map while the server runs.
+    /// </summary>
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<int, MapWithId> _maps = new();
+
     public DataFileRepository(IOptions<DataOptions> dataOptions, ILogger<DataFileRepository> logger)
     {
         _logger = logger;
@@ -32,18 +38,21 @@ public class DataFileRepository : IDataFileRepository
 
         if (Directory.Exists(_mapsPath))
         {
-            Maps = Directory.GetFiles(_mapsPath).ToList().Where(f => Regex.IsMatch(f, @"\d+\.emf")).Select(mapFile =>
+            foreach (var mapFile in Directory.GetFiles(_mapsPath).Where(f => Regex.IsMatch(f, @"\d+\.emf")))
             {
-                var emf = new Emf();
-                emf.Deserialize(new EoReader(File.ReadAllBytes(mapFile)));
-                RecalculateRid(emf);
-                var id = int.Parse(new FileInfo(mapFile).Name.Split('.')[0]);
-                return new MapWithId(id, emf);
-            }).ToList();
-        }
-        else
-        {
-            Maps = Array.Empty<MapWithId>();
+                try
+                {
+                    var emf = new Emf();
+                    emf.Deserialize(new EoReader(File.ReadAllBytes(mapFile)));
+                    RecalculateRid(emf);
+                    var id = int.Parse(new FileInfo(mapFile).Name.Split('.')[0]);
+                    _maps[id] = new MapWithId(id, emf);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to load map file {MapFile}", mapFile);
+                }
+            }
         }
     }
 
@@ -51,7 +60,7 @@ public class DataFileRepository : IDataFileRepository
     public Eif Eif { get; private set; } = new();
     public Enf Enf { get; private set; } = new();
     public Esf Esf { get; private set; } = new();
-    public IEnumerable<MapWithId> Maps { get; }
+    public IEnumerable<MapWithId> Maps => _maps.Values;
 
     /// <summary>
     ///     Re-reads the pub data files (ECF/EIF/ENF/ESF) from disk, replacing the
@@ -60,6 +69,36 @@ public class DataFileRepository : IDataFileRepository
     public void Reload()
     {
         LoadPubFiles();
+    }
+
+    /// <inheritdoc />
+    public bool TryReloadMap(int mapId, out MapWithId? map)
+    {
+        map = null;
+
+        var path = Path.Combine(_mapsPath, $"{mapId}.emf");
+        if (!File.Exists(path))
+        {
+            _logger.LogWarning("Map file for {MapId} not found at {Path}", mapId, path);
+            return false;
+        }
+
+        try
+        {
+            var emf = new Emf();
+            emf.Deserialize(new EoReader(File.ReadAllBytes(path)));
+            RecalculateRid(emf);
+            map = new MapWithId(mapId, emf);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to reload map file {Path}", path);
+            return false;
+        }
+
+        _maps[mapId] = map;
+        _logger.LogInformation("Reloaded map {MapId} from disk", mapId);
+        return true;
     }
 
     private void LoadPubFiles()

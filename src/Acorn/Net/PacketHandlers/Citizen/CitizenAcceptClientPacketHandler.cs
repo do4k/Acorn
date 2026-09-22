@@ -1,5 +1,7 @@
 using Acorn.Data;
 using Acorn.Game.Services;
+using Acorn.World;
+using Acorn.World.Services.Player;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
@@ -13,7 +15,9 @@ namespace Acorn.Net.PacketHandlers.Citizen;
 public class CitizenAcceptClientPacketHandler(
     ILogger<CitizenAcceptClientPacketHandler> logger,
     IInnDataRepository innDataRepository,
-    IInventoryService inventoryService)
+    IInventoryService inventoryService,
+    IWorldQueries worldQueries,
+    IPlayerController playerController)
     : IPacketHandler<CitizenAcceptClientPacket>
 {
     private const int GoldItemId = 1;
@@ -87,8 +91,21 @@ public class CitizenAcceptClientPacketHandler(
             GoldAmount = remainingGold
         });
 
-        // TODO: Warp player to sleep location (inn.SleepMap, inn.SleepX, inn.SleepY)
-        // This would require integration with the warp system
+        // Warp the player to the inn's sleeping area, mirroring eoserv's Citizen/Accept
+        // (random warp effect). Falls back to staying put if no sleep location is configured.
+        if (inn.SleepMap > 0)
+        {
+            var sleepMap = worldQueries.FindMap(inn.SleepMap);
+            if (sleepMap is null)
+            {
+                logger.LogWarning("Sleep map {SleepMapId} for inn {InnName} not found, skipping warp for {Character}",
+                    inn.SleepMap, inn.Name, player.Character!.Name);
+            }
+            else
+            {
+                await playerController.WarpAsync(player, sleepMap, inn.SleepX, inn.SleepY, WarpEffect.Scroll);
+            }
+        }
     }
 
 }
