@@ -44,7 +44,7 @@ public class PlayerPingHostedService(
         }
     }
 
-    private async Task PingAllPlayersAsync()
+    internal async Task PingAllPlayersAsync()
     {
         var players = worldState.Players.Values.ToList();
 
@@ -58,16 +58,18 @@ public class PlayerPingHostedService(
                 switch (decision)
                 {
                     case PingDecision.DisconnectHandshakeTimeout:
-                        logger.LogWarning(
+                        LogReapWarningOnce(player,
                             "Player {SessionId} failed to complete handshake within {Delay}s, disconnecting",
-                            player.SessionId, _serverOptions.HangupDelaySeconds);
+                            _serverOptions.HangupDelaySeconds);
                         player.Disconnect();
+                        ReapDeadConnection(player);
                         continue;
                     case PingDecision.DisconnectLoginTimeout:
-                        logger.LogWarning(
+                        LogReapWarningOnce(player,
                             "Player {SessionId} did not log in within {Delay}s, disconnecting",
-                            player.SessionId, _serverOptions.LoginTimeoutSeconds);
+                            _serverOptions.LoginTimeoutSeconds);
                         player.Disconnect();
+                        ReapDeadConnection(player);
                         continue;
                     case PingDecision.Skip:
                         continue;
@@ -113,6 +115,36 @@ public class PlayerPingHostedService(
                 logger.LogError(ex, "Error pinging player {SessionId}", player.SessionId);
             }
         }
+    }
+
+    private void LogReapWarningOnce(PlayerState player, string message, int delaySeconds)
+    {
+        if (player.ReapWarningLogged)
+        {
+            return;
+        }
+
+        player.ReapWarningLogged = true;
+        logger.LogWarning(message, player.SessionId, delaySeconds);
+    }
+
+    /// <summary>
+    ///     Last-resort sweep for connections whose transport is already gone but whose session
+    ///     is still registered: cancelling the token cannot help when the read loop has already
+    ///     finished (or raced registration), so remove the world entry and let the player
+    ///     dispose its side-effects (metrics, socket close) exactly once. Reap-only: sessions
+    ///     still holding a live transport are left to their normal disconnect path. A reaped
+    ///     pre-authentication connection has no character to persist.
+    /// </summary>
+    private void ReapDeadConnection(PlayerState player)
+    {
+        if (player.Communicator.IsConnected)
+        {
+            return;
+        }
+
+        worldState.TryRemovePlayer(player.SessionId, player);
+        player.Dispose();
     }
 
     /// <summary>
