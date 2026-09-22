@@ -254,6 +254,8 @@ public class TestServerFixture : TUnit.Core.Interfaces.IAsyncInitializer, IAsync
                 services
                     .AddSingleton<WebSocketCommunicatorFactory>()
                     .AddSingleton<TcpCommunicatorFactory>()
+                    .AddSingleton<AcceptRateLimiter>()
+                    .AddSingleton(TimeProvider.System)
                     .AddSingleton<MapStateFactory>()
                     .AddSingleton<PlayerStateFactory>()
                     .AddSingleton<ConnectionHandler>()

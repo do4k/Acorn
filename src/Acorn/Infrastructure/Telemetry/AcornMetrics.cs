@@ -29,6 +29,10 @@ public sealed class AcornMetrics : IDisposable
             "acorn.players.online",
             description: "Current number of connected players");
 
+        ConnectionsRateLimited = _meter.CreateCounter<long>(
+            "acorn.connections.rate_limited",
+            description: "Total TCP connections rejected by the per-IP accept rate limiter");
+
         // --- Account & character lifecycle ---
         AccountsCreated = _meter.CreateCounter<long>(
             "acorn.accounts.created",
@@ -129,6 +133,8 @@ public sealed class AcornMetrics : IDisposable
     public Counter<long> ConnectionsTotal { get; }
     public Counter<long> DisconnectionsTotal { get; }
     public UpDownCounter<long> PlayersOnline { get; }
+
+    public Counter<long> ConnectionsRateLimited { get; }
 
     // Account & character lifecycle
     public Counter<long> AccountsCreated { get; }

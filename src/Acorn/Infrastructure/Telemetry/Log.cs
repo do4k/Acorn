@@ -68,6 +68,9 @@ public static partial class Log
     [LoggerMessage(Level = LogLevel.Debug, Message = "Rate limited packet {Action}_{Family} from session {SessionId}")]
     public static partial void PacketRateLimited(this ILogger logger, object action, object family, int sessionId);
 
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Rejected TCP accept from {RemoteIp}: per-IP limit of {MaxAccepts} per {WindowSeconds}s exceeded")]
+    public static partial void AcceptRateLimited(this ILogger logger, string remoteIp, int maxAccepts, int windowSeconds);
+
     // --- Data loading ---
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Data directory not found at {Directory}, creating with sample")]
