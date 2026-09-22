@@ -10,6 +10,11 @@
 # `COMPOSE_PROFILES` in .env selects the environment used by a bare
 # `docker compose up` (default: mysql).
 
+# Fixed project name so commands from any checkout target the same stack the
+# running `acorn-*` containers belong to, instead of defaulting to the checkout
+# directory name (issue #149).
+name: acorn
+
 x-acorn-server: &acorn-server
   build:
     context: .
