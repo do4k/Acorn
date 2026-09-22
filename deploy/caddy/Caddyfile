@@ -2,6 +2,7 @@
 #
 #   <BASE_DOMAIN>          -> static landing page
 #   game.<BASE_DOMAIN>     -> eoweb static client + WebSocket bridge to Acorn
+#   api.<BASE_DOMAIN>      -> read-only REST API (game state queries)
 #   aspire.<BASE_DOMAIN>   -> Aspire dashboard (only when ASPIRE_ENABLED=true)
 #
 # All site addresses come from BASE_DOMAIN (see .env). TLS certificates are
@@ -38,4 +39,9 @@ game.{$BASE_DOMAIN} {
 	root * /srv/eoweb
 	try_files {path} /index.html
 	file_server
+}
+
+# Read-only REST API (health, characters, maps, online players, pub data).
+api.{$BASE_DOMAIN} {
+	reverse_proxy acorn-api:8080
 }

@@ -30,10 +30,12 @@ x-acorn-api: &acorn-api
     context: .
     dockerfile: src/Acorn.Api/Dockerfile
   ports:
-    - "5000:8080"
+    - "127.0.0.1:5000:8080"  # Local only; public access is via the Caddy proxy
   restart: unless-stopped
   networks:
-    - acorn-network
+    acorn-network:
+      aliases:
+        - acorn-api
 
 services:
   # Aspire Dashboard (OpenTelemetry metrics/traces/logs UI) - runs for every profile
