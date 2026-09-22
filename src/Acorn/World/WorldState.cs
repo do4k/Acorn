@@ -80,9 +80,21 @@ public class WorldState
         return _players.TryAdd(sessionId, player);
     }
 
-    public bool TryRemovePlayer(int sessionId, out PlayerState? player)
+    /// <summary>
+    ///     Removes the given player instance, if and only if it is the one currently registered
+    ///     under <paramref name="sessionId"/>. The instance check makes disconnect cleanup safe
+    ///     against id reuse: a late cleanup for an old connection can never evict a newer player
+    ///     that was assigned the same id.
+    /// </summary>
+    public bool TryRemovePlayer(int sessionId, PlayerState player)
     {
-        return _players.TryRemove(sessionId, out player);
+        return ((ICollection<KeyValuePair<int, PlayerState>>)_players)
+            .Remove(new KeyValuePair<int, PlayerState>(sessionId, player));
+    }
+
+    public bool IsSessionInUse(int sessionId)
+    {
+        return _players.ContainsKey(sessionId);
     }
 
     public PlayerState? GetPlayer(int sessionId)
