@@ -42,7 +42,8 @@ public class GuildServiceOfflineTests
         var world = Substitute.For<IWorldQueries>();
         var inventory = Substitute.For<IInventoryService>();
         var options = Microsoft.Extensions.Options.Options.Create(new GuildOptions());
-        return new GuildService(scopeFactory, world, inventory, options, NullLogger<GuildService>.Instance);
+        return new GuildService(scopeFactory, world, inventory, options, Substitute.For<IBannedTextPolicy>(),
+            NullLogger<GuildService>.Instance);
     }
 
     private static async Task AddOfflineMemberAsync(ServiceProvider provider, string guildTag, string memberName,
