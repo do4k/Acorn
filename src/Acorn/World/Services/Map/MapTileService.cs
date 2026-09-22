@@ -74,15 +74,21 @@ public class MapTileService : IMapTileService
         return Math.Abs(a.X - b.X) + Math.Abs(a.Y - b.Y);
     }
 
-    public bool InClientRange(Coords observer, Coords other)
+    public bool InClientRange(Coords observer, Coords other) => IsInClientView(observer, other);
+
+    /// <summary>
+    ///     Whether <paramref name="other"/> is inside the client's own view of
+    ///     <paramref name="observer"/>: an asymmetric Manhattan cull range. The native
+    ///     client keeps entities up to 12 tiles away when they are above/left of the
+    ///     observer and 15 otherwise; eoweb culls at 11/14. Use the smaller of the two so
+    ///     a client never immediately discards an entity we just sent (which made far-away
+    ///     NPCs flicker in and out). This is also the validity boundary for NPC
+    ///     interactions: a client can only see, and therefore click, NPCs inside it.
+    /// </summary>
+    public static bool IsInClientView(Coords observer, Coords other)
     {
         var distance = Math.Abs(observer.X - other.X) + Math.Abs(observer.Y - other.Y);
 
-        // Mirrors the client's own cull range: Manhattan distance, asymmetric. The native
-        // client keeps entities up to 12 tiles away when they are above/left of the
-        // observer and 15 otherwise; eoweb culls at 11/14. Send the smaller of the two so
-        // a client never immediately discards an entity we just sent (which made far-away
-        // NPCs flicker in and out).
         return observer.X >= other.X || observer.Y >= other.Y
             ? distance <= CLIENT_VIEW_RANGE_UPPER
             : distance <= CLIENT_VIEW_RANGE_LOWER;

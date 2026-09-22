@@ -28,13 +28,14 @@ public class ShopOpenClientPacketHandlerTests
         return new ShopOpenClientPacket { NpcIndex = ShopTestSupport.NpcIndex };
     }
 
-    private static ShopTestSupport.Fixture CreateFixture(ShopData? shop = null)
+    private static ShopTestSupport.Fixture CreateFixture(ShopData? shop = null, int playerX = 11)
     {
         return ShopTestSupport.Create(
             shop ?? ShopTestSupport.BuildShop(
                 trades: [new TradeItem(TradeItemId, BuyPrice: 10, SellPrice: 2, MaxAmount: 99)],
                 crafts: [new CraftItem(CraftItemId, [new ShopCraftIngredient(IngredientItemId, 2)])]),
-            items: [(TradeItemId, 3), (CraftItemId, 10), (IngredientItemId, 1)]);
+            items: [(TradeItemId, 3), (CraftItemId, 10), (IngredientItemId, 1)],
+            playerX: playerX);
     }
 
     [Test]
@@ -78,9 +79,9 @@ public class ShopOpenClientPacketHandlerTests
     }
 
     [Test]
-    public async Task Open_WhenPlayerTooFarFromNpc_ShouldNotReply()
+    public async Task Open_WhenNpcOutsideClientView_ShouldNotReply()
     {
-        // Arrange
+        // Arrange - 20 Manhattan tiles away, beyond the client's own 11/14-tile cull range
         var fixture = CreateFixture();
         fixture.Character.X = 20;
         fixture.Character.Y = 20;
@@ -89,7 +90,24 @@ public class ShopOpenClientPacketHandlerTests
         await CreateHandler(fixture).HandleAsync(fixture.Player, OpenPacket());
 
         // Assert
-        fixture.Communicator.Sent.Should().BeEmpty("interaction must happen next to the shop NPC");
+        fixture.Communicator.Sent.Should().BeEmpty("a client cannot see or click the NPC at that distance");
+        fixture.Player.InteractingNpcIndex.Should().BeNull();
+    }
+
+    [Test]
+    public async Task Open_WhenNpcInViewButNotAdjacent_ShouldSendShopWindow()
+    {
+        // Arrange - clients send Shop/Open immediately when the NPC sprite is clicked,
+        // without walking first, so any visible vendor must be openable from anywhere.
+        var fixture = CreateFixture(playerX: 16);
+
+        // Act
+        await CreateHandler(fixture).HandleAsync(fixture.Player, OpenPacket());
+
+        // Assert
+        ShopTestSupport.DecodeLastSent(fixture).Should().BeOfType<ShopOpenServerPacket>();
+        fixture.Player.InteractingNpcIndex.Should().Be(ShopTestSupport.NpcIndex,
+            "clicking a vendor from inside the client view starts the interaction");
     }
 
     [Test]

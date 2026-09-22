@@ -1,4 +1,6 @@
+using Acorn.Extensions;
 using Acorn.World.Npc;
+using Acorn.World.Services.Map;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Pub;
 using NpcType = Moffat.EndlessOnline.SDK.Protocol.Pub.NpcType;
@@ -8,15 +10,9 @@ namespace Acorn.Net.PacketHandlers;
 public static class NpcInteractionHelper
 {
     /// <summary>
-    ///     Maximum distance (Chebyshev) a player may be from an NPC to interact with it.
-    ///     Two tiles covers talking across a one-tile counter while still blocking
-    ///     cross-map interactions from modified clients.
-    /// </summary>
-    private const int MaxInteractionDistance = 2;
-
-    /// <summary>
     /// Validates that the NPC exists on the player's map, is of the expected type,
-    /// and sets the player's InteractingNpcIndex. Returns the NPC state if valid, null otherwise.
+    /// is within the player's client view, and sets the player's InteractingNpcIndex.
+    /// Returns the NPC state if valid, null otherwise.
     /// </summary>
     public static NpcState? ValidateAndStartInteraction(
         PlayerState player, int npcIndex, NpcType expectedType, ILogger logger)
@@ -37,10 +33,9 @@ public static class NpcInteractionHelper
             return null;
         }
 
-        if (!IsInRange(player, npc))
+        if (!IsInPlayerView(player, npc))
         {
-            logger.LogWarning("Player {Character} tried to interact with NPC {NpcIndex} from out of range",
-                player.Character?.Name, npcIndex);
+            LogOutOfView(logger, player, npcIndex, npc);
             return null;
         }
 
@@ -80,24 +75,35 @@ public static class NpcInteractionHelper
             return null;
         }
 
-        if (!IsInRange(player, npc))
+        if (!IsInPlayerView(player, npc))
         {
-            logger.LogWarning("Player {Character} tried to interact with NPC {NpcIndex} from out of range",
-                player.Character?.Name, npcIndex);
+            LogOutOfView(logger, player, npcIndex, npc);
             return null;
         }
 
         return npc;
     }
 
-    private static bool IsInRange(PlayerState player, NpcState npc)
+    /// <summary>
+    ///     An interaction is only valid while the NPC is inside the player's client view -
+    ///     the same range the server uses to decide which NPCs to send to the client. Both
+    ///     the native and web clients send shop/bank/barber/trainer packets the moment the
+    ///     NPC sprite is clicked, from wherever the player happens to stand, so anything a
+    ///     real player can click passes this check. Crafted packets referencing NPCs outside
+    ///     the player's view are rejected. Cross-map spoofing is already blocked by the
+    ///     per-map index lookup in the callers.
+    /// </summary>
+    private static bool IsInPlayerView(PlayerState player, NpcState npc)
     {
         if (player.Character is null) return false;
 
-        var distance = Math.Max(
-            Math.Abs(player.Character.X - npc.X),
-            Math.Abs(player.Character.Y - npc.Y));
+        return MapTileService.IsInClientView(player.Character.AsCoords(), npc.AsCoords());
+    }
 
-        return distance <= MaxInteractionDistance;
+    private static void LogOutOfView(ILogger logger, PlayerState player, int npcIndex, NpcState npc)
+    {
+        logger.LogWarning(
+            "Player {Character} at ({PlayerX}, {PlayerY}) tried to interact with NPC {NpcIndex} at ({NpcX}, {NpcY}) from outside their view",
+            player.Character?.Name, player.Character?.X, player.Character?.Y, npcIndex, npc.X, npc.Y);
     }
 }
