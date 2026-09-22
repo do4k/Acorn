@@ -10,6 +10,7 @@ using Acorn.Game.Services;
 using Acorn.Infrastructure;
 using Acorn.Infrastructure.Communicators;
 using Acorn.Infrastructure.Gemini;
+using Acorn.Infrastructure.Plugins;
 using Acorn.Infrastructure.Telemetry;
 using Acorn.Net;
 using Acorn.Net.PacketHandlers.Player.Talk;
@@ -229,6 +230,11 @@ public class TestServerFixture : TUnit.Core.Interfaces.IAsyncInitializer, IAsync
                     .AddSingleton<DropFileTextLoader>()
                     .AddSingleton<INotificationService, NotificationService>();
 
+                // Plugin host (no plugins in tests) — must precede the hosted
+                // services below so PluginHostedService starts first, mirroring
+                // Program.cs registration order.
+                services.AddPlugins(PluginCatalog.Empty);
+
                 // Hosted services
                 services
                     .AddHostedService<DropTableHostedService>()
@@ -249,6 +255,9 @@ public class TestServerFixture : TUnit.Core.Interfaces.IAsyncInitializer, IAsync
                     .AddPacketHandlers()
                     .AddRepositories()
                     .AddWorldServices();
+
+                // Plugin #commands, after the convention scan (mirrors Program.cs).
+                services.AddPluginCommands(PluginCatalog.Empty);
 
                 // Networking
                 services

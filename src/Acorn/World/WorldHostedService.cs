@@ -1,6 +1,8 @@
 using System.Diagnostics;
+using Acorn.Infrastructure.Plugins;
 using Acorn.Infrastructure.Telemetry;
 using Acorn.Options;
+using Acorn.Plugins;
 using Acorn.World.Services.Marriage;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -13,16 +15,19 @@ internal class WorldHostedService : BackgroundService
     private readonly TimeSpan _tickInterval;
     private readonly WorldState _world;
     private readonly IMarriageService _marriageService;
+    private readonly PluginHookDispatcher _pluginHooks;
     private readonly ILogger<WorldHostedService> _logger;
     private readonly AcornMetrics _metrics;
     private readonly int _tickSpanSampleEvery;
     private long _tickNumber;
+    private long _totalTicks;
 
-    public WorldHostedService(IOptions<ServerOptions> options, WorldState world, IMarriageService marriageService, ILogger<WorldHostedService> logger, AcornMetrics metrics)
+    public WorldHostedService(IOptions<ServerOptions> options, WorldState world, IMarriageService marriageService, PluginHookDispatcher pluginHooks, ILogger<WorldHostedService> logger, AcornMetrics metrics)
     {
         _tickInterval = TimeSpan.FromMilliseconds(options.Value.TickRate);
         _world = world;
         _marriageService = marriageService;
+        _pluginHooks = pluginHooks;
         _logger = logger;
         _metrics = metrics;
         _tickSpanSampleEvery = Math.Max(1, options.Value.WorldTickSpanSampleEvery);
@@ -54,7 +59,23 @@ internal class WorldHostedService : BackgroundService
 
                 var tickTasks = _world
                     .Maps
-                    .Select(x => x.Value.Tick());
+                    .Select(async x =>
+                    {
+                        await x.Value.Tick();
+
+                        // Plugin map-tick hooks run after the map's own processing.
+                        // Maps tick in parallel, so plugin hook state must be thread-safe.
+                        if (_pluginHooks.HasMapTickHooks)
+                        {
+                            await _pluginHooks.RaiseMapTickAsync(new MapTickContext
+                            {
+                                MapId = x.Key,
+                                TotalTicks = x.Value.TotalTicks,
+                                PlayerCount = x.Value.Players.Count,
+                                NpcCount = x.Value.Npcs.Count
+                            });
+                        }
+                    });
 
                 await Task.WhenAll(tickTasks);
 
@@ -65,6 +86,16 @@ internal class WorldHostedService : BackgroundService
                     .Select(x => _marriageService.ProcessWeddingTickAsync(x.Value));
 
                 await Task.WhenAll(weddingTasks);
+
+                _totalTicks++;
+                if (_pluginHooks.HasWorldTickHooks)
+                {
+                    await _pluginHooks.RaiseWorldTickAsync(new WorldTickContext
+                    {
+                        TotalTicks = _totalTicks,
+                        OnlinePlayerCount = _world.Players.Count
+                    });
+                }
             }
             catch (Exception ex)
             {

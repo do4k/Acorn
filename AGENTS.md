@@ -29,7 +29,7 @@ acorn/
 │   │   ├── Database/           # Data loaders and scripts
 │   │   ├── Extensions/         # DI and helper extensions
 │   │   ├── Game/               # Game logic (services, mappers, models)
-│   │   ├── Infrastructure/     # Networking, security, Gemini AI
+│   │   ├── Infrastructure/     # Networking, security, Gemini AI, plugin host
 │   │   ├── Net/                # Packet handlers and player state
 │   │   ├── Options/            # Configuration classes
 │   │   ├── SLN/                # Server Link Network integration
@@ -38,9 +38,12 @@ acorn/
 │   ├── Acorn.AppHost/          # .NET Aspire orchestration for the full stack
 │   ├── Acorn.Database/         # EF Core DbContext, entities and repositories
 │   ├── Acorn.Database.PostgreSql/  # PostgreSQL-specific EF Core extensions
+│   ├── Acorn.Plugins/          # Plugin contracts for server mods (shared across ALC)
 │   └── Acorn.Shared/           # Shared contract models, caching, extensions, options
+├── samples/
+│   └── HelloAcorn/             # Sample plugin exercising the plugin host surface
 ├── tests/
-│   └── Acorn.Tests/            # Unit tests
+│   └── Acorn.Tests/            # Unit tests (plugin tests under Acorn.Tests/Plugins)
 ├── docs/                       # Documentation
 └── .ai/                        # AI agent context and prompts
 ```
@@ -258,13 +261,14 @@ public void MethodName_WhenCondition_ShouldExpectedBehavior()
 
 ### Project References
 
-- `Acorn` depends on `Acorn.Shared`, `Acorn.Database`, `Acorn.Database.PostgreSql`
+- `Acorn` depends on `Acorn.Shared`, `Acorn.Database`, `Acorn.Database.PostgreSql`, `Acorn.Plugins`
 - `Acorn.Api` depends on `Acorn.Shared`, `Acorn.Database`, `Acorn.Database.PostgreSql`
 - `Acorn.AppHost` depends on `Acorn`, `Acorn.Api`
 - `Acorn.Database.PostgreSql` depends on `Acorn.Database`
 - `Acorn.Database` depends on `Acorn.Shared`
 - `Acorn.Shared` is standalone
-- `Acorn.Tests` depends on `Acorn`
+- `Acorn.Plugins` is standalone (plugin contracts; `Microsoft.Extensions.*` come from the shared framework). Plugins reference it with `<Private>false</Private>` so it never appears in plugin output
+- `Acorn.Tests` depends on `Acorn` and references `samples/HelloAcorn` (its dll is loaded from the test output by the plugin contract tests)
 
 ## Common Tasks
 
@@ -351,6 +355,7 @@ apply command and how to confirm the database is up to date.
 - [Gemini AI Integration](docs/GEMINI_WISEMAN.md)
 - [Inventory System](docs/INVENTORY.md)
 - [Shops](docs/SHOPS.md)
+- [Plugin Architecture (proposal)](docs/PLUGINS.md)
 - [Codebase Review](docs/CODEBASE_REVIEW.md)
 
 ## Additional Context

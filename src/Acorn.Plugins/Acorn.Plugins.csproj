@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net11.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <PackageId>Acorn.Plugins</PackageId>
+        <Version>0.1.0</Version>
+        <Description>Plugin contracts for building server mods ("plugins") for the Acorn Endless Online server.</Description>
+    </PropertyGroup>
+
+</Project>
