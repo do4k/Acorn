@@ -66,6 +66,14 @@ public class ServerOptions
     public int PlayerPingInitialDelaySeconds { get; set; } = 5;
 
     /// <summary>
+    ///     How many consecutive unanswered Connection_Player pings are tolerated before a
+    ///     player is dropped. A single missed pong is usually a momentary network hiccup, so
+    ///     the sweep re-probes and only disconnects once this many misses pile up. Setting
+    ///     it to 1 restores the old drop-on-first-miss behaviour.
+    /// </summary>
+    public int MaxMissedPings { get; set; } = 2;
+
+    /// <summary>
     ///     Whether to log packet contents at debug level. Can be very verbose.
     /// </summary>
     public bool LogPackets { get; set; } = false;

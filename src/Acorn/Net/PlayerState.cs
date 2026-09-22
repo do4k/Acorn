@@ -76,6 +76,14 @@ public class PlayerState : IDisposable
 
     public ClientState ClientState { get; set; } = ClientState.Uninitialized;
     public bool NeedPong { get; set; } = false;
+
+    /// <summary>
+    ///     Consecutive Connection_Player pings that went unanswered. Receiving a pong
+    ///     (Connection_Ping) resets it; it disconnects once
+    ///     <see cref="Options.ServerOptions.MaxMissedPings"/> is reached.
+    /// </summary>
+    public int MissedPings { get; set; }
+
     public int ClientEncryptionMulti { get; set; } = 0;
     public int ServerEncryptionMulti { get; set; } = 0;
 
