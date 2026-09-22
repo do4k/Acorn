@@ -162,6 +162,9 @@ var host = Host.CreateDefaultBuilder(args)
             .AddSingleton<ConnectionHandler>()
             .AddHostedService<PlayerPingHostedService>()
             .AddHostedService<ServerLinkNetworkPingHostedService>()
+            // Registered last of the game services so host shutdown stops it first,
+            // persisting online characters while their sessions are still intact.
+            .AddHostedService<ShutdownPersistenceHostedService>()
             .AddRefitClient<IServerLinkNetworkClient>()
             .ConfigureHttpClient((svc, c) =>
             {
