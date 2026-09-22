@@ -110,21 +110,33 @@ volume, so data survives a redeploy.
    (`../acorn.worktrees/main-deploy`); in that case detach it first, or use
    `git checkout --detach origin/main`. Preserve any uncommitted work with
    `git stash push --include-untracked` before switching.
-2. **Apply migrations** (see below) - always before restarting the server.
-3. **Rebuild the images** from the repo root:
+2. **Fetch the game data** (map `*.emf`, `Data/*.edf`, pub, ...). These files
+   are copyrighted and deliberately **not in git** - a clean worktree only has
+   the tracked `*.cs` files under `src/Acorn/Data`, and both the image build
+   and the runtime bind mount need the full set (a mapless server disconnects
+   every character on login, issue #144):
+   ```bash
+   scripts/fetch-game-data.sh   # downloads from https://<BASE_DOMAIN>/gamedata/
+   ```
+   The static copy is refreshed from a checkout that has the data with
+   `scripts/publish-game-data.sh` (served by Caddy from
+   `$GAME_DATA_PUBLISH_DIR`, default `/srv/acorn/game-data`).
+3. **Apply migrations** (see below) - always before restarting the server.
+4. **Rebuild the images** from the repo root:
    ```bash
    docker build -f src/Acorn/Dockerfile -t acorn-acorn-postgres:latest .
    docker build -f src/Acorn.Api/Dockerfile -t acorn-acorn-api-postgres:latest .
    ```
    The compose service image names are `<project>-<service>`, i.e.
    `acorn-acorn-postgres` / `acorn-acorn-api-postgres` for the `acorn` project.
-4. **Recreate only the app containers**, reusing the DB/network/`.env`:
+5. **Recreate only the app containers**, reusing the DB/network/`.env`:
    ```bash
    docker compose --profile postgres up -d --no-build --force-recreate \
      acorn-postgres acorn-api-postgres
    ```
-5. **Verify:** `docker ps` shows both healthy and `docker logs --tail 50
-   acorn-postgres` shows the world/listeners started.
+6. **Verify:** `docker ps` shows both healthy, `docker logs --tail 50
+   acorn-postgres` shows the world/listeners started **and `Loaded <n> maps`
+   with n > 0**.
 
 ### Database migrations
 
