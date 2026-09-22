@@ -7,6 +7,16 @@ public class ServerOptions
     public required int TickRate { get; set; }
 
     /// <summary>
+    ///     Emit one <c>world.tick</c> span per this many ticks. A span per tick (1/s) filled
+    ///     ~half of the Aspire dashboard's trace buffer and pushed packet traces out of
+    ///     retention; tick duration is always captured by the acorn.map.tick.duration
+    ///     histogram, so sampled spans only need to show occasional shape, and error ticks
+    ///     always produce a span regardless (see #137). Set to 1 to span every tick
+    ///     (debugging/tests); values below 1 are treated as 1.
+    /// </summary>
+    public int WorldTickSpanSampleEvery { get; set; } = 60;
+
+    /// <summary>
     ///     How often players recover HP/TP, in ticks.
     ///     With TickRate=1000 (1 second), 90 = every 90 seconds.
     /// </summary>
