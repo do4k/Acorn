@@ -35,6 +35,20 @@ public class ServerOptions
     public int MaxDrop { get; set; } = 10000;
 
     /// <summary>
+    ///     Maximum TCP connections accepted from a single remote IP within
+    ///     <see cref="AcceptWindowSeconds"/>. Excess connections are closed at accept
+    ///     time before a session is allocated. Loopback and LAN addresses are never
+    ///     counted (see <see cref="Acorn.Net.AcceptRateLimiter"/>).
+    ///     A value of 0 disables the limit.
+    /// </summary>
+    public int MaxAcceptsPerIp { get; set; } = 20;
+
+    /// <summary>
+    ///     Length of the per-IP accept rate window, in seconds.
+    /// </summary>
+    public int AcceptWindowSeconds { get; set; } = 10;
+
+    /// <summary>
     ///     Player respawn location when they die. Falls back to NewCharacter location if not set.
     /// </summary>
     public RescueOptions? Rescue { get; set; }

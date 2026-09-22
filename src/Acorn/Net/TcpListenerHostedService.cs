@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Sockets;
 using Acorn.Infrastructure;
 using Acorn.Infrastructure.Communicators;
+using Acorn.Infrastructure.Telemetry;
 using Acorn.Options;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -18,7 +19,9 @@ public class TcpListenerHostedService(
     IStatsReporter statsReporter,
     IOptions<ServerOptions> serverOptions,
     TcpCommunicatorFactory tcpCommunicatorFactory,
-    ConnectionHandler connectionHandler
+    ConnectionHandler connectionHandler,
+    AcceptRateLimiter acceptRateLimiter,
+    AcornMetrics metrics
 ) : BackgroundService
 {
     private readonly TcpListener _listener = new(IPAddress.Any, serverOptions.Value.Hosting.Port);
@@ -36,6 +39,19 @@ public class TcpListenerHostedService(
                 try
                 {
                     var tcpClient = await _listener.AcceptTcpClientAsync(stoppingToken);
+
+                    if (tcpClient.Client.RemoteEndPoint is IPEndPoint remote
+                        && !acceptRateLimiter.ShouldAccept(remote.Address))
+                    {
+                        metrics.ConnectionsRateLimited.Add(1);
+                        logger.AcceptRateLimited(
+                            remote.Address.ToString(),
+                            serverOptions.Value.MaxAcceptsPerIp,
+                            serverOptions.Value.AcceptWindowSeconds);
+                        tcpClient.Close();
+                        continue;
+                    }
+
                     var communicator = tcpCommunicatorFactory.Initialise(tcpClient);
                     connectionHandler.AcceptConnection(communicator);
                 }

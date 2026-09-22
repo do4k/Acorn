@@ -94,7 +94,7 @@ Containers and the images they run:
 
 | Container | Image | Notes |
 |-----------|-------|-------|
-| `acorn-postgres` | `acorn-acorn-postgres` | Game server: TCP `8078`, WebSocket `8079` (localhost) |
+| `acorn-postgres` | `acorn-acorn-postgres` | Game server: TCP `8078` (public, per-IP accept rate limit), WebSocket `8079` (localhost only) |
 | `acorn-api-postgres` | `acorn-acorn-api-postgres` | REST API: `5000` → `8080` |
 | `acorn-postgres-db` | `postgres:17-alpine` | Database, published on `5432`; data in the `acorn_postgres-data` volume |
 | `acorn-caddy` | `caddy:2` | TLS reverse proxy, landing page and eoweb client (`80`/`443`) |
