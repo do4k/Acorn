@@ -49,6 +49,19 @@ behavior ids (first file wins) and crafts with more than four ingredients.
 `ShopDataRepositoryTests` additionally validates the real data files against
 the real EIF when the per-deployment data is present.
 
+## Interaction range
+
+Both the native and web clients send `Shop/Open` (and the bank/barber/trainer
+equivalents) the moment the NPC sprite is clicked - they do not walk to the
+vendor first. `NpcInteractionHelper` therefore validates NPC interactions
+against the player's client view (the same 11/14-tile asymmetric Manhattan
+cull range that decides which entities are sent to the client), not a fixed
+adjacency radius: anything a real player can see and click works, while
+crafted packets naming NPCs outside the player's view or the wrong NPC type
+are rejected and logged with both positions. Buying, selling and crafting
+additionally require the interaction to have started with `Shop/Open` and
+survive until the next step, since walking clears it.
+
 ## Current content
 
 The shop set in this deployment covers all 41 ENF vendors (general stores,

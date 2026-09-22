@@ -61,6 +61,24 @@ public class ShopBuyClientPacketHandlerTests
     }
 
     [Test]
+    public async Task Buy_WhenNpcInViewButNotAdjacent_ShouldComplete()
+    {
+        // Arrange - the shop window was opened by clicking the vendor from across the
+        // store; buying from the same spot must work.
+        var fixture = CreateFixture();
+        fixture.Character.GiveItem(ShopTestSupport.GoldItemId, 1000);
+        fixture.Player.InteractingNpcIndex = ShopTestSupport.NpcIndex;
+        fixture.Character.X = 16;
+
+        // Act
+        await CreateHandler(fixture).HandleAsync(fixture.Player, BuyPacket(10));
+
+        // Assert
+        fixture.Inventory.GetItemAmount(fixture.Character, TradeItemId).Should().Be(10);
+        fixture.Communicator.Sent.Should().ContainSingle();
+    }
+
+    [Test]
     public async Task Buy_LimitedByWeight_ShouldBuyOnlyWhatFits()
     {
         // Arrange - 100 max weight, item weighs 3 => at most 33 fit
@@ -160,9 +178,10 @@ public class ShopBuyClientPacketHandlerTests
     }
 
     [Test]
-    public async Task Buy_WhenPlayerWalkedAwayFromNpc_ShouldNotTransact()
+    public async Task Buy_WhenPlayerMovedOutOfNpcView_ShouldNotTransact()
     {
-        // Arrange - interaction started while adjacent, player then teleported off
+        // Arrange - interaction started while the vendor was visible, the player then
+        // teleported 20 Manhattan tiles away, outside the client's own cull range
         var fixture = CreateFixture();
         fixture.Character.GiveItem(ShopTestSupport.GoldItemId, 1000);
         fixture.Player.InteractingNpcIndex = ShopTestSupport.NpcIndex;
