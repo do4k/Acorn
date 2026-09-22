@@ -1,3 +1,4 @@
+using Acorn.Options;
 using Acorn.Shared.Caching;
 using Acorn.Shared.Models.Online;
 using Acorn.Shared.Options;
@@ -13,6 +14,13 @@ namespace Acorn.Infrastructure;
 /// </summary>
 public class CharacterCacheHostedService : BackgroundService
 {
+    /// <summary>
+    ///     Sentinel session id for the synthetic Acornbot entry; player session ids
+    ///     start at 1, so this can never collide.
+    /// </summary>
+    private const int AcornbotSessionId = -1;
+
+    private readonly IOptions<AcornbotOptions> _acornbotOptions;
     private readonly CacheOptions _cacheOptions;
     private readonly ICharacterCacheService _characterCache;
     private readonly ILogger<CharacterCacheHostedService> _logger;
@@ -23,11 +31,13 @@ public class CharacterCacheHostedService : BackgroundService
         WorldState worldState,
         ICharacterCacheService characterCache,
         IOptions<CacheOptions> cacheOptions,
+        IOptions<AcornbotOptions> acornbotOptions,
         ILogger<CharacterCacheHostedService> logger)
     {
         _worldState = worldState;
         _characterCache = characterCache;
         _cacheOptions = cacheOptions.Value;
+        _acornbotOptions = acornbotOptions;
         _logger = logger;
     }
 
@@ -115,9 +125,36 @@ public class CharacterCacheHostedService : BackgroundService
             }
         }
 
+        // Advertise Acornbot in the online list so players can discover the whisper
+        // command; its title is the hint. When the bot is disabled the cached entry
+        // simply expires (30 s) instead of being refreshed.
+        if (CreateAcornbotRecordIfEnabled(_acornbotOptions.Value) is { } bot)
+        {
+            await _characterCache.CacheCharacterAsync(bot);
+        }
+
         if (_cacheOptions.LogOperations)
         {
             _logger.LogDebug("Cached {Count} online characters", cachedCount);
         }
+    }
+
+    internal static OnlineCharacterRecord? CreateAcornbotRecordIfEnabled(AcornbotOptions acornbot)
+    {
+        if (!acornbot.Enabled)
+        {
+            return null;
+        }
+
+        return new OnlineCharacterRecord
+        {
+            SessionId = AcornbotSessionId,
+            Name = acornbot.Name,
+            Title = AcornbotPresence.OnlineListTitle,
+            Level = 1,
+            Class = 0,
+            Gender = "Bot",
+            Admin = "Player"
+        };
     }
 }

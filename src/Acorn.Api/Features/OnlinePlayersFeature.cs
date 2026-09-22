@@ -1,6 +1,8 @@
+using Acorn.Api.Options;
 using Acorn.Shared.Caching;
 using Acorn.Shared.Models;
 using Acorn.Shared.Models.Online;
+using Microsoft.Extensions.Options;
 
 namespace Acorn.Api.Features;
 
@@ -30,10 +32,50 @@ public static class OnlinePlayersFeature
         return group;
     }
 
-    private static async Task<IResult> GetOnlinePlayers(ICharacterCacheService characterCache)
+    private static async Task<IResult> GetOnlinePlayers(
+        ICharacterCacheService characterCache,
+        IOptions<AcornbotOptions> acornbotOptions)
     {
         var players = await characterCache.GetOnlinePlayersAsync();
-        return Results.Ok(players);
+        return Results.Ok(WithAcornbot(players, acornbotOptions.Value));
+    }
+
+    /// <summary>
+    ///     Prepends the Acornbot pseudo-player (title = the discovery hint) while the
+    ///     bot is enabled. The API's online cache is process-local today, so the bot
+    ///     entry is composed here; the name check dedupes for the day the server's
+    ///     seeded cache record becomes visible (e.g. via a shared Redis cache).
+    /// </summary>
+    internal static OnlinePlayersRecord WithAcornbot(OnlinePlayersRecord players, AcornbotOptions acornbot)
+    {
+        if (!acornbot.Enabled)
+        {
+            return players;
+        }
+
+        var botName = acornbot.Name.Trim().ToLowerInvariant();
+        if (botName.Length == 0
+            || players.Players.Any(p => p.Name.Trim().ToLowerInvariant() == botName))
+        {
+            return players;
+        }
+
+        var merged = new List<OnlinePlayerSummary>(players.Players.Count + 1)
+        {
+            new()
+            {
+                Name = acornbot.Name,
+                Title = AcornbotPresence.OnlineListTitle,
+                Level = 1
+            }
+        };
+        merged.AddRange(players.Players);
+
+        return new OnlinePlayersRecord
+        {
+            TotalOnline = players.TotalOnline + 1,
+            Players = merged
+        };
     }
 
     private static async Task<IResult> GetAllOnlineCharacters(ICharacterCacheService characterCache)

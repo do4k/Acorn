@@ -1,5 +1,6 @@
 using System.Reflection;
 using Acorn.Api.Features;
+using Acorn.Api.Options;
 using Acorn.Database;
 using Acorn.Database.Models;
 using Acorn.Database.Repository;
@@ -17,6 +18,9 @@ builder.Services.AddSwaggerGen();
 
 // Database + caching infrastructure: options binding, DbContext and in-memory cache
 builder.Services.AddAcornDataInfrastructure(builder.Configuration);
+
+// Acornbot presence in the online-players list (shared "Acornbot" section)
+builder.Services.Configure<AcornbotOptions>(builder.Configuration.GetSection(AcornbotOptions.SectionName));
 
 // Register repositories for database access
 builder.Services.AddScoped<IDbRepository<Character>, CharacterRepository>();

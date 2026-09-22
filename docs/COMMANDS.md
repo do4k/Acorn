@@ -101,6 +101,12 @@ player here; there is no `RequiredLevel` on bot commands. While the bot is
 configured, character creation refuses names matching the bot handle
 (case-insensitively) so the whisper handle can never be shadowed.
 
+While enabled, Acornbot advertises itself in the online-players list
+(`GET /api/online`) with the title `!acornbot help`, so players can discover the
+whisper command. The `ACORNBOT_ENABLED` / `ACORNBOT_NAME` compose variables are
+applied to both the server and the API so the listing and the running bot never
+disagree.
+
 Title changes are persisted and the player is re-announced to nearby viewers via
 `Msg_Players`/Agree (no re-warp animation). Note: the map `Player` struct in this
 protocol revision carries no title field, so viewers see the new title via the

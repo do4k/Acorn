@@ -215,6 +215,8 @@ services:
       - Database__ConnectionString=Host=postgres;Port=5432;Database=acorn;Username=acorn;Password=acornpassword
       - Cache__Enabled=${CACHE_ENABLED}
       - Server__Hosting__SLN__Enabled=${SERVER_SLN_ENABLED}
+      - Acornbot__Enabled=${ACORNBOT_ENABLED:-true}
+      - Acornbot__Name=${ACORNBOT_NAME:-Acornbot}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
     depends_on:
       postgres:
@@ -233,6 +235,8 @@ services:
       - Database__Engine=PostgreSQL
       - Database__ConnectionString=Host=postgres;Port=5432;Database=acorn;Username=acorn;Password=acornpassword
       - Cache__Enabled=${CACHE_ENABLED}
+      - Acornbot__Enabled=${ACORNBOT_ENABLED:-true}
+      - Acornbot__Name=${ACORNBOT_NAME:-Acornbot}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
     depends_on:
       postgres:
