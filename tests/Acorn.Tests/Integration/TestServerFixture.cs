@@ -120,6 +120,7 @@ public class TestServerFixture : TUnit.Core.Interfaces.IAsyncInitializer, IAsync
             ["Server:Hosting:SLN:ServerName"] = "Test",
             ["Server:Hosting:SLN:Site"] = "http://localhost",
             ["Server:TickRate"] = "1000",
+            ["Server:WorldTickSpanSampleEvery"] = "1",
             ["Server:PlayerRecoverRate"] = "90",
             ["Server:EnforceSequence"] = "true",
             ["Server:EnforceTimestamps"] = EnforceTimestamps.ToString(),
