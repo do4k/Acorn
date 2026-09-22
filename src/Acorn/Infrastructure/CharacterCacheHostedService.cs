@@ -88,8 +88,8 @@ public class CharacterCacheHostedService : BackgroundService
                     SessionId = sessionId,
                     Name = character.Name ?? string.Empty,
                     Title = character.Title ?? string.Empty,
-                    GuildName = string.Empty, // TODO: Add guild support
-                    GuildRank = string.Empty,
+                    GuildName = character.GuildName ?? string.Empty,
+                    GuildRank = character.GuildRankName ?? string.Empty,
                     Level = character.Level,
                     Class = character.Class,
                     Gender = character.Gender.ToString(),

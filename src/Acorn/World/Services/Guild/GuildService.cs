@@ -420,7 +420,25 @@ public class GuildService(
 
         if (target?.Character is null)
         {
-            // TODO: offline kick
+            // Offline kick: validate against the persisted membership row, then remove it.
+            var offlineMember = await FindGuildMemberAsync(guildTag, memberName);
+            if (offlineMember is null)
+            {
+                await SendGuildReply(player, GuildReply.RemoveNotMember);
+                return;
+            }
+
+            // Can only kick members of a strictly lower rank.
+            if (offlineMember.RankIndex <= player.Character.GuildRankIndex)
+            {
+                await SendGuildReply(player, GuildReply.RemoveLeader);
+                return;
+            }
+
+            await RemoveGuildMemberRowAsync(memberName);
+            await SendGuildReply(player, GuildReply.Removed);
+            logger.LogInformation("Kicked offline member {Member} from guild {GuildTag} by {Player}",
+                memberName, guildTag, player.Character.Name);
             return;
         }
 
@@ -541,7 +559,32 @@ public class GuildService(
         var target = world.FindPlayerByName(memberName);
         if (target?.Character is null)
         {
-            // TODO: offline rank update
+            // Offline rank update: apply to the persisted membership row; it is loaded
+            // into live state the next time the character logs in.
+            var offlineMember = await FindGuildMemberAsync(guildTag, memberName);
+            if (offlineMember is null)
+            {
+                await SendGuildReply(player, GuildReply.RankingNotMember);
+                return;
+            }
+
+            if (offlineMember.RankIndex == GuildRules.LeaderRank)
+            {
+                await SendGuildReply(player, GuildReply.RankingLeader);
+                return;
+            }
+
+            if (!GuildRules.CanAssignRank(player.Character.GuildRankIndex, offlineMember.RankIndex, newRank, _options))
+            {
+                await SendGuildReply(player, GuildReply.RankingLeader);
+                return;
+            }
+
+            await SetGuildMemberRankAsync(memberName, newRank);
+
+            await SendGuildReply(player, GuildReply.Updated);
+            logger.LogInformation("Set rank of offline member {Member} in guild {GuildTag} to {Rank} by {Player}",
+                memberName, guildTag, newRank, player.Character.Name);
             return;
         }
 
@@ -805,6 +848,45 @@ public class GuildService(
     {
         return await db.Guilds.AnyAsync(g =>
             g.Tag == tag || g.Name.ToLower() == name.ToLower());
+    }
+
+    /// <summary>
+    ///     Loads a persisted membership row for guild operations targeting
+    ///     offline members. The returned entity is detached (the tracking
+    ///     scope is disposed) and must not be saved back via <c>Update</c>.
+    /// </summary>
+    private async Task<Acorn.Database.Models.GuildMember?> FindGuildMemberAsync(string guildTag, string memberName)
+    {
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AcornDbContext>();
+
+        return await db.GuildMembers
+            .AsNoTracking()
+            .FirstOrDefaultAsync(m => m.CharacterName == memberName && m.GuildTag == guildTag);
+    }
+
+    private async Task RemoveGuildMemberRowAsync(string memberName)
+    {
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AcornDbContext>();
+
+        var member = await db.GuildMembers.FirstOrDefaultAsync(m => m.CharacterName == memberName);
+        if (member is null) return;
+
+        db.GuildMembers.Remove(member);
+        await db.SaveChangesAsync();
+    }
+
+    private async Task SetGuildMemberRankAsync(string memberName, int newRank)
+    {
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AcornDbContext>();
+
+        var member = await db.GuildMembers.FirstOrDefaultAsync(m => m.CharacterName == memberName);
+        if (member is null) return;
+
+        member.RankIndex = newRank;
+        await db.SaveChangesAsync();
     }
 
     private static Task SendGuildReply(PlayerState player, GuildReply reply)

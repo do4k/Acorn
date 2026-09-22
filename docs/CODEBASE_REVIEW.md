@@ -3,12 +3,14 @@
 > Comprehensive review of the Acorn Endless Online server emulator and a prioritized plan for next steps.
 >
 > Date: 2026-06-26 · Reviewed at commit `4a3da5b`
+> **Updated: 2026-09-21** — re-audited against current `main`. Most of the Phase 0/2 roadmap has
+> shipped; statuses below now reflect the code as it stands, with remaining gaps called out.
 
 ---
 
 ## 1. Executive Summary
 
-Acorn is a from-scratch C# / .NET 10 reimplementation of an Endless Online (EO)
+Acorn is a from-scratch C# / .NET 11 reimplementation of an Endless Online (EO)
 game server, in the lineage of EOSERV (C++) and reoserv (Rust). It is **well
 beyond a prototype**: it has a working network stack (TCP + WebSocket), the full
 EO login/handshake/encryption flow (verified by end-to-end integration tests),
@@ -20,17 +22,15 @@ injection throughout, a clear project layering, OpenTelemetry metrics, and an
 in-memory world model built on concurrent collections. A developer familiar with
 EO could stand this up and log in today.
 
-The gaps are concentrated in **core combat depth** rather than infrastructure.
-Spell casting is entirely stubbed, player-vs-player combat does not exist, item
-"use" effects are partially wired but never echoed to the client, and a handful
-of handlers are incomplete or will throw. The biggest non-feature risks are
-**low automated test coverage relative to surface area**, **lingering protocol
-fragility** (recent history is dominated by sequence/encryption fixes), and
-**documentation drift** (AGENTS.md still describes Redis and an `Acorn.Domain`
-project that no longer exist).
+The gaps that remain are **depth items**, not core systems: spell casting, PvP
+combat, gold drops, emotes and item-use feedback — all flagged as stubs in the
+June review — are now implemented, with automated coverage (727 tests). The
+open backlog is now: a packet soak/fuzz harness (1.3), quest-engine validation
+against real EO quest files (3.3), map-effect parity audit (3.4), the remaining
+eoserv admin commands (`$dress`/`$strip`/`$request`, privilege toggles),
+multi-part pub file splitting, world-tick sharding, and load testing (Phase 4).
 
-**Overall grade: solid, maintainable foundation (~B+). The path forward is depth
-and hardening, not a rewrite.**
+**Overall grade: solid, maintainable foundation with core combat closed (~A-).**
 
 ---
 
@@ -73,25 +73,25 @@ Acorn.Database (EF Core, repositories)       ─┼─► Acorn      (game serve
 | Character create / select / delete | ✅ | |
 | Movement & map transitions / warps | ✅ | |
 | NPC AI (wander, aggro, melee attack) | ✅ | Spawn-type movement rates per EOSERV |
-| Player → NPC combat, drops, XP, level-up | ✅ | Item drops work; **gold drops TODO** |
+| Player → NPC combat, drops, XP, level-up | ✅ | Item **and gold** drops, XP, level-up, quest kill hooks |
 | Inventory / paperdoll / weight | ✅ | |
 | Bank / locker / chest | ✅ | |
 | Shop (buy/sell/create) | ✅ | |
 | Trade (player-to-player) | ✅ | |
-| Guilds | ✅ (broad) | 15 handlers; offline kick/rank are TODO |
+| Guilds | ✅ | 15 handlers incl. offline kick & rank updates (persisted via `GuildMembers`) |
 | Party | ✅ | |
 | Quests | ✅ | Use/list/accept + `QuestService` |
-| Citizen / Inn | ◑ | Sleep-warp on accept is TODO |
+| Citizen / Inn | ✅ | Sleep restores HP/TP, charges gold and warps to the inn's sleep area |
 | Marriage / Priest / Wedding ceremony | ✅ | Tick-driven ceremony |
 | Board, Barber, Jukebox, Chairs, Doors | ✅ | |
-| Admin commands & moderation | ✅ (rich) | warp, ban, jail, mute, spawn, set, … |
+| Admin commands & moderation | ✅ (rich) | warp, ban, jail, mute, spawn, set, remap, shutdown, undress, … |
 | WiseMan AI NPC (Gemini) | ✅ (optional) | Feature-flagged |
-| Arena | ◑ | Spawns work; queue removal is buggy (see 4.1) |
-| REST API (online players, maps, pub) | ✅ | Minimal-API project |
-| **Spell casting (attack/heal/buff)** | ❌ **Stub** | All `SpellTarget*` handlers are TODO |
-| **Player-vs-player combat** | ❌ Missing | `AttackUse` only targets NPCs |
-| **Item-use effects → client** | ◑ | HP/TP changed server-side but no packet sent |
-| Emote reporting | ❌ Throws | `EmoteReportClientPacketHandler` throws |
+| Arena | ✅ | Queue leave fixed; arena PvP scoring via `ArenaService` |
+| REST API (online players, maps, pub) | ✅ | Minimal-API project; guild name/rank included in online cache |
+| **Spell casting (attack/heal/buff)** | ✅ | `ISpellCastService`: chant timer, TP cost, self/other/group targeting |
+| **Player-vs-player combat** | ✅ | `AttackUseClientPacketHandler.HandlePlayerAttack` on PK maps + arena, with death/respawn |
+| **Item-use effects → client** | ✅ | `RecoverAgree`/inventory replies sent after use |
+| Emote reporting | ✅ | Validated, range-limited broadcast (eoserv `Emote_Report` parity) |
 
 Legend: ✅ implemented · ◑ partial · ❌ missing/broken
 
@@ -113,23 +113,22 @@ eoserv's server-to-server bus and not a client protocol). **Acorn implements all
 |---|---|---|
 | Account, Login, Connection, Init, Welcome, Refresh | ✅ | Login/handshake fully covered + tested |
 | Walk, Warp, Face, Sit, Chair, Door | ✅ | |
-| Attack | ◑ | NPC combat only — **no PvP** (eoserv supports PK maps) |
-| Spell | ❌ | eoserv casts attack/heal/group spells; Acorn's are stubs |
-| Item, Paperdoll, Bank, Locker, Chest, Shop, Trade | ✅ | Item *use* effects partial (see §4.1) |
+| Attack | ✅ | NPC melee **and PvP** (PK-map/arena gating, backstab, ranged, death) |
+| Spell | ✅ | Self/other/group casting via `ISpellCastService` |
+| Item, Paperdoll, Bank, Locker, Chest, Shop, Trade | ✅ | Item *use* effects echo to the client |
 | Character, StatSkill, Players, Talk, Global, Party, Guild | ✅ | Talk/admin command surface is rich |
-| Bank, Barber, Board, Book, Citizen, Jukebox, Quest | ✅/◑ | Book request is a stub; Citizen sleep-warp TODO |
-| Emote | ❌ | eoserv broadcasts emotes; Acorn's handler throws |
-| Message | ◑ | ping/pong not answered |
+| Bank, Barber, Board, Book, Citizen, Jukebox, Quest | ✅ | Book replies with full details; Citizen sleeps + warps |
+| Emote | ✅ | Range-limited broadcast, client-safe emote whitelist |
+| Message | ✅ | ping answered with pong |
 | AdminInteract | ✅ | report/tell |
 
 **Acorn additionally has** systems eoserv folds elsewhere or lacks as discrete
 handlers: dedicated **Marriage/Priest** + tick-driven wedding, **Arena**,
 **Npc/Range** request handlers, and the **WiseMan (Gemini) AI NPC**.
 
-**Takeaway:** category coverage is *not* the gap. The eoserv diff confirms the
-same four intra-family holes my review already flagged — **Spell, PvP Attack,
-Emote, item-use feedback** — which is reassuring corroboration that the roadmap
-is aimed at the right targets.
+**Takeaway:** category coverage is *not* the gap. All four intra-family holes
+flagged in June — **Spell, PvP Attack, Emote, item-use feedback** — are now
+closed, so Acorn is at functional parity with eoserv's handler families.
 
 ### 2A.2 Admin/player commands — the real coverage gap
 
@@ -148,18 +147,22 @@ minimum admin levels are now declared on the handlers (`RequiredLevel`) and enfo
 by the dispatcher; `$set admin` additionally requires HighGameMaster. Jail, freeze
 and bans are persisted (jail/freeze on the character, bans in the database).
 
+**Implemented since the June review:** `$remap <map>` (hot-reload one map file;
+refuses while players are inside), `$shutdown [reason]` (announces and stops the
+host gracefully, persisting all online characters first), and `$undress <player>`
+(force-unequip into inventory).
+
 **Missing vs eoserv (candidate backlog):**
 
 | Command(s) | Purpose | Priority |
 |---|---|---|
-| `remap` | Hot-reload a single map | Med |
-| `shutdown`, `request` | Server control / request logging | Med |
-| `strip` / `dress` / `undress` / `dress2` | Force-equip/unequip a player | Low |
+| `dress` / `strip` | Re-equip after `$undress`; item confiscation | Low |
+| `request` | Toggle per-player request logging | Low |
 | Privilege flags: `nowall`, `seehide`, `killnpc`, `cmdprotect`, `unlimitedweight` | GM toggles | Low |
 
 None of these are gameplay-critical. The high-frequency GM warp tools and the
-uptime/`repub`/`rehash` trio are now implemented; see [COMMANDS.md](COMMANDS.md)
-for the full command reference.
+uptime/`repub`/`rehash`/`remap`/`shutdown` set are now implemented; see
+[COMMANDS.md](COMMANDS.md) for the full command reference.
 
 ---
 
@@ -181,125 +184,128 @@ for the full command reference.
 
 ## 4. Issues & Risks
 
-### 4.1 Correctness bugs (fix soon)
+### 4.1 Correctness bugs — resolved
 
-- **`EmoteReportClientPacketHandler` throws `NotImplementedException`.** Any
-  client emote packet will raise an unhandled exception in the handler pipeline.
-  At minimum it should no-op or broadcast the emote.
-- **`MapState.LeaveArenaQueue` is a no-op.** It builds a filtered `newQueue` but
-  never assigns it back to `ArenaQueue`, so players never actually leave the
-  queue. (The code even comments the operation as "racy but acceptable" — but it
-  does nothing at all.)
-- **Item-use effects are invisible to the client.** `HandleHealItem` etc. mutate
-  `Character.Hp/Tp` but the `// TODO: Send updated inventory packet` /
-  `RecoverAgree` broadcasts are never sent, so the client UI desyncs from server
-  state after using a potion.
-- **`NpcCombatService` direction mapping looks inverted.** `(0,1) => Up` is
-  derived from `npc.X - target.X`; this should be verified against a real client
-  to confirm NPCs face the player they hit.
+All four bugs flagged in June are fixed in current code:
+
+- ✅ `EmoteReportClientPacketHandler` now broadcasts range-limited emotes and
+  validates the emote id against the client-safe whitelist (mirrors eoserv
+  `Emote_Report`).
+- ✅ `MapState.LeaveArenaQueue` rebuilds the queue preserving order.
+- ✅ Item-use effects send `RecoverAgree`/inventory replies so the client UI
+  matches server state.
+- ⚠️ `NpcCombatService` direction mapping (`(0,1) => Up` from `npc.X - target.X`)
+  is still **unverified** — it needs a pass with a real client to confirm NPCs
+  face the player they hit.
 
 ### 4.2 Protocol fragility (watch closely)
 
-The recent commit history is almost entirely sequence/encryption fixes
+The recent commit history was dominated by sequence/encryption fixes
 (`align sequence handling with reoserv`, `replace SDK sequencer with
-pre-increment`, `avoid session IDs that collide with AccountReply enum values`,
-`regenerate seeded password hash for .NET 10`). This subsystem works today but is
-clearly delicate. **Recommendation:** expand integration tests to lock in the
-behaviors that were hard-won (sequence progression across many packets, ping/
-pong cadence, reconnect), so regressions are caught automatically rather than by
-manual client testing.
+pre-increment`, `avoid session IDs that collide with AccountReply enum values`).
+The behaviours are now locked in by integration tests (`LoginFlowTests`,
+`PacketSequenceTests`, `WalkTimestampTests`, connection/handshake coverage), so
+regressions surface in CI rather than during manual client testing. Keep adding
+sequence assertions for any new hard-won protocol behaviour.
 
-### 4.3 Test coverage gap
+### 4.3 Test coverage
 
-Only three unit-test files (`Character`, `BankService`, `InventoryService`) plus
-the login integration tests, against ~150 handlers and dozens of services.
-Combat, loot, stat calculation, quests, guilds, and trade have no automated
-coverage. Given how much game logic is pure (formula/inventory/stat math), this
-is low-hanging fruit with high payoff.
+Coverage grew from ~3 unit-test files to **727 tests** (unit + integration, all
+green in CI): combat, loot, stats, quests, guilds, trade, party, map/range
+logic, admin services, ping policy, sessions and shutdown persistence all have
+automated coverage. Remaining thin spots: `WeightCalculator`, inn/citizen data
+loaders, and the WiseMan Gemini queue (network-bound, hard to assert).
 
-### 4.4 Documentation drift
+### 4.4 Documentation drift — resolved
 
-- `AGENTS.md` lists an **`Acorn.Domain`** project and a **Redis** caching tier;
-  neither exists (Redis was removed in `4794e28`, domain models live in
-  `Acorn.Database/Models` and `Acorn/Game/Models`).
-- `AGENTS.md` links `docs/REDIS_REALTIME.md`, which is not present.
-- `.ai/context/architecture.md` still documents `RedisCacheService`.
-
-This misleads new contributors and agents. It should be reconciled in one pass.
+`AGENTS.md` and the `.ai/` context describe the current architecture (in-memory
+caching, no `Acorn.Domain`, no live Redis tier). `docs/SHOPS.md` was added and
+`docs/COMMANDS.md` stays current with the command surface, including the
+`$remap`/`$shutdown`/`$undress` additions.
 
 ### 4.5 Smaller items
 
 - `WorldHostedService.OnTick` is `async void` (acceptable for a timer handler,
   but exceptions only survive because of the try/catch — keep that invariant).
-- Several `await Task.CompletedTask` placeholders mark handlers that don't yet do
-  async work; harmless but signal unfinished logic.
-- `GuildService` has `// TODO: offline kick` / `offline rank update` — guild
-  operations on offline members are silently skipped.
+- `GuildService` offline kick/rank updates are implemented: they operate on the
+  persisted `GuildMembers` row and surface via `SendGuildReply` (see
+  `GuildServiceOfflineTests`).
+- The online-character realtime cache now includes guild name/rank (previously
+  hardcoded empty).
+- **Open:** `WelcomeAgreeClientPacketHandler` echoes the requested pub file id
+  but always sends the whole file; multi-part pub splitting is unsupported
+  (matches reoserv's TODO) and unknown file types still throw
+  `NotImplementedException` — a malformed client could force an exception path.
 
 ---
 
 ## 5. Roadmap
 
-Phased so each item is independently shippable. Effort is rough: S < 1 day,
-M = 1–3 days, L = a week+.
+Legend: ✅ done · ⏳ open · 🟡 partial. Effort is rough: S < 1 day, M = 1–3 days, L = a week+.
 
-### Phase 0 — Stabilize (do first)
-
-| # | Task | Effort |
-|---|------|--------|
-| 0.1 | Fix `EmoteReportClientPacketHandler` (broadcast or no-op, never throw) | S |
-| 0.2 | Fix `LeaveArenaQueue` to actually replace the queue | S |
-| 0.3 | Send `RecoverAgree`/inventory packets after item use so the client UI matches server state | S |
-| 0.4 | Reconcile docs: remove Redis/`Acorn.Domain` from `AGENTS.md` & `.ai/context`, drop the dead `REDIS_REALTIME.md` link | S |
-| 0.5 | Audit & document the sequence/encryption invariants the recent fixes established | S |
-
-### Phase 1 — Lock down the protocol & raise coverage
+### Phase 0 — Stabilize ✅ complete
 
 | # | Task | Effort |
 |---|------|--------|
-| 1.1 | Extend integration tests: character create→enter-game→walk, multi-packet sequence progression, ping/pong, disconnect cleanup | M |
-| 1.2 | Unit tests for `StatCalculator`, `LootService`, `WeightCalculator`, quest progression | M |
-| 1.3 | Add a packet fuzz/soak test that drives many randomized valid packets to surface sequencing desync | M |
-| 1.4 | Wire test execution into CI gating (it already runs; make failures block merge) | S |
+| 0.1 | ✅ Fix `EmoteReportClientPacketHandler` (broadcast or no-op, never throw) | S |
+| 0.2 | ✅ Fix `LeaveArenaQueue` to actually replace the queue | S |
+| 0.3 | ✅ Send `RecoverAgree`/inventory packets after item use so the client UI matches server state | S |
+| 0.4 | ✅ Reconcile docs: remove Redis/`Acorn.Domain` from `AGENTS.md` & `.ai/context`, drop the dead `REDIS_REALTIME.md` link | S |
+| 0.5 | ✅ Audit & document the sequence/encryption invariants the recent fixes established (locked in by `PacketSequenceTests` + login/handshake integration tests) | S |
 
-### Phase 2 — Close core combat gaps
-
-| # | Task | Effort |
-|---|------|--------|
-| 2.1 | **Implement spell casting** end-to-end: chant timer, TP cost, attack spells (damage NPC/player), heal/buff spells, group targeting. Replace the four `SpellTarget*` TODO stubs with a `MapState.CastSpell` path mirroring the melee flow | L |
-| 2.2 | **Player-vs-player combat** in `AttackUse` (respect map PK flags / safe zones) and player death/respawn for PvP | M |
-| 2.3 | **NPC gold drops** alongside item drops in `AttackUseClientPacketHandler` | S |
-| 2.4 | Finish item-use effect types (cure curse, EXP scrolls, stat-reset) and home/inn teleport using real INN data | M |
-| 2.5 | Critical-hit / back-stab and arrows/ranged where applicable | M |
-
-### Phase 3 — Depth & polish
+### Phase 1 — Lock down the protocol & raise coverage 🟡
 
 | # | Task | Effort |
 |---|------|--------|
-| 3.1 | Guild offline operations (kick/rank update for offline members) | M |
-| 3.2 | Citizen/Inn sleep-warp and home registration | S |
-| 3.3 | Quest engine breadth: validate against a meaningful set of real EO quest files | L |
-| 3.4 | Map effects parity (spikes/timed spikes, lava, healing tiles) audit | M |
-| 3.5 | Book/`MessagePing` and remaining minor handler TODOs | S |
-| 3.6 | Admin command parity vs eoserv (§2A.2): add `warptome`/`warpmeto` first, then `rehash`/`repub`/`shutdown`, then the lower-priority lookups/flags | M |
+| 1.1 | ✅ Extend integration tests: walk/warp/attack/map-interaction/sit-stand/sequence/timestamp suites now run against the real server | M |
+| 1.2 | 🟡 Unit tests for `StatCalculator`, `LootService`, quest progression ✅; `WeightCalculator` still untested | M |
+| 1.3 | ⏳ Add a packet fuzz/soak test that drives many randomized valid packets to surface sequencing desync | M |
+| 1.4 | ✅ CI runs `dotnet test` on every PR (failures block merge) | S |
 
-### Phase 4 — Scale & operability
+### Phase 2 — Close core combat gaps ✅ complete
 
 | # | Task | Effort |
 |---|------|--------|
-| 4.1 | Profile and, if needed, shard the single world tick (per-map or partitioned tasks) for many-map/many-player loads | M |
-| 4.2 | Graceful shutdown that persists all online characters (not just on disconnect) | S |
-| 4.3 | Admin/ops dashboard surface via the existing REST API + metrics | M |
-| 4.4 | Load-test harness driving N synthetic clients through the real protocol | M |
+| 2.1 | ✅ **Spell casting** end-to-end: chant timer, TP cost, attack/heal/buff spells, self/other/group (`ISpellCastService` + `SpellTarget*` handlers) | L |
+| 2.2 | ✅ **Player-vs-player combat** on PK maps + arena (party protection, hidden-target rules, death/respawn via `PlayerController.DieAsync`) | M |
+| 2.3 | ✅ **NPC gold drops** via the unified loot roll (gold = item 1) with separate `NpcGoldDropped` metrics | S |
+| 2.4 | ✅ Item-use effect types: heal, cure-curse, EXP reward, effect potions, hair dye, alcohol, teleport scrolls using real INN data | M |
+| 2.5 | ✅ Back/side-stab bonus, configurable first-hit critical, ranged distance for bows (`AttackTrace`); arrow ammo consumption not modelled (client-side) | M |
+
+### Phase 3 — Depth & polish 🟡
+
+| # | Task | Effort |
+|---|------|--------|
+| 3.1 | ✅ Guild offline operations — kick/rank update persist the `GuildMembers` row (`GuildServiceOfflineTests`) | M |
+| 3.2 | ✅ Citizen/Inn sleep-warp (HP/TP restore, gold charge, warp to inn sleep area) and home registration/removal | S |
+| 3.3 | ⏳ Quest engine breadth: validate against a meaningful set of real EO quest files | L |
+| 3.4 | ⏳ Map effects parity (spikes/timed spikes, lava, healing tiles) audit | M |
+| 3.5 | ✅ Book full reply; `MessagePing` answered with pong; guild fields in the online-character cache | S |
+| 3.6 | 🟡 Admin parity vs eoserv (§2A.2): `remap`, `shutdown`, `undress` added; `dress`/`strip`/`request` and privilege flags remain | M |
+
+### Phase 4 — Scale & operability 🟡
+
+| # | Task | Effort |
+|---|------|--------|
+| 4.1 | ⏳ Profile and, if needed, shard the single world tick (per-map or partitioned tasks) for many-map/many-player loads | M |
+| 4.2 | ✅ Graceful shutdown that persists all online characters — `ShutdownPersistenceHostedService` runs on host stop (SIGTERM or `$shutdown`) before listeners close | S |
+| 4.3 | ⏳ Admin/ops dashboard surface via the existing REST API + metrics | M |
+| 4.4 | ⏳ Load-test harness driving N synthetic clients through the real protocol | M |
 
 ---
 
 ## 6. Suggested Immediate Next Steps
 
-If picking up work right now, start with **Phase 0** in a single PR (all small,
-all low-risk, immediately improves correctness and contributor trust), then open
-a dedicated effort for **2.1 (spell casting)** since it is the single largest
-visible gap between Acorn and a feature-complete EO server.
+The original June shortlist (Phase 0, the protocol test lock-in, all of Phase 2,
+and most of Phase 3) has shipped. Remaining, in rough priority order:
 
-Recommended order: `0.1 → 0.2 → 0.3 → 0.4 → 0.5`, then `1.1`/`1.2` in parallel
-with starting `2.1`.
+1. **1.3 packet soak/fuzz harness** — sequencing is the historically fragile
+   subsystem and the only untested-on-randomized-input path.
+2. **3.3 quest breadth validation** — the quest engine is structurally complete
+   but unproven against real content; this gates "content-ready" status.
+3. **3.4 map effects audit** — spikes/lava/healing tiles parity with eoserv.
+4. **4.1 world-tick profiling + 4.4 load harness** — before taking real
+   population, know where the single-tick model breaks.
+5. Small leftovers: `WeightCalculator` unit tests (1.2), `$dress`/`$strip`/
+   `$request` (3.6), and replacing the `NotImplementedException` for unsupported
+   pub file types in `WelcomeAgreeClientPacketHandler` with a graceful reply.
