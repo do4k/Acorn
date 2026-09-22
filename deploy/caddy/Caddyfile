@@ -1,6 +1,6 @@
 # Caddy configuration for the Acorn deployment.
 #
-#   <BASE_DOMAIN>          -> static landing page
+#   <BASE_DOMAIN>          -> static landing page + /gamedata (game data)
 #   game.<BASE_DOMAIN>     -> eoweb static client + WebSocket bridge to Acorn
 #   api.<BASE_DOMAIN>      -> read-only REST API (game state queries)
 #   aspire.<BASE_DOMAIN>   -> Aspire dashboard (only when ASPIRE_ENABLED=true)
@@ -19,10 +19,22 @@
 	# acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
 }
 
-# Landing page
+# Landing page + game data for scripts/fetch-game-data.sh.
+#
+# The /gamedata path serves the copyright-protected game files (dat*.edf,
+# maps/*.emf, ...) that are deliberately not in git, so clean checkouts can
+# fetch them before building (issue #144). No directory listing; the raw tree
+# lives under /gamedata/files/, the tarball + checksum at the top level.
 {$BASE_DOMAIN} {
-	root * /srv/landing
-	file_server
+	handle_path /gamedata/* {
+		root * /srv/gamedata
+		file_server
+	}
+
+	handle {
+		root * /srv/landing
+		file_server
+	}
 }
 
 # eoweb browser client + WebSocket endpoint (wss://game.<BASE_DOMAIN>)

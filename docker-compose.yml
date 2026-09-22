@@ -76,6 +76,8 @@ services:
       - ./deploy/caddy/entrypoint.sh:/etc/caddy/entrypoint.sh:ro
       - ./deploy/landing:/srv/landing:ro
       - ${EOWEB_DIST:-./deploy/eoweb}:/srv/eoweb:ro
+      # Static game data (copyrighted, not in git) for scripts/fetch-game-data.sh.
+      - ${GAME_DATA_PUBLISH_DIR:-/srv/acorn/game-data}:/srv/gamedata:ro
       - caddy-data:/data
       - caddy-config:/config
     restart: unless-stopped
