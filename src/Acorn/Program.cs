@@ -170,12 +170,7 @@ var host = Host.CreateDefaultBuilder(args)
             // persisting online characters while their sessions are still intact.
             .AddHostedService<ShutdownPersistenceHostedService>()
             .AddRefitClient<IServerLinkNetworkClient>()
-            .ConfigureHttpClient((svc, c) =>
-            {
-                var slnOptions = svc.GetRequiredService<IOptions<ServerOptions>>().Value.Hosting.SLN;
-                c.BaseAddress = new Uri(slnOptions.Url);
-                c.DefaultRequestHeaders.Add("User-Agent", slnOptions.UserAgent);
-            });
+            .ConfigureHttpClient(ServerLinkNetworkHttpClientConfiguration.Configure);
 
         // Always register WiseManTalkHandler so it is available for DI, regardless of Gemini/WiseMan feature flag
         services.AddSingleton<WiseManTalkHandler>();

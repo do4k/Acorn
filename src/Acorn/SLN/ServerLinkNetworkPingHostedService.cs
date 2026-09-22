@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Reflection;
 using Acorn.Options;
 using Microsoft.Extensions.Hosting;
@@ -37,6 +38,7 @@ public class ServerLinkNetworkPingHostedService(
 
     private async Task CheckSlnAsync()
     {
+        var start = Stopwatch.GetTimestamp();
         try
         {
             logger.LogDebug("Current assembly version {Version}",
@@ -55,11 +57,16 @@ public class ServerLinkNetworkPingHostedService(
                 _slnOptions.PingRate * 60
             );
 
+            logger.LogInformation("SLN check completed in {ElapsedMilliseconds} ms",
+                Stopwatch.GetElapsedTime(start).TotalMilliseconds);
             logger.LogDebug("Response from SLN: {Response}", response);
         }
         catch (Exception e)
         {
-            logger.LogError(e, "Error while getting sln response {Message}", e.Message);
+            // Timeouts (TaskCanceledException) and other transport errors land here;
+            // recording the elapsed time makes it obvious the HttpClient timeout fired.
+            logger.LogError(e, "Error while getting sln response after {ElapsedMilliseconds} ms: {Message}",
+                Stopwatch.GetElapsedTime(start).TotalMilliseconds, e.Message);
         }
     }
 
