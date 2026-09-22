@@ -10,6 +10,7 @@ internal class ConnectionPingClientPacketHandler : IPacketHandler<ConnectionPing
     public Task HandleAsync(PlayerState playerState, ConnectionPingClientPacket packet)
     {
         playerState.NeedPong = false;
+        playerState.MissedPings = 0;
         return Task.CompletedTask;
     }
 

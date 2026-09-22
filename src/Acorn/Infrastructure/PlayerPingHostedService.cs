@@ -78,9 +78,20 @@ public class PlayerPingHostedService(
                 // Check if player needs a pong response
                 if (player.NeedPong)
                 {
-                    logger.LogWarning("Player {SessionId} did not respond to ping, disconnecting", player.SessionId);
-                    player.Disconnect();
-                    continue;
+                    player.MissedPings++;
+                    if (ExceededPingGrace(player.MissedPings, _serverOptions.MaxMissedPings))
+                    {
+                        logger.LogWarning(
+                            "Player {SessionId} did not respond to {Missed} consecutive pings, disconnecting",
+                            player.SessionId, player.MissedPings);
+                        player.Disconnect();
+                        continue;
+                    }
+
+                    // Within the grace interval: warn softly and re-probe below.
+                    logger.LogDebug(
+                        "Player {SessionId} has not answered {Missed} ping(s) yet, allowing grace",
+                        player.SessionId, player.MissedPings);
                 }
 
                 // Generate new ping sequence
@@ -102,6 +113,15 @@ public class PlayerPingHostedService(
                 logger.LogError(ex, "Error pinging player {SessionId}", player.SessionId);
             }
         }
+    }
+
+    /// <summary>
+    ///     Whether the number of consecutive unanswered pings has grown past the configured
+    ///     grace interval and the connection should now be dropped.
+    /// </summary>
+    internal static bool ExceededPingGrace(int missedPings, int maxMissedPings)
+    {
+        return missedPings >= maxMissedPings;
     }
 
     /// <summary>
