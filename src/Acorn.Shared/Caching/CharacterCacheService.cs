@@ -72,6 +72,7 @@ public class CharacterCacheService : ICharacterCacheService
             Players = characters.Select(c => new OnlinePlayerSummary
             {
                 Name = c.Name,
+                Title = c.Title,
                 Level = c.Level,
                 Class = c.Class.ToString(),
                 MapId = c.MapId
