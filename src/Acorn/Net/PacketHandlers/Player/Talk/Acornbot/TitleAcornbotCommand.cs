@@ -5,7 +5,6 @@ using Acorn.Game.Mappers;
 using Acorn.Game.Services;
 using Acorn.Options;
 using Acorn.Shared.Caching;
-using Acorn.World.Services.Player;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
@@ -24,10 +23,10 @@ namespace Acorn.Net.PacketHandlers.Player.Talk.Acornbot;
 public class TitleAcornbotCommand(
     IAcornbotReplyChannel replies,
     IOptions<AcornbotOptions> options,
+    IBannedTextPolicy bannedText,
     IInventoryService inventoryService,
     IWeightCalculator weightCalculator,
     IDataFileRepository dataFiles,
-    IPlayerController playerController,
     ICharacterCacheService characterCache,
     IPaperdollService paperdollService,
     IDbRepository<Database.Models.Character> characterRepository,
@@ -76,6 +75,13 @@ public class TitleAcornbotCommand(
             return;
         }
 
+        if (!clearing && bannedText.FirstViolation(title) is { Length: > 0 } banned)
+        {
+            await replies.WhisperAsync(playerState,
+                $"Titles cannot contain the symbol \"{banned}\".");
+            return;
+        }
+
         var charge = !clearing && titleOptions.CostAmount > 0;
         string? payment = null;
 
@@ -109,8 +115,10 @@ public class TitleAcornbotCommand(
 
         if (playerState.CurrentMap is not null)
         {
-            // Re-appear on the map so the client picks up the new title label.
-            await playerController.RefreshAsync(playerState);
+            // Re-announce the player to nearby viewers so their nameplates pick up the
+            // new title. Msg_Players/Agree is merged by player id client-side, so no
+            // full re-warp (and warp animation) is needed.
+            await playerState.CurrentMap.NotifyAppear(playerState);
         }
 
         logger.LogInformation("Acornbot set title '{Title}' for {Player} (payment: {Payment})",

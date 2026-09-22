@@ -201,6 +201,7 @@ public class TestServerFixture : TUnit.Core.Interfaces.IAsyncInitializer, IAsync
                     .Configure<PartyOptions>(cfg.GetSection(PartyOptions.SectionName))
                     .Configure<GuildOptions>(cfg.GetSection(GuildOptions.SectionName))
                     .Configure<AcornbotOptions>(cfg.GetSection(AcornbotOptions.SectionName))
+                    .Configure<BannedTextOptions>(cfg.GetSection(BannedTextOptions.SectionName))
                     .AddSingleton<UtcNowDelegate>(() => DateTime.UtcNow)
                     .AddSingleton<AcornMetrics>();
 

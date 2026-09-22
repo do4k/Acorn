@@ -7,7 +7,6 @@ using Acorn.Net.PacketHandlers.Player.Talk.Acornbot;
 using Acorn.Options;
 using Acorn.Shared.Caching;
 using Acorn.Tests.TestSupport;
-using Acorn.World.Services.Player;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moffat.EndlessOnline.SDK.Data;
@@ -36,10 +35,9 @@ public class TitleAcornbotCommandTests
         PlayerState Player,
         CapturingCommunicator Communicator,
         IAcornbotReplyChannel Replies,
-        IDbRepository<DatabaseCharacter> Repository,
-        IPlayerController PlayerController);
+        IDbRepository<DatabaseCharacter> Repository);
 
-    private static Fixture CreateSut(AcornbotTitleOptions? titleOptions = null)
+    private static Fixture CreateSut(AcornbotTitleOptions? titleOptions = null, IBannedTextPolicy? bannedText = null)
     {
         var eif = new Eif
         {
@@ -58,7 +56,6 @@ public class TitleAcornbotCommandTests
 
         var replies = Substitute.For<IAcornbotReplyChannel>();
         var repository = Substitute.For<IDbRepository<DatabaseCharacter>>();
-        var playerController = Substitute.For<IPlayerController>();
 
         var sut = new TitleAcornbotCommand(
             replies,
@@ -67,17 +64,17 @@ public class TitleAcornbotCommandTests
                 Enabled = true,
                 Title = titleOptions ?? new AcornbotTitleOptions()
             }),
+            bannedText ?? Substitute.For<IBannedTextPolicy>(),
             new InventoryService(new WeightCalculator(), dataFiles),
             new WeightCalculator(),
             dataFiles,
-            playerController,
             Substitute.For<ICharacterCacheService>(),
             Substitute.For<IPaperdollService>(),
             repository,
             new CharacterMapper(),
             NullLogger<TitleAcornbotCommand>.Instance);
 
-        return new Fixture(sut, player, communicator, replies, repository, playerController);
+        return new Fixture(sut, player, communicator, replies, repository);
     }
 
     private static void Give(Fixture fixture, int itemId, int amount) =>
@@ -99,8 +96,49 @@ public class TitleAcornbotCommandTests
             .UpdateAsync(Arg.Is<DatabaseCharacter>(c => c.Title == "Cool Dude"));
         await fixture.Replies.Received(1)
             .WhisperAsync(fixture.Player, Arg.Is<string>(m => m.Contains("\"Cool Dude\"")));
-        await fixture.PlayerController.DidNotReceiveWithAnyArgs().RefreshAsync(default!);
         fixture.Communicator.Sent.Should().BeEmpty("no cost was charged, no item sync is sent");
+    }
+
+    [Test]
+    public async Task Title_WhenMapPresent_ReannouncesWithoutSendingAnythingToSelf()
+    {
+        // Arrange - NotifyAppear only targets nearby viewers, never the acting
+        // player, and must not re-warp them.
+        var fixture = CreateSut();
+        var map = FakeMap.Create();
+        fixture.Player.CurrentMap = map;
+
+        // Act
+        await fixture.Sut.HandleAsync(fixture.Player, "title", "Seen");
+
+        // Assert
+        fixture.Player.Character!.Title.Should().Be("Seen");
+        fixture.Communicator.Sent.Should().BeEmpty("no warp or self-info packet is sent");
+    }
+
+    [Test]
+    public async Task Title_WhenBannedSymbol_RejectedBeforeCharging()
+    {
+        // Arrange - '#' is banned and a cost is configured; rejection must be free.
+        var banned = Substitute.For<IBannedTextPolicy>();
+        banned.FirstViolation(Arg.Any<string?>())
+            .Returns(ci => ((string?)ci.ArgAt<string?>(0))?.Contains('#') == true ? "#" : null);
+        var fixture = CreateSut(new AcornbotTitleOptions
+        {
+            CostItemId = GoldItemId,
+            CostAmount = 10_000
+        }, banned);
+        Give(fixture, GoldItemId, 25_000);
+
+        // Act
+        await fixture.Sut.HandleAsync(fixture.Player, "title", "#1", "Dad");
+
+        // Assert
+        fixture.Player.Character!.Title.Should().BeNull();
+        fixture.Player.Character.Inventory.Items.Single(i => i.Id == GoldItemId).Amount.Should().Be(25_000);
+        await fixture.Replies.Received(1).WhisperAsync(fixture.Player,
+            Arg.Is<string>(m => m.Contains("\"#\"")));
+        await fixture.Repository.DidNotReceiveWithAnyArgs().UpdateAsync(default!);
     }
 
     [Test]

@@ -19,9 +19,13 @@ public class AcornbotService(
 
     public bool IsBotName(string whisperTarget)
     {
-        return _options.Enabled
-               && !string.IsNullOrWhiteSpace(whisperTarget)
-               && string.Equals(whisperTarget.Trim(), _options.Name, StringComparison.OrdinalIgnoreCase);
+        return _options.Enabled && ReservesName(whisperTarget);
+    }
+
+    public bool ReservesName(string name)
+    {
+        return !string.IsNullOrWhiteSpace(name)
+               && string.Equals(name.Trim(), _options.Name, StringComparison.OrdinalIgnoreCase);
     }
 
     public async Task HandleWhisperAsync(PlayerState playerState, string message)

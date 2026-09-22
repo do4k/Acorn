@@ -92,6 +92,18 @@ public class AccountCharacterValidationTests
     }
 
     [Test]
+    public async Task CreateCharacter_WithBotHandleName_ShouldReturnNotApproved()
+    {
+        // Acornbot's configured name is reserved from creation while the bot exists,
+        // so the whisper handle can never be shadowed by a real character.
+        await using var client = await CreateAndLoginAsync("bottest");
+
+        var reply = await client.CreateCharacterAsync(client.PlayerId, "acornbot");
+
+        reply.ReplyCode.Should().Be(CharacterReply.NotApproved);
+    }
+
+    [Test]
     public async Task CreateCharacter_WithInvalidAppearance_ShouldReturnNotApproved()
     {
         await using var client = await CreateAndLoginAsync("appearance");

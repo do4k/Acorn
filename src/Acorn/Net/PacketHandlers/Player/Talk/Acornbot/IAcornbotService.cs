@@ -19,6 +19,14 @@ public interface IAcornbotService
     bool IsBotName(string whisperTarget);
 
     /// <summary>
+    ///     Whether <paramref name="name" /> collides with the configured bot handle
+    ///     and must therefore be reserved from character creation. Evaluated even
+    ///     when the bot is disabled, so an existing "Acornbot" character cannot
+    ///     silently shadow the bot after an operator enables it.
+    /// </summary>
+    bool ReservesName(string name);
+
+    /// <summary>
     ///     Handles <paramref name="message" /> as a command whisper from
     ///     <paramref name="playerState" /> to Acornbot. Always consumes the whisper
     ///     (unknown commands receive a help reply) so the caller should not fall

@@ -90,7 +90,19 @@ Send just `help` (or an empty whisper) for the command list.
 | Command | Description |
 |---------|-------------|
 | `title <text>` | Set the title shown under your character name. `title clear` removes it. |
+| `whoami` (`me`) | Read-only summary of your own character: identity, location, vitals, gold. |
 | `help` | List the commands this bot accepts. |
+
+Every player can use the bot regardless of admin level - an admin is implicitly a
+player here; there is no `RequiredLevel` on bot commands. While the bot is
+configured, character creation refuses names matching the bot handle
+(case-insensitively) so the whisper handle can never be shadowed.
+
+Title changes are persisted and the player is re-announced to nearby viewers via
+`Msg_Players`/Agree (no re-warp animation). Note: the map `Player` struct in this
+protocol revision carries no title field, so viewers see the new title via the
+book/paperdoll windows and the acting player's own client picks it up on
+re-login - a protocol/client limitation, not a server one.
 
 Configure via the `Acornbot` section of `appsettings.json`:
 
@@ -112,6 +124,19 @@ Configure via the `Acornbot` section of `appsettings.json`:
 New bot commands implement `IAcornbotCommand` under
 `src/Acorn/Net/PacketHandlers/Player/Talk/Acornbot/` and are discovered by
 `AddAllOfType<IAcornbotCommand>()`.
+
+## Banned symbols (global text policy)
+
+`IBannedTextPolicy` (section `BannedText` in `appsettings.json`) is a single
+global deny list of case-insensitive substrings applied to all user-supplied
+naming text: character names at creation, guild tags/names/descriptions and
+Acornbot titles.
+
+```json
+"BannedText": { "Symbols": ["#", "$", "'", "~"] }
+```
+
+An empty list (the code default) disables the check. Entries may be multi-character.
 
 ## Adding a command
 

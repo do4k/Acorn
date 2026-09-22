@@ -60,6 +60,29 @@ public class AcornbotServiceTests
     }
 
     [Test]
+    public void ReservesName_WhenNameMatches_TrueEvenWhileDisabled()
+    {
+        var (enabled, _, _) = CreateSut();
+        enabled.ReservesName("acornbot").Should().BeTrue("the eoweb client lower-cases the handle");
+
+        // Disabled bots must still reserve their handle so no character can be
+        // created that would silently shadow the bot once switched on.
+        var (disabled, _, _) = CreateSut(enabled: false);
+        disabled.ReservesName("Acornbot").Should().BeTrue();
+        disabled.IsBotName("Acornbot").Should().BeFalse();
+    }
+
+    [Test]
+    public void ReservesName_OtherNames_False()
+    {
+        var (sut, _, _) = CreateSut();
+
+        sut.ReservesName("SomePlayer").Should().BeFalse();
+        sut.ReservesName("Acornbotx").Should().BeFalse();
+        sut.ReservesName("").Should().BeFalse();
+    }
+
+    [Test]
     public async Task HandleWhisper_PlainCommand_DispatchesToHandler()
     {
         // Arrange

@@ -101,6 +101,60 @@ public class ChatSocialIntegrationTests
         received.Should().BeFalse();
     }
 
+    [Test]
+    public async Task Tell_ToAcornbot_HelpKeyword_AnswersWithCommandList()
+    {
+        await using var session = await LoginAndEnterAsync("bothelp");
+
+        await session.Client.SendPacketAsync(new TalkTellClientPacket
+        {
+            Name = "acornbot",
+            Message = "help"
+        });
+
+        var tell = await ReceiveUntilAsync(session.Client, p => p is TalkTellServerPacket) as TalkTellServerPacket;
+        tell.Should().NotBeNull();
+        tell!.PlayerName.Should().Be("Acornbot");
+        tell.Message.Should().Contain("Send me a command");
+    }
+
+    [Test]
+    public async Task Tell_ToAcornbot_EmptyMessage_AnswersWithHelp()
+    {
+        // Typing just "!acornbot" in local chat sends a whisper with an empty body.
+        await using var session = await LoginAndEnterAsync("botempty");
+
+        await session.Client.SendPacketAsync(new TalkTellClientPacket
+        {
+            Name = "acornbot",
+            Message = ""
+        });
+
+        var tell = await ReceiveUntilAsync(session.Client, p => p is TalkTellServerPacket) as TalkTellServerPacket;
+        tell.Should().NotBeNull();
+        tell!.Message.Should().Contain("Send me a command");
+    }
+
+    [Test]
+    public async Task Tell_ToAcornbot_TitleCommand_AppliesTitleAndConfirms()
+    {
+        await using var session = await LoginAndEnterAsync("bottitle");
+
+        await session.Client.SendPacketAsync(new TalkTellClientPacket
+        {
+            Name = "acornbot",
+            Message = "title Distinguished Tester"
+        });
+
+        var tell = await ReceiveUntilAsync(session.Client, p => p is TalkTellServerPacket) as TalkTellServerPacket;
+        tell.Should().NotBeNull();
+        tell!.PlayerName.Should().Be("Acornbot");
+        tell.Message.Should().Contain("Your title is now \"Distinguished Tester\"");
+
+        var player = _fixture.GetPlayer(session.Client.PlayerId)!;
+        player.Character!.Title.Should().Be("Distinguished Tester");
+    }
+
     // --- Flow helpers ---
 
     private sealed record TestSession(EoTestClient Client, string CharacterName) : IAsyncDisposable

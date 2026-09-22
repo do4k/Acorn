@@ -93,6 +93,7 @@ var host = Host.CreateDefaultBuilder(args)
             .Configure<PartyOptions>(configuration.GetSection(PartyOptions.SectionName))
             .Configure<GuildOptions>(configuration.GetSection(GuildOptions.SectionName))
             .Configure<AcornbotOptions>(configuration.GetSection(AcornbotOptions.SectionName))
+            .Configure<BannedTextOptions>(configuration.GetSection(BannedTextOptions.SectionName))
             .AddSingleton<UtcNowDelegate>(() => DateTime.UtcNow)
             .AddSingleton<AcornMetrics>()
             // Database + caching infrastructure: options binding, DbContext and in-memory cache
