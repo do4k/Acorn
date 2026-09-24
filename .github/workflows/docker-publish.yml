@@ -136,6 +136,8 @@ jobs:
           type=ref,event=branch
           type=semver,pattern={{version}}
           type=semver,pattern={{major}}.{{minor}}
+          type=semver,pattern={{major}}
+          type=sha,prefix=
           type=raw,value=latest,enable={{is_default_branch}}
 
     - name: Build and push Acorn Server to Docker Hub
@@ -159,6 +161,8 @@ jobs:
           type=ref,event=branch
           type=semver,pattern={{version}}
           type=semver,pattern={{major}}.{{minor}}
+          type=semver,pattern={{major}}
+          type=sha,prefix=
           type=raw,value=latest,enable={{is_default_branch}}
 
     - name: Build and push Acorn API to Docker Hub
