@@ -141,7 +141,7 @@ var host = Host.CreateDefaultBuilder(args)
             .AddSingleton<IWeightCalculator, WeightCalculator>()
             .AddSingleton<ITradeService, TradeService>()
             .AddSingleton<ICharacterMapper, CharacterMapper>()
-            .AddSingleton<DropFileTextLoader>()
+            .AddSingleton<DropFileLoader>()
             // Notification services
             .AddSingleton<INotificationService, NotificationService>()
             .AddHostedService<DropTableHostedService>()

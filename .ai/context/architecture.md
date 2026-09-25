@@ -179,8 +179,11 @@ Background services running in the server:
 
 Game data loaded at startup:
 
-- `drops.txt`: NPC loot tables
+- `drops.json`: NPC loot tables
+- `global_drops.json`: drops rolled for every NPC kill
 - `news.txt`: Server news/MOTD
+- `Shops/`: Shop inventories, prices and craft recipes (one JSON per shop NPC)
+- `SkillMasters/`: Learnable spells per skill master NPC (one JSON per NPC)
 - `quests/`: Quest definitions
 
 Pub files (loaded from game client data):

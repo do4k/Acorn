@@ -226,7 +226,7 @@ public class TestServerFixture : TUnit.Core.Interfaces.IAsyncInitializer, IAsync
                     .AddSingleton<IWeightCalculator, WeightCalculator>()
                     .AddSingleton<ITradeService, TradeService>()
                     .AddSingleton<ICharacterMapper, CharacterMapper>()
-                    .AddSingleton<DropFileTextLoader>()
+                    .AddSingleton<DropFileLoader>()
                     .AddSingleton<INotificationService, NotificationService>();
 
                 // Hosted services

@@ -508,3 +508,9 @@ src/Acorn/Data/Inns/
 src/Acorn/Data/Shops/
 src/Acorn/Data/SkillMasters/
 Acorn.db*
+
+# Superseded by drops.json / global_drops.json. The game-data archive still
+# carries these, so they reappear as untracked files on every restore; ignore
+# them so a stale copy cannot be mistaken for live configuration.
+src/Acorn/Data/drops.txt
+src/Acorn/Data/global_drops.txt

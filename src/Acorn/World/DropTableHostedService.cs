@@ -10,13 +10,13 @@ namespace Acorn.World;
 /// </summary>
 internal class DropTableHostedService : IHostedService
 {
-    private readonly DropFileTextLoader _dropFileLoader;
+    private readonly DropFileLoader _dropFileLoader;
     private readonly ILogger<DropTableHostedService> _logger;
     private readonly ILootService _lootService;
 
     public DropTableHostedService(
         ILootService lootService,
-        DropFileTextLoader dropFileLoader,
+        DropFileLoader dropFileLoader,
         ILogger<DropTableHostedService> logger)
     {
         _lootService = lootService;
@@ -28,10 +28,10 @@ internal class DropTableHostedService : IHostedService
     {
         _logger.LogInformation("Loading NPC drop tables...");
 
-        var dropFilePath = Path.Combine(AppContext.BaseDirectory, "Data", "drops.txt");
+        var dropFilePath = Path.Combine(AppContext.BaseDirectory, "Data", "drops.json");
         _dropFileLoader.LoadDrops(_lootService, dropFilePath);
 
-        var globalDropFilePath = Path.Combine(AppContext.BaseDirectory, "Data", "global_drops.txt");
+        var globalDropFilePath = Path.Combine(AppContext.BaseDirectory, "Data", "global_drops.json");
         _dropFileLoader.LoadGlobalDrops(_lootService, globalDropFilePath);
 
         // Freeze loot tables once loaded - the hot-path lookup becomes immutable.
