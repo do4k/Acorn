@@ -192,6 +192,14 @@ public class ItemUseClientPacketHandler(
             return false;
         }
 
+        // Jailed players cannot scroll out (and the scroll is not consumed).
+        if (player.IsJailed)
+        {
+            logger.LogWarning("Player {Character} tried to use a teleport item while jailed",
+                player.Character.Name);
+            return false;
+        }
+
         // The current map must permit scroll-based teleports.
         if (!player.CurrentMap.Data.CanScroll)
         {

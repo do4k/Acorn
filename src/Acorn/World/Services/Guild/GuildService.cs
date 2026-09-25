@@ -4,6 +4,7 @@ using Acorn.Extensions;
 using Acorn.Game.Services;
 using Acorn.Net;
 using Acorn.Options;
+using Acorn.World.Services.Map;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -39,6 +40,13 @@ public class GuildService(
 
         if (!player.CurrentMap.Npcs.TryGetValue(npcIndex, out var npc)) return;
         if (npc.Data.Type != NpcType.Guild) return;
+
+        // The guild master must be visible to the player; a real client can only
+        // click NPCs inside its view, so anything farther away is a crafted packet.
+        if (!MapTileService.IsInClientView(player.Character.AsCoords(), npc.AsCoords()))
+        {
+            return;
+        }
 
         player.InteractingNpcIndex = npcIndex;
 

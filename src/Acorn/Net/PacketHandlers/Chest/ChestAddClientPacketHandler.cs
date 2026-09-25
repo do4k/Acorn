@@ -78,55 +78,63 @@ public class ChestAddClientPacketHandler(
         }
 
         var chest = chestService.GetOrCreateChest(map, chestCoords);
-        var existingItem = chest.Items.FirstOrDefault(i => i.ItemId == itemId);
-        var existingAmount = existingItem?.Amount ?? 0;
 
-        // Slot cap only applies when a new stack would be created.
-        if (existingItem is null && chest.Items.Count >= chest.MaxSlots)
+        // Serialize chest mutations so concurrent adds (or an add racing a take)
+        // can't lose stacks or exceed caps.
+        int depositedAmount = 0;
+        List<ThreeItem>? updatedItems = null;
+        lock (chest)
         {
-            logger.LogDebug("Chest at ({X}, {Y}) is full", chestCoords.X, chestCoords.Y);
-            await player.Send(new ChestSpecServerPacket());
-            return;
-        }
+            var existingItem = chest.Items.FirstOrDefault(i => i.ItemId == itemId);
+            var existingAmount = existingItem?.Amount ?? 0;
 
-        // Per-item cap (matches eoserv: amount = min(requested, MaxChest - existing)).
-        var capacity = MaxChestItem - existingAmount;
-        if (capacity <= 0)
-        {
-            await player.Send(new ChestSpecServerPacket());
-            return;
-        }
-
-        var playerAmount = inventoryService.GetItemAmount(player.Character, itemId);
-        var amount = Math.Min(requestedAmount, Math.Min(playerAmount, capacity));
-
-        if (amount <= 0)
-        {
-            return;
-        }
-
-        if (!inventoryService.TryRemoveItem(player.Character, itemId, amount))
-        {
-            return;
-        }
-
-        if (existingItem is not null)
-        {
-            var newItems = new ConcurrentBag<ChestItem>(chest.Items.Where(i => i.ItemId != itemId))
+            // Slot cap only applies when a new stack would be created.
+            if (existingItem is null && chest.Items.Count >= chest.MaxSlots)
             {
-                new(itemId, existingAmount + amount)
-            };
-            chest.Items = newItems;
+                logger.LogDebug("Chest at ({X}, {Y}) is full", chestCoords.X, chestCoords.Y);
+            }
+            else
+            {
+                // Per-item cap (matches eoserv: amount = min(requested, MaxChest - existing)).
+                var capacity = MaxChestItem - existingAmount;
+                if (capacity <= 0)
+                {
+                    logger.LogDebug("Chest at ({X}, {Y}) is full", chestCoords.X, chestCoords.Y);
+                }
+                else
+                {
+                    var playerAmount = inventoryService.GetItemAmount(player.Character, itemId);
+                    var amount = Math.Min(requestedAmount, Math.Min(playerAmount, capacity));
+
+                    if (amount > 0 && inventoryService.TryRemoveItem(player.Character, itemId, amount))
+                    {
+                        if (existingItem is not null)
+                        {
+                            chest.Items = new ConcurrentBag<ChestItem>(chest.Items.Where(i => i.ItemId != itemId))
+                            {
+                                new(itemId, existingAmount + amount)
+                            };
+                        }
+                        else
+                        {
+                            chest.Items.Add(new ChestItem(itemId, amount));
+                        }
+
+                        depositedAmount = amount;
+                        updatedItems = chestService.ToThreeItems(chest);
+                        logger.LogInformation("Player {Character} added {Amount}x item {ItemId} to chest",
+                            player.Character.Name, amount, itemId);
+                    }
+                }
+            }
         }
-        else
+
+        if (depositedAmount == 0 || updatedItems is null)
         {
-            chest.Items.Add(new ChestItem(itemId, amount));
+            // Chest full, at cap, nothing to deposit, or inventory changed under us.
+            await player.Send(new ChestSpecServerPacket());
+            return;
         }
-
-        logger.LogInformation("Player {Character} added {Amount}x item {ItemId} to chest",
-            player.Character.Name, amount, itemId);
-
-        var chestItems = chestService.ToThreeItems(chest);
 
         await player.Send(new ChestReplyServerPacket
         {
@@ -137,11 +145,11 @@ public class ChestAddClientPacketHandler(
                 Current = CalculateCurrentWeight(player),
                 Max = player.Character.MaxWeight
             },
-            Items = chestItems
+            Items = updatedItems
         });
 
         // Notify nearby observers (not just players who have this chest open).
-        var agreePacket = new ChestAgreeServerPacket { Items = chestItems };
+        var agreePacket = new ChestAgreeServerPacket { Items = updatedItems };
         foreach (var observer in chestService.GetNearbyObservers(map, chestCoords, player))
         {
             await observer.Send(agreePacket);

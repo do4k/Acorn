@@ -126,18 +126,22 @@ public class MapItemService : IMapItemService
             return new ItemPickupResult(false, ErrorMessage: "No character");
         }
 
-        // Check if item exists
-        if (!map.Items.TryGetValue(itemIndex, out var mapItem))
+        // Atomically claim the item first so two racing pickups can't both succeed.
+        // Every failure path below restores it; only the successful claim proceeds.
+        if (!map.Items.TryRemove(itemIndex, out var mapItem))
         {
             _logger.LogWarning("Player {Character} tried to get non-existent item {ItemIndex}",
                 player.Character.Name, itemIndex);
             return new ItemPickupResult(false, ErrorMessage: "Item not found");
         }
 
+        bool Restore() => map.Items.TryAdd(itemIndex, mapItem);
+
         // Check protection
         if (mapItem.ProtectedTicks > 0 && mapItem.OwnerId != player.SessionId)
         {
             _logger.LogWarning("Player {Character} tried to get protected item", player.Character.Name);
+            Restore();
             return new ItemPickupResult(false, ErrorMessage: "Item is protected");
         }
 
@@ -146,6 +150,7 @@ public class MapItemService : IMapItemService
         if (_tileService.GetDistance(playerCoords, mapItem.Coords) > DropDistance)
         {
             _logger.LogWarning("Player {Character} tried to get item too far away", player.Character.Name);
+            Restore();
             return new ItemPickupResult(false, ErrorMessage: "Too far away");
         }
 
@@ -154,6 +159,7 @@ public class MapItemService : IMapItemService
         if (itemData == null)
         {
             _logger.LogError("Item {ItemId} not found in EIF", mapItem.Id);
+            Restore();
             return new ItemPickupResult(false, ErrorMessage: "Item data not found");
         }
 
@@ -161,6 +167,7 @@ public class MapItemService : IMapItemService
         if (!_weightCalculator.CanCarry(player.Character, _dataRepository.Eif, mapItem.Id, mapItem.Amount))
         {
             _logger.LogWarning("Player {Character} cannot carry item weight", player.Character.Name);
+            Restore();
             return new ItemPickupResult(false, ErrorMessage: "Too heavy");
         }
 
@@ -168,16 +175,14 @@ public class MapItemService : IMapItemService
         if (!_inventoryService.TryAddItem(player.Character, mapItem.Id, mapItem.Amount))
         {
             _logger.LogWarning("Player {Character} inventory full", player.Character.Name);
+            Restore();
             return new ItemPickupResult(false, ErrorMessage: "Inventory full");
         }
 
         var pickedUpId = mapItem.Id;
         var pickedUpAmount = mapItem.Amount;
 
-        // Remove from map
-        map.Items.TryRemove(itemIndex, out _);
-
-        // Broadcast removal
+        // Claimed and validated; broadcast removal
         await map.BroadcastPacket(new ItemRemoveServerPacket
         {
             ItemIndex = itemIndex

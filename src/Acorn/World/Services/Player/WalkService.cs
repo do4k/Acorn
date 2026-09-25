@@ -65,6 +65,13 @@ public class WalkService : IWalkService
             return;
         }
 
+        // Jailed players cannot walk out.
+        if (player.IsJailed)
+        {
+            await player.Send(new WalkCloseServerPacket());
+            return;
+        }
+
         if (player.Character is null || player.CurrentMap is null)
         {
             return;

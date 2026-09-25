@@ -1,4 +1,5 @@
 using Acorn.Game.Services;
+using Acorn.Net.PacketHandlers;
 using Acorn.World;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
@@ -6,6 +7,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.Net.PacketHandlers.Player.Talk;
 
+[RequiresCharacter]
 internal class TalkMsgClientPacketHandler : IPacketHandler<TalkMsgClientPacket>
 {
     private readonly IChatSanitizer _chatSanitizer;

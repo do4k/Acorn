@@ -1,3 +1,4 @@
+using Acorn.Net.PacketHandlers;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 
@@ -7,6 +8,7 @@ namespace Acorn.Net.PacketHandlers.Player;
 ///     Sent by the client when the player disables whispers. Mirrors eoserv
 ///     Global_Player (which sets <c>whispers = false</c>).
 /// </summary>
+[RequiresCharacter]
 internal class GlobalPlayerClientPacketHandler : IPacketHandler<GlobalPlayerClientPacket>
 {
     public Task HandleAsync(PlayerState playerState, GlobalPlayerClientPacket packet)

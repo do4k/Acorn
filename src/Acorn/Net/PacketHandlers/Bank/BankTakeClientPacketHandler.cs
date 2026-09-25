@@ -66,8 +66,14 @@ public class BankTakeClientPacketHandler(
         // Remove gold from bank
         player.Character!.GoldBank -= amount;
 
-        // Add gold to inventory
-        inventoryService.TryAddItem(player.Character!, GoldItemId, amount);
+        // Add gold to inventory; restore the bank if it doesn't fit.
+        if (!inventoryService.TryAddItem(player.Character!, GoldItemId, amount))
+        {
+            player.Character!.GoldBank += amount;
+            logger.LogWarning("Player {Character} inventory full; restored bank withdrawal",
+                player.Character!.Name);
+            return;
+        }
 
         logger.LogInformation("Player {Character} withdrew {Amount} gold (Bank: {BankGold})",
             player.Character!.Name, amount, player.Character!.GoldBank);

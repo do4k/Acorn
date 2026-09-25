@@ -1,5 +1,6 @@
 using Acorn.Extensions;
 using Acorn.Game.Services;
+using Acorn.Net.PacketHandlers;
 using Acorn.World;
 using Microsoft.Extensions.Logging;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
@@ -8,6 +9,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.Net.PacketHandlers.Player;
 
+[RequiresCharacter]
 public class PaperdollRequestClientPacketHandler : IPacketHandler<PaperdollRequestClientPacket>
 {
     private readonly IWorldQueries _world;

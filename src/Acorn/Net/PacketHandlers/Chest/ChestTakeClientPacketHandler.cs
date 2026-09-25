@@ -58,56 +58,73 @@ public class ChestTakeClientPacketHandler(
             return;
         }
 
-        var chestItem = chest.Items.FirstOrDefault(i => i.ItemId == itemId);
-        if (chestItem == null)
+        // Serialize all readers/writers of this chest so concurrent takes (or an
+        // add racing a take) can't duplicate or lose stacks.
+        int amountTaken;
+        List<ThreeItem> chestItems;
+        lock (chest)
         {
-            logger.LogWarning("Item {ItemId} not found in chest", itemId);
-            return;
-        }
+            var snapshot = chest.Items.ToList();
 
-        // Limit by available carry weight.
-        var itemData = dataFileRepository.Eif.GetItem(itemId);
-        var amount = chestItem.Amount;
-        if (itemData != null && itemData.Weight > 0)
-        {
-            var currentWeight = CalculateCurrentWeight(player);
-            var availableWeight = player.Character.MaxWeight - currentWeight;
-            var canHold = availableWeight / itemData.Weight;
-            amount = Math.Min(amount, canHold);
-        }
-
-        if (amount == 0)
-        {
-            logger.LogDebug("Player {Character} cannot hold any more of item {ItemId} (weight limit)",
-                player.Character.Name, itemId);
-            return;
-        }
-
-        if (amount >= chestItem.Amount)
-        {
-            chest.Items = new ConcurrentBag<ChestItem>(chest.Items.Where(i => i.ItemId != itemId));
-        }
-        else
-        {
-            chest.Items = new ConcurrentBag<ChestItem>(chest.Items.Where(i => i.ItemId != itemId))
+            var chestItem = snapshot.FirstOrDefault(i => i.ItemId == itemId);
+            if (chestItem == null)
             {
-                new(itemId, chestItem.Amount - amount)
-            };
-        }
+                logger.LogWarning("Item {ItemId} not found in chest", itemId);
+                return;
+            }
 
-        inventoryService.TryAddItem(player.Character, itemId, amount);
+            // Limit by available carry weight.
+            var itemData = dataFileRepository.Eif.GetItem(itemId);
+            var amount = chestItem.Amount;
+            if (itemData != null && itemData.Weight > 0)
+            {
+                var currentWeight = CalculateCurrentWeight(player);
+                var availableWeight = player.Character.MaxWeight - currentWeight;
+                var canHold = availableWeight / itemData.Weight;
+                amount = Math.Min(amount, canHold);
+            }
+
+            if (amount == 0)
+            {
+                logger.LogDebug("Player {Character} cannot hold any more of item {ItemId} (weight limit)",
+                    player.Character.Name, itemId);
+                return;
+            }
+
+            if (amount >= chestItem.Amount)
+            {
+                chest.Items = new ConcurrentBag<ChestItem>(snapshot.Where(i => i.ItemId != itemId));
+            }
+            else
+            {
+                chest.Items = new ConcurrentBag<ChestItem>(snapshot.Where(i => i.ItemId != itemId))
+                {
+                    new(itemId, chestItem.Amount - amount)
+                };
+            }
+
+            // If the inventory can't take it, restore the chest so nothing is lost.
+            if (!inventoryService.TryAddItem(player.Character, itemId, amount))
+            {
+                chest.Items = new ConcurrentBag<ChestItem>(snapshot);
+                logger.LogWarning("Player {Character} inventory full; restored chest",
+                    player.Character.Name);
+                return;
+            }
+
+            amountTaken = amount;
+            chestItems = chestService.ToThreeItems(chest);
+        }
 
         logger.LogInformation("Player {Character} took {Amount}x item {ItemId} from chest",
-            player.Character.Name, amount, itemId);
-
-        var chestItems = chestService.ToThreeItems(chest);
+            player.Character.Name, amountTaken, itemId);
 
         await player.Send(new ChestGetServerPacket
         {
             TakenItem = new ThreeItem
             {
                 Id = itemId,
-                Amount = amount
+                Amount = amountTaken
             },
             Weight = new Weight
             {

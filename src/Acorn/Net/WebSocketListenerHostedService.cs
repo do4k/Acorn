@@ -17,7 +17,8 @@ public class WebSocketListenerHostedService(
     ILogger<WebSocketListenerHostedService> logger,
     IOptions<ServerOptions> serverOptions,
     WebSocketCommunicatorFactory webSocketCommunicatorFactory,
-    ConnectionHandler connectionHandler
+    ConnectionHandler connectionHandler,
+    AcceptRateLimiter acceptRateLimiter
 ) : BackgroundService
 {
     private HttpListener? _wsListener;
@@ -48,6 +49,19 @@ public class WebSocketListenerHostedService(
                         logger.LogWarning("Received non-WebSocket HTTP request from {RemoteEndpoint}",
                             context.Request.RemoteEndPoint);
                         context.Response.StatusCode = 400;
+                        context.Response.Close();
+                        continue;
+                    }
+
+                    // Enforce the same per-IP accept limit as the TCP listener, keyed on
+                    // the real transport source (not the client-controlled Origin header).
+                    // Behind Caddy or on private networks this is a bypassed address.
+                    if (context.Request.RemoteEndPoint is IPEndPoint remoteEndpoint &&
+                        !acceptRateLimiter.ShouldAccept(remoteEndpoint.Address))
+                    {
+                        logger.LogWarning("Rejected WebSocket connection from {RemoteEndpoint}: accept rate exceeded",
+                            context.Request.RemoteEndPoint);
+                        context.Response.StatusCode = 429;
                         context.Response.Close();
                         continue;
                     }

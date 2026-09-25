@@ -5,6 +5,7 @@ using Acorn.Database.Models;
 using Acorn.Database.Repository;
 using Acorn.Game.Services;
 using Acorn.Infrastructure;
+using Acorn.Infrastructure.Security;
 using Acorn.Net.PacketHandlers;
 using Acorn.Shared.Caching;
 using Acorn.World.Services.Admin;
@@ -97,6 +98,7 @@ internal static class IocRegistrations
             .AddSingleton<IGuildService, GuildService>()
             .AddSingleton<IQuestService, QuestService>()
             .AddSingleton<IBanService, DatabaseBanService>()
+            .AddSingleton<IAccountLockoutService, AccountLockoutService>()
             .AddSingleton<IAdminService, AdminService>()
             .AddSingleton<IAdminCountService, AdminCountService>()
             .AddSingleton<IMarriageService, MarriageService>()

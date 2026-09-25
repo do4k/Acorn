@@ -6,15 +6,15 @@ using Microsoft.Extensions.Options;
 namespace Acorn.Net;
 
 /// <summary>
-///     Enforces a per-IP limit on accepts from the raw TCP listener (issue #138):
-///     internet scanners keep the accept loop busy with connections that are closed
-///     immediately, and every accept still allocates a session before the handshake
-///     fails. Only globally routable sources are counted - loopback, LAN, CGNAT and
-///     link-local addresses bypass the limiter, because Docker's userland proxy
-///     (IPv6 and connections to the host) delivers those from a single bridge
-///     address, where counting them would let unrelated clients share one bucket
-///     and throttle each other. The WebSocket listener sits behind Caddy for the
-///     same reason and is not limited here.
+///     Enforces a per-IP limit on accepts from the raw TCP and WebSocket listeners
+///     (issue #138): internet scanners keep the accept loop busy with connections
+///     that are closed immediately, and every accept still allocates a session before
+///     the handshake fails. Only globally routable sources are counted - loopback,
+///     LAN, CGNAT and link-local addresses bypass the limiter, because Docker's
+///     userland proxy (IPv6 and connections to the host) delivers those from a single
+///     bridge address, where counting them would let unrelated clients share one
+///     bucket and throttle each other. The WebSocket path is keyed on the real
+///     transport source, never the client-controlled Origin header.
 /// </summary>
 public class AcceptRateLimiter(IOptions<ServerOptions> serverOptions, TimeProvider timeProvider)
 {

@@ -9,6 +9,7 @@ using Moffat.EndlessOnline.SDK.Protocol.Map;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
+using Moffat.EndlessOnline.SDK.Protocol.Pub;
 using Acorn.Net.PacketHandlers;
 namespace Acorn.Net.PacketHandlers.Locker;
 
@@ -40,6 +41,15 @@ public class LockerAddClientPacketHandler(
         {
             logger.LogWarning("Player {Character} attempted to deposit invalid item {ItemId} or amount {Amount}",
                 player.Character!.Name, itemId, requestedAmount);
+            return;
+        }
+
+        // Lore items can never be stored in a locker (matches chest/trade/drop).
+        var itemData = dataFileRepository.Eif.GetItem(itemId);
+        if (itemData?.Special == ItemSpecial.Lore)
+        {
+            logger.LogDebug("Player {Character} tried to store Lore item {ItemId} in a locker",
+                player.Character!.Name, itemId);
             return;
         }
 
