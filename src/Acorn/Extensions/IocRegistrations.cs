@@ -32,6 +32,7 @@ internal static class IocRegistrations
         var handlers = assembly.GetTypes()
             .Where(t => (!type.IsGenericType && t.GetInterfaces().Any(x => x == type)) ||
                         t.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == type))
+            .Where(t => t.GetCustomAttribute<SkipAutoRegistrationAttribute>() is null)
             .ToList();
 
         foreach (var handler in handlers)

@@ -8,6 +8,7 @@ using Acorn.Infrastructure;
 using Acorn.Infrastructure.Communicators;
 using Acorn.Infrastructure.Gemini;
 using Acorn.Infrastructure.Logging;
+using Acorn.Infrastructure.Plugins;
 using Acorn.Infrastructure.Telemetry;
 using Acorn.Net;
 using Acorn.Net.PacketHandlers.Player.Talk;
@@ -79,6 +80,15 @@ Console.WriteLine($"{GREEN}Database Engine:{NORMAL} {engine.ToUpper()}");
 var serviceVersion = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0";
 var sampleRatio = configuration.GetValue("Telemetry:SampleRatio", 1.0);
 
+// Discover and load plugins before the host builds so plugin command bridges can
+// join DI. Failures on explicitly-enabled plugins are fatal by design (fail fast).
+var pluginsOptions = configuration.GetSection(PluginsOptions.SectionName).Get<PluginsOptions>() ?? new PluginsOptions();
+var pluginCatalog = PluginDiscovery.Discover(pluginsOptions);
+
+Console.WriteLine($"{GREEN}Plugins:{NORMAL} {(pluginCatalog.Entries.Count == 0
+    ? "none"
+    : string.Join(", ", pluginCatalog.Entries.Select(e => $"{e.Manifest.Name} {e.Manifest.Version}")))}");
+
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((context, services) =>
     {
@@ -94,6 +104,7 @@ var host = Host.CreateDefaultBuilder(args)
             .Configure<GuildOptions>(configuration.GetSection(GuildOptions.SectionName))
             .Configure<AcornbotOptions>(configuration.GetSection(AcornbotOptions.SectionName))
             .Configure<BannedTextOptions>(configuration.GetSection(BannedTextOptions.SectionName))
+            .Configure<PluginsOptions>(configuration.GetSection(PluginsOptions.SectionName))
             .AddSingleton<UtcNowDelegate>(() => DateTime.UtcNow)
             .AddSingleton<AcornMetrics>()
             // Database + caching infrastructure: options binding, DbContext and in-memory cache
@@ -129,6 +140,10 @@ var host = Host.CreateDefaultBuilder(args)
                     logging.IncludeFormattedMessage = true;
                 })
             .UseOtlpExporter();
+
+        // Plugin host infrastructure. Registered before the hosted services below
+        // so plugins are fully loaded before the listeners and world tick start.
+        services.AddPlugins(pluginCatalog);
 
         services
             .AddSingleton<IStatsReporter, StatsReporter>()
@@ -173,6 +188,10 @@ var host = Host.CreateDefaultBuilder(args)
             .AddHostedService<ShutdownPersistenceHostedService>()
             .AddRefitClient<IServerLinkNetworkClient>()
             .ConfigureHttpClient(ServerLinkNetworkHttpClientConfiguration.Configure);
+
+        // Plugin #commands, registered after the convention scan above so
+        // built-in commands match first when dispatch resolves handlers.
+        services.AddPluginCommands(pluginCatalog);
 
         // Always register WiseManTalkHandler so it is available for DI, regardless of Gemini/WiseMan feature flag
         services.AddSingleton<WiseManTalkHandler>();
