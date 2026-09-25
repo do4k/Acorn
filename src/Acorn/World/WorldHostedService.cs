@@ -20,7 +20,6 @@ internal class WorldHostedService : BackgroundService
     private readonly AcornMetrics _metrics;
     private readonly int _tickSpanSampleEvery;
     private long _tickNumber;
-    private long _totalTicks;
 
     public WorldHostedService(IOptions<ServerOptions> options, WorldState world, IMarriageService marriageService, PluginHookDispatcher pluginHooks, ILogger<WorldHostedService> logger, AcornMetrics metrics)
     {
@@ -45,7 +44,8 @@ internal class WorldHostedService : BackgroundService
         {
             // Full-fidelity duration lives in the MapTickDuration histogram recorded below;
             // spans are sampled so the trace buffer keeps room for packet traces (#137).
-            var isSampled = ShouldEmitTickSpan(Interlocked.Increment(ref _tickNumber), _tickSpanSampleEvery);
+            var currentTick = Interlocked.Increment(ref _tickNumber);
+            var isSampled = ShouldEmitTickSpan(currentTick, _tickSpanSampleEvery);
 
             var sw = Stopwatch.StartNew();
             Activity? activity = null;
@@ -87,12 +87,11 @@ internal class WorldHostedService : BackgroundService
 
                 await Task.WhenAll(weddingTasks);
 
-                _totalTicks++;
                 if (_pluginHooks.HasWorldTickHooks)
                 {
                     await _pluginHooks.RaiseWorldTickAsync(new WorldTickContext
                     {
-                        TotalTicks = _totalTicks,
+                        TotalTicks = currentTick,
                         OnlinePlayerCount = _world.Players.Count
                     });
                 }

@@ -47,7 +47,9 @@ internal sealed class PluginCommandAdapter(
         catch (Exception ex)
         {
             // Command failures are contained like hook failures: log against the
-            // plugin and keep the connection alive.
+            // plugin and keep the connection alive. Unlike tick hooks, commands are
+            // user-triggered one-offs, so failures are intentionally not counted
+            // toward the auto-disable threshold (ConsecutiveHookFailures).
             logger.LogError(ex, "Plugin {PluginId} failed handling command #{Command}",
                 entry.Manifest.Id, command);
         }

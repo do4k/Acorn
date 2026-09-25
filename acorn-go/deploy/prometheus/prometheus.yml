@@ -1,0 +1,11 @@
+# Prometheus configuration for acorn-go
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "acorn-go"
+    static_configs:
+      - targets: ["acorn-go:6060"]
+    metrics_path: /metrics

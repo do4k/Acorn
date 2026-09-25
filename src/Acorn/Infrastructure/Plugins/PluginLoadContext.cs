@@ -27,6 +27,9 @@ internal sealed class PluginLoadContext : AssemblyLoadContext
 
     public PluginLoadContext(string entryAssemblyPath)
         : base($"AcornPlugin:{Path.GetFileNameWithoutExtension(entryAssemblyPath)}", isCollectible: false)
+        // TODO: Phase 3 hot reload requires isCollectible: true, which constrains
+        // plugin code (no static state that roots the ALC, weak references for
+        // callbacks, etc.). Leave non-collectible until that design lands.
     {
         // The resolver reads the plugin's .deps.json to locate private dependencies.
         // Tolerate its absence: a plugin with no private deps may not ship one

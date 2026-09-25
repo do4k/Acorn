@@ -84,20 +84,20 @@ internal sealed class PluginHookDispatcher(
             try
             {
                 await invoke(hook, context);
-                entry.ConsecutiveHookFailures = 0;
+                entry.ResetFailures();
             }
             catch (Exception ex)
             {
-                entry.ConsecutiveHookFailures++;
+                var failures = entry.IncrementFailures();
                 logger.LogError(ex, "Plugin {PluginId} hook {HookType} failed ({Failures} consecutive)",
-                    entry.Manifest.Id, hook.GetType().Name, entry.ConsecutiveHookFailures);
+                    entry.Manifest.Id, hook.GetType().Name, failures);
 
-                if (entry.ConsecutiveHookFailures >= _failureThreshold)
+                if (failures >= _failureThreshold)
                 {
                     entry.Disabled = true;
                     logger.LogCritical(
                         "Plugin {PluginId} auto-disabled for this run after {Failures} consecutive hook failures",
-                        entry.Manifest.Id, entry.ConsecutiveHookFailures);
+                        entry.Manifest.Id, failures);
                 }
             }
         }
