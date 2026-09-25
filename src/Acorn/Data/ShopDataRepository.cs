@@ -193,7 +193,10 @@ public class ShopDataRepository : IShopDataRepository
             class_requirement = 0,
             trades = new[]
             {
-                new { item_id = 1, buy_price = 0, sell_price = 1, max_amount = 99 }
+                // 3 = Health Potion. buy_price is what the player pays, sell_price
+                // is what the shop pays back; 0 in either field means "not sold"
+                // / "not bought" respectively.
+                new { item_id = 3, buy_price = 25, sell_price = 10, max_amount = 99 }
             },
             crafts = Array.Empty<object>()
         };

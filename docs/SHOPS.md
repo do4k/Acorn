@@ -17,29 +17,40 @@ generates a placeholder `sample_shop.json`.
 ```json
 {
   "behavior_id": 19,          // ENF behavior/vendor id of the shop NPC
-  "name": "Aeven Forge",      // shown in the client shop window
+  "name": "Centaur Weapon Smith", // shown in the client shop window
   "min_level": 0,             // 0 = no minimum (enforced on Shop/Open)
   "max_level": 0,             // 0 = no maximum
   "class_requirement": 0,     // 0 = any class
   "trades": [
     {
-      "item_id": 19,          // EIF item id
-      "buy_price": 250,       // gold the player pays (0 = not sold by this shop)
-      "sell_price": 125,      // gold the shop pays (0 = not bought by this shop)
-      "max_amount": 20        // per-transaction cap for buying and selling
+      "item_id": 24,          // EIF item id
+      "buy_price": 1700,      // gold the player pays (0 = not sold by this shop)
+      "sell_price": 170,      // gold the shop pays (0 = not bought by this shop)
+      "max_amount": 99        // per-transaction cap for buying and selling
     }
   ],
   "crafts": [
     {
-      "item_id": 286,         // crafted result
+      "item_id": 359,         // crafted result
       "ingredients": [        // max 4; extra entries are truncated at load
-        { "item_id": 397, "amount": 3 },
-        { "item_id": 339, "amount": 1 }
+        { "item_id": 357, "amount": 1 },
+        { "item_id": 358, "amount": 1 },
+        { "item_id": 326, "amount": 1 },
+        { "item_id": 353, "amount": 1 }
       ]
     }
   ]
 }
 ```
+
+`buy_price` / `sell_price` are named from the player's point of view: the
+`buy_price` is what the player hands over, the `sell_price` is what the shop
+pays back. A `0` in either field means "this shop does not deal in that
+direction" - `ShopBuyClientPacketHandler` requires `buy_price > 0` and
+`ShopSellClientPacketHandler` requires `sell_price > 0`, so a `0`ed row only
+shows up in the shop window as a non-buyable / non-sellable entry. That is
+deliberate and used heavily by the source data: the Witch, Marble and Dragon
+Warrior all buy items without ever selling them.
 
 ## Validation
 
@@ -66,11 +77,24 @@ survive until the next step, since walking clears it.
 
 The shop set in this deployment covers all 41 ENF vendors (general stores,
 tavern, jeweller, shoe makers, weapon/armor shops, event shops, ...). The
-inventories and prices are server-authored approximations - the original
-Endless Online shop data was never published. Conventions used:
+inventories, prices and craft recipes come from the original Endless Online
+shop list (ripped and converted by Rena & Ducci), which is keyed by ENF NPC
+index rather than by `behavior_id`. The two line up one-to-one for the first 40
+vendors - the n-th shop NPC in the ENF carries `behavior_id` n, and the
+reference list's n-th entry is that same NPC - so the mapping is purely
+positional. Behaviour id 41 (ENF NPC 262, Ben) has no entry in the reference
+list, so `bens_trading_post.json` keeps its hand-authored inventory.
 
-- sell price is always half of buy price (never an exploit);
-- per-transaction `max_amount` shrinks for expensive goods (99 consumables,
-  20 standard gear, 10 premium, 3 top-tier);
-- `Dragon's Hoard` (vendor 40) requires level 10 to open, demonstrating the
-  enforced level/class requirements.
+Conventions in the current data:
+
+- `buy_price` and `sell_price` are transcribed verbatim from the source, which
+  includes rows where either side is `0` (see above);
+- `max_amount` is `99` everywhere: the source has no per-transaction cap, and
+  the weight limit plus the gold check in the handlers are the real limits;
+- `Dragon Warrior` (vendor 40) requires level 10 to open. The source carries no
+  level data; this was kept from the previous data set so the enforced
+  level/class requirements stay exercised.
+- One known source quirk is preserved verbatim: `Aeven Grocery` (vendor 3)
+  lists item 6 (Love Letter) twice, at `120/10` and `120/8`. Buying and selling
+  resolve trades with `FirstOrDefault`, so the first row wins and the second is
+  unreachable.
