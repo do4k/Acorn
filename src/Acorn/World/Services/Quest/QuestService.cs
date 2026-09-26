@@ -61,6 +61,15 @@ public class QuestService(
             return;
         }
 
+        // Quest NPCs must be visible to the player; remote interaction would let
+        // crafted packets drive GiveItem/GiveExp/SetMap from anywhere on the map.
+        if (!MapTileService.IsInClientView(character.AsCoords(), npc.AsCoords()))
+        {
+            logger.LogDebug("Player {Character} tried to talk to out-of-view quest NPC {NpcId}",
+                character.Name, npc.Id);
+            return;
+        }
+
         var behaviorId = npc.Data.BehaviorId;
 
         // Find all quests that have dialog for this NPC behavior at their current state
@@ -155,6 +164,8 @@ public class QuestService(
 
         if (!map.Npcs.TryGetValue(npcIndex.Value, out var npc)) return;
         if (npc.Data.Type != NpcType.Quest) return;
+
+        if (!MapTileService.IsInClientView(character.AsCoords(), npc.AsCoords())) return;
 
         var behaviorId = npc.Data.BehaviorId;
 

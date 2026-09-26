@@ -25,6 +25,7 @@ public class LoginRequestClientPacketHandler(
     IPaperdollService paperdollService,
     IWorldQueries world,
     IBanService banService,
+    IAccountLockoutService accountLockout,
     IOptions<ServerOptions> serverOptions,
     AcornMetrics metrics
 ) : IPacketHandler<LoginRequestClientPacket>
@@ -33,6 +34,7 @@ public class LoginRequestClientPacketHandler(
     private readonly IDbRepository<Database.Models.Account> _repository = repository;
     private readonly IWorldQueries _world = world;
     private readonly IBanService _banService = banService;
+    private readonly IAccountLockoutService _accountLockout = accountLockout;
     private readonly ServerOptions _serverOptions = serverOptions.Value;
 
     public async Task HandleAsync(PlayerState playerState,
@@ -121,11 +123,25 @@ public class LoginRequestClientPacketHandler(
             return;
         }
 
-        var salt = Convert.FromBase64String(account.Salt);
-        var valid = Hash.VerifyPassword(username, packet.Password, salt, account.Password);
+        // Reject accounts that exhausted their failure budget across connections.
+        // The reply mirrors a wrong password so lockout isn't a username oracle.
+        if (_accountLockout.IsLockedOut(username))
+        {
+            logger.LoginFailed(packet.Username, "account locked out");
+            await playerState.Send(new LoginReplyServerPacket
+            {
+                ReplyCode = LoginReply.WrongUserPassword,
+                ReplyCodeData = new LoginReplyServerPacket.ReplyCodeDataWrongUserPassword()
+            });
+            playerState.Disconnect();
+            return;
+        }
+
+        var valid = Hash.VerifyPassword(username, packet.Password, account.Salt, account.Password);
 
         if (valid is false)
         {
+            _accountLockout.RecordFailure(username);
             logger.LoginFailed(packet.Username, "invalid password");
             await playerState.Send(new LoginReplyServerPacket
             {
@@ -136,6 +152,7 @@ public class LoginRequestClientPacketHandler(
             return;
         }
 
+        _accountLockout.RecordSuccess(username);
         logger.LoginSuccessful(packet.Username, playerState.SessionId);
         playerState.Account = account;
         playerState.LoginAttempts = 0;

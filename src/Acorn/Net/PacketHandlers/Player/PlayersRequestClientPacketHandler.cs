@@ -1,4 +1,5 @@
 ﻿using Acorn.Extensions;
+using Acorn.Net.PacketHandlers;
 using Acorn.World;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
@@ -7,6 +8,7 @@ using static Moffat.EndlessOnline.SDK.Protocol.Net.Server.InitInitServerPacket;
 
 namespace Acorn.Net.PacketHandlers.Player;
 
+[RequiresCharacter]
 public class PlayersRequestClientPacketHandler : IPacketHandler<PlayersRequestClientPacket>
 {
     private readonly IWorldQueries _world;

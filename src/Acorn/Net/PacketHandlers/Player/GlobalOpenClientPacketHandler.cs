@@ -1,10 +1,12 @@
-﻿using Acorn.World;
+﻿using Acorn.Net.PacketHandlers;
+using Acorn.World;
 using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.Net.PacketHandlers.Player;
 
+[RequiresCharacter]
 public class GlobalOpenClientPacketHandler : IPacketHandler<GlobalOpenClientPacket>
 {
     private readonly IWorldQueries _world;

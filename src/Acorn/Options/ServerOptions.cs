@@ -194,6 +194,13 @@ public class ServerOptions
     public int PasswordMaxLength { get; set; } = 12;
 
     /// <summary>
+    ///     PBKDF2 iteration count for new password hashes. Stored hashes are versioned,
+    ///     so raising this does not invalidate existing passwords. Lower it in test
+    ///     environments to keep account-creation-heavy suites fast.
+    /// </summary>
+    public int PasswordHashIterations { get; set; } = 600000;
+
+    /// <summary>
     ///     Minimum hair style accepted during character creation. Mirrors eoserv's CreateMinHairStyle.
     /// </summary>
     public int CreateMinHairStyle { get; set; } = 1;
@@ -258,6 +265,19 @@ public class ServerOptions
     ///     the client is disconnected. 0 disables login throttling.
     /// </summary>
     public int MaxLoginAttempts { get; set; } = 3;
+
+    /// <summary>
+    ///     Failed logins for one account within the lockout window that trigger a
+    ///     temporary lockout. 0 disables account lockout.
+    /// </summary>
+    public int AccountLockoutAttempts { get; set; } = 10;
+
+    /// <summary>
+    ///     Length, in minutes, of the sliding window for counting failed logins and
+    ///     of the lockout applied once the threshold is reached. 0 disables account
+    ///     lockout.
+    /// </summary>
+    public int AccountLockoutMinutes { get; set; } = 15;
 
     /// <summary>
     ///     How long, in seconds, an unaccepted connection may remain before it is

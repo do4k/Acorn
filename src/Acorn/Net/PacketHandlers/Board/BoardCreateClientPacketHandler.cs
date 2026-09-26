@@ -29,6 +29,16 @@ public class BoardCreateClientPacketHandler(
             return;
         }
 
+        // Regular players may not post to the admin (reports) board.
+        if (BoardRules.IsAdminBoard(boardId) &&
+            !BoardRules.CanAccessAdminBoard((int)player.Character!.Admin))
+        {
+            logger.LogWarning("Player {Character} tried to post to admin board without permission",
+                player.Character!.Name);
+            await RefreshBoard(player, boardId);
+            return;
+        }
+
         // Get corresponding MapTileSpec for the board
         var boardTileSpec = BoardRules.GetTileSpec(boardId);
         if (boardTileSpec == null)

@@ -188,6 +188,13 @@ public class SpellCastService(
         }
 
         var character = player.Character!;
+
+        // Spells can only target players the caster can actually see.
+        if (!MapTileService.IsInClientView(character.AsCoords(), targetPlayer.Character.AsCoords()))
+        {
+            return;
+        }
+
         if (character.Tp < spell.TpCost)
         {
             return;
@@ -315,6 +322,12 @@ public class SpellCastService(
         }
 
         if (npc.Data.Type is not (NpcType.Aggressive or NpcType.Passive))
+        {
+            return;
+        }
+
+        // Spells can only target NPCs the caster can actually see.
+        if (!MapTileService.IsInClientView(character.AsCoords(), npc.AsCoords()))
         {
             return;
         }
@@ -522,6 +535,12 @@ public class SpellCastService(
 
         var party = partyService.GetPlayerParty(player.SessionId);
         if (party is not null && party.Members.Contains(targetSessionId))
+        {
+            return;
+        }
+
+        // Spells can only target players the caster can actually see.
+        if (!MapTileService.IsInClientView(character.AsCoords(), targetPlayer.Character.AsCoords()))
         {
             return;
         }

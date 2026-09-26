@@ -1,9 +1,11 @@
-﻿using Moffat.EndlessOnline.SDK.Protocol.Net;
+﻿using Acorn.Net.PacketHandlers;
+using Moffat.EndlessOnline.SDK.Protocol.Net;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Client;
 using Moffat.EndlessOnline.SDK.Protocol.Net.Server;
 
 namespace Acorn.Net.PacketHandlers.Player;
 
+[RequiresCharacter]
 public class RefreshRequestClientPacketHandler : IPacketHandler<RefreshRequestClientPacket>
 {
     public async Task HandleAsync(PlayerState playerState,

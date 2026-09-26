@@ -86,8 +86,14 @@ public class LockerTakeClientPacketHandler(
         // Remove from bank
         RemoveBankItem(player.Character!, itemId, amount);
 
-        // Add to inventory
-        inventoryService.TryAddItem(player.Character!, itemId, amount);
+        // Add to inventory; restore the bank if it doesn't fit.
+        if (!inventoryService.TryAddItem(player.Character!, itemId, amount))
+        {
+            AddBankItem(player.Character!, itemId, amount);
+            logger.LogWarning("Player {Character} inventory full; restored locker withdrawal",
+                player.Character!.Name);
+            return;
+        }
 
         logger.LogInformation("Player {Character} took {Amount}x item {ItemId} from locker",
             player.Character!.Name, amount, itemId);
@@ -131,6 +137,19 @@ public class LockerTakeClientPacketHandler(
                 );
                 character.Bank = new Game.Models.Bank(newItems);
             }
+        }
+    }
+
+    private static void AddBankItem(Game.Models.Character character, int itemId, int amount)
+    {
+        var existingItem = character.Bank.Items.FirstOrDefault(i => i.Id == itemId);
+        if (existingItem != null)
+        {
+            existingItem.Amount += amount;
+        }
+        else
+        {
+            character.Bank.Items.Add(new ItemWithAmount { Id = itemId, Amount = amount });
         }
     }
 

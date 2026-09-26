@@ -95,6 +95,15 @@ public static class CharacterEquipmentExtensions
             return EquipResult.Failed;
         }
 
+        // The character must actually hold the item. Checking before touching the
+        // slot closes equip-from-nothing via a crafted packet (the handler's own
+        // pre-check races the await into EquipItemAsync, so it cannot be trusted).
+        var inventoryItem = character.Inventory.Items.FirstOrDefault(i => i.Id == itemId);
+        if (inventoryItem == null)
+        {
+            return EquipResult.Failed;
+        }
+
         var result = EquipResult.Equipped;
         int? oldItemId = null;
 
@@ -111,18 +120,14 @@ public static class CharacterEquipmentExtensions
         // Set the item in the appropriate slot
         SetEquippedItem(character, itemRecord.Type, subLoc, itemId);
 
-        // Remove the item from inventory
-        var inventoryItem = character.Inventory.Items.FirstOrDefault(i => i.Id == itemId);
-        if (inventoryItem != null)
+        // Remove the item from inventory (verified present above)
+        inventoryItem.Amount--;
+        if (inventoryItem.Amount == 0)
         {
-            inventoryItem.Amount--;
-            if (inventoryItem.Amount == 0)
-            {
-                // Remove if amount reaches 0 (rebuild bag without this item)
-                character.Inventory = new Inventory(
-                    [.. character.Inventory.Items.Where(i => i.Id != itemId || i.Amount > 0)]
-                );
-            }
+            // Remove if amount reaches 0 (rebuild bag without this item)
+            character.Inventory = new Inventory(
+                [.. character.Inventory.Items.Where(i => i.Id != itemId || i.Amount > 0)]
+            );
         }
 
         // If we swapped, add old item back to inventory

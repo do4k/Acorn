@@ -32,6 +32,15 @@ public class BoardTakeClientPacketHandler(
             return;
         }
 
+        // Regular players may not read the admin (reports) board.
+        if (BoardRules.IsAdminBoard(boardId) &&
+            !BoardRules.CanAccessAdminBoard((int)player.Character!.Admin))
+        {
+            logger.LogWarning("Player {Character} tried to read admin board without permission",
+                player.Character!.Name);
+            return;
+        }
+
         // Get corresponding MapTileSpec for the board
         var boardTileSpec = BoardRules.GetTileSpec(boardId);
         if (boardTileSpec == null)

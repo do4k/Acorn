@@ -60,7 +60,7 @@ internal class AccountCreateClientPacketHandler(
             return;
         }
 
-        var newAccount = packet.AsNewAccount(nowDelegate());
+        var newAccount = packet.AsNewAccount(nowDelegate(), _serverOptions.PasswordHashIterations);
         await _accountRepository.CreateAsync(newAccount);
 
         _metrics.AccountsCreated.Add(1);

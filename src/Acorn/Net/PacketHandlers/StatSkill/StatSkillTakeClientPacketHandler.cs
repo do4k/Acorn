@@ -66,8 +66,12 @@ public class StatSkillTakeClientPacketHandler(
             return;
         }
 
-        // Take gold
-        inventoryService.TryRemoveItem(character, GoldItemId, skill.Price);
+        // Take gold. If the price can't be taken (spent concurrently), the spell
+        // must not be granted.
+        if (!inventoryService.TryRemoveItem(character, GoldItemId, skill.Price))
+        {
+            return;
+        }
 
         // Add spell
         character.Spells.Items.Add(new Game.Models.Spell(spellId, 0));

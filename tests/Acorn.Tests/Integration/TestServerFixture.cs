@@ -131,6 +131,10 @@ public class TestServerFixture : TUnit.Core.Interfaces.IAsyncInitializer, IAsync
             ["Server:MaxVersion"] = "0.3.29",
             ["Server:MaxPlayers"] = "200",
             ["Server:MaxLoginAttempts"] = "3",
+            // Keep password hashing cheap: integration tests create an account per
+            // test, and the production default (600k) would add minutes. The hashing
+            // format itself is covered by unit tests.
+            ["Server:PasswordHashIterations"] = "10000",
             // Short handshake timeout so the hangup path can be exercised quickly.
             ["Server:HangupDelaySeconds"] = "2",
             ["Server:NewCharacter:X"] = "6",
