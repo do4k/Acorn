@@ -134,10 +134,11 @@ public class ServerOptions
 
     /// <summary>
     ///     Whether the first hit against a full-health target is always a critical hit.
-    ///     Matches eoserv's CriticalFirstHit (default false). When false, critical hits
-    ///     only occur when attacking a target from behind or the side.
+    ///     Matches eoserv's CriticalFirstHit (default yes) and reoserv, which always
+    ///     treats the first hit at full HP as critical. When false, critical hits only
+    ///     occur when attacking a target from behind or the side.
     /// </summary>
-    public bool CriticalFirstHit { get; set; } = false;
+    public bool CriticalFirstHit { get; set; } = true;
 
     /// <summary>
     ///     Maximum value a single base stat (Str/Int/Wis/Agi/Con/Cha) can reach.
