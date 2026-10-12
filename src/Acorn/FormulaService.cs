@@ -27,7 +27,7 @@ public class FormulaService : IFormulaService
     ///     Formula: min(0.8, max(0.5, accuracy / (target_evade * 2.0)))
     ///     If target is sitting, always hits (1.0)
     /// </summary>
-    public double CalculateHitRate(int accuracy, int targetEvade, bool targetSitting = false)
+    private double CalculateHitRate(int accuracy, int targetEvade, bool targetSitting = false)
     {
         if (targetSitting)
         {
@@ -45,7 +45,7 @@ public class FormulaService : IFormulaService
     /// <summary>
     ///     Determine if an attack hits based on hit rate.
     /// </summary>
-    public bool DoesAttackHit(int accuracy, int targetEvade, bool targetSitting = false)
+    private bool DoesAttackHit(int accuracy, int targetEvade, bool targetSitting = false)
     {
         var hitRate = CalculateHitRate(accuracy, targetEvade, targetSitting);
         return Random.Shared.NextDouble() < hitRate;
@@ -138,134 +138,6 @@ public class FormulaService : IFormulaService
         var critical = attackingBackOrSide || (criticalFirstHit && target.Hp == target.MaxHp);
 
         return CalculateDamage(rawDamage, target.Armor, critical);
-    }
-
-    /// <summary>
-    ///     Calculate max HP.
-    ///     Formula: 10.0 + (2.5 * level) + (2.5 * con)
-    /// </summary>
-    public int CalculateMaxHp(int level, int con)
-    {
-        return Math.Min(64000, (int)(10.0 + 2.5 * level + 2.5 * con));
-    }
-
-    /// <summary>
-    ///     Calculate max TP.
-    ///     Formula: 10.0 + (2.5 * level) + (2.5 * int) + (1.5 * wis)
-    /// </summary>
-    public int CalculateMaxTp(int level, int intelligence, int wisdom)
-    {
-        return Math.Min(64000, (int)(10.0 + 2.5 * level + 2.5 * intelligence + 1.5 * wisdom));
-    }
-
-    /// <summary>
-    ///     Calculate max SP.
-    ///     Formula: 20.0 + (2.0 * level)
-    /// </summary>
-    public int CalculateMaxSp(int level)
-    {
-        return Math.Min(64000, (int)(20.0 + 2.0 * level));
-    }
-
-    /// <summary>
-    ///     Calculate max weight.
-    ///     Formula: 70.0 + str
-    /// </summary>
-    public int CalculateMaxWeight(int strength)
-    {
-        return Math.Min(250, 70 + strength);
-    }
-
-    /// <summary>
-    ///     Get class-specific damage bonus.
-    ///     Based on stat_group: Melee=str/3, Rogue=str/5, Caster=int/3, Archer=str/6
-    /// </summary>
-    public int GetClassDamageBonus(int statGroup, int strength, int intelligence)
-    {
-        return statGroup switch
-        {
-            0 => strength / 3, // Melee
-            1 => strength / 5, // Rogue
-            2 => intelligence / 3, // Caster
-            3 => strength / 6, // Archer
-            _ => 0 // Peasant
-        };
-    }
-
-    /// <summary>
-    ///     Get class-specific accuracy bonus.
-    ///     Based on stat_group: Melee=agi/3, Rogue=agi/3, Caster=wis/3, Archer=agi/5
-    /// </summary>
-    public int GetClassAccuracyBonus(int statGroup, int agility, int wisdom)
-    {
-        return statGroup switch
-        {
-            0 => agility / 3, // Melee
-            1 => agility / 3, // Rogue
-            2 => wisdom / 3, // Caster
-            3 => agility / 5, // Archer
-            _ => 0 // Peasant
-        };
-    }
-
-    /// <summary>
-    ///     Get class-specific evade bonus.
-    ///     Based on stat_group: Melee=agi/5, Rogue=agi/3, Caster=agi/4, Archer=agi/4
-    /// </summary>
-    public int GetClassEvadeBonus(int statGroup, int agility)
-    {
-        return statGroup switch
-        {
-            0 => agility / 5, // Melee
-            1 => agility / 3, // Rogue
-            2 => agility / 4, // Caster
-            3 => agility / 4, // Archer
-            _ => 0 // Peasant
-        };
-    }
-
-    /// <summary>
-    ///     Get class-specific defense bonus.
-    ///     Based on stat_group: Melee=con/4, Rogue=con/4, Caster=con/5, Archer=con/5
-    /// </summary>
-    public int GetClassDefenseBonus(int statGroup, int constitution)
-    {
-        return statGroup switch
-        {
-            0 => constitution / 4, // Melee
-            1 => constitution / 4, // Rogue
-            2 => constitution / 5, // Caster
-            3 => constitution / 5, // Archer
-            _ => 0 // Peasant
-        };
-    }
-
-    /// <summary>
-    ///     Calculate party experience share.
-    ///     Formula: if(members > 2, floor(exp * ((1 + members) / members)), floor(exp / 2))
-    /// </summary>
-    public int CalculatePartyExpShare(int exp, int members)
-    {
-        if (members <= 1)
-        {
-            return exp;
-        }
-
-        if (members > 2)
-        {
-            return (int)Math.Floor(exp * ((1.0 + members) / members));
-        }
-
-        return (int)Math.Floor(exp / 2.0);
-    }
-
-    /// <summary>
-    ///     Get experience from NPC data. In EO, experience comes directly from EnfRecord.Experience.
-    ///     This is a simple passthrough for clarity.
-    /// </summary>
-    public int GetNpcExperience(EnfRecord npcData)
-    {
-        return Math.Max(0, npcData.Experience);
     }
 
     /// <summary>
