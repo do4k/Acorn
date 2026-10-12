@@ -1,6 +1,7 @@
 using Acorn.Database.Models;
 using Acorn.Database.Repository;
 using Acorn.Extensions;
+using Acorn.Game;
 using Acorn.Game.Mappers;
 using Acorn.Game.Services;
 using Acorn.Game.Validation;
@@ -119,7 +120,7 @@ internal class CharacterCreateClientPacketHandler(
             HairColor = packet.HairColor,
             HairStyle = packet.HairStyle,
             Gender = packet.Gender,
-            Class = 1,
+            Class = ClassConstants.Peasant,
             Hp = 10,
             MaxHp = 10,
             Tp = 10,
