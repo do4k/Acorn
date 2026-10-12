@@ -46,7 +46,7 @@ public class ItemDropClientPacketHandlerTests
         _weightCalculator.GetCurrentWeight(Arg.Any<GameCharacter>(), Arg.Any<Eif>()).Returns(0);
     }
 
-    private ItemDropClientPacketHandler CreateHandler(int maxDrop = 10000)
+    private ItemDropClientPacketHandler CreateHandler(int maxDrop = 10_000_000)
     {
         return new ItemDropClientPacketHandler(
             NullLogger<ItemDropClientPacketHandler>.Instance,

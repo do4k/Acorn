@@ -25,7 +25,7 @@ namespace Acorn.Tests.Support;
 /// </summary>
 internal static class TestFactories
 {
-    public static ServerOptions CreateServerOptions(int maxDrop = 10000)
+    public static ServerOptions CreateServerOptions(int maxDrop = 10_000_000)
     {
         return new ServerOptions
         {
