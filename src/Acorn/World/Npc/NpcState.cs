@@ -17,6 +17,7 @@ public class NpcState
         SpawnX = 0;
         SpawnY = 0;
         LastDirectionChange = DateTime.UtcNow;
+        NextActTime = DateTime.UtcNow;
     }
 
     // Core data
@@ -35,7 +36,6 @@ public class NpcState
     public int X { get; set; }
     public int Y { get; set; }
     public Direction Direction { get; set; }
-    public NpcBehaviorType BehaviorType { get; set; }
     public DateTime LastDirectionChange { get; set; }
 
     // Spawn data
@@ -86,9 +86,16 @@ public class NpcState
     public List<NpcOpponent> Opponents { get; set; } = new();
 
     /// <summary>
-    ///     Ticks since last action (attack/move).
+    ///     Timestamp after which the NPC is allowed to act again (attack or move).
+    ///     Replaced after each act with now + a jittered act interval.
     /// </summary>
-    public int ActTicks { get; set; }
+    public DateTime NextActTime { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    ///     Remaining acts the NPC should idle for before moving again
+    ///     (mirrors eoserv's walk_idle_for random-break behavior).
+    /// </summary>
+    public int WalkIdleFor { get; set; }
 
     #region Simple Data Operations
 

@@ -13,6 +13,12 @@ namespace Acorn;
 /// </summary>
 public class FormulaService : IFormulaService
 {
+    /// <summary>
+    ///     Every NPC's maximum damage is increased by this amount, matching eoserv's
+    ///     NPCAdjustMaxDam (default 3).
+    /// </summary>
+    private const int NpcAdjustMaxDamage = 3;
+
     private readonly IStatCalculator _statCalculator;
     private readonly ServerOptions _options;
 
@@ -109,8 +115,8 @@ public class FormulaService : IFormulaService
             return 0; // Miss
         }
 
-        // Roll damage between NPC's min and max
-        var rawDamage = Random.Shared.Next(npcData.MinDamage, npcData.MaxDamage + 1);
+        // Roll damage between the NPC's min and max (+NpcAdjustMaxDamage, matching eoserv).
+        var rawDamage = Random.Shared.Next(npcData.MinDamage, npcData.MaxDamage + NpcAdjustMaxDamage + 1);
 
         // Critical hit if NPC is attacking from back or side
         var critical = attackingBackOrSide;

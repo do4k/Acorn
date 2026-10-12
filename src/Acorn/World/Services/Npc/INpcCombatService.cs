@@ -27,7 +27,13 @@ public interface INpcCombatService
         IFormulaService formulaService);
 
     /// <summary>
-    ///     Get the act rate (ticks between actions) based on spawn type.
+    ///     Get the base act interval in milliseconds for an NPC spawn type.
+    ///     Returns 0 for immobile NPCs (spawn type 7).
     /// </summary>
-    int GetActRate(int spawnType);
+    int GetActRateMs(int spawnType);
+
+    /// <summary>
+    ///     Roll the jittered delay until the NPC's next act (base rate +/-25%).
+    /// </summary>
+    double RollNextActDelayMs(int actRateMs);
 }
