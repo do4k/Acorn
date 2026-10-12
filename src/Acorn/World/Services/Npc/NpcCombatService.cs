@@ -19,20 +19,30 @@ public class NpcCombatService : INpcCombatService
         npc.DropBoredOpponents(boredThreshold);
     }
 
-    public int GetActRate(int spawnType)
+    public int GetActRateMs(int spawnType)
     {
+        // Base act interval in milliseconds, matching eoserv's speed table
+        // (NPCMovementRate = 900ms, 600ms, 1300ms, 1900ms, 3700ms, 7500ms, 15000ms).
+        // Spawn type 7 is immobile and never acts.
         return spawnType switch
         {
-            0 => 4, // Fastest
-            1 => 8,
-            2 => 12,
-            3 => 16,
-            4 => 24,
-            5 => 32,
-            6 => 48, // Slowest
-            7 => 0, // Stationary - never acts
-            _ => 16
+            0 => 900,
+            1 => 600,
+            2 => 1300,
+            3 => 1900,
+            4 => 3700,
+            5 => 7500,
+            6 => 15000,
+            7 => 0,
+            _ => 1900
         };
+    }
+
+    public double RollNextActDelayMs(int actRateMs)
+    {
+        // eoserv jitters each act interval by +/-25%:
+        // last_act += rand(act_speed * 750, act_speed * 1250) / 1000.0
+        return actRateMs * (0.75 + Random.Shared.NextDouble() * 0.5);
     }
 
     public NpcUpdateAttack? TryAttack(NpcState npc, int npcIndex, IEnumerable<PlayerState> players,

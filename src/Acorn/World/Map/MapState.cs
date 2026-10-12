@@ -86,9 +86,7 @@ public class MapState
                 Hp = npcData!.Hp,
                 Id = npc.Id,
                 SpawnType = npc.SpawnType,
-                SpawnTime = npc.SpawnTime,
-                // Fixed NPCs (SpawnType 7) are stationary, others wander/chase
-                BehaviorType = npc.SpawnType == 7 ? NpcBehaviorType.Stationary : NpcBehaviorType.Wander
+                SpawnTime = npc.SpawnTime
             };
 
             // Add spawn variance for mobile NPCs so they don't stack on top of each

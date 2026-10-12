@@ -16,8 +16,8 @@ namespace Acorn.World.Services.Map;
 
 public class MapController : IMapController
 {
-    private const int NPC_ACT_RATE = 2;
-    private const int NPC_BORED_THRESHOLD = 60;
+    private const int NPC_BORED_TICK_INCREMENT = 2;
+    private const int NPC_BORED_THRESHOLD = 60; // drop opponents after 30s (60 / 2 ticks)
     private const float SPIKE_DAMAGE_PERCENT = 0.1f;
     private const int DOOR_CLOSE_RATE = 10;
     private const int ITEM_CLEANUP_TICKS = 300; // ~5 minutes at 1 tick/sec
@@ -341,7 +341,8 @@ public class MapController : IMapController
         npc.AwaitingBossRespawn = false;
         npc.Hp = npc.Data.Hp;
         npc.Opponents.Clear();
-        npc.ActTicks = 0;
+        npc.NextActTime = DateTime.UtcNow;
+        npc.WalkIdleFor = 0;
 
         // Calculate spawn position with variance for non-fixed NPCs
         if (_npcController.ShouldUseSpawnVariance(npc))
@@ -376,19 +377,18 @@ public class MapController : IMapController
     public async Task<HashSet<int>> ProcessNpcActionsAsync(MapState map)
     {
         var aliveNpcs = map.Npcs.Values.Where(n => !n.IsDead).ToList();
+        var now = DateTime.UtcNow;
 
         var positionUpdates = new List<NpcUpdatePosition>();
         var attackUpdates = new List<NpcUpdateAttack>();
 
         foreach (var npc in aliveNpcs)
         {
-            // Increment act ticks and process opponent boredom
-            npc.ActTicks += NPC_ACT_RATE;
-            _npcCombatService.ProcessOpponentBoredom(npc, NPC_ACT_RATE, NPC_BORED_THRESHOLD);
+            // Advance opponent boredom tracking (30s, matches eoserv's NPCBoredTimer).
+            _npcCombatService.ProcessOpponentBoredom(npc, NPC_BORED_TICK_INCREMENT, NPC_BORED_THRESHOLD);
 
-            // Only act if enough time has passed based on spawn type speed
-            var actRate = _npcCombatService.GetActRate(npc.SpawnType);
-            if (actRate == 0 || npc.ActTicks < actRate)
+            var actRateMs = _npcCombatService.GetActRateMs(npc.SpawnType);
+            if (actRateMs == 0 || now < npc.NextActTime)
             {
                 continue;
             }
@@ -398,11 +398,11 @@ public class MapController : IMapController
             if (attackResult != null)
             {
                 attackUpdates.Add(attackResult);
-                npc.ActTicks = 0;
+                npc.NextActTime = now.AddMilliseconds(_npcCombatService.RollNextActDelayMs(actRateMs));
             }
             else
             {
-                // If not attacking, try to move (chase or wander)
+                // If not attacking, try to move (chase or idle)
                 var moveResult = _npcController.TryMove(npc, map.Players.Values, map.Npcs.Values, map.Data);
                 if (moveResult.Moved)
                 {
@@ -412,7 +412,7 @@ public class MapController : IMapController
                         Coords = new Coords { X = npc.X, Y = npc.Y },
                         Direction = npc.Direction
                     });
-                    npc.ActTicks = 0;
+                    npc.NextActTime = now.AddMilliseconds(_npcCombatService.RollNextActDelayMs(actRateMs));
                 }
             }
         }

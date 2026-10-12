@@ -250,7 +250,7 @@ public class WalkValidationTests
             X = x,
             Y = y,
             Hp = 100,
-            BehaviorType = NpcBehaviorType.Stationary,
+            SpawnType = 7,
             IsDead = isDead
         };
 

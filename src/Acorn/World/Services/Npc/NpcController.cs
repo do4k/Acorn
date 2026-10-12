@@ -10,7 +10,7 @@ namespace Acorn.World.Services.Npc;
 
 public class NpcController : INpcController
 {
-    private const int CHASE_DISTANCE = 10;
+    private const int CHASE_DISTANCE = 18; // matches eoserv's NPCChaseDistance
     private const int SPAWN_VARIANCE = 2;
     private const int MAX_SPAWN_ATTEMPTS = 200;
     private readonly IMapTileService _tileService;
@@ -26,13 +26,13 @@ public class NpcController : INpcController
         var playerList = players.ToList();
         var npcList = npcs.ToList();
 
-        // Stationary NPCs never move
-        if (npc.BehaviorType == NpcBehaviorType.Stationary)
+        // Stationary NPCs (spawn type 7) never move.
+        if (npc.SpawnType == 7)
         {
             return new NpcMoveResult(false, npc.Direction, npc.AsCoords());
         }
 
-        // Check if this NPC should chase a target
+        // Check if this NPC should chase a target.
         var targetCoords = GetChaseTarget(npc, playerList);
         var isChasing = targetCoords != null;
 
@@ -43,15 +43,9 @@ public class NpcController : INpcController
             // Chase mode - calculate direction toward target
             newDirection = GetChaseDirection(npc, targetCoords!);
         }
-        else
+        else if (!TryGetIdleDirection(npc, out newDirection))
         {
-            // Idle movement - check if should move and get behavioral direction
-            if (!ShouldMoveIdle(npc))
-            {
-                return new NpcMoveResult(false, npc.Direction, npc.AsCoords());
-            }
-
-            newDirection = GetIdleDirection(npc);
+            return new NpcMoveResult(false, npc.Direction, npc.AsCoords());
         }
 
         // Try primary direction
@@ -60,7 +54,7 @@ public class NpcController : INpcController
             return new NpcMoveResult(true, npc.Direction, npc.AsCoords());
         }
 
-        // If chasing and blocked, try alternative direction
+        // If chasing and blocked, try an alternative direction, then a random direction.
         if (isChasing && targetCoords != null)
         {
             var altDirection = GetAlternativeChaseDirection(npc, targetCoords, newDirection);
@@ -70,8 +64,7 @@ public class NpcController : INpcController
             }
 
             // Last resort: try random direction
-            var randomDirection = (Direction)Random.Shared.Next(4);
-            if (TryMoveInDirection(npc, randomDirection, playerList, npcList, mapData))
+            if (TryMoveInDirection(npc, GetRandomDirection(), playerList, npcList, mapData))
             {
                 return new NpcMoveResult(true, npc.Direction, npc.AsCoords());
             }
@@ -156,34 +149,7 @@ public class NpcController : INpcController
         }
 
         // Random direction for other NPCs
-        return (Direction)Random.Shared.Next(4);
-    }
-
-    public NpcBehaviorType DetermineBehaviorType(NpcState npc)
-    {
-        var data = npc.Data;
-
-        // Guard NPCs (high HP, aggressive) tend to be stationary
-        if (data.Hp > 500)
-        {
-            return Random.Shared.Next(100) < 40 ? NpcBehaviorType.Stationary : NpcBehaviorType.Patrol;
-        }
-
-        // Boss NPCs (very high HP) are more likely to patrol
-        if (data.Hp > 1000)
-        {
-            return Random.Shared.Next(100) < 60 ? NpcBehaviorType.Patrol : NpcBehaviorType.Wander;
-        }
-
-        // Small/weak NPCs tend to wander
-        if (data.Hp < 100)
-        {
-            return Random.Shared.Next(100) < 70 ? NpcBehaviorType.Wander : NpcBehaviorType.Circle;
-        }
-
-        // Default: Random behavior
-        var behaviors = Enum.GetValues<NpcBehaviorType>();
-        return behaviors[Random.Shared.Next(behaviors.Length)];
+        return GetRandomDirection();
     }
 
     #region Private Chase Logic
@@ -263,98 +229,37 @@ public class NpcController : INpcController
 
     #region Private Idle Movement Logic
 
-    private static bool ShouldMoveIdle(NpcState npc)
+    /// <summary>
+    ///     Determine the NPC's idle movement direction, matching eoserv's random-walk
+    ///     model: 60% walk forward, 30% walk in a random direction, 10% idle for 1-3 acts.
+    ///     Returns false when the NPC should idle for this act.
+    /// </summary>
+    private static bool TryGetIdleDirection(NpcState npc, out Direction direction)
     {
-        return npc.BehaviorType switch
+        if (npc.WalkIdleFor > 0)
         {
-            NpcBehaviorType.Stationary => false,
-            NpcBehaviorType.Wander => Random.Shared.Next(100) < 40,
-            NpcBehaviorType.Patrol => Random.Shared.Next(100) < 60,
-            NpcBehaviorType.Circle => Random.Shared.Next(100) < 50,
-            _ => Random.Shared.Next(100) < 30
-        };
-    }
-
-    private static Direction GetIdleDirection(NpcState npc)
-    {
-        var timeSinceLastChange = DateTime.UtcNow - npc.LastDirectionChange;
-
-        switch (npc.BehaviorType)
-        {
-            case NpcBehaviorType.Stationary:
-                return npc.Direction;
-
-            case NpcBehaviorType.Wander:
-                if (timeSinceLastChange.TotalSeconds > Random.Shared.Next(2, 6))
-                {
-                    npc.LastDirectionChange = DateTime.UtcNow;
-                    if (Random.Shared.Next(100) < 30)
-                    {
-                        return npc.Direction;
-                    }
-
-                    return GetRandomDirection();
-                }
-
-                return npc.Direction;
-
-            case NpcBehaviorType.Patrol:
-                var distanceFromSpawn = Math.Abs(npc.X - npc.SpawnX) + Math.Abs(npc.Y - npc.SpawnY);
-                if (distanceFromSpawn > 5)
-                {
-                    npc.LastDirectionChange = DateTime.UtcNow;
-                    return GetOppositeDirection(npc.Direction);
-                }
-
-                if (timeSinceLastChange.TotalSeconds > Random.Shared.Next(3, 8))
-                {
-                    npc.LastDirectionChange = DateTime.UtcNow;
-                    return GetRandomDirection();
-                }
-
-                return npc.Direction;
-
-            case NpcBehaviorType.Circle:
-                if (timeSinceLastChange.TotalSeconds > Random.Shared.Next(1, 3))
-                {
-                    npc.LastDirectionChange = DateTime.UtcNow;
-                    return RotateDirectionClockwise(npc.Direction);
-                }
-
-                return npc.Direction;
-
-            default:
-                return GetRandomDirection();
+            npc.WalkIdleFor--;
+            direction = npc.Direction;
+            return false;
         }
+
+        var action = Random.Shared.Next(1, 11); // 1..10 inclusive
+
+        if (action == 10)
+        {
+            npc.WalkIdleFor = Random.Shared.Next(1, 4); // idle for 1-3 acts
+            direction = npc.Direction;
+            return false;
+        }
+
+        // 1-6 (60%): keep direction and walk forward. 7-9 (30%): walk in a random direction.
+        direction = action <= 6 ? npc.Direction : GetRandomDirection();
+        return true;
     }
 
     private static Direction GetRandomDirection()
     {
         return (Direction)Random.Shared.Next(4);
-    }
-
-    private static Direction GetOppositeDirection(Direction dir)
-    {
-        return dir switch
-        {
-            Direction.Up => Direction.Down,
-            Direction.Down => Direction.Up,
-            Direction.Left => Direction.Right,
-            Direction.Right => Direction.Left,
-            _ => dir
-        };
-    }
-
-    private static Direction RotateDirectionClockwise(Direction dir)
-    {
-        return dir switch
-        {
-            Direction.Up => Direction.Right,
-            Direction.Right => Direction.Down,
-            Direction.Down => Direction.Left,
-            Direction.Left => Direction.Up,
-            _ => dir
-        };
     }
 
     #endregion

@@ -43,9 +43,4 @@ public interface INpcController
     ///     Get a random direction for the NPC to spawn facing.
     /// </summary>
     Direction GetSpawnDirection(NpcState npc);
-
-    /// <summary>
-    ///     Determine behavior type for a newly created NPC.
-    /// </summary>
-    NpcBehaviorType DetermineBehaviorType(NpcState npc);
 }
