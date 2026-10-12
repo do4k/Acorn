@@ -32,7 +32,7 @@ public class ServerOptions
     ///     Maximum amount of a single item stack that can be dropped at once.
     ///     Matches eoserv's MaxDrop setting. A value of 0 or less disables the clamp.
     /// </summary>
-    public int MaxDrop { get; set; } = 10000;
+    public int MaxDrop { get; set; } = 10_000_000;
 
     /// <summary>
     ///     Maximum TCP connections accepted from a single remote IP within
