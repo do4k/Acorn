@@ -1,0 +1,48 @@
+# Acorn-Go Server Configuration
+
+server:
+  # Port for raw TCP connections (standard EO client).
+  tcp_port: 8078
+  # Port for WebSocket connections (browser clients, nginx proxy).
+  ws_port: 8079
+  # Maximum total concurrent connections.
+  max_connections: 300
+  # Maximum connections from a single IP address.
+  max_connections_per_ip: 3
+  # Seconds between keep-alive pings.
+  ping_interval: 8
+  # Disconnect clients that send out-of-order sequence numbers.
+  enforce_sequence: false
+  # Log every packet received/sent (very verbose).
+  log_packets: false
+  # Maximum characters per account.
+  max_characters: 3
+  # Jail map ID (sent in ServerSettings).
+  jail_map: 76
+  # Default spawn/rescue map.
+  rescue_map: 192
+  rescue_x: 6
+  rescue_y: 6
+  # Path to the server news/MOTD file.
+  news_file: "data/news.txt"
+
+database:
+  engine: sqlite
+  connection_string: "file:acorn.db?_journal_mode=WAL&_busy_timeout=5000"
+
+data:
+  # Directory containing pub files (dat001.eif, dtn001.enf, dsl001.esf, dat001.ecf).
+  pub_dir: "data/pub"
+  # Directory containing map files (00001.emf, etc.).
+  map_dir: "data/maps"
+  # Highest map ID to attempt loading.
+  max_maps: 300
+
+telemetry:
+  # Enable OpenTelemetry tracing and Prometheus metrics.
+  enabled: true
+  # OTLP/HTTP endpoint for traces (Tempo, Jaeger, or any OTLP collector).
+  # Leave empty to disable trace export.
+  otlp_endpoint: "localhost:4318"
+  # Port for the debug HTTP server (/metrics, /healthz, /debug/pprof/).
+  debug_port: 6060

@@ -1,0 +1,74 @@
+services:
+  # ── Game Server ──────────────────────────────────────────
+  acorn-go:
+    build: .
+    container_name: acorn-go
+    restart: unless-stopped
+    ports:
+      - "8078:8078"   # TCP (EO client)
+      - "8079:8079"   # WebSocket
+      - "6060:6060"   # Debug (pprof, /healthz, /metrics)
+    volumes:
+      - ./data/pub:/app/data/pub:ro
+      - ./data/maps:/app/data/maps:ro
+      - acorn-db:/app/db
+      - ./config.yaml:/app/config.yaml:ro
+    environment:
+      - TZ=UTC
+      - ACORN_OTLP_ENDPOINT=tempo:4318
+    depends_on:
+      - tempo
+
+  # ── Observability Stack ──────────────────────────────────
+
+  # Tempo — distributed tracing backend (receives OTLP from acorn-go)
+  tempo:
+    image: grafana/tempo:2.7.2
+    container_name: tempo
+    restart: unless-stopped
+    command: ["-config.file=/etc/tempo/tempo.yml"]
+    volumes:
+      - ./deploy/tempo/tempo.yml:/etc/tempo/tempo.yml:ro
+      - tempo-data:/var/tempo
+    ports:
+      - "3200:3200"   # Tempo HTTP API
+      - "4318:4318"   # OTLP HTTP receiver
+
+  # Prometheus — metrics scraping + storage
+  prometheus:
+    image: prom/prometheus:v3.4.1
+    container_name: prometheus
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=7d"
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+
+  # Grafana — dashboards and exploration UI
+  grafana:
+    image: grafana/grafana:11.6.0
+    container_name: grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=acorn
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+      - tempo
+
+volumes:
+  acorn-db:
+  tempo-data:
+  prometheus-data:
+  grafana-data:

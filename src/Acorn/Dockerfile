@@ -18,12 +18,14 @@ WORKDIR /src
 COPY ["Directory.Build.props", "./"]
 COPY [".editorconfig", "./"]
 COPY ["src/Acorn/Acorn.csproj", "src/Acorn/"]
+COPY ["src/Acorn.Plugins/Acorn.Plugins.csproj", "src/Acorn.Plugins/"]
 COPY ["src/Acorn.Shared/Acorn.Shared.csproj", "src/Acorn.Shared/"]
 COPY ["src/Acorn.Database/Acorn.Database.csproj", "src/Acorn.Database/"]
 RUN dotnet restore "src/Acorn/Acorn.csproj"
 
 # Copy remaining source files
 COPY src/Acorn/ src/Acorn/
+COPY src/Acorn.Plugins/ src/Acorn.Plugins/
 COPY src/Acorn.Shared/ src/Acorn.Shared/
 COPY src/Acorn.Database/ src/Acorn.Database/
 

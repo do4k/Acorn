@@ -1,0 +1,7 @@
+{
+  "id": "hello-acorn",
+  "name": "Hello Acorn",
+  "version": "1.0.0",
+  "entryAssembly": "HelloAcorn.dll",
+  "contractVersion": 1
+}
